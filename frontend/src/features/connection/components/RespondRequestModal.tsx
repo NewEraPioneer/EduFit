@@ -6,7 +6,9 @@ import { connectionApi } from "../api/connectionApi";
 import type { TutorInboxItem } from "../types";
 import { respondRequestSchema } from "../schemas/connectionSchemas";
 import { ApiError } from "@/lib/api";
-import { formatGoalType, formatDeadline } from "./StudentPedagogicalProfileModal";
+import { inboxNeedDetails, inboxNeedPlace, inboxNeedTitle } from "./StudentPedagogicalProfileModal";
+import { FitChecks } from "@/features/discovery/components/FitChecks";
+import { formatMoney } from "@/features/learning-needs/catalogRules";
 
 export interface RespondRequestModalProps {
   request: TutorInboxItem | null;
@@ -88,12 +90,12 @@ export function RespondRequestModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 my-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-3">
@@ -122,7 +124,7 @@ export function RespondRequestModal({
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
                   {request.studentDisplayName || "Học sinh"}
                 </span>{" "}
-                • Môn: {request.subjectName || "Chưa xác định"}
+                • Môn: {request.need.subjectName || "Chưa xác định"}
               </p>
             </div>
           </div>
@@ -138,43 +140,25 @@ export function RespondRequestModal({
 
         {/* Body Form */}
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          {/* Pedagogical Summary Card */}
+          {/* Tóm tắt nhu cầu học */}
           <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-800/40 text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-neutral-700 dark:text-zinc-200">
-                Mục tiêu học tập:
-              </span>
-              <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200 dark:bg-indigo-950 dark:border-indigo-800 dark:text-indigo-300">
-                {formatGoalType(request.goalType)}
-              </span>
+            <p className="font-semibold text-neutral-800 dark:text-zinc-100 break-words">{inboxNeedTitle(request.need)}</p>
+            {inboxNeedDetails(request.need).length > 0 && (
+              <p className="text-neutral-600 dark:text-zinc-300 break-words">{inboxNeedDetails(request.need).join(" · ")}</p>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-neutral-500 dark:text-zinc-400">Hình thức:</span>
+              <span className="font-semibold text-neutral-800 dark:text-zinc-100 break-words">{inboxNeedPlace(request.need)}</span>
             </div>
-            {(request.currentLevel != null || request.desiredLevel != null || request.currentGrade || request.targetScore) && (
-              <div className="flex items-center justify-between">
-                <span className="text-neutral-500 dark:text-zinc-400">Lộ trình năng lực:</span>
+            {request.need.budgetMaxPerSession != null && (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-neutral-500 dark:text-zinc-400">Ngân sách tối đa:</span>
                 <span className="font-semibold text-neutral-800 dark:text-zinc-100">
-                  {request.currentLevel != null ? `Cấp độ ${request.currentLevel}` : request.currentGrade || "Chưa rõ"}
-                  {" → "}
-                  {request.desiredLevel != null ? `Cấp độ ${request.desiredLevel}` : request.targetScore || "Chưa rõ"}
+                  {formatMoney(request.need.budgetMaxPerSession)}/buổi
                 </span>
               </div>
             )}
-            {request.deadline && (
-              <div className="flex items-center justify-between">
-                <span className="text-neutral-500 dark:text-zinc-400">Hạn chót mục tiêu:</span>
-                <span className="font-semibold text-neutral-800 dark:text-zinc-100">
-                  {formatDeadline(request.deadline)}
-                </span>
-              </div>
-            )}
-            {request.budgetMax && (
-              <div className="flex items-center justify-between">
-                <span className="text-neutral-500 dark:text-zinc-400">Ngân sách:</span>
-                <span className="font-semibold text-neutral-800 dark:text-zinc-100">
-                  {request.budgetMin ? `${request.budgetMin.toLocaleString("vi-VN")} - ` : ""}
-                  {request.budgetMax.toLocaleString("vi-VN")} đ/buổi
-                </span>
-              </div>
-            )}
+            {request.fitChecks.length > 0 && <FitChecks checks={request.fitChecks} />}
           </div>
 
           {/* Slot conflict warning banner if approving */}

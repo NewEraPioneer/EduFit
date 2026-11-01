@@ -214,10 +214,11 @@ export function ScheduleTimelineView({
                   const classNameFormatted = getClassName(session.classId);
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={session.sessionId}
                       onClick={() => onSelectSession(session.sessionId)}
-                      className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-5 shadow-2xs hover:shadow-md transition-all cursor-pointer dark:bg-zinc-900 ${
+                      className={`group relative flex flex-col justify-between w-full text-left rounded-2xl border bg-white p-5 shadow-2xs hover:shadow-md transition-all cursor-pointer dark:bg-zinc-900 ${
                         activeTab === "active"
                           ? "border-stone-200 hover:border-sky-300 dark:border-zinc-800"
                           : "border-rose-100 bg-rose-50/20 hover:border-rose-300 dark:border-rose-950/40"
@@ -272,7 +273,7 @@ export function ScheduleTimelineView({
                         <span>Xem chi tiết / Thao tác</span>
                         <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

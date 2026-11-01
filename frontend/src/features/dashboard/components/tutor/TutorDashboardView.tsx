@@ -13,6 +13,7 @@ import { TutorPendingRequests, PendingRequestItem } from "./TutorPendingRequests
 import { TutorQuickActions } from "./TutorQuickActions";
 import { OnboardingGuideBanner } from "@/shared/ui/OnboardingGuideBanner";
 import { connectionApi } from "@/features/connection/api/connectionApi";
+import { inboxNeedTitle } from "@/features/connection/components/StudentPedagogicalProfileModal";
 import { schedulingApi } from "@/features/scheduling";
 import type { TutoringClass } from "@/features/connection/types";
 import type { CalendarItem } from "@/features/scheduling/types";
@@ -80,9 +81,13 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
         const requests = requestsRes.status === "fulfilled" ? requestsRes.value || [] : [];
         const mappedRequests: PendingRequestItem[] = requests.map((r) => ({
           name: r.studentDisplayName || "Học sinh",
-          subject: `${r.subjectName || "Môn học kèm"}${r.educationLevelName ? ` · ${r.educationLevelName}` : ""}`,
+          subject: inboxNeedTitle(r.need),
           note: r.message || "",
-          match: r.hasSlotConflict ? "Trùng lịch" : "Phù hợp",
+          match: r.hasSlotConflict
+            ? "Trùng lịch"
+            : r.fitChecks.every((check) => check.matched)
+              ? "Phù hợp"
+              : `${r.fitChecks.filter((check) => !check.matched).length} điểm chưa khớp`,
         }));
         setPendingRequests(mappedRequests);
 
@@ -153,15 +158,15 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
   const reviewCount = profile?.reviewCount || 0;
 
   const hasConfiguredTeachingProfile = Boolean(
-    profile && profile.subjects.length > 0 && profile.availabilitySlots.length > 0
+    profile && profile.offerings.length > 0 && profile.availabilitySlots.length > 0
   );
 
   const isProfileVerified = profile?.status === "VERIFIED" || Boolean(profile?.verifiedAt);
 
   const onboardingSteps = [
     {
-      title: "Thiết lập môn dạy & Lịch rảnh",
-      description: "Khai báo mức học phí và các khung giờ bạn sẵn sàng nhận lớp trong tuần.",
+      title: "Thiết lập gói dạy & Lịch rảnh",
+      description: "Khai báo môn, lớp, mục tiêu, học phí từng gói và các khung giờ bạn sẵn sàng nhận lớp.",
       href: "/tutor/profile",
       actionText: "Cài đặt ngay",
       completed: hasConfiguredTeachingProfile,

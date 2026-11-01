@@ -2,7 +2,7 @@ import { apiClient } from "@/lib/api";
 
 export interface StudentLink { linkId: string; studentId: string; status: string }
 export interface ConnectionRequest {
-  requestId: string; studentId: string; tutorId: string; goalId: string;
+  requestId: string; studentId: string; tutorId: string; needId: string;
   status: string; createdAt: string; expiresAt: string;
 }
 export const connectionService = {
@@ -15,7 +15,7 @@ export const connectionService = {
     const res = await apiClient.get<ConnectionRequest[]>(`/api/v1/connections/requests${query}`);
     return res.data || [];
   },
-  async send(payload: { goalId: string; tutorId: string; desiredSlots: string[]; message?: string }) {
+  async send(payload: { needId: string; tutorId: string; desiredSlots: string[]; message?: string }) {
     const res = await apiClient.post<ConnectionRequest>("/api/v1/connections/requests", payload);
     return res.data as ConnectionRequest;
   },

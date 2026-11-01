@@ -76,9 +76,7 @@ class LearningPlanServiceTest {
     when(actor.hasRole("TUTOR")).thenReturn(true);
     when(actor.getUserId()).thenReturn(tutorUserId);
 
-    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(
-        classId, studentId, tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null
-    );
+    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(classId, studentId, tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null, 200000L);
     when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(cls));
     when(profileFacade.getTutorIdByUserId(tutorUserId)).thenReturn(tutorId);
     when(planRepository.existsByClassId(classId)).thenReturn(false);
@@ -118,9 +116,7 @@ class LearningPlanServiceTest {
     when(actor.hasRole("TUTOR")).thenReturn(true);
     when(actor.getUserId()).thenReturn(userId);
 
-    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(
-        classId, UUID.randomUUID(), tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null
-    );
+    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(classId, UUID.randomUUID(), tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null, 200000L);
     when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(cls));
     when(profileFacade.getTutorIdByUserId(userId)).thenReturn(anotherTutorId);
 
@@ -143,9 +139,7 @@ class LearningPlanServiceTest {
     when(actor.hasRole("TUTOR")).thenReturn(true);
     when(actor.getUserId()).thenReturn(userId);
 
-    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(
-        classId, UUID.randomUUID(), tutorId, UUID.randomUUID(), "COMPLETED", fixedInstant, null
-    );
+    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(classId, UUID.randomUUID(), tutorId, UUID.randomUUID(), "COMPLETED", fixedInstant, null, 200000L);
     when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(cls));
     when(profileFacade.getTutorIdByUserId(userId)).thenReturn(tutorId);
 
@@ -175,9 +169,7 @@ class LearningPlanServiceTest {
     );
     when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
 
-    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(
-        classId, UUID.randomUUID(), tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null
-    );
+    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(classId, UUID.randomUUID(), tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null, 200000L);
     when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(cls));
     when(profileFacade.getTutorIdByUserId(userId)).thenReturn(tutorId);
 
@@ -221,9 +213,7 @@ class LearningPlanServiceTest {
     );
     when(planRepository.findByMilestoneId(milestoneId)).thenReturn(Optional.of(plan));
 
-    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(
-        classId, studentId, tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null
-    );
+    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(classId, studentId, tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null, 200000L);
     when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(cls));
     when(profileFacade.getTutorIdByUserId(tutorUserId)).thenReturn(tutorId);
     when(planRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));

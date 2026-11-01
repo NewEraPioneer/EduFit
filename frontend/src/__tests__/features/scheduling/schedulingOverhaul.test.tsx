@@ -270,7 +270,7 @@ describe("Scheduling Overhaul Implementation Tests", () => {
       vi.spyOn(connectionApi, "getStudentClasses").mockResolvedValue([
         {
           classId: "class-1",
-          goalId: "goal-1",
+          needId: "need-1",
           tutorId: "tutor-1",
           studentId: "student-alpha",
           studentDisplayName: "Nguyễn Văn Alpha",
@@ -281,7 +281,7 @@ describe("Scheduling Overhaul Implementation Tests", () => {
         },
         {
           classId: "class-2",
-          goalId: "goal-2",
+          needId: "need-2",
           tutorId: "tutor-2",
           studentId: "student-beta",
           studentDisplayName: "Nguyễn Thị Beta",

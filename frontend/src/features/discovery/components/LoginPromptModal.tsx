@@ -47,11 +47,11 @@ export function LoginPromptModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="login-prompt-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200 my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

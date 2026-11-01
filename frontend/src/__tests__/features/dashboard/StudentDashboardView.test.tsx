@@ -5,6 +5,7 @@ import { StudentDashboardView } from "@/features/dashboard/components/student/St
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import { schedulingApi } from "@/features/scheduling";
 import { profileService } from "@/services/profile";
+import { learningNeedService } from "@/services/learningNeeds";
 import { progressApi } from "@/features/progress";
 import type { TutoringClass } from "@/features/connection/types";
 import type { CalendarItem } from "@/features/scheduling/types";
@@ -21,7 +22,7 @@ describe("StudentDashboardView Component", () => {
       classId: "cls-1",
       studentId: "stu-1",
       tutorId: "tut-1",
-      goalId: "goal-1",
+      needId: "need-1",
       status: "ACTIVE",
       tutorDisplayName: "Thầy Hưng",
       subjectName: "Toán hình học",
@@ -98,8 +99,8 @@ describe("StudentDashboardView Component", () => {
       profileComplete: true,
       educationLevelName: "Lớp 9",
     } as any);
-    vi.spyOn(profileService, "getMyLearningGoals").mockResolvedValue([
-      { goalId: "goal-1", subjectName: "Toán", goalType: "EXAM_PREPARATION", mode: "ONLINE", status: "ACTIVE" },
+    vi.spyOn(learningNeedService, "list").mockResolvedValue([
+      { needId: "need-1", subjectName: "Toán", mode: "ONLINE", status: "ACTIVE" },
     ] as any);
     vi.spyOn(connectionApi, "getStudentClasses").mockResolvedValue(mockClasses);
     vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({ success: true, data: [] });
@@ -109,7 +110,7 @@ describe("StudentDashboardView Component", () => {
         studentId: "stu-1",
         studentName: "Nguyễn Minh Anh",
         classes: [],
-        goalId: "goal-1",
+        needId: "need-1",
         progressPercentage: 50,
         plan: {
           planId: "plan-1",

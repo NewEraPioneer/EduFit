@@ -239,7 +239,7 @@ public class ArchitectureBoundaryTest {
   @ArchTest
   static void production_import_contains_expected_layers(JavaClasses imported) {
     for (String name : new String[] {
-        "vn.edufit.discovery.domain.policy.MatchScorer",
+        "vn.edufit.discovery.application.matching.MatchScorer",
         "vn.edufit.discovery.application.service.TutorMatchingService",
         "vn.edufit.discovery.application.service.DiscoveryFacadeImpl",
         "vn.edufit.discovery.api.DiscoveryFacade",

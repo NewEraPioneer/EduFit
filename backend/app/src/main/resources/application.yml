@@ -82,6 +82,17 @@ edufit:
   discovery:
     matching:
       candidate-limit: ${DISCOVERY_MATCHING_CANDIDATE_LIMIT:200}
+      # Số gia sư tối đa sau lọc cứng ở Discovery trước khi xếp hạng và phân trang trong bộ nhớ
+      search-limit: ${DISCOVERY_SEARCH_LIMIT:500}
+      # Trọng số lọc mềm (tổng 100); tiêu chí không áp dụng cho nhu cầu được chia lại cho tiêu chí còn lại
+      weights:
+        level: 15
+        goal: 20
+        schedule: 20
+        textbook: 10
+        budget: 10
+        location: 10
+        rating: 15
   ai:
     provider: ${AI_PROVIDER:gemini} # 'stub' cho offline/test, 'gemini' cho gọi thật
     timeout: 15s                 # NFR-10: khống chế timeout 15 giây

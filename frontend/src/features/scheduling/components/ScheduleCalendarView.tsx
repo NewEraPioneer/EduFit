@@ -541,18 +541,24 @@ export function ScheduleCalendarView({
                       return (
                         <div
                           key={`${day.label}-${hour}`}
-                          onClick={() => !isCellBusy && handleCellClick(day.date, hour)}
                           className={`relative border-r border-stone-100 p-1 last:border-r-0 transition-colors group ${
                             hasExplicitAvailability && available ? "bg-emerald-50/40" : "bg-white"
-                          } ${!isCellBusy ? "hover:bg-sky-50/30 cursor-pointer" : "cursor-default"}`}
+                          } ${!isCellBusy ? "hover:bg-sky-50/30" : ""}`}
                           title={
-                            !isCellBusy
-                              ? `Bấm để đề xuất lịch lúc ${String(hour).padStart(2, "0")}:00 ${day.label}`
-                              : continuationSessions.length > 0
+                            continuationSessions.length > 0
                               ? `Khung giờ đang có ca học tiếp nối (${formatVnSessionTime(continuationSessions[0].startAt, continuationSessions[0].endAt)})`
                               : undefined
                           }
                         >
+                          {!isCellBusy && (
+                            <button
+                              type="button"
+                              onClick={() => handleCellClick(day.date, hour)}
+                              className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-sky-500 focus-visible:-outline-offset-2"
+                              aria-label={`Đề xuất lịch lúc ${String(hour).padStart(2, "0")}:00 ${day.label}`}
+                              title={`Bấm để đề xuất lịch lúc ${String(hour).padStart(2, "0")}:00 ${day.label}`}
+                            />
+                          )}
                           {/* If availability slot */}
                           {hasExplicitAvailability && available && !isCellBusy && (
                             <div className="absolute inset-1 pointer-events-none flex items-center justify-center opacity-60">
@@ -611,10 +617,11 @@ export function ScheduleCalendarView({
 
                           {/* Continuation slots for non-hour durations (90m/150m) */}
                           {continuationSessions.map((s) => (
-                            <div
+                            <button
+                              type="button"
                               key={`cont-${s.sessionId}`}
                               onClick={(e) => handleSessionClick(e, s.sessionId)}
-                              className="w-full rounded-xl border border-dashed border-sky-300 bg-sky-50/70 p-1.5 text-left text-[10px] font-bold text-sky-900 shadow-2xs transition-all cursor-pointer hover:bg-sky-100/80"
+                              className="block w-full rounded-xl border border-dashed border-sky-300 bg-sky-50/70 p-1.5 text-left text-[10px] font-bold text-sky-900 shadow-2xs transition-all cursor-pointer hover:bg-sky-100/80"
                               title={`Ca học tiếp nối (${formatVnSessionTime(s.startAt, s.endAt)})`}
                             >
                               <div className="flex items-center justify-between">
@@ -634,7 +641,7 @@ export function ScheduleCalendarView({
                               <div className="truncate text-[9px] font-semibold text-sky-600 mt-0.5">
                                 Khóa giờ: Đến {formatVnTime(s.endAt)}
                               </div>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       );

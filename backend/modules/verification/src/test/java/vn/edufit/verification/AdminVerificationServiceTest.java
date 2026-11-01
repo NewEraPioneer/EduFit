@@ -121,17 +121,14 @@ class AdminVerificationServiceTest {
     UUID tutorUserId = UUID.randomUUID();
     VerificationRequest req = VerificationRequest.pending(tutorId, Instant.now());
     req.approve(adminId, Instant.now());
-    Credential cred = Credential.create(Credential.Type.DEGREE, "Đại học Sư Phạm Hà Nội", (short) 2023, "Toán học");
+    Credential cred = Credential.create(Credential.Type.DEGREE, "Đại học Sư Phạm Hà Nội", (short) 2023, "Toán học", null);
     req.addCredential(cred);
 
     Page<VerificationRequest> page = new PageImpl<>(List.of(req));
     when(verificationRequestRepository.findByStatus(eq(VerificationRequest.Status.APPROVED), any(Pageable.class)))
         .thenReturn(page);
 
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorId, tutorUserId, "Nguyễn Văn A", "Giáo viên Toán giỏi", null, "ONLINE", "Hà Nội",
-        200_000L, (short) 5, null, "VERIFIED", Instant.now(), null, 0
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorId, tutorUserId, "Nguyễn Văn A", "Giáo viên Toán giỏi", null, "ONLINE", null, false, null, "Hà Nội", (short) 5, null, "VERIFIED", Instant.now(), null, 0);
     when(profileFacade.findTutorById(tutorId)).thenReturn(Optional.of(tutorDto));
 
     UserSummaryView userSummary = new UserSummaryView(
@@ -191,7 +188,7 @@ class AdminVerificationServiceTest {
 
     ReviewVerificationRequest reviewRequest = new ReviewVerificationRequest(
         ReviewVerificationRequest.Action.APPROVE,
-        null
+        null, null
     );
 
     VerificationRequestDetailResponse response = adminVerificationService.review(
@@ -218,7 +215,7 @@ class AdminVerificationServiceTest {
 
     ReviewVerificationRequest reviewRequest = new ReviewVerificationRequest(
         ReviewVerificationRequest.Action.REJECT,
-        "Ảnh chụp văn bằng bị mờ, không rõ con dấu"
+        "Ảnh chụp văn bằng bị mờ, không rõ con dấu", null
     );
 
     VerificationRequestDetailResponse response = adminVerificationService.review(
@@ -248,7 +245,7 @@ class AdminVerificationServiceTest {
 
     ReviewVerificationRequest reviewRequest = new ReviewVerificationRequest(
         ReviewVerificationRequest.Action.REJECT,
-        "Chứng chỉ bổ sung này đã hết hạn"
+        "Chứng chỉ bổ sung này đã hết hạn", null
     );
 
     VerificationRequestDetailResponse response = adminVerificationService.review(

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.UUID;
 import vn.edufit.verification.infra.persistence.entity.Credential;
 
 public record SubmitVerificationRequest(
@@ -32,7 +33,10 @@ public record SubmitVerificationRequest(
       String note,
 
       @NotEmpty(message = "Mỗi bằng cấp cần ít nhất một file đính kèm")
-      List<Integer> fileIndexes
+      List<Integer> fileIndexes,
+
+      /** Gói dạy được chứng minh bởi giấy tờ này (tùy chọn, cho mục tiêu premium). */
+      UUID offeringId
   ) {
   }
 }

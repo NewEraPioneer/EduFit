@@ -22,7 +22,9 @@ import vn.edufit.iam.api.IamFacade;
 import vn.edufit.iam.api.AccountRole;
 import vn.edufit.iam.api.AccountStatus;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
+import vn.edufit.profile.api.dto.LearningNeedView;
+import vn.edufit.profile.api.dto.TutorOfferingDto;
+import vn.edufit.profile.api.fit.NeedFitEvaluator;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.notification.NotificationSink;
@@ -103,45 +105,47 @@ public class ConnectionRequestService {
   }
 
   @Transactional
-  public TransitionResult<ConnectionRequestResult> request(CurrentUser actor, UUID goalId, UUID tutorId,
+  public TransitionResult<ConnectionRequestResult> request(CurrentUser actor, UUID needId, UUID tutorId,
       List<String> desiredSlots, String message) {
     requireRole(actor, "STUDENT", "PARENT");
     requireActiveActor(actor);
-    ConnectionGoalDto goal = profile.findGoalForConnection(goalId)
-        .orElseThrow(() -> EntityNotFoundException.of("LearningGoal", goalId));
-    lock.lockStudent(goal.studentId());
-    requireStudentAccess(actor, goal.studentId());
-    if (!goalId.equals(goal.goalId()) || profile.findStudentById(goal.studentId())
-        .filter(student -> goal.studentId().equals(student.studentId()) && goal.studentUserId().equals(student.userId())).isEmpty())
-      throw new InvalidOperationException("Tài khoản sở hữu mục tiêu không còn hợp lệ");
-    if (!"ACTIVE".equals(goal.status())) throw new InvalidOperationException("Mục tiêu không còn hoạt động");
+    LearningNeedView need = profile.findLearningNeed(needId)
+        .orElseThrow(() -> EntityNotFoundException.of("LearningNeed", needId));
+    lock.lockStudent(need.studentId());
+    requireStudentAccess(actor, need.studentId());
+    if (profile.findStudentById(need.studentId())
+        .filter(student -> need.studentId().equals(student.studentId()) && need.studentUserId().equals(student.userId())).isEmpty())
+      throw new InvalidOperationException("Tài khoản sở hữu nhu cầu học không còn hợp lệ");
+    if (!need.readyForMatching())
+      throw new InvalidOperationException("Nhu cầu học cần đủ thông tin trước khi gửi yêu cầu kết nối");
     input.validate(desiredSlots, message);
     TutorSummaryDto tutor = profile.findTutorById(tutorId)
         .orElseThrow(() -> EntityNotFoundException.of("Tutor", tutorId));
+    // Chỉ chặn theo điều kiện tư cách (đã xác minh, có dạy môn); lệch tiêu chí khác vẫn cho gửi kèm cảnh báo
     if (!tutorId.equals(tutor.tutorId()) || !"VERIFIED".equals(tutor.status())
         || iam.findUserSummaryById(tutor.userId()).filter(user -> tutor.userId().equals(user.id())
-            && user.role() == AccountRole.TUTOR && user.status() == AccountStatus.ACTIVE).isEmpty()
-        || !profile.tutorTeaches(tutorId,
-        goal.subjectId(), goal.educationLevelId()))
-      throw new InvalidOperationException("Gia sư không phù hợp mục tiêu");
+            && user.role() == AccountRole.TUTOR && user.status() == AccountStatus.ACTIVE).isEmpty())
+      throw new InvalidOperationException("Gia sư chưa được xác minh hoặc không còn hoạt động");
+    if (NeedFitEvaluator.bestOffering(need, profile.findTutorOfferings(tutorId)).isEmpty())
+      throw new InvalidOperationException("Gia sư không dạy môn " + need.subjectName());
     Instant now = clock.instant();
-    for (ConnectionRequest r : requests.findByStudentIdAndStatus(goal.studentId(), "PENDING")) {
+    for (ConnectionRequest r : requests.findByStudentIdAndStatus(need.studentId(), "PENDING")) {
       if (ConnectionTransitions.isDue(r.getExpiresAt(), now)) {
         expiryService.expireRequest(r.getId(), now);
       }
     }
     requests.flush();
-    if (requests.existsByStudentIdAndTutorIdAndGoalIdAndStatus(goal.studentId(), tutorId, goalId, "PENDING"))
-      return TransitionResult.conflict("PENDING", "Đã có yêu cầu chờ gia sư này cho mục tiêu này");
-    if (requests.countByStudentIdAndStatus(goal.studentId(), "PENDING") >= 5)
+    if (requests.existsByStudentIdAndTutorIdAndNeedIdAndStatus(need.studentId(), tutorId, needId, "PENDING"))
+      return TransitionResult.conflict("PENDING", "Đã có yêu cầu chờ gia sư này cho nhu cầu học này");
+    if (requests.countByStudentIdAndStatus(need.studentId(), "PENDING") >= 5)
       return TransitionResult.conflict("PENDING", "Đã đạt giới hạn 5 yêu cầu chờ");
-    if (classes.existsByStudentIdAndTutorIdAndGoalIdAndStatus(goal.studentId(), tutorId, goalId, "ACTIVE"))
-      return TransitionResult.conflict("ACTIVE", "Đã có lớp đang hoạt động cho mục tiêu này");
-    ConnectionRequest created = requests.save(new ConnectionRequest(goal.studentId(), tutorId, goalId,
+    if (classes.existsByStudentIdAndTutorIdAndNeedIdAndStatus(need.studentId(), tutorId, needId, "ACTIVE"))
+      return TransitionResult.conflict("ACTIVE", "Đã có lớp đang hoạt động cho nhu cầu học này");
+    ConnectionRequest created = requests.save(new ConnectionRequest(need.studentId(), tutorId, needId,
         actor.getUserId(), desiredSlots, message, now));
     events.publishEvent(new ConnectionRequestChangedEvent(UUID.randomUUID(), created.getId(),
-        actor.getUserId(), goal.studentId(), null, "PENDING", now,
-        actor.getUserId(), goal.studentUserId(), tutor.userId(), null));
+        actor.getUserId(), need.studentId(), null, "PENDING", now,
+        actor.getUserId(), need.studentUserId(), tutor.userId(), null));
     return TransitionResult.success(ConnectionRequestResult.from(created));
   }
 
@@ -213,15 +217,16 @@ public class ConnectionRequestService {
       return TransitionResult.success(null);
     }
 
-    if (classes.existsByStudentIdAndTutorIdAndGoalIdAndStatus(request.getStudentId(), tutorId, request.getGoalId(), "ACTIVE"))
-      return TransitionResult.conflict("ACTIVE", "Đã có lớp đang hoạt động cho mục tiêu này");
+    if (classes.existsByStudentIdAndTutorIdAndNeedIdAndStatus(request.getStudentId(), tutorId, request.getNeedId(), "ACTIVE"))
+      return TransitionResult.conflict("ACTIVE", "Đã có lớp đang hoạt động cho nhu cầu học này");
 
-    ConnectionGoalDto goal = profile.findGoalForConnection(request.getGoalId())
-        .orElseThrow(() -> new InvalidOperationException("Mục tiêu không còn hợp lệ"));
-    if (!request.getStudentId().equals(goal.studentId())
-        || !"ACTIVE".equals(goal.status())
-        || !profile.tutorTeaches(tutorId, goal.subjectId(), goal.educationLevelId()))
-      throw new InvalidOperationException("Mục tiêu hoặc chuyên môn gia sư đã thay đổi");
+    LearningNeedView need = profile.findLearningNeed(request.getNeedId())
+        .orElseThrow(() -> new InvalidOperationException("Nhu cầu học không còn hợp lệ"));
+    if (!request.getStudentId().equals(need.studentId()) || !need.readyForMatching())
+      throw new InvalidOperationException("Nhu cầu học đã được lưu trữ hoặc thay đổi");
+    // Học phí lớp được chốt theo gói dạy phù hợp nhất tại thời điểm nhận yêu cầu
+    TutorOfferingDto offering = NeedFitEvaluator.bestOffering(need, profile.findTutorOfferings(tutorId))
+        .orElseThrow(() -> new InvalidOperationException("Bạn không còn gói dạy môn " + need.subjectName()));
 
     // Gatekeeper Dual Source Conflict Check
     if (request.getDesiredSlots() != null && !request.getDesiredSlots().isEmpty()) {
@@ -253,12 +258,12 @@ public class ConnectionRequestService {
 
     request.accept(now);
     requests.flush();
-    TutoringClass created = classes.save(new TutoringClass(request, now));
+    TutoringClass created = classes.save(new TutoringClass(request, offering.pricePerSession(), now));
     events.publishEvent(new ConnectionRequestChangedEvent(UUID.randomUUID(), id, actor.getUserId(),
         request.getStudentId(), "PENDING", "ACCEPTED", now, request.getSentByUserId(),
         studentUserId, actor.getUserId(), created.getId()));
     events.publishEvent(new TutoringClassCreatedEvent(UUID.randomUUID(), created.getId(), actor.getUserId(),
-        request.getStudentId(), null, "ACTIVE", now, id, tutorId, request.getGoalId()));
+        request.getStudentId(), null, "ACTIVE", now, id, tutorId, request.getNeedId()));
     return TransitionResult.success(ClassResult.from(created));
   }
 
@@ -322,7 +327,7 @@ public class ConnectionRequestService {
         tutoringClass.getId(),
         tutoringClass.getStudentId(),
         tutoringClass.getTutorId(),
-        tutoringClass.getGoalId(),
+        tutoringClass.getNeedId(),
         tutoringClass.getStatus(),
         null,
         null,

@@ -5,10 +5,15 @@ import {
   profileService,
   TutorProfileData,
   TutorAvailabilitySlot,
+  TutorType,
   UpdateTutorProfilePayload,
 } from "@/services/profile";
-import { catalogService, SubjectItem, EducationLevel } from "@/services/catalog";
+import { ApiError } from "@/lib/api";
+import { useLearningCatalog } from "@/features/learning-needs/hooks/useLearningCatalog";
+import { TUTOR_TYPE_LABELS, districtsOf } from "@/features/learning-needs/catalogRules";
+import { offeringName } from "@/features/discovery/utils/tutorDisplay";
 import { AvailabilitySlotPicker } from "./AvailabilitySlotPicker";
+import { TutorOfferingManager } from "./TutorOfferingManager";
 import {
   normalizeAvailabilityTime,
   sortAvailabilitySlots,
@@ -17,11 +22,7 @@ import {
 import { useToast } from "@/shared/ui/Toast";
 import {
   User,
-  DollarSign,
-  BookOpen,
   MapPin,
-  Plus,
-  Trash2,
   Save,
   Loader2,
   Briefcase,
@@ -30,16 +31,10 @@ import {
 import { AiBioAssistantModal } from "./AiBioAssistantModal";
 
 /**
- * =========================================================================
- * SPRING BOOT API INTEGRATION:
- * =========================================================================
- * - Read: GET /api/v1/profiles/tutors/me (ProfileController#getMyTutorProfile)
- * - Update: PUT /api/v1/profiles/tutors/me (ProfileController#updateMyTutorProfile)
- *   Payload: UpdateTutorProfileRequest { displayName, headline, bio, teachingMode, area, pricePerSession, experienceYears, teachingMethod }
- * - Add Subject: POST /api/v1/profiles/tutors/me/subjects (ProfileController#addTutorSubject)
- * - Remove Subject: DELETE /api/v1/profiles/tutors/me/subjects (ProfileController#removeTutorSubject)
- * - Update Availability: PUT /api/v1/profiles/tutors/me/availability-slots (ProfileController#setAvailabilitySlots)
- * =========================================================================
+ * Hồ sơ gia sư: thông tin chung, loại gia sư, nơi dạy trực tiếp (Tỉnh/thành → Khu vực),
+ * gói dạy (môn, lớp, mục tiêu, học phí riêng) và lịch rảnh.
+ * - PUT /api/v1/profiles/tutors/me, /availability-slots
+ * - POST/PUT/DELETE /api/v1/profiles/tutors/me/offerings
  */
 
 interface TutorProfileFormProps {
@@ -54,9 +49,8 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
   const [saving, setSaving] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
 
-  // Catalogs
-  const [subjectsCatalog, setSubjectsCatalog] = useState<SubjectItem[]>([]);
-  const [levelsCatalog, setLevelsCatalog] = useState<EducationLevel[]>([]);
+  const { catalog } = useLearningCatalog();
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Tutor Profile Form State
   const [profile, setProfile] = useState<TutorProfileData | null>(initialProfile || null);
@@ -66,10 +60,9 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
   const [teachingMode, setTeachingMode] = useState<"ONLINE" | "OFFLINE" | "BOTH">(
     initialProfile?.teachingMode || "ONLINE"
   );
-  const [area, setArea] = useState(initialProfile?.area || "");
-  const [pricePerSession, setPricePerSession] = useState<number>(
-    initialProfile?.pricePerSession || 200000
-  );
+  const [tutorType, setTutorType] = useState<TutorType | null>(initialProfile?.tutorType ?? null);
+  const [provinceId, setProvinceId] = useState<number | null>(initialProfile?.provinceId ?? null);
+  const [districtIds, setDistrictIds] = useState<number[]>(initialProfile?.districts.map((d) => d.id) ?? []);
   const [experienceYears, setExperienceYears] = useState<number>(
     initialProfile?.experienceYears || 1
   );
@@ -80,24 +73,13 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
     initialProfile?.availabilitySlots || []
   );
 
-  // New Subject Selector State
-  const [newSubjectId, setNewSubjectId] = useState<number | "">("");
-  const [newLevelId, setNewLevelId] = useState<number | "">("");
-  const [addingSubject, setAddingSubject] = useState(false);
-
   // Tải dữ liệu ban đầu
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const [subjects, levels, currentProfile] = await Promise.all([
-          catalogService.getSubjects(),
-          catalogService.getEducationLevels(),
-          initialProfile ? Promise.resolve(initialProfile) : profileService.getMyTutorProfile().catch(() => null),
-        ]);
-
-        setSubjectsCatalog(subjects);
-        setLevelsCatalog(levels);
+        const currentProfile = initialProfile
+          ?? await profileService.getMyTutorProfile().catch(() => null);
 
         if (currentProfile) {
           setProfile(currentProfile);
@@ -105,8 +87,9 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
           setHeadline(currentProfile.headline || "");
           setBio(currentProfile.bio || "");
           setTeachingMode(currentProfile.teachingMode || "ONLINE");
-          setArea(currentProfile.area || "");
-          setPricePerSession(currentProfile.pricePerSession || 200000);
+          setTutorType(currentProfile.tutorType ?? null);
+          setProvinceId(currentProfile.provinceId ?? null);
+          setDistrictIds(currentProfile.districts.map((d) => d.id));
           setExperienceYears(currentProfile.experienceYears || 1);
           setTeachingMethod(currentProfile.teachingMethod || "");
           setAvailabilitySlots(currentProfile.availabilitySlots || []);
@@ -132,15 +115,18 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
     }
 
     setSaving(true);
+    setErrors({});
 
     try {
+      const inPerson = teachingMode !== "ONLINE";
       const payload: UpdateTutorProfilePayload = {
         displayName: displayName.trim(),
         headline: headline.trim() || undefined,
         bio: bio.trim() || undefined,
         teachingMode,
-        area: area.trim() || undefined,
-        pricePerSession,
+        tutorType,
+        provinceId: inPerson ? provinceId : null,
+        districtIds: inPerson ? districtIds : [],
         experienceYears,
         teachingMethod: teachingMethod.trim() || undefined,
       };
@@ -160,44 +146,13 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
       showToast("Lưu hồ sơ và lịch rảnh gia sư thành công!", "success");
       onSaved?.();
     } catch (err: unknown) {
+      if (err instanceof ApiError && err.details?.length) {
+        setErrors(Object.fromEntries(err.details.map((d) => [d.field, d.message])));
+      }
       const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu hồ sơ gia sư";
       showToast(message, "error");
     } finally {
       setSaving(false);
-    }
-  };
-
-  // Thêm môn học mới
-  const handleAddSubject = async () => {
-    if (!newSubjectId || !newLevelId) {
-      showToast("Vui lòng chọn cả môn học và cấp lớp!", "error");
-      return;
-    }
-
-    setAddingSubject(true);
-    try {
-      const updated = await profileService.addTutorSubject(Number(newSubjectId), Number(newLevelId));
-      setProfile(updated);
-      setNewSubjectId("");
-      setNewLevelId("");
-      showToast("Thêm môn học giảng dạy thành công!", "success");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Không thể thêm môn học";
-      showToast(message, "error");
-    } finally {
-      setAddingSubject(false);
-    }
-  };
-
-  // Xóa môn học
-  const handleRemoveSubject = async (subjectId: number, levelId: number) => {
-    try {
-      const updated = await profileService.removeTutorSubject(subjectId, levelId);
-      setProfile(updated);
-      showToast("Đã xóa môn học khỏi danh sách!", "info");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Không thể xóa môn học";
-      showToast(message, "error");
     }
   };
 
@@ -213,7 +168,7 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
   return (
     <form onSubmit={handleSaveProfile} className="space-y-8">
       {/* 1. Phần Thông Tin Cá Nhân & Học Phí */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-6">
+      <div className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-stone-100">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-sky-50 text-sky-900 rounded-full text-xs font-bold mb-2">
@@ -221,7 +176,7 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
               <span>Hồ Sơ Gia Sư Chuyên Nghiệp</span>
             </div>
             <h3 className="font-heading text-xl font-bold text-neutral-900">
-              Thông tin giảng dạy & Học phí
+              Thông tin giảng dạy
             </h3>
             <p className="text-xs text-neutral-500 mt-0.5">
               Hiển thị trên thẻ gia sư công khai và hồ sơ tìm kiếm của học sinh / phụ huynh
@@ -272,21 +227,25 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Học phí theo buổi (VND / buổi 90 phút) <span className="text-rose-500">*</span>
+            <label htmlFor="tutor-type" className="block text-xs font-bold text-neutral-700 mb-1.5">
+              Bạn là
             </label>
-            <div className="relative">
-              <DollarSign className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="number"
-                min={0}
-                step={10000}
-                required
-                value={pricePerSession}
-                onChange={(e) => setPricePerSession(Number(e.target.value))}
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-bold"
-              />
-            </div>
+            <select
+              id="tutor-type"
+              value={tutorType ?? ""}
+              onChange={(e) => setTutorType((e.target.value || null) as TutorType | null)}
+              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
+            >
+              <option value="">-- Chọn --</option>
+              {(Object.keys(TUTOR_TYPE_LABELS) as TutorType[]).map((type) => (
+                <option key={type} value={type}>{TUTOR_TYPE_LABELS[type]}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-neutral-500">
+              {profile?.tutorTypeVerified
+                ? "Đã được xác minh. Đổi loại gia sư sẽ cần xác minh lại."
+                : "Sẽ được xác minh cùng giấy tờ ở mục Xác minh hồ sơ."}
+            </p>
           </div>
 
           <div>
@@ -318,39 +277,52 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Khu vực hỗ trợ gia sư Offline
-            </label>
-            <div className="relative">
-              <MapPin className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
-                placeholder="VD: Quận Cầu Giấy, Nam Từ Liêm, Hà Nội"
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
-              />
+          {teachingMode !== "ONLINE" && (
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label htmlFor="tutor-province" className="block text-xs font-bold text-neutral-700 mb-1.5">
+                  Tỉnh/thành dạy trực tiếp <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    id="tutor-province"
+                    value={provinceId ?? ""}
+                    onChange={(e) => { setProvinceId(e.target.value ? Number(e.target.value) : null); setDistrictIds([]); }}
+                    className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
+                  >
+                    <option value="">-- Chọn tỉnh/thành --</option>
+                    {catalog?.provinces.map((province) => (
+                      <option key={province.provinceId} value={province.provinceId}>{province.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {errors.provinceId && <p role="alert" className="mt-1 text-xs text-rose-600">{errors.provinceId}</p>}
+              </div>
+              {catalog && districtsOf(catalog, provinceId).length > 0 && (
+                <fieldset>
+                  <legend className="block text-xs font-bold text-neutral-700 mb-1.5">Khu vực nhận dạy (bỏ trống = toàn tỉnh/thành)</legend>
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                    {districtsOf(catalog, provinceId).map((district) => {
+                      const active = districtIds.includes(district.districtId);
+                      return (
+                        <button key={district.districtId} type="button" aria-pressed={active}
+                          onClick={() => setDistrictIds((prev) => active
+                            ? prev.filter((id) => id !== district.districtId)
+                            : [...prev, district.districtId])}
+                          className={`px-2.5 py-1 text-[11px] rounded-lg border transition-colors ${
+                            active ? "bg-sky-100 text-sky-800 font-bold border-sky-300" : "bg-stone-50 border-stone-200 text-neutral-600 hover:bg-stone-100"
+                          }`}>
+                          {district.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {errors.districtIds && <p role="alert" className="mt-1 text-xs text-rose-600">{errors.districtIds}</p>}
+                </fieldset>
+              )}
             </div>
-            {/* Gợi ý tỉnh thành */}
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              <span className="text-[10px] text-neutral-400 font-medium">Gợi ý nhanh:</span>
-              {["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "Bình Dương", "Đồng Nai", "Toàn quốc (Online)"].map((city) => (
-                <button
-                  key={city}
-                  type="button"
-                  onClick={() => setArea(city)}
-                  className={`px-2 py-0.5 text-[10px] rounded-md transition-colors cursor-pointer ${
-                    area === city
-                      ? "bg-sky-100 text-sky-800 font-bold border border-sky-300"
-                      : "bg-stone-100 hover:bg-stone-200 text-neutral-600"
-                  }`}
-                >
-                  {city}
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
 
         <div>
@@ -382,81 +354,9 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
         </div>
       </div>
 
-      {/* 2. Quản Lý Danh Sách Môn Học Giảng Dạy (Tutor Subjects) */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-5">
-        <div className="flex items-center gap-2">
-          <BookOpen className="size-4 text-indigo-600" />
-          <h4 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">
-            Môn học & Khối lớp đảm nhận
-          </h4>
-        </div>
-
-        {/* Bảng môn học hiện có */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {(profile?.subjects || []).map((sub) => (
-            <div
-              key={sub.tutorSubjectId}
-              className="p-3.5 rounded-2xl border border-stone-200/80 bg-stone-50/50 flex items-center justify-between gap-3 group hover:border-indigo-300 transition-colors"
-            >
-              <div>
-                <span className="text-xs font-bold text-neutral-900 block">{sub.subjectName}</span>
-                <span className="text-[11px] text-neutral-500">{sub.educationLevelName}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleRemoveSubject(sub.subjectId, sub.educationLevelId)}
-                className="p-1.5 text-neutral-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                title="Xóa môn học này"
-              >
-                <Trash2 className="size-4" />
-              </button>
-            </div>
-          ))}
-          {(profile?.subjects || []).length === 0 && (
-            <div className="col-span-full py-4 text-center text-xs text-neutral-400 border border-dashed border-stone-200 rounded-2xl">
-              Chưa có môn học nào được đăng ký. Hãy chọn môn bên dưới để thêm.
-            </div>
-          )}
-        </div>
-
-        {/* Thanh thêm môn học mới */}
-        <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row sm:items-center gap-3">
-          <select
-            value={newSubjectId}
-            onChange={(e) => setNewSubjectId(e.target.value ? Number(e.target.value) : "")}
-            className="flex-1 px-3 py-2 text-xs bg-white border border-stone-200 rounded-xl text-neutral-800"
-          >
-            <option value="">-- Chọn môn học --</option>
-            {subjectsCatalog.map((s) => (
-              <option key={s.subjectId} value={s.subjectId}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={newLevelId}
-            onChange={(e) => setNewLevelId(e.target.value ? Number(e.target.value) : "")}
-            className="flex-1 px-3 py-2 text-xs bg-white border border-stone-200 rounded-xl text-neutral-800"
-          >
-            <option value="">-- Chọn cấp học --</option>
-            {levelsCatalog.map((lvl) => (
-              <option key={lvl.levelId} value={lvl.levelId}>
-                {lvl.name}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            onClick={handleAddSubject}
-            disabled={addingSubject}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0 disabled:opacity-50"
-          >
-            {addingSubject ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
-            <span>Thêm môn</span>
-          </button>
-        </div>
+      {/* 2. Gói dạy */}
+      <div className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs">
+        <TutorOfferingManager offerings={profile?.offerings ?? []} onChange={setProfile} />
       </div>
 
       {/* 3. Lịch rảnh định kỳ của gia sư */}
@@ -469,8 +369,8 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
         isOpen={showAiModal}
         onClose={() => setShowAiModal(false)}
         displayName={displayName}
-        subjects={(profile?.subjects || []).map((s) => s.subjectName)}
-        educationLevels={Array.from(new Set((profile?.subjects || []).map((s) => s.educationLevelName)))}
+        subjects={(profile?.offerings ?? []).map((offering) => offeringName(offering))}
+        educationLevels={Array.from(new Set((profile?.offerings ?? []).flatMap((o) => o.levels.map((l) => l.name))))}
         experienceYears={experienceYears}
         currentBio={bio}
         onApplyBio={(newBio) => setBio(newBio)}

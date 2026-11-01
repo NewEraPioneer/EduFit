@@ -21,6 +21,7 @@ import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.InvalidOperationException;
+import vn.edufit.verification.infra.persistence.entity.Credential;
 import vn.edufit.verification.infra.persistence.entity.VerificationRequest;
 import vn.edufit.verification.infra.persistence.repository.VerificationRequestRepository;
 import vn.edufit.verification.web.request.ReviewVerificationRequest;
@@ -140,6 +141,12 @@ public class AdminVerificationService {
       Instant now = Instant.now();
       request.approve(currentUser.getUserId(), now);
       profileFacade.markTutorVerified(request.getTutorId(), now);
+      // Duyệt hồ sơ đồng thời xác nhận loại gia sư và bằng chứng mục tiêu premium gắn với từng gói dạy
+      profileFacade.applyVerificationApproval(request.getTutorId(), reviewRequest.confirmedTutorType(),
+          request.getCredentials().stream()
+              .map(Credential::getOfferingId)
+              .filter(java.util.Objects::nonNull)
+              .collect(java.util.stream.Collectors.toSet()));
     } else {
       if (reviewRequest.reason() == null || reviewRequest.reason().isBlank()) {
         throw new InvalidOperationException(
@@ -205,6 +212,7 @@ public class AdminVerificationService {
 
     // 2. Giáng huy hiệu Profile của gia sư về UNVERIFIED (ẩn khỏi tìm kiếm mới, active classes giữ nguyên)
     profileFacade.markTutorUnverified(request.getTutorId());
+    profileFacade.revokeOfferingEvidence(request.getTutorId());
 
     // 3. Ghi nhận sự kiện vào bảng audit_log
     auditSink.record(new AuditRecord(

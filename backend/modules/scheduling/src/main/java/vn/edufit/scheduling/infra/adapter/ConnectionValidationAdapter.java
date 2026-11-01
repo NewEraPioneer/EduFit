@@ -42,6 +42,6 @@ public class ConnectionValidationAdapter implements ConnectionValidationPort {
   @Override
   public java.util.Optional<ActiveClassInfo> findActiveClassById(UUID classId) {
     return connectionFacade.findActiveClassById(classId)
-        .map(v -> new ActiveClassInfo(v.classId(), v.studentId(), v.tutorId(), v.goalId()));
+        .map(v -> new ActiveClassInfo(v.classId(), v.studentId(), v.tutorId(), v.needId()));
   }
 }

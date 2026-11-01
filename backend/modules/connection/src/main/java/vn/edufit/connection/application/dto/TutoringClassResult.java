@@ -7,7 +7,7 @@ public record TutoringClassResult(
     UUID classId,
     UUID studentId,
     UUID tutorId,
-    UUID goalId,
+    UUID needId,
     String status,
     String studentDisplayName,
     String tutorDisplayName,
@@ -25,7 +25,7 @@ public record TutoringClassResult(
       UUID classId,
       UUID studentId,
       UUID tutorId,
-      UUID goalId,
+      UUID needId,
       String status,
       String studentDisplayName,
       String tutorDisplayName,
@@ -36,7 +36,7 @@ public record TutoringClassResult(
       Instant startedAt,
       Instant endedAt
   ) {
-    this(classId, studentId, tutorId, goalId, status, studentDisplayName, tutorDisplayName,
+    this(classId, studentId, tutorId, needId, status, studentDisplayName, tutorDisplayName,
         subjectName, educationLevelName, scheduleStatus, sessionCount, sessionCount, 0, sessionCount, startedAt, endedAt);
   }
 }

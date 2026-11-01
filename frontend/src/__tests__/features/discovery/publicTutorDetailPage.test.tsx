@@ -6,6 +6,7 @@ import { discoveryApi } from "@/features/discovery/api/discoveryApi";
 import { reviewApi } from "@/features/review/api/reviewApi";
 import * as authContext from "@/context/AuthContext";
 import type { TutorDetail } from "@/features/discovery/types";
+import { makeOffering } from "../../fixtures/learningNeeds";
 import type { TutorRatingSummary, ReviewItem, SpringPage } from "@/features/review/types";
 
 const mockTutorDetail: TutorDetail = {
@@ -15,19 +16,23 @@ const mockTutorDetail: TutorDetail = {
   bio: "Tốt nghiệp Đại học Sư phạm Hà Nội khoa Vật lý, 7 năm giảng dạy bồi dưỡng học sinh giỏi và ôn thi vào lớp 10.",
   teachingMethod: "Học đi đôi với hành, liên hệ hiện tượng thực tế và rèn luyện tư duy phản biện.",
   teachingMode: "ONLINE",
-  area: "Hà Nội",
-  pricePerSession: 280000,
+  tutorType: "GRADUATE",
+  tutorTypeVerified: true,
+  provinceName: null,
+  districts: [],
   experienceYears: 7,
   ratingAvg: 4.95,
   reviewCount: 42,
   verified: true,
-  subjects: [
-    {
-      subjectId: 3,
+  offerings: [
+    makeOffering({
+      subjectId: 7,
       subjectName: "Vật lý",
-      educationLevelId: 4,
-      educationLevelName: "Lớp 9",
-    },
+      pricePerSession: 280000,
+      levels: [{ id: 4, name: "Lớp 9" }],
+      goals: [{ goalTagId: 3, code: "GIFTED", name: "Bồi dưỡng HSG", premium: true, evidenceVerified: true }],
+      examProvinces: [],
+    }),
   ],
   availabilitySlots: [
     {

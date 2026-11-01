@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { catalogService, SubjectItem, EducationLevel } from "@/services/catalog";
+import { useLearningCatalog } from "@/features/learning-needs/hooks/useLearningCatalog";
 import type { TutorSearchParams } from "../types";
 import { FilterHeader } from "./filters/FilterHeader";
 import { QuickFilterPills } from "./filters/QuickFilterPills";
@@ -14,33 +14,12 @@ export interface TutorSearchFiltersProps {
   totalResults?: number;
 }
 
-export function TutorSearchFilters({
-  params,
-  onUpdateFilters,
-  onResetFilters,
-}: TutorSearchFiltersProps) {
-  const [subjects, setSubjects] = useState<SubjectItem[]>([]);
-  const [levels, setLevels] = useState<EducationLevel[]>([]);
+export function TutorSearchFilters({ params, onUpdateFilters, onResetFilters }: TutorSearchFiltersProps) {
+  const { catalog } = useLearningCatalog();
   const [keywordInput, setKeywordInput] = useState(params.keyword || "");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  useEffect(() => {
-    async function loadCatalogs() {
-      try {
-        const [subList, lvlList] = await Promise.all([
-          catalogService.getSubjects(),
-          catalogService.getEducationLevels(),
-        ]);
-        setSubjects(subList);
-        setLevels(lvlList);
-      } catch (err) {
-        console.error("Lỗi khi tải danh mục tìm kiếm:", err);
-      }
-    }
-    loadCatalogs();
-  }, []);
-
-  // Debounced keyword search
+  // Tìm theo từ khóa sau khi ngừng gõ
   useEffect(() => {
     const timer = setTimeout(() => {
       if (keywordInput !== (params.keyword || "")) {
@@ -71,19 +50,10 @@ export function TutorSearchFilters({
       : "rating";
 
   const hasActiveFilters = Boolean(
-    params.keyword ||
-    params.subjectId ||
-    params.levelId ||
-    params.mode ||
-    params.minPrice ||
-    params.maxPrice ||
-    params.minRating ||
-    params.dayOfWeek ||
-    params.area
+    params.keyword || params.levelId || params.subjectId || params.trackId || params.goalTagId ||
+    params.textbookSeriesId || params.tutorType || params.mode || params.provinceId || params.districtId ||
+    params.minPrice || params.maxPrice || params.minRating || params.dayOfWeek
   );
-
-  const selectedSubject = subjects.find((s) => s.subjectId === params.subjectId);
-  const selectedLevel = levels.find((l) => l.levelId === params.levelId);
 
   return (
     <div className="space-y-3.5">
@@ -97,10 +67,7 @@ export function TutorSearchFilters({
 
       <QuickFilterPills
         params={params}
-        subjects={subjects}
-        levels={levels}
-        selectedSubject={selectedSubject}
-        selectedLevel={selectedLevel}
+        catalog={catalog}
         showAdvanced={showAdvanced}
         hasActiveFilters={hasActiveFilters}
         onUpdateFilters={onUpdateFilters}
@@ -112,8 +79,7 @@ export function TutorSearchFilters({
       <AdvancedFilterDrawer
         showAdvanced={showAdvanced}
         params={params}
-        subjects={subjects}
-        levels={levels}
+        catalog={catalog}
         onUpdateFilters={onUpdateFilters}
         onClose={() => setShowAdvanced(false)}
       />

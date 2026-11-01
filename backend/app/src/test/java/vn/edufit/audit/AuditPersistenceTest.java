@@ -78,7 +78,7 @@ class AuditPersistenceTest {
       jdbc.update("insert into account(user_id,email,password_hash,full_name,role) values (?,?,'test-only','Audit fixture',?)",id,id+"@test.invalid",id.equals(fixture.parent())?"PARENT":id.equals(fixture.admin())?"ADMIN":"STUDENT");
     jdbc.update("insert into student_profile(student_id,user_id) values (?,?)",fixture.student(),fixture.studentUser());
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at) values (?,?,?,now())",fixture.link(),fixture.parent(),fixture.student());
-    when(profile.findStudentById(fixture.student())).thenReturn(java.util.Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(fixture.student(),fixture.studentUser(),4,null,true)));
+    when(profile.findStudentById(fixture.student())).thenReturn(java.util.Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, null, true)));
     when(iam.findUserSummaryById(fixture.admin())).thenReturn(java.util.Optional.of(new vn.edufit.iam.api.dto.UserSummaryView(fixture.admin(),"admin@test.invalid","Admin",vn.edufit.iam.api.AccountRole.ADMIN,vn.edufit.iam.api.AccountStatus.ACTIVE)));
     return fixture;
   }

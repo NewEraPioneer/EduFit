@@ -94,22 +94,7 @@ class ReviewServiceTest {
   }
 
   private TutorSummaryDto createDummyTutor(UUID tutorId) {
-    return new TutorSummaryDto(
-        tutorId,
-        UUID.randomUUID(),
-        "Gia sư A",
-        "Gia sư Toán",
-        "Tiểu sử mẫu",
-        "ONLINE",
-        "Hà Nội",
-        200000L,
-        (short) 2,
-        "Phương pháp sư phạm",
-        "VERIFIED",
-        Instant.now(),
-        BigDecimal.valueOf(4.8),
-        10
-    );
+    return new TutorSummaryDto(tutorId, UUID.randomUUID(), "Gia sư A", "Gia sư Toán", "Tiểu sử mẫu", "ONLINE", null, false, null, "Hà Nội", (short) 2, "Phương pháp sư phạm", "VERIFIED", Instant.now(), BigDecimal.valueOf(4.8), 10);
   }
 
   private UserSummaryView createDummyUser(UUID id, String fullName, AccountRole role) {
@@ -140,7 +125,7 @@ class ReviewServiceTest {
     );
 
     TutorSummaryDto tutorDto = createDummyTutor(testTutorId);
-    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, "HN", true);
+    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, null, null, true);
 
     when(profileFacade.findTutorById(testTutorId)).thenReturn(Optional.of(tutorDto));
     when(profileFacade.findStudentById(testStudentId)).thenReturn(Optional.of(studentDto));
@@ -189,7 +174,7 @@ class ReviewServiceTest {
     );
 
     TutorSummaryDto tutorDto = createDummyTutor(testTutorId);
-    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, UUID.randomUUID(), 1, "HN", true);
+    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, UUID.randomUUID(), 1, null, null, true);
 
     when(profileFacade.findTutorById(testTutorId)).thenReturn(Optional.of(tutorDto));
     when(profileFacade.findStudentById(testStudentId)).thenReturn(Optional.of(studentDto));
@@ -226,7 +211,7 @@ class ReviewServiceTest {
 
     if (expectedValid) {
       TutorSummaryDto tutorDto = createDummyTutor(testTutorId);
-      StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, "HN", true);
+      StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, null, null, true);
 
       when(profileFacade.findTutorById(testTutorId)).thenReturn(Optional.of(tutorDto));
       when(profileFacade.findStudentById(testStudentId)).thenReturn(Optional.of(studentDto));
@@ -278,7 +263,7 @@ class ReviewServiceTest {
     );
 
     TutorSummaryDto tutorDto = createDummyTutor(testTutorId);
-    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, "HN", true);
+    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, null, null, true);
 
     when(profileFacade.findTutorById(testTutorId)).thenReturn(Optional.of(tutorDto));
     when(profileFacade.findStudentById(testStudentId)).thenReturn(Optional.of(studentDto));
@@ -302,7 +287,7 @@ class ReviewServiceTest {
     );
 
     TutorSummaryDto tutorDto = createDummyTutor(testTutorId);
-    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, "HN", true);
+    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, null, null, true);
 
     when(profileFacade.findTutorById(testTutorId)).thenReturn(Optional.of(tutorDto));
     when(profileFacade.findStudentById(testStudentId)).thenReturn(Optional.of(studentDto));
@@ -329,7 +314,7 @@ class ReviewServiceTest {
     );
 
     TutorSummaryDto tutorDto = createDummyTutor(testTutorId);
-    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, "HN", true);
+    StudentSummaryDto studentDto = new StudentSummaryDto(testStudentId, testUserId, 1, null, null, true);
 
     when(profileFacade.findTutorById(testTutorId)).thenReturn(Optional.of(tutorDto));
     when(profileFacade.findStudentById(testStudentId)).thenReturn(Optional.of(studentDto));

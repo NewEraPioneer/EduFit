@@ -39,7 +39,8 @@ describe("Discovery Schemas & Validation Tests", () => {
       if (result.success) {
         expect(result.data.page).toBe(0);
         expect(result.data.size).toBe(10);
-        expect(result.data.sortBy).toBe("rating");
+        // Mặc định xếp theo độ liên quan (độ khớp khi tìm kèm nhu cầu học)
+        expect(result.data.sortBy).toBe("relevance");
         expect(result.data.sortDirection).toBe("desc");
       }
     });
@@ -71,7 +72,7 @@ describe("Discovery Schemas & Validation Tests", () => {
   describe("tutorMatchRequestSchema", () => {
     it("chấp nhận yêu cầu matching với UUID hợp lệ", () => {
       const validReq = {
-        goalId: "123e4567-e89b-12d3-a456-426614174000",
+        needId: "123e4567-e89b-12d3-a456-426614174000",
         topN: 5,
       };
 
@@ -84,7 +85,7 @@ describe("Discovery Schemas & Validation Tests", () => {
 
     it("mặc định topN = 5 nếu không truyền", () => {
       const validReq = {
-        goalId: "123e4567-e89b-12d3-a456-426614174000",
+        needId: "123e4567-e89b-12d3-a456-426614174000",
       };
 
       const result = tutorMatchRequestSchema.safeParse(validReq);
@@ -94,9 +95,9 @@ describe("Discovery Schemas & Validation Tests", () => {
       }
     });
 
-    it("từ chối khi goalId không phải định dạng UUID", () => {
+    it("từ chối khi needId không phải định dạng UUID", () => {
       const invalidReq = {
-        goalId: "invalid-uuid-string",
+        needId: "invalid-uuid-string",
       };
 
       const result = tutorMatchRequestSchema.safeParse(invalidReq);
@@ -105,7 +106,7 @@ describe("Discovery Schemas & Validation Tests", () => {
 
     it("từ chối khi topN vượt quá 10", () => {
       const invalidReq = {
-        goalId: "123e4567-e89b-12d3-a456-426614174000",
+        needId: "123e4567-e89b-12d3-a456-426614174000",
         topN: 15,
       };
 

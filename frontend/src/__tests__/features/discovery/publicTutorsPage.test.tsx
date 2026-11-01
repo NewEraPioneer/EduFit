@@ -6,50 +6,34 @@ import { discoveryApi } from "@/features/discovery/api/discoveryApi";
 import { catalogService } from "@/services/catalog";
 import * as authContext from "@/context/AuthContext";
 import type { TutorDiscoveryCard, SpringPage } from "@/features/discovery/types";
+import { makeCatalog, makeOffering, makeTutorCard } from "../../fixtures/learningNeeds";
 
 const mockTutors: TutorDiscoveryCard[] = [
-  {
+  makeTutorCard({
     tutorId: "tut-001",
     displayName: "Cô Nguyễn Hoàng Lan",
     headline: "Giáo viên Toán giỏi cấp thành phố",
     shortBio: "6 năm kinh nghiệm luyện thi vào lớp 10 chuyên Toán.",
-    teachingMode: "ONLINE",
-    area: "Hà Nội",
-    pricePerSession: 250000,
     experienceYears: 6,
     ratingAvg: 4.9,
     reviewCount: 38,
-    verified: true,
-    subjects: [
-      {
-        subjectId: 1,
-        subjectName: "Toán học",
-        educationLevelId: 4,
-        educationLevelName: "Lớp 9",
-      },
-    ],
-  },
-  {
+    minPricePerSession: 250000,
+    offerings: [makeOffering({ subjectName: "Toán học", levels: [{ id: 4, name: "Lớp 9" }], pricePerSession: 250000 })],
+  }),
+  makeTutorCard({
     tutorId: "tut-002",
     displayName: "Thầy Trần Minh Đức",
     headline: "Thạc sĩ Sư phạm Tiếng Anh",
     shortBio: "Chuyên bồi dưỡng học sinh mất gốc và thi chứng chỉ.",
     teachingMode: "BOTH",
-    area: "TP. Hồ Chí Minh",
-    pricePerSession: 300000,
+    provinceName: "TP. Hồ Chí Minh",
     experienceYears: 4,
     ratingAvg: 5.0,
     reviewCount: 15,
-    verified: true,
-    subjects: [
-      {
-        subjectId: 2,
-        subjectName: "Tiếng Anh",
-        educationLevelId: 3,
-        educationLevelName: "Lớp 8",
-      },
-    ],
-  },
+    minPricePerSession: 300000,
+    offerings: [makeOffering({ offeringId: "o-2", subjectId: 2, subjectName: "Tiếng Anh",
+      levels: [{ id: 3, name: "Lớp 8" }], pricePerSession: 300000 })],
+  }),
 ];
 
 const mockPageResult: SpringPage<TutorDiscoveryCard> = {
@@ -90,15 +74,7 @@ describe("Public Tutors Directory Page (/tutors)", () => {
     vi.restoreAllMocks();
     mockPush.mockReset();
 
-    // Mock catalog service
-    vi.spyOn(catalogService, "getSubjects").mockResolvedValue([
-      { subjectId: 1, name: "Toán học" },
-      { subjectId: 2, name: "Tiếng Anh" },
-    ]);
-    vi.spyOn(catalogService, "getEducationLevels").mockResolvedValue([
-      { levelId: 3, name: "Lớp 8", sortOrder: 3 },
-      { levelId: 4, name: "Lớp 9", sortOrder: 4 },
-    ]);
+    vi.spyOn(catalogService, "getLearningCatalog").mockResolvedValue(makeCatalog());
   });
 
   it("render trang danh bạ công khai với thẻ gia sư, avatar, tên, giá, số sao và badge xác minh", async () => {

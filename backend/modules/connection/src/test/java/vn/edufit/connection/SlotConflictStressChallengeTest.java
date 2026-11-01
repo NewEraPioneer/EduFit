@@ -35,7 +35,7 @@ import vn.edufit.iam.api.AccountStatus;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.iam.api.dto.UserSummaryView;
 import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
+import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.shared.auth.CurrentUser;
@@ -406,12 +406,12 @@ class SlotConflictStressChallengeTest {
     @BeforeEach
     void setupService() {
       when(profile.findStudentById(student))
-          .thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
-      when(profile.findGoalForConnection(goal))
-          .thenReturn(Optional.of(new ConnectionGoalDto(goal, student, studentUser, 1, 4, "EXAM", null, "ACTIVE")));
+          .thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
+      when(profile.findLearningNeed(goal))
+          .thenReturn(Optional.of(ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ACTIVE")));
       when(profile.findTutorById(tutor))
-          .thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", now, null, 0)));
-      when(profile.tutorTeaches(tutor, 1, 4)).thenReturn(true);
+          .thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0)));
+      when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
       when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
 
       when(iam.findUserSummaryById(tutorUser))
@@ -449,21 +449,21 @@ class SlotConflictStressChallengeTest {
       ConnectionRequest req1 = new ConnectionRequest(UUID.randomUUID(), tutor, UUID.randomUUID(), UUID.randomUUID(),
           List.of("MONDAY 08:00-10:00"), null, now);
       ReflectionTestUtils.setField(req1, "id", req1Id);
-      TutoringClass class1 = new TutoringClass(req1, now);
+      TutoringClass class1 = new TutoringClass(req1, 200000L, now);
 
       // Class 2: Wednesday 14:00-16:00
       UUID req2Id = UUID.randomUUID();
       ConnectionRequest req2 = new ConnectionRequest(UUID.randomUUID(), tutor, UUID.randomUUID(), UUID.randomUUID(),
           List.of("WEDNESDAY 14:00-16:00"), null, now);
       ReflectionTestUtils.setField(req2, "id", req2Id);
-      TutoringClass class2 = new TutoringClass(req2, now);
+      TutoringClass class2 = new TutoringClass(req2, 200000L, now);
 
       // Class 3: Friday 18:00-20:00
       UUID req3Id = UUID.randomUUID();
       ConnectionRequest req3 = new ConnectionRequest(UUID.randomUUID(), tutor, UUID.randomUUID(), UUID.randomUUID(),
           List.of("FRIDAY 18:00-20:00"), null, now);
       ReflectionTestUtils.setField(req3, "id", req3Id);
-      TutoringClass class3 = new TutoringClass(req3, now);
+      TutoringClass class3 = new TutoringClass(req3, 200000L, now);
 
       List<TutoringClass> activeClasses = List.of(class1, class2, class3);
       when(classes.findByTutorIdAndStatus(tutor, "ACTIVE")).thenReturn(activeClasses);
@@ -555,10 +555,10 @@ class SlotConflictStressChallengeTest {
       ConnectionRequest req1 = new ConnectionRequest(UUID.randomUUID(), tutor, UUID.randomUUID(), UUID.randomUUID(),
           List.of("MONDAY 08:00-10:00"), null, now);
       ReflectionTestUtils.setField(req1, "id", req1Id);
-      TutoringClass class1 = new TutoringClass(req1, now);
+      TutoringClass class1 = new TutoringClass(req1, 200000L, now);
 
       // Defective class with null connectionRequestId
-      TutoringClass classWithoutReq = new TutoringClass(req1, now);
+      TutoringClass classWithoutReq = new TutoringClass(req1, 200000L, now);
       ReflectionTestUtils.setField(classWithoutReq, "connectionRequestId", null);
 
       when(classes.findByTutorIdAndStatus(tutor, "ACTIVE")).thenReturn(List.of(class1, classWithoutReq));

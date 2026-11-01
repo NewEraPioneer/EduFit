@@ -135,25 +135,11 @@ class PaymentFlowIT {
     connections = mock(ConnectionFacade.class);
     sessions = mock(SessionFacade.class);
     when(profiles.findStudentByUserId(studentUser))
-        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, true)));
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
     when(profiles.findTutorById(tutorId))
         .thenReturn(
             Optional.of(
-                new TutorSummaryDto(
-                    tutorId,
-                    tutorUser,
-                    "Tutor",
-                    null,
-                    null,
-                    "ONLINE",
-                    null,
-                    300000L,
-                    null,
-                    null,
-                    "VERIFIED",
-                    null,
-                    null,
-                    0)));
+                new TutorSummaryDto(tutorId, tutorUser, "Tutor", null, null, "ONLINE", null, false, null, null, null, null, "VERIFIED", null, null, 0)));
     when(connections.hasConfirmedParentLink(parentUser, studentId)).thenReturn(true);
     when(sessions.findSessionById(sessionId))
         .thenReturn(

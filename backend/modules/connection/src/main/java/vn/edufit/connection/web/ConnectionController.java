@@ -136,7 +136,7 @@ public class ConnectionController {
 
   @PostMapping("/requests")
   public ApiResponse<RequestResponse> request(@Valid @RequestBody CreateRequestBody body) {
-    return ApiResponse.success(RequestResponse.of(value(service.request(user(), body.goalId(), body.tutorId(),
+    return ApiResponse.success(RequestResponse.of(value(service.request(user(), body.needId(), body.tutorId(),
         body.desiredSlots(), body.message()))));
   }
 

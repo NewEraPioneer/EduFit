@@ -179,7 +179,7 @@ class ConnectionBranchCoverageTest {
 
     // requireStudentAccess violations
     when(profile.getStudentIdByUserId(userId)).thenReturn(studentId);
-    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, UUID.randomUUID(), 4, null, true)));
+    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, UUID.randomUUID(), 4, null, null, true)));
     assertThrows(ForbiddenOperationException.class, () -> service.requests(student, studentId));
     when(facade.hasConfirmedParentLink(userId, studentId)).thenReturn(false);
     assertThrows(ForbiddenOperationException.class, () -> service.requests(parent, studentId));
@@ -216,7 +216,7 @@ class ConnectionBranchCoverageTest {
     ConnectionRequest overdueReq = new ConnectionRequest(studentId, tutorId, UUID.randomUUID(), UUID.randomUUID(), List.of("Mon 18:00"), null, NOW.minus(ConnectionTransitions.REQUEST_TTL).minusSeconds(10));
     org.springframework.test.util.ReflectionTestUtils.setField(overdueReq, "id", overdueReqId);
     when(reqRepo.findByTutorIdOrderByCreatedAtDesc(tutorId)).thenReturn(List.of(overdueReq));
-    when(profile.findGoalsForConnection(any())).thenReturn(Map.of());
+    when(profile.findLearningNeeds(any())).thenReturn(Map.of());
     assertThrows(ResourceConflictException.class, () -> service.tutorInbox(tutor));
     verify(expiryService).expireRequest(overdueReqId, NOW);
   }
@@ -262,7 +262,7 @@ class ConnectionBranchCoverageTest {
     when(linkRepo.findById(linkId)).thenReturn(Optional.of(activeLink));
     when(linkRepo.lockById(linkId)).thenReturn(Optional.of(activeLink));
     when(iam.findUserSummaryById(userId)).thenReturn(Optional.of(new UserSummaryView(userId, "u@test.com", "U", AccountRole.STUDENT, AccountStatus.ACTIVE)));
-    when(profile.findStudentById(activeLink.getStudentId())).thenReturn(Optional.of(new StudentSummaryDto(activeLink.getStudentId(), UUID.randomUUID(), 4, null, true)));
+    when(profile.findStudentById(activeLink.getStudentId())).thenReturn(Optional.of(new StudentSummaryDto(activeLink.getStudentId(), UUID.randomUUID(), 4, null, null, true)));
     assertThrows(ForbiddenOperationException.class, () -> service.revokeLink(student, linkId, null));
 
     // Parent is not owner of link (403)
@@ -310,56 +310,56 @@ class ConnectionBranchCoverageTest {
     UUID userId = UUID.randomUUID();
     UUID studentId = UUID.randomUUID();
     UUID tutorId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID();
+    UUID needId = UUID.randomUUID();
     CurrentUser student = mockActor(userId, "STUDENT");
 
     // Role check violation
     CurrentUser guest = mockActor(userId, "GUEST");
-    assertThrows(ForbiddenOperationException.class, () -> service.request(guest, goalId, tutorId, List.of("Mon 18:00"), null));
+    assertThrows(ForbiddenOperationException.class, () -> service.request(guest, needId, tutorId, List.of("Mon 18:00"), null));
 
     // Inactive actor
     when(iam.findUserSummaryById(userId)).thenReturn(Optional.of(new UserSummaryView(userId, "s@test.com", "S", AccountRole.STUDENT, AccountStatus.DEACTIVATED)));
-    assertThrows(ForbiddenOperationException.class, () -> service.request(student, goalId, tutorId, List.of("Mon 18:00"), null));
+    assertThrows(ForbiddenOperationException.class, () -> service.request(student, needId, tutorId, List.of("Mon 18:00"), null));
 
     // Goal not found
     when(iam.findUserSummaryById(userId)).thenReturn(Optional.of(new UserSummaryView(userId, "s@test.com", "S", AccountRole.STUDENT, AccountStatus.ACTIVE)));
-    when(profile.findGoalForConnection(goalId)).thenReturn(Optional.empty());
-    assertThrows(EntityNotFoundException.class, () -> service.request(student, goalId, tutorId, List.of("Mon 18:00"), null));
+    when(profile.findLearningNeed(needId)).thenReturn(Optional.empty());
+    assertThrows(EntityNotFoundException.class, () -> service.request(student, needId, tutorId, List.of("Mon 18:00"), null));
 
     // Goal student profile mismatch
-    ConnectionGoalDto goal = new ConnectionGoalDto(goalId, studentId, userId, 1, 4, "EXAM_PREPARATION", null, "ACTIVE");
-    when(profile.findGoalForConnection(goalId)).thenReturn(Optional.of(goal));
+    LearningNeedView goal = ConnectionTestFixtures.need(needId, studentId, userId, 1, 4, "ACTIVE");
+    when(profile.findLearningNeed(needId)).thenReturn(Optional.of(goal));
     when(profile.findStudentById(studentId)).thenReturn(Optional.empty());
-    assertThrows(ForbiddenOperationException.class, () -> service.request(student, goalId, tutorId, List.of("Mon 18:00"), null));
+    assertThrows(ForbiddenOperationException.class, () -> service.request(student, needId, tutorId, List.of("Mon 18:00"), null));
 
     // Goal not ACTIVE
-    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, userId, 4, null, true)));
-    ConnectionGoalDto closedGoal = new ConnectionGoalDto(goalId, studentId, userId, 1, 4, "EXAM_PREPARATION", null, "CLOSED");
-    when(profile.findGoalForConnection(goalId)).thenReturn(Optional.of(closedGoal));
-    assertThrows(InvalidOperationException.class, () -> service.request(student, goalId, tutorId, List.of("Mon 18:00"), null));
+    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, userId, 4, null, null, true)));
+    LearningNeedView closedGoal = ConnectionTestFixtures.need(needId, studentId, userId, 1, 4, "CLOSED");
+    when(profile.findLearningNeed(needId)).thenReturn(Optional.of(closedGoal));
+    assertThrows(InvalidOperationException.class, () -> service.request(student, needId, tutorId, List.of("Mon 18:00"), null));
 
     // Tutor not found
-    when(profile.findGoalForConnection(goalId)).thenReturn(Optional.of(goal));
+    when(profile.findLearningNeed(needId)).thenReturn(Optional.of(goal));
     when(profile.findTutorById(tutorId)).thenReturn(Optional.empty());
-    assertThrows(EntityNotFoundException.class, () -> service.request(student, goalId, tutorId, List.of("Mon 18:00"), null));
+    assertThrows(EntityNotFoundException.class, () -> service.request(student, needId, tutorId, List.of("Mon 18:00"), null));
 
     // Tutor not verified
     UUID tutorUserId = UUID.randomUUID();
-    TutorSummaryDto unverifiedTutor = new TutorSummaryDto(tutorId, tutorUserId, "Tutor", null, null, null, null, null, null, null, "UNVERIFIED", NOW, null, 0);
+    TutorSummaryDto unverifiedTutor = new TutorSummaryDto(tutorId, tutorUserId, "Tutor", null, null, null, null, false, null, null, null, null, "UNVERIFIED", NOW, null, 0);
     when(profile.findTutorById(tutorId)).thenReturn(Optional.of(unverifiedTutor));
-    assertThrows(InvalidOperationException.class, () -> service.request(student, goalId, tutorId, List.of("Mon 18:00"), null));
+    assertThrows(InvalidOperationException.class, () -> service.request(student, needId, tutorId, List.of("Mon 18:00"), null));
 
     // Tutor doesn't teach subject/level
-    TutorSummaryDto verifiedTutor = new TutorSummaryDto(tutorId, tutorUserId, "Tutor", null, null, null, null, null, null, null, "VERIFIED", NOW, null, 0);
+    TutorSummaryDto verifiedTutor = new TutorSummaryDto(tutorId, tutorUserId, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", NOW, null, 0);
     when(profile.findTutorById(tutorId)).thenReturn(Optional.of(verifiedTutor));
     when(iam.findUserSummaryById(tutorUserId)).thenReturn(Optional.of(new UserSummaryView(tutorUserId, "t@test.com", "T", AccountRole.TUTOR, AccountStatus.ACTIVE)));
-    when(profile.tutorTeaches(tutorId, 1, 4)).thenReturn(false);
-    assertThrows(InvalidOperationException.class, () -> service.request(student, goalId, tutorId, List.of("Mon 18:00"), null));
+    when(profile.findTutorOfferings(tutorId)).thenReturn(java.util.List.of());
+    assertThrows(InvalidOperationException.class, () -> service.request(student, needId, tutorId, List.of("Mon 18:00"), null));
 
     // Successful request creation with expiry check on overdue pending
-    when(profile.tutorTeaches(tutorId, 1, 4)).thenReturn(true);
+    when(profile.findTutorOfferings(tutorId)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
     UUID overdueId = UUID.randomUUID();
-    ConnectionRequest overdue = new ConnectionRequest(studentId, UUID.randomUUID(), goalId, userId, List.of("Mon 18:00"), null, NOW.minus(ConnectionTransitions.REQUEST_TTL).minusSeconds(10));
+    ConnectionRequest overdue = new ConnectionRequest(studentId, UUID.randomUUID(), needId, userId, List.of("Mon 18:00"), null, NOW.minus(ConnectionTransitions.REQUEST_TTL).minusSeconds(10));
     org.springframework.test.util.ReflectionTestUtils.setField(overdue, "id", overdueId);
     when(reqRepo.findByStudentIdAndStatus(studentId, "PENDING")).thenReturn(List.of(overdue));
     when(reqRepo.save(any())).thenAnswer(inv -> {
@@ -368,7 +368,7 @@ class ConnectionBranchCoverageTest {
       return req;
     });
 
-    TransitionResult<ConnectionRequestResult> res = service.request(student, goalId, tutorId, List.of("Mon 18:00"), null);
+    TransitionResult<ConnectionRequestResult> res = service.request(student, needId, tutorId, List.of("Mon 18:00"), null);
     assertInstanceOf(TransitionResult.Success.class, res);
     verify(expiryService).expireRequest(overdueId, NOW);
   }
@@ -436,7 +436,7 @@ class ConnectionBranchCoverageTest {
 
     // Admin links page: student found
     when(iam.findUserSummaryByEmail("student@test.com")).thenReturn(Optional.of(new UserSummaryView(studentUserId, "student@test.com", "Student", AccountRole.STUDENT, AccountStatus.ACTIVE)));
-    when(profile.findStudentByUserId(studentUserId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUserId, 5, null, true)));
+    when(profile.findStudentByUserId(studentUserId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUserId, 5, null, null, true)));
     when(linkRepo.findByStudentIdAndStatusConfirmed(eq(studentId), any())).thenReturn(new PageImpl<>(List.of(link1), PageRequest.of(0, 20), 1));
     var adminRes2 = service.adminLinksPage(admin, "student@test.com", 0, 20);
     assertEquals(1, adminRes2.items().size());
@@ -467,7 +467,7 @@ class ConnectionBranchCoverageTest {
     // requestsPage: student and parent
     ConnectionRequest req1 = new ConnectionRequest(studentId, UUID.randomUUID(), UUID.randomUUID(), studentUserId, List.of("Mon 18:00"), null, NOW);
     org.springframework.test.util.ReflectionTestUtils.setField(req1, "id", UUID.randomUUID());
-    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUserId, 5, null, true)));
+    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUserId, 5, null, null, true)));
     when(facade.hasConfirmedParentLink(parentId, studentId)).thenReturn(true);
     when(reqRepo.findByStudentIdScoped(eq(studentId), any())).thenReturn(new PageImpl<>(List.of(req1), PageRequest.of(0, 20), 1));
 
@@ -483,7 +483,7 @@ class ConnectionBranchCoverageTest {
     assertTrue(service.tutorInboxPage(tutor, 0, 20).items().isEmpty());
 
     when(reqRepo.findByTutorIdScoped(eq(tutorId), any())).thenReturn(new PageImpl<>(List.of(req1), PageRequest.of(0, 20), 1));
-    when(profile.findGoalsForConnection(any())).thenReturn(Map.of(req1.getGoalId(), new ConnectionGoalDto(req1.getGoalId(), studentId, studentUserId, 1, 5, "ACADEMIC", java.time.LocalDate.now(), "ACTIVE")));
+    when(profile.findLearningNeeds(any())).thenReturn(Map.of(req1.getNeedId(), ConnectionTestFixtures.need(req1.getNeedId(), studentId, studentUserId, 1, 5, "ACTIVE")));
     when(iam.findUserSummariesByIds(any())).thenReturn(Map.of(studentUserId, new UserSummaryView(studentUserId, "s@test.com", "S", AccountRole.STUDENT, AccountStatus.ACTIVE)));
     assertEquals(1, service.tutorInboxPage(tutor, 0, 20).items().size());
   }
@@ -520,7 +520,7 @@ class ConnectionBranchCoverageTest {
       return true;
     });
     UUID studentId = UUID.randomUUID();
-    when(profile.findStudentByUserId(invited)).thenReturn(Optional.of(new StudentSummaryDto(studentId, invited, 4, null, true)));
+    when(profile.findStudentByUserId(invited)).thenReturn(Optional.of(new StudentSummaryDto(studentId, invited, 4, null, null, true)));
     when(linkRepo.existsByParentUserIdAndStudentIdAndStatus(inviter, studentId, "CONFIRMED")).thenReturn(false);
     when(invRepo.save(any())).thenAnswer(call -> {
       LinkInvitation inv = call.getArgument(0);
@@ -592,19 +592,19 @@ class ConnectionBranchCoverageTest {
     UUID studentId = UUID.randomUUID();
     UUID studentUserId = UUID.randomUUID();
     UUID reqId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID();
+    UUID needId = UUID.randomUUID();
 
     CurrentUser tutor = mockActor(tutorUserId, "TUTOR");
     when(iam.findUserSummaryById(tutorUserId)).thenReturn(Optional.of(new UserSummaryView(tutorUserId, "t@test.com", "T", AccountRole.TUTOR, AccountStatus.ACTIVE)));
     when(profile.getTutorIdByUserId(tutorUserId)).thenReturn(tutorId);
 
     // respondRequest: reject with reason > 300 chars
-    ConnectionRequest req = new ConnectionRequest(studentId, tutorId, goalId, studentUserId, List.of("Mon 18:00"), null, NOW);
+    ConnectionRequest req = new ConnectionRequest(studentId, tutorId, needId, studentUserId, List.of("Mon 18:00"), null, NOW);
     org.springframework.test.util.ReflectionTestUtils.setField(req, "id", reqId);
     when(reqRepo.findById(reqId)).thenReturn(Optional.of(req));
     when(reqRepo.lockById(reqId)).thenReturn(Optional.of(req));
-    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, tutorUserId, "Tutor", null, null, null, null, null, null, null, "VERIFIED", NOW, null, 0)));
-    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUserId, 4, null, true)));
+    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, tutorUserId, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", NOW, null, 0)));
+    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUserId, 4, null, null, true)));
 
     assertThrows(InvalidOperationException.class, () -> service.respondRequest(tutor, reqId, false, "a".repeat(301)));
 
@@ -614,7 +614,7 @@ class ConnectionBranchCoverageTest {
     assertEquals("REJECTED", req.getStatus());
 
     // respondRequest: yêu cầu quá hạn phải ủy quyền cho ConnectionExpiryService (đường production)
-    ConnectionRequest overdueReq = new ConnectionRequest(studentId, tutorId, goalId, studentUserId, List.of("Mon 18:00"), null, NOW.minus(ConnectionTransitions.REQUEST_TTL).minusSeconds(10));
+    ConnectionRequest overdueReq = new ConnectionRequest(studentId, tutorId, needId, studentUserId, List.of("Mon 18:00"), null, NOW.minus(ConnectionTransitions.REQUEST_TTL).minusSeconds(10));
     org.springframework.test.util.ReflectionTestUtils.setField(overdueReq, "id", reqId);
     when(reqRepo.findById(reqId)).thenReturn(Optional.of(overdueReq));
     when(reqRepo.lockById(reqId)).thenReturn(Optional.of(overdueReq));

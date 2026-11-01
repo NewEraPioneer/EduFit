@@ -27,8 +27,11 @@ public class StudentProfile {
   @Column(name = "education_level_id")
   private Integer educationLevelId;
 
-  @Column(name = "area", length = 100)
-  private String area;
+  @Column(name = "province_id")
+  private Integer provinceId;
+
+  @Column(name = "district_id")
+  private Integer districtId;
 
   @Column(name = "profile_complete", nullable = false)
   private Boolean profileComplete = false;
@@ -67,12 +70,18 @@ public class StudentProfile {
     this.updatedAt = Instant.now();
   }
 
-  public String getArea() {
-    return area;
+  public Integer getProvinceId() {
+    return provinceId;
   }
 
-  public void setArea(String area) {
-    this.area = area;
+  public Integer getDistrictId() {
+    return districtId;
+  }
+
+  /** Khu vực mặc định, dùng để điền sẵn khi tạo nhu cầu học có học trực tiếp. */
+  public void setLocation(Integer provinceId, Integer districtId) {
+    this.provinceId = provinceId;
+    this.districtId = provinceId == null ? null : districtId;
     this.updatedAt = Instant.now();
   }
 

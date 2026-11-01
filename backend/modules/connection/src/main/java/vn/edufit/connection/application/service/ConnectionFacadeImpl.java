@@ -28,7 +28,7 @@ public class ConnectionFacadeImpl implements ConnectionFacade {
   @Override
   public Optional<ActiveClassView> findActiveClass(UUID studentId, UUID tutorId) {
     return classes.findByStudentIdAndTutorIdAndStatus(studentId, tutorId, "ACTIVE")
-        .map(c -> new ActiveClassView(c.getId(), c.getStudentId(), c.getTutorId(), c.getGoalId()));
+        .map(c -> new ActiveClassView(c.getId(), c.getStudentId(), c.getTutorId(), c.getNeedId()));
   }
 
   @Override
@@ -37,7 +37,7 @@ public class ConnectionFacadeImpl implements ConnectionFacade {
       return List.of();
     }
     return classes.findAllByStudentIdAndTutorIdAndStatus(studentId, tutorId, "ACTIVE").stream()
-        .map(c -> new ActiveClassView(c.getId(), c.getStudentId(), c.getTutorId(), c.getGoalId()))
+        .map(c -> new ActiveClassView(c.getId(), c.getStudentId(), c.getTutorId(), c.getNeedId()))
         .toList();
   }
 
@@ -63,7 +63,7 @@ public class ConnectionFacadeImpl implements ConnectionFacade {
       return Optional.empty();
     }
     return classes.findByIdAndStatus(classId, "ACTIVE")
-        .map(c -> new ActiveClassView(c.getId(), c.getStudentId(), c.getTutorId(), c.getGoalId()));
+        .map(c -> new ActiveClassView(c.getId(), c.getStudentId(), c.getTutorId(), c.getNeedId()));
   }
 
   @Override
@@ -120,10 +120,11 @@ public class ConnectionFacadeImpl implements ConnectionFacade {
         c.getId(),
         c.getStudentId(),
         c.getTutorId(),
-        c.getGoalId(),
+        c.getNeedId(),
         c.getStatus(),
         c.getStartedAt(),
-        c.getEndedAt()
+        c.getEndedAt(),
+        c.getPricePerSession()
     );
   }
 }

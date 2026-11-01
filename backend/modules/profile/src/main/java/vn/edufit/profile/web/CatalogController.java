@@ -4,9 +4,11 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import vn.edufit.profile.application.service.CatalogQueryService;
 import vn.edufit.profile.web.response.CatalogResponse;
+import vn.edufit.profile.web.response.LearningCatalogResponse;
 import vn.edufit.shared.response.ApiResponse;
 
 /**
@@ -32,6 +34,21 @@ public class CatalogController {
   public ResponseEntity<ApiResponse<List<CatalogResponse.EducationLevelItem>>> getEducationLevels() {
     List<CatalogResponse.EducationLevelItem> levels = catalogQueryService.getEducationLevels();
     return ResponseEntity.ok(ApiResponse.success(levels, "Lấy danh sách cấp học thành công"));
+  }
+
+  @GetMapping("/learning")
+  public ResponseEntity<ApiResponse<LearningCatalogResponse>> getLearningCatalog() {
+    return ResponseEntity.ok(ApiResponse.success(
+        catalogQueryService.getLearningCatalog(), "Lấy danh mục nhu cầu học thành công"));
+  }
+
+  @GetMapping("/goal-tags")
+  public ResponseEntity<ApiResponse<List<LearningCatalogResponse.GoalTagItem>>> getGoalTags(
+      @RequestParam Integer levelId,
+      @RequestParam Integer subjectId,
+      @RequestParam(required = false) Integer trackId) {
+    return ResponseEntity.ok(ApiResponse.success(
+        catalogQueryService.getGoalTags(levelId, subjectId, trackId), "Lấy danh sách mục tiêu thành công"));
   }
 
   @GetMapping("/subjects")

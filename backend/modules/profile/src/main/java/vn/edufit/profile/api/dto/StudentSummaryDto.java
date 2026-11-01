@@ -9,6 +9,7 @@ public record StudentSummaryDto(
     UUID studentId,
     UUID userId,
     Integer educationLevelId,
-    String area,
+    Integer provinceId,
+    Integer districtId,
     Boolean profileComplete
 ) {}

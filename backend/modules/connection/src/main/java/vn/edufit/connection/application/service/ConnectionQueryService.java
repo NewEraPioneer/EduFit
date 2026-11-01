@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiPredicate;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,10 @@ import vn.edufit.iam.api.AccountRole;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.iam.api.dto.UserSummaryView;
 import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
+import vn.edufit.profile.api.dto.EducationLevelOrderDto;
+import vn.edufit.profile.api.dto.LearningNeedView;
+import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
+import vn.edufit.profile.api.fit.NeedFitEvaluator;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ForbiddenOperationException;
@@ -157,25 +161,27 @@ public class ConnectionQueryService {
     if (result.isEmpty()) {
       return List.of();
     }
-    List<UUID> goalIds = result.stream().map(ConnectionRequest::getGoalId).distinct().toList();
+    List<UUID> needIds = result.stream().map(ConnectionRequest::getNeedId).distinct().toList();
     List<UUID> sentByUserIds = result.stream().map(ConnectionRequest::getSentByUserId).distinct().toList();
-    Map<UUID, ConnectionGoalDto> goalsMap = profile.findGoalsForConnection(goalIds);
+    Map<UUID, LearningNeedView> needsMap = profile.findLearningNeeds(needIds);
     Map<UUID, UserSummaryView> usersMap = iam.findUserSummariesByIds(sentByUserIds);
+    Optional<TutorDiscoveryProfileDto> tutorProfile = tutorDiscoveryProfile(tutorId);
+    var levelOrder = levelAdjacency();
 
     List<String> activeSlots = getActiveSlotsForTutor(tutorId);
 
     return result.stream().map(r -> {
-      ConnectionGoalDto goal = goalsMap.get(r.getGoalId());
-      if (goal == null) {
+      LearningNeedView need = needsMap.get(r.getNeedId());
+      if (need == null) {
         throw new ResourceConflictException(ErrorCode.CONFLICT_DETECTED,
-            "Không tìm thấy dữ liệu mục tiêu học tập liên quan");
+            "Không tìm thấy dữ liệu nhu cầu học liên quan");
       }
       UserSummaryView sender = usersMap.get(r.getSentByUserId());
       if (sender == null) {
         throw new ResourceConflictException(ErrorCode.CONFLICT_DETECTED,
             "Không tìm thấy thông tin người gửi yêu cầu");
       }
-      return mapToTutorInboxResult(r, goal, sender, usersMap, activeSlots, tutorId);
+      return mapToTutorInboxResult(r, need, sender, usersMap, activeSlots, tutorId, tutorProfile, levelOrder);
     }).toList();
   }
 
@@ -400,25 +406,27 @@ public class ConnectionQueryService {
     if (content.isEmpty()) {
       return PageResponse.of(List.of(), page, size, p.getTotalElements());
     }
-    List<UUID> goalIds = content.stream().map(ConnectionRequest::getGoalId).distinct().toList();
+    List<UUID> needIds = content.stream().map(ConnectionRequest::getNeedId).distinct().toList();
     List<UUID> sentByUserIds = content.stream().map(ConnectionRequest::getSentByUserId).distinct().toList();
-    Map<UUID, ConnectionGoalDto> goalsMap = profile.findGoalsForConnection(goalIds);
+    Map<UUID, LearningNeedView> needsMap = profile.findLearningNeeds(needIds);
     Map<UUID, UserSummaryView> usersMap = iam.findUserSummariesByIds(sentByUserIds);
+    Optional<TutorDiscoveryProfileDto> tutorProfile = tutorDiscoveryProfile(tutorId);
+    var levelOrder = levelAdjacency();
 
     List<String> activeSlots = getActiveSlotsForTutor(tutorId);
 
     List<TutorInboxResult> items = content.stream().map(r -> {
-      ConnectionGoalDto goal = goalsMap.get(r.getGoalId());
-      if (goal == null) {
+      LearningNeedView need = needsMap.get(r.getNeedId());
+      if (need == null) {
         throw new ResourceConflictException(ErrorCode.CONFLICT_DETECTED,
-            "Không tìm thấy dữ liệu mục tiêu học tập liên quan");
+            "Không tìm thấy dữ liệu nhu cầu học liên quan");
       }
       UserSummaryView sender = usersMap.get(r.getSentByUserId());
       if (sender == null) {
         throw new ResourceConflictException(ErrorCode.CONFLICT_DETECTED,
             "Không tìm thấy thông tin người gửi yêu cầu");
       }
-      return mapToTutorInboxResult(r, goal, sender, usersMap, activeSlots, tutorId);
+      return mapToTutorInboxResult(r, need, sender, usersMap, activeSlots, tutorId, tutorProfile, levelOrder);
     }).toList();
     return PageResponse.of(items, page, size, p.getTotalElements());
   }
@@ -450,20 +458,42 @@ public class ConnectionQueryService {
     return parts[0] + " " + parts[parts.length - 1]; // e.g. "Nguyễn Văn Minh" -> "Nguyễn Minh"
   }
 
+  /**
+   * Hồ sơ dùng để so khớp nhu cầu với gói dạy. Gia sư đang chờ xác minh lại không còn hồ sơ công khai,
+   * khi đó dựng từ hồ sơ và gói dạy hiện tại (không có khu vực/lịch rảnh nên các tiêu chí đó hiện ⚠).
+   */
+  private Optional<TutorDiscoveryProfileDto> tutorDiscoveryProfile(UUID tutorId) {
+    return profile.findVerifiedTutorDetail(tutorId)
+        .or(() -> profile.findTutorById(tutorId).map(tutor ->
+            new TutorDiscoveryProfileDto(tutor, profile.findTutorOfferings(tutorId), List.of(), List.of(), null)));
+  }
+
+  private BiPredicate<Integer, Integer> levelAdjacency() {
+    List<Integer> ordered = profile.findEducationLevelsForMatching().stream()
+        .map(EducationLevelOrderDto::levelId).toList();
+    return (a, b) -> {
+      int ia = ordered.indexOf(a);
+      int ib = ordered.indexOf(b);
+      return ia >= 0 && ib >= 0 && Math.abs(ia - ib) == 1;
+    };
+  }
+
   private TutorInboxResult mapToTutorInboxResult(
       ConnectionRequest r,
-      ConnectionGoalDto goal,
+      LearningNeedView need,
       UserSummaryView sender,
       Map<UUID, UserSummaryView> usersMap,
       List<String> activeSlots,
-      UUID tutorId
+      UUID tutorId,
+      Optional<TutorDiscoveryProfileDto> tutorProfile,
+      BiPredicate<Integer, Integer> levelOrder
   ) {
     String senderRole = sender.role() == AccountRole.PARENT ? "PARENT" : "STUDENT";
     String studentDisplayName;
     if (sender.role() == AccountRole.STUDENT) {
       studentDisplayName = toSafeDisplayName(sender.fullName());
-    } else if (goal.studentUserId() != null && usersMap.containsKey(goal.studentUserId())) {
-      studentDisplayName = toSafeDisplayName(usersMap.get(goal.studentUserId()).fullName());
+    } else if (need.studentUserId() != null && usersMap.containsKey(need.studentUserId())) {
+      studentDisplayName = toSafeDisplayName(usersMap.get(need.studentUserId()).fullName());
     } else {
       studentDisplayName = sender.fullName() != null ? toSafeDisplayName(sender.fullName()) : "Học sinh";
     }
@@ -477,25 +507,21 @@ public class ConnectionQueryService {
       hasConflict = true;
     }
 
+    var fit = tutorProfile.flatMap(tutor -> NeedFitEvaluator.evaluate(need, tutor, levelOrder));
+    String offeringName = fit.map(f -> f.offering().trackName() == null
+        ? f.offering().subjectName() : f.offering().subjectName() + " – " + f.offering().trackName()).orElse(null);
+
     return new TutorInboxResult(
         r.getId(),
-        goal.goalType(),
-        goal.subjectId(),
-        goal.educationLevelId(),
         r.getDesiredSlots(),
         r.getMessage(),
         senderRole,
         r.getStatus(),
         r.getExpiresAt(),
-        goal.deadline(),
         studentDisplayName,
-        goal.currentLevel(),
-        goal.desiredLevel(),
-        goal.budgetMin(),
-        goal.budgetMax(),
-        goal.area(),
-        goal.subjectName(),
-        goal.educationLevelName(),
+        need,
+        offeringName,
+        fit.map(NeedFitEvaluator.NeedFit::checks).orElse(List.of()),
         hasConflict,
         conflicts
     );
@@ -520,8 +546,8 @@ public class ConnectionQueryService {
       return List.of();
     }
 
-    List<UUID> goalIds = classList.stream().map(TutoringClass::getGoalId).distinct().toList();
-    Map<UUID, ConnectionGoalDto> goalsMap = profile.findGoalsForConnection(goalIds);
+    List<UUID> needIds = classList.stream().map(TutoringClass::getNeedId).distinct().toList();
+    Map<UUID, LearningNeedView> needsMap = profile.findLearningNeeds(needIds);
 
     List<UUID> classIds = classList.stream().map(TutoringClass::getId).toList();
     Map<UUID, ClassScheduleStatusProvider.ClassScheduleInfo> scheduleInfoMap =
@@ -530,9 +556,9 @@ public class ConnectionQueryService {
             : Map.of();
 
     return classList.stream().map(c -> {
-      ConnectionGoalDto goal = goalsMap.get(c.getGoalId());
-      String subjectName = goal != null ? goal.subjectName() : null;
-      String educationLevelName = goal != null ? goal.educationLevelName() : null;
+      LearningNeedView need = needsMap.get(c.getNeedId());
+      String subjectName = need != null ? need.subjectName() : null;
+      String educationLevelName = need != null ? need.educationLevelName() : null;
 
       String studentName = null;
       if (profile != null && iam != null) {
@@ -560,7 +586,7 @@ public class ConnectionQueryService {
           c.getId(),
           c.getStudentId(),
           c.getTutorId(),
-          c.getGoalId(),
+          c.getNeedId(),
           c.getStatus(),
           studentName,
           tutorName,

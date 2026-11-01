@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   MapPin,
   Clock,
-  BookOpen,
   Briefcase,
   ChevronRight,
   ArrowLeft,
@@ -27,6 +26,14 @@ import {
   LoginPromptModal,
   type TutorDetail,
 } from "@/features/discovery";
+import { OfferingList } from "@/features/discovery/components/OfferingList";
+import {
+  TEACHING_MODE_TEXT,
+  formatRating,
+  formatVnd,
+  tutorAreaText,
+} from "@/features/discovery/utils/tutorDisplay";
+import { TUTOR_TYPE_LABELS } from "@/features/learning-needs/catalogRules";
 import {
   RatingSummaryCard,
   ReviewList,
@@ -36,7 +43,6 @@ import {
   type TutorRatingSummary,
 } from "@/features/review";
 import { ConnectionRequestDialog } from "@/features/connection";
-import { profileService, type LearningGoalData } from "@/services/profile";
 import { connectionService } from "@/services/connections";
 import { progressApi } from "@/features/progress";
 import { useAuth } from "@/context/AuthContext";
@@ -76,9 +82,6 @@ function TutorDetailContent() {
   const [editingReview, setEditingReview] = useState<ReviewItem | null>(null);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
 
-  // Student goals for authenticated users
-  const [studentGoals, setStudentGoals] = useState<LearningGoalData[]>([]);
-  const [selectedGoal, setSelectedGoal] = useState<LearningGoalData | null>(null);
   const [linkedChildren, setLinkedChildren] = useState<Array<{ studentId: string; name: string }>>([]);
   const [selectedChildId, setSelectedChildId] = useState<string>("");
 
@@ -157,64 +160,6 @@ function TutorDetailContent() {
     }
   }, [user]);
 
-  // Load goals for STUDENT or for PARENT's selected child
-  useEffect(() => {
-    if (!user) {
-      setStudentGoals([]);
-      setSelectedGoal(null);
-      return;
-    }
-
-    let cancelled = false;
-    if (user.role === "STUDENT") {
-      profileService
-        .getMyLearningGoals()
-        .then((goals) => {
-          if (cancelled) return;
-          const active = goals.filter((g) => g.status === "ACTIVE");
-          const targetGoals = active.length > 0 ? active : goals;
-          setStudentGoals(targetGoals);
-          if (targetGoals.length > 0) {
-            setSelectedGoal((prev) =>
-              prev && targetGoals.some((g) => g.goalId === prev.goalId) ? prev : targetGoals[0]
-            );
-          } else {
-            setSelectedGoal(null);
-          }
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setStudentGoals([]);
-          setSelectedGoal(null);
-        });
-    } else if (user.role === "PARENT" && selectedChildId) {
-      profileService
-        .getLinkedStudentGoals(selectedChildId)
-        .then((goals) => {
-          if (cancelled) return;
-          const active = goals.filter((g) => g.status === "ACTIVE");
-          const targetGoals = active.length > 0 ? active : goals;
-          setStudentGoals(targetGoals);
-          if (targetGoals.length > 0) {
-            setSelectedGoal((prev) =>
-              prev && targetGoals.some((g) => g.goalId === prev.goalId) ? prev : targetGoals[0]
-            );
-          } else {
-            setSelectedGoal(null);
-          }
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setStudentGoals([]);
-          setSelectedGoal(null);
-        });
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, selectedChildId]);
-
   // Handle request connect click
   const handleRequestClick = () => {
     if (!user) {
@@ -253,9 +198,8 @@ function TutorDetailContent() {
     setIsReviewModalOpen(true);
   };
 
-  const formattedPrice = tutor
-    ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(tutor.pricePerSession)
-    : "0 đ";
+  const prices = tutor?.offerings.map((offering) => offering.pricePerSession) ?? [];
+  const minPrice = prices.length > 0 ? Math.min(...prices) : null;
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 text-neutral-900 dark:text-stone-100 flex flex-col font-sans transition-colors">
@@ -348,18 +292,22 @@ function TutorDetailContent() {
                   <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-neutral-500 dark:text-stone-400">
                     <span className="inline-flex items-center gap-1 font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200/70 dark:border-amber-900/40 px-2.5 py-0.5 rounded-lg">
                       <Star className="size-3.5 fill-amber-500 text-amber-500" />
-                      {tutor.ratingAvg ? tutor.ratingAvg.toFixed(1) : "5.0"} ({tutor.reviewCount} đánh giá)
+                      {formatRating(tutor.ratingAvg, tutor.reviewCount)}
                     </span>
+                    {tutor.tutorType && (
+                      <span className="inline-flex items-center gap-1">
+                        {TUTOR_TYPE_LABELS[tutor.tutorType]}
+                        {tutor.tutorTypeVerified && " (đã xác minh)"}
+                      </span>
+                    )}
                     <span className="inline-flex items-center gap-1">
                       <Briefcase className="size-3.5 text-neutral-400" />
                       {tutor.experienceYears ? `${tutor.experienceYears} năm kinh nghiệm` : "Giáo viên tận tâm"}
                     </span>
-                    {tutor.area && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-3.5 text-neutral-400" />
-                        {tutor.area}
-                      </span>
-                    )}
+                    <span className="inline-flex items-center gap-1 min-w-0">
+                      <MapPin className="size-3.5 text-neutral-400 shrink-0" />
+                      <span className="break-words">{TEACHING_MODE_TEXT[tutor.teachingMode]} · {tutorAreaText(tutor)}</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -368,12 +316,12 @@ function TutorDetailContent() {
               <div className="w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-stone-100 dark:border-stone-800 flex sm:flex-col items-center sm:items-end justify-between gap-3 shrink-0">
                 <div className="text-left sm:text-right">
                   <span className="text-[11px] text-neutral-400 dark:text-stone-500 font-medium block">
-                    Học phí niêm yết
+                    {prices.length > 1 ? "Học phí từ" : "Học phí"}
                   </span>
                   <span className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 dark:text-stone-100">
-                    {formattedPrice}
+                    {formatVnd(minPrice)}
                   </span>
-                  <span className="text-xs text-neutral-400"> /buổi</span>
+                  {minPrice != null && <span className="text-xs text-neutral-400"> /buổi</span>}
                 </div>
 
                 {user?.role === "PARENT" && linkedChildren.length > 0 && (
@@ -456,31 +404,12 @@ function TutorDetailContent() {
               </div>
             </div>
 
-            {/* Subjects & Grade levels */}
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/80 dark:border-stone-800 p-6 space-y-4 shadow-xs">
+            {/* Gói dạy */}
+            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/80 dark:border-stone-800 p-5 sm:p-6 space-y-4 shadow-xs">
               <h3 className="font-heading font-bold text-sm text-neutral-900 dark:text-stone-100 uppercase tracking-wider">
-                Môn học nhận dạy
+                Gói dạy
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {tutor.subjects && tutor.subjects.length > 0 ? (
-                  tutor.subjects.map((sub, idx) => (
-                    <div
-                      key={`${sub.subjectId}-${sub.educationLevelId}-${idx}`}
-                      className="flex items-center gap-3 p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/80 dark:border-stone-800 text-xs font-semibold text-neutral-800 dark:text-stone-200"
-                    >
-                      <BookOpen className="size-4 text-amber-600 shrink-0" />
-                      <div>
-                        <span>{sub.subjectName}</span>
-                        <span className="text-neutral-400 dark:text-stone-500 font-normal block text-[11px]">
-                          {sub.educationLevelName}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-neutral-400 italic">Chưa có thông tin môn dạy.</p>
-                )}
-              </div>
+              <OfferingList offerings={tutor.offerings} />
             </div>
 
             {/* Weekly Availability Slots */}
@@ -604,15 +533,7 @@ function TutorDetailContent() {
         <ConnectionRequestDialog
           tutorId={tutor.tutorId}
           tutor={tutor}
-          goal={selectedGoal ?? undefined}
-          goals={studentGoals}
-          userRole={user?.role}
-          selectedChildName={linkedChildren.find((c) => c.studentId === selectedChildId)?.name}
-          onSelectGoal={setSelectedGoal}
-          onGoalCreated={(newGoal) => {
-            setStudentGoals((prev) => [newGoal, ...prev]);
-            setSelectedGoal(newGoal);
-          }}
+          studentId={user?.role === "PARENT" ? selectedChildId || undefined : undefined}
           onClose={() => setIsConnectOpen(false)}
           onSent={() => {
             setIsConnectOpen(false);

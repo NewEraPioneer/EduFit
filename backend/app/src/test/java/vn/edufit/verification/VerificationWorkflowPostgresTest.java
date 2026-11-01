@@ -54,7 +54,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.json.JsonMapper;
 import vn.edufit.profile.api.ProfileFacade;
+import vn.edufit.profile.application.service.LearningCatalogLoader;
+import vn.edufit.profile.application.service.LearningNeedService;
 import vn.edufit.profile.application.service.ProfileFacadeImpl;
+import vn.edufit.profile.application.service.TutorProfileAssembler;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.storage.infra.CredentialStorageProperties;
 import vn.edufit.storage.infra.FileValidationService;
@@ -130,8 +133,8 @@ class VerificationWorkflowPostgresTest {
 
     // Tạo hồ sơ Tutor trạng thái UNVERIFIED
     jdbc.update(
-        "INSERT INTO tutor_profile(tutor_id, user_id, display_name, headline, bio, teaching_mode, area, price_per_session, status, rating_avg, review_count, created_at, updated_at) " +
-            "VALUES (?, ?, 'Nguyen Van A', 'Toan Cap 3', 'Gia su toan', 'ONLINE', 'Hanoi', 200000, 'UNVERIFIED', 0.0, 0, now(), now())",
+        "INSERT INTO tutor_profile(tutor_id, user_id, display_name, headline, bio, teaching_mode, status, rating_avg, review_count, created_at, updated_at) " +
+            "VALUES (?, ?, 'Nguyen Van A', 'Toan Cap 3', 'Gia su toan', 'ONLINE', 'UNVERIFIED', 0.0, 0, now(), now())",
         tutorProfileId, tutorUserId
     );
 
@@ -149,10 +152,10 @@ class VerificationWorkflowPostgresTest {
 
     SubmitVerificationRequest submitRequest = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Sư phạm Hà Nội", (short) 2023, "Bằng cử nhân sư phạm toán", List.of(0)
+            Credential.Type.DEGREE, "Đại học Sư phạm Hà Nội", (short) 2023, "Bằng cử nhân sư phạm toán", List.of(0), null
         ),
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.CERTIFICATE, "IELTS British Council", (short) 2022, "IELTS 7.5 Academic", List.of(1)
+            Credential.Type.CERTIFICATE, "IELTS British Council", (short) 2022, "IELTS 7.5 Academic", List.of(1), null
         )
     ));
 
@@ -212,7 +215,7 @@ class VerificationWorkflowPostgresTest {
         .andExpect(jsonPath("$.data.credentials[*].files[*].fileName", hasItems("bang_dai_hoc.pdf", "ielts_cert.pdf")));
 
     // 4. Admin phê duyệt hồ sơ (APPROVE)
-    ReviewVerificationRequest approveRequest = new ReviewVerificationRequest(ReviewVerificationRequest.Action.APPROVE, null);
+    ReviewVerificationRequest approveRequest = new ReviewVerificationRequest(ReviewVerificationRequest.Action.APPROVE, null, null);
     mvc.perform(post("/api/v1/admin/verifications/" + requestId + "/review")
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonMapper.writeValueAsString(approveRequest)))
@@ -252,7 +255,7 @@ class VerificationWorkflowPostgresTest {
 
     SubmitVerificationRequest supplementRequest = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.CERTIFICATE, "British Council", (short) 2024, "IELTS 8.0 Supplementary", List.of(0)
+            Credential.Type.CERTIFICATE, "British Council", (short) 2024, "IELTS 8.0 Supplementary", List.of(0), null
         )
     ));
     byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
@@ -297,7 +300,7 @@ class VerificationWorkflowPostgresTest {
     // 5. Admin từ chối hồ sơ bổ sung (do giấy tờ mờ)
     currentUser.actAs(adminUserId, "admin@edufit.vn", Set.of("ADMIN"));
     ReviewVerificationRequest rejectRequest = new ReviewVerificationRequest(
-        ReviewVerificationRequest.Action.REJECT, "Chứng chỉ IELTS không đủ rõ nét"
+        ReviewVerificationRequest.Action.REJECT, "Chứng chỉ IELTS không đủ rõ nét", null
     );
     mvc.perform(post("/api/v1/admin/verifications/" + suppRequestId + "/review")
             .contentType(MediaType.APPLICATION_JSON)
@@ -353,7 +356,7 @@ class VerificationWorkflowPostgresTest {
     currentUser.actAs(tutorUserId, "tutor@edufit.vn", Set.of("TUTOR"));
     SubmitVerificationRequest resubmitRequest = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Mới Hợp Lệ", (short) 2024, "Bằng chính quy mới", List.of(0)
+            Credential.Type.DEGREE, "Đại học Mới Hợp Lệ", (short) 2024, "Bằng chính quy mới", List.of(0), null
         )
     ));
     byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< >>\nendobj\n%%EOF".getBytes();
@@ -377,7 +380,7 @@ class VerificationWorkflowPostgresTest {
 
     SubmitVerificationRequest submitRequest = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học X", (short) 2021, "Bằng cử nhân", List.of(0)
+            Credential.Type.DEGREE, "Đại học X", (short) 2021, "Bằng cử nhân", List.of(0), null
         )
     ));
     byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< >>\nendobj\n%%EOF".getBytes();
@@ -398,7 +401,7 @@ class VerificationWorkflowPostgresTest {
 
     // Admin từ chối không kèm lý do -> Bị lỗi (BR-06)
     currentUser.actAs(adminUserId, "admin@edufit.vn", Set.of("ADMIN"));
-    ReviewVerificationRequest invalidReject = new ReviewVerificationRequest(ReviewVerificationRequest.Action.REJECT, null);
+    ReviewVerificationRequest invalidReject = new ReviewVerificationRequest(ReviewVerificationRequest.Action.REJECT, null, null);
     mvc.perform(post("/api/v1/admin/verifications/" + requestId + "/review")
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonMapper.writeValueAsString(invalidReject)))
@@ -406,7 +409,7 @@ class VerificationWorkflowPostgresTest {
 
     // Admin từ chối kèm lý do hợp lệ
     ReviewVerificationRequest validReject = new ReviewVerificationRequest(
-        ReviewVerificationRequest.Action.REJECT, "Ảnh chụp bằng cấp quá mờ, không thể đọc số hiệu"
+        ReviewVerificationRequest.Action.REJECT, "Ảnh chụp bằng cấp quá mờ, không thể đọc số hiệu", null
     );
     mvc.perform(post("/api/v1/admin/verifications/" + requestId + "/review")
             .contentType(MediaType.APPLICATION_JSON)
@@ -435,7 +438,7 @@ class VerificationWorkflowPostgresTest {
 
     SubmitVerificationRequest submitRequest = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2023, "Bằng kỹ sư", List.of(0)
+            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2023, "Bằng kỹ sư", List.of(0), null
         )
     ));
     byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF".getBytes();
@@ -472,8 +475,8 @@ class VerificationWorkflowPostgresTest {
     UUID anotherTutorUserId = UUID.randomUUID();
     UUID anotherTutorProfileId = UUID.randomUUID();
     jdbc.update("INSERT INTO account(user_id, email, password_hash, full_name, role) VALUES (?, 'other@edufit.vn', 'hash', 'Other', 'TUTOR')", anotherTutorUserId);
-    jdbc.update("INSERT INTO tutor_profile(tutor_id, user_id, display_name, headline, bio, teaching_mode, price_per_session, status, rating_avg, review_count, created_at, updated_at) " +
-        "VALUES (?, ?, 'Other', 'H', 'B', 'ONLINE', 200000, 'UNVERIFIED', 0, 0, now(), now())", anotherTutorProfileId, anotherTutorUserId);
+    jdbc.update("INSERT INTO tutor_profile(tutor_id, user_id, display_name, headline, bio, teaching_mode, status, rating_avg, review_count, created_at, updated_at) " +
+        "VALUES (?, ?, 'Other', 'H', 'B', 'ONLINE', 'UNVERIFIED', 0, 0, now(), now())", anotherTutorProfileId, anotherTutorUserId);
 
     currentUser.actAs(anotherTutorUserId, "other@edufit.vn", Set.of("TUTOR"));
     mvc.perform(get("/api/v1/verifications/credentials/files/" + fileId))
@@ -523,6 +526,9 @@ class VerificationWorkflowPostgresTest {
   })
   @Import({
       ProfileFacadeImpl.class,
+      LearningNeedService.class,
+      LearningCatalogLoader.class,
+      TutorProfileAssembler.class,
       AdminVerificationService.class,
       TutorVerificationService.class,
       AdminVerificationController.class,
@@ -541,6 +547,12 @@ class VerificationWorkflowPostgresTest {
     @Bean
     vn.edufit.iam.api.IamFacade iamFacade() {
       return org.mockito.Mockito.mock(vn.edufit.iam.api.IamFacade.class);
+    }
+
+    // Liên kết phụ huynh–học sinh thuộc module connection, ngoài phạm vi slice test này
+    @Bean
+    vn.edufit.profile.api.port.ParentStudentLinkPort parentStudentLinkPort() {
+      return org.mockito.Mockito.mock(vn.edufit.profile.api.port.ParentStudentLinkPort.class);
     }
 
     @Bean(destroyMethod = "close")

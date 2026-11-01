@@ -526,10 +526,10 @@ export function FamilyLinksManagementView() {
       {/* Revoke Confirmation Modal */}
       {selectedLinkToRevoke && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           data-testid="revoke-confirm-modal"
         >
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150 my-auto">
             <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
               <ShieldAlert className="w-6 h-6" />
             </div>
@@ -597,10 +597,10 @@ export function FamilyLinksManagementView() {
       {/* Revoke Detail Modal */}
       {detailLink && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           data-testid="link-detail-modal"
         >
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 my-auto">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
                 <Info className="w-5 h-5" />
