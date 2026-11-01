@@ -35,8 +35,8 @@ import vn.edufit.ai.api.*;
 import vn.edufit.ai.application.*;
 import vn.edufit.ai.infra.client.LlmProvider;
 import vn.edufit.ai.infra.config.AiProperties;
+import vn.edufit.discovery.application.matching.MatchScore;
 import vn.edufit.discovery.application.service.MatchExplanationService;
-import vn.edufit.discovery.domain.model.MatchScore;
 import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 

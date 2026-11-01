@@ -1,4 +1,4 @@
-package vn.edufit.discovery.domain.model;
+package vn.edufit.discovery.application.matching;
 
 import java.math.BigDecimal;
 import java.time.Instant;

@@ -1,41 +1,64 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { AiMatchView } from "@/features/discovery/components/AiMatchView";
-import type { MatchingNeed, TutorMatchResult } from "@/features/discovery/types";
+import type { useTutorMatching } from "@/features/discovery/hooks/useTutorMatching";
+import type { LearningNeed } from "@/services/learningNeeds";
+import { makeFit, makeMatch, makeNeed, makeTutorCard } from "../../fixtures/learningNeeds";
 
-const need: MatchingNeed = {
-  goalId: "goal", subjectId: 1, subjectName: "Toán", educationLevelId: 2,
-  gradeName: "THCS", targetDescription: "Củng cố", teachingMode: "ONLINE",
-  timeSlotsDescription: "Thứ hai", budgetMin: 100000, budgetMax: 300000,
-  goalType: "CONSOLIDATE", area: "", currentLevel: 2, desiredLevel: 4,
-  deadline: "2030-06-01", availabilitySlots: [],
-};
-const matches: TutorMatchResult[] = ["Lan", "Hà"].map((name, i) => ({
-  tutorId: name, matchScore: 95 - i,
-  scoreBreakdown: { subjectFit: 100, levelFit: 50, scheduleFit: 100,
-    ratingFit: 80, budgetFit: 100, overlappingSlots: 2 },
-  explanation: `Lý do riêng cho ${name}`, aiGenerated: i === 0,
-  tutorInfo: { tutorId: name, displayName: name, headline: null, shortBio: null,
-    teachingMode: "ONLINE", area: null, pricePerSession: 200000,
-    ratingAvg: 4, reviewCount: 8, verified: true, subjects: [] },
+vi.mock("@/features/learning-needs/hooks/useLearningCatalog", () => ({
+  useLearningCatalog: () => ({ catalog: null, error: null }),
+}));
+
+type Matching = ReturnType<typeof useTutorMatching>;
+
+function matchingWith(need: LearningNeed | undefined, overrides: Partial<Matching> = {}): Matching {
+  return {
+    need,
+    needs: need ? [need] : [],
+    needId: need?.needId ?? "",
+    setNeedId: vi.fn(),
+    links: [],
+    studentId: "",
+    setStudentId: vi.fn(),
+    matches: [],
+    isMatching: false,
+    error: null,
+    refreshNeeds: vi.fn(),
+    ...overrides,
+  };
+}
+
+const matches = ["Lan", "Hà"].map((name, i) => makeMatch({
+  tutorId: name,
+  matchScore: 95 - i,
+  explanation: `Lý do riêng cho ${name}`,
+  aiGenerated: i === 0,
+  tutorInfo: makeTutorCard({ tutorId: name, displayName: name, fit: makeFit() }),
 }));
 
 describe("Personalized matching", () => {
   it("highlights the first ranked tutor and lists alternatives with their own explanation", () => {
-    render(<AiMatchView matches={matches} isMatching={false} error={null} need={need} />);
+    render(<AiMatchView matching={matchingWith(makeNeed(), { matches })} />);
     expect(screen.getByText("Gợi ý phù hợp nhất")).toBeInTheDocument();
     expect(screen.getByText("Các gia sư khác")).toBeInTheDocument();
     expect(screen.getByText("Lý do riêng cho Lan")).toBeInTheDocument();
     expect(screen.getByText("Lý do riêng cho Hà")).toBeInTheDocument();
   });
 
-  it("shows four weighted criteria and the combined subject/level fit", () => {
-    render(<AiMatchView matches={matches} isMatching={false} error={null} need={need} />);
+  it("explains a match with per-criterion fit labels instead of opaque weights", () => {
+    render(<AiMatchView matching={matchingWith(makeNeed(), { matches })} />);
     fireEvent.click(screen.getAllByRole("button", { name: "Xem lý do" })[0]);
-    expect(screen.getByText("Nhu cầu học · 40%")).toBeInTheDocument();
-    expect(screen.getByText("Năng lực & độ tin cậy · 25%")).toBeInTheDocument();
-    expect(screen.getByText(/Lịch & hình thức · 25%/)).toBeInTheDocument();
-    expect(screen.getByText("Ngân sách · 10%")).toBeInTheDocument();
-    expect(screen.getByText("75%")).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Dạy Lớp 9")).toBeInTheDocument();
+    expect(within(dialog).getByText("Học phí vượt ngân sách")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Chưa khớp")).toBeInTheDocument();
+  });
+
+  it("asks for the missing details of an incomplete need instead of matching", () => {
+    const need = makeNeed({ status: "INCOMPLETE", mode: null, missingFields: ["mode", "availabilitySlots"] });
+    render(<AiMatchView matching={matchingWith(need)} />);
+    expect(screen.getByText("Nhu cầu này chưa đủ thông tin để ghép gia sư")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Bổ sung thông tin để tìm gia sư" })).toBeInTheDocument();
+    expect(screen.queryByText("Gợi ý phù hợp nhất")).not.toBeInTheDocument();
   });
 });

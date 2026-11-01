@@ -161,3 +161,7 @@ ALTER TABLE class ADD CONSTRAINT chk_class_price CHECK (price_per_session >= 0);
 DROP TABLE IF EXISTS tutor_subject;
 ALTER TABLE tutor_profile DROP COLUMN IF EXISTS price_per_session;
 ALTER TABLE tutor_profile DROP COLUMN IF EXISTS area;
+
+-- 7. DỌN HÀM TẠM (Flyway có thể chạy migration kế tiếp trên cùng phiên)
+DROP FUNCTION pg_temp.edufit_match_province(TEXT);
+DROP FUNCTION pg_temp.edufit_area_text(TEXT);

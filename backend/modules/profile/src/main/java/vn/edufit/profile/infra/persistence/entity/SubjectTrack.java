@@ -8,6 +8,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import java.util.Set;
 
 /**
@@ -37,6 +39,7 @@ public class SubjectTrack {
   private boolean active;
 
   @ElementCollection(fetch = FetchType.EAGER)
+  @Fetch(FetchMode.SUBSELECT)
   @CollectionTable(name = "subject_track_level", joinColumns = @JoinColumn(name = "track_id"))
   @Column(name = "level_id")
   private Set<Integer> levelIds;

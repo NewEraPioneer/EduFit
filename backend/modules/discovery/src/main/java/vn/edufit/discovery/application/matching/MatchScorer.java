@@ -1,11 +1,10 @@
-package vn.edufit.discovery.domain.policy;
+package vn.edufit.discovery.application.matching;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
 import java.util.Optional;
 import vn.edufit.discovery.domain.model.EducationLevelOrder;
-import vn.edufit.discovery.domain.model.MatchScore;
 import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;

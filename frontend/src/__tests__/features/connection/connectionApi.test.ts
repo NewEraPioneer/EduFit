@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import { apiClient } from "@/lib/api";
+import { makeInboxItem } from "../../fixtures/learningNeeds";
 
 describe("connectionApi client", () => {
   beforeEach(() => {
@@ -33,18 +34,7 @@ describe("connectionApi client", () => {
 
   it("getTutorInbox gọi GET /api/v1/connections/requests khi không truyền phân trang", async () => {
     const mockInbox = [
-      {
-        requestId: "req-1",
-        goalType: "EXAM",
-        subjectId: 1,
-        educationLevelId: 4,
-        desiredSlots: ["Mon 19:00"],
-        senderRole: "STUDENT",
-        status: "PENDING",
-        expiresAt: "2026-10-25T00:00:00Z",
-        studentDisplayName: "Minh",
-        hasSlotConflict: false,
-      },
+      makeInboxItem({ requestId: "req-1", desiredSlots: ["Mon 19:00"], studentDisplayName: "Minh" }),
     ];
 
     const getSpy = vi.spyOn(apiClient, "get").mockResolvedValue({
@@ -60,16 +50,7 @@ describe("connectionApi client", () => {
   it("getTutorInbox gọi GET /api/v1/connections/requests/page khi có phân trang", async () => {
     const mockPage = {
       items: [
-        {
-          requestId: "req-2",
-          goalType: "IMPROVE",
-          subjectId: 2,
-          educationLevelId: 5,
-          desiredSlots: ["Tue 18:00"],
-          senderRole: "PARENT",
-          status: "PENDING",
-          expiresAt: "2026-10-25T00:00:00Z",
-        },
+        makeInboxItem({ requestId: "req-2", desiredSlots: ["Tue 18:00"], senderRole: "PARENT" }),
       ],
       page: 0,
       size: 10,
@@ -91,7 +72,7 @@ describe("connectionApi client", () => {
       classId: "cls-100",
       studentId: "stu-1",
       tutorId: "tut-1",
-      goalId: "goal-1",
+      needId: "need-1",
     };
 
     const postSpy = vi.spyOn(apiClient, "post").mockResolvedValue({
@@ -135,7 +116,7 @@ describe("connectionApi client", () => {
         classId: "cls-1",
         studentId: "stu-1",
         tutorId: "tut-1",
-        goalId: "goal-1",
+        needId: "need-1",
         status: "ACTIVE",
         studentDisplayName: "Minh",
         scheduleStatus: "PROPOSED",
@@ -160,7 +141,7 @@ describe("connectionApi client", () => {
         classId: "cls-2",
         studentId: "stu-2",
         tutorId: "tut-2",
-        goalId: "goal-2",
+        needId: "need-2",
         status: "ACTIVE",
         tutorDisplayName: "Thầy Hưng",
         scheduleStatus: "SCHEDULED",

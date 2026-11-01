@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import vn.edufit.ai.api.AiFeature;
 import vn.edufit.ai.api.AiGateway;
 import vn.edufit.ai.api.AiRequest;
-import vn.edufit.discovery.domain.model.MatchScore;
+import vn.edufit.discovery.application.matching.MatchScore;
 import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
 import vn.edufit.profile.api.fit.FitCheck;

@@ -23,11 +23,11 @@ import vn.edufit.ai.api.AiGateway;
 import vn.edufit.ai.api.AiRequest;
 import vn.edufit.ai.api.AiResponse;
 import vn.edufit.ai.api.AiUnavailableException;
+import vn.edufit.discovery.application.matching.MatchScore;
+import vn.edufit.discovery.application.matching.MatchScorer;
+import vn.edufit.discovery.application.matching.MatchWeights;
 import vn.edufit.discovery.application.service.MatchExplanationService;
 import vn.edufit.discovery.domain.model.EducationLevelOrder;
-import vn.edufit.discovery.domain.model.MatchScore;
-import vn.edufit.discovery.domain.policy.MatchScorer;
-import vn.edufit.discovery.domain.policy.MatchWeights;
 import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
 
 @ExtendWith(MockitoExtension.class)

@@ -54,7 +54,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.json.JsonMapper;
 import vn.edufit.profile.api.ProfileFacade;
+import vn.edufit.profile.application.service.LearningCatalogLoader;
+import vn.edufit.profile.application.service.LearningNeedService;
 import vn.edufit.profile.application.service.ProfileFacadeImpl;
+import vn.edufit.profile.application.service.TutorProfileAssembler;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.storage.infra.CredentialStorageProperties;
 import vn.edufit.storage.infra.FileValidationService;
@@ -523,6 +526,9 @@ class VerificationWorkflowPostgresTest {
   })
   @Import({
       ProfileFacadeImpl.class,
+      LearningNeedService.class,
+      LearningCatalogLoader.class,
+      TutorProfileAssembler.class,
       AdminVerificationService.class,
       TutorVerificationService.class,
       AdminVerificationController.class,
@@ -541,6 +547,12 @@ class VerificationWorkflowPostgresTest {
     @Bean
     vn.edufit.iam.api.IamFacade iamFacade() {
       return org.mockito.Mockito.mock(vn.edufit.iam.api.IamFacade.class);
+    }
+
+    // Liên kết phụ huynh–học sinh thuộc module connection, ngoài phạm vi slice test này
+    @Bean
+    vn.edufit.profile.api.port.ParentStudentLinkPort parentStudentLinkPort() {
+      return org.mockito.Mockito.mock(vn.edufit.profile.api.port.ParentStudentLinkPort.class);
     }
 
     @Bean(destroyMethod = "close")

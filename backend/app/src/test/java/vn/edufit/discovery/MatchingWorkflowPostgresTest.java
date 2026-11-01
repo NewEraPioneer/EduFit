@@ -226,8 +226,8 @@ class MatchingWorkflowPostgresTest {
     @Bean AuditSink audit() { return mock(AuditSink.class); }
     @Bean NotificationSink notifications() { return mock(NotificationSink.class); }
     @Bean CommittedEvents committedEvents() { return new CommittedEvents(); }
-    @Bean vn.edufit.discovery.domain.policy.MatchWeights matchWeights() {
-      return vn.edufit.discovery.domain.policy.MatchWeights.standard();
+    @Bean vn.edufit.discovery.application.matching.MatchWeights matchWeights() {
+      return vn.edufit.discovery.application.matching.MatchWeights.standard();
     }
   }
 }

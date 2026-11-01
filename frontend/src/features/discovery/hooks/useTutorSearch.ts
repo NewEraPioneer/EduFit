@@ -15,7 +15,7 @@ export function useTutorSearch(options: UseTutorSearchOptions = {}) {
   const [params, setParams] = useState<TutorSearchParams>({
     page: 0,
     size: 9,
-    sortBy: "rating",
+    sortBy: "relevance",
     sortDirection: "desc",
     ...initialParams,
   });
@@ -74,7 +74,7 @@ export function useTutorSearch(options: UseTutorSearchOptions = {}) {
     setParams({
       page: 0,
       size: 9,
-      sortBy: "rating",
+      sortBy: "relevance",
       sortDirection: "desc",
     });
   }, []);

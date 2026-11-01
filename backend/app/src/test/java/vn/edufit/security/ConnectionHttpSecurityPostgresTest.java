@@ -274,15 +274,15 @@ class ConnectionHttpSecurityPostgresTest {
   void tutorInboxEnforcesBR37PrivacyWhitelistWithoutLeakage() throws Exception {
     // Seed an active connection request for this tutor
     UUID reqId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID();
+    UUID needId = UUID.randomUUID();
     Instant now = Instant.now();
 
-    jdbc.update("insert into learning_goal(need_id, student_id, subject_id, current_level, desired_level, goal_type, deadline, mode, budget_max, status) " +
-        "values (?, ?, 1, 1, 2, 'EXAM_PREPARATION', current_date + 30, 'ONLINE', 200000, 'ACTIVE')", goalId, studentId);
+    jdbc.update("insert into learning_need(need_id, student_id, created_by, education_level_id, subject_id, mode, budget_max_per_session, status) " +
+        "values (?, ?, ?, 1, 1, 'ONLINE', 200000, 'ACTIVE')", needId, studentId, studentUser);
 
     jdbc.update("insert into connection_request(request_id, student_id, tutor_id, need_id, sent_by_user_id, desired_slots, message, status, expires_at) " +
         "values (?, ?, ?, ?, ?, cast(? as jsonb), 'Please help with Math', 'PENDING', ?)",
-        reqId, studentId, tutorId, goalId, studentUser, "[\"Tue 19:00\"]", java.sql.Timestamp.from(now.plusSeconds(86400)));
+        reqId, studentId, tutorId, needId, studentUser, "[\"Tue 19:00\"]", java.sql.Timestamp.from(now.plusSeconds(86400)));
 
     Cookie tutorSession = login(tutorEmail, password);
 
@@ -290,10 +290,10 @@ class ConnectionHttpSecurityPostgresTest {
     MvcResult result = mvc.perform(get("/api/v1/connections/requests").cookie(tutorSession))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data[0].requestId").value(reqId.toString()))
-        .andExpect(jsonPath("$.data[0].goalType").value("EXAM_PREPARATION"))
+        .andExpect(jsonPath("$.data[0].need.subjectName").value("Math"))
+        .andExpect(jsonPath("$.data[0].need.educationLevelName").value("Grade 10"))
         .andExpect(jsonPath("$.data[0].senderRole").value("STUDENT"))
         .andExpect(jsonPath("$.data[0].desiredSlots[0]").value("Tue 19:00"))
-        .andExpect(jsonPath("$.data[0].deadline").isNotEmpty())
         .andReturn();
 
     String content = result.getResponse().getContentAsString();

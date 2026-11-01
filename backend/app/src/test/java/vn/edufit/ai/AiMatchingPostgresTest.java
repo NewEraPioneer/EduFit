@@ -297,7 +297,7 @@ class AiMatchingPostgresTest {
             explanations,
             new vn.edufit.discovery.application.service.NeedAccessService(profile, mock(ConnectionFacade.class)),
             event -> {},
-            vn.edufit.discovery.domain.policy.MatchWeights.standard(),
+            vn.edufit.discovery.application.matching.MatchWeights.standard(),
             manager);
   }
 

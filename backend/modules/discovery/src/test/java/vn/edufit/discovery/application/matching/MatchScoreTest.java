@@ -1,4 +1,4 @@
-package vn.edufit.discovery.domain.model;
+package vn.edufit.discovery.application.matching;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

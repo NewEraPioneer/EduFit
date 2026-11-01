@@ -3,7 +3,7 @@ package vn.edufit.discovery.web.response;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
-import vn.edufit.discovery.domain.model.MatchScore;
+import vn.edufit.discovery.application.matching.MatchScore;
 
 /** Độ khớp với nhu cầu học: điểm tổng, gói dạy được dùng để so và nhãn từng tiêu chí. */
 public record FitResponse(

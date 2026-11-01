@@ -90,7 +90,7 @@ export interface StudentDashboardResponse {
   selectedClassId?: string | null;
   tutorId?: string | null;
   tutorName?: string | null;
-  goalId?: string | null;
+  needId?: string | null;
   goalTitle?: string | null;
   progressPercentage?: number | null;
   plan?: PlanResponse | null;
@@ -121,7 +121,7 @@ export interface TeachingHistoryItem {
   classId: string;
   studentId: string;
   studentName: string;
-  goalId?: string | null;
+  needId?: string | null;
   goalTitle?: string | null;
   status: string;
   progressPercentage?: number | null;

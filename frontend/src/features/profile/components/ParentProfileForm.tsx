@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/shared/ui/Toast";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import type { StudentLink } from "@/features/connection/types";
+import { LearningNeedManager } from "@/features/learning-needs/components/LearningNeedManager";
 import {
   Users,
   Save,
@@ -16,7 +17,6 @@ import {
   Mail,
   ShieldCheck,
   CheckCircle2,
-  BookOpen,
   ArrowRight,
   GraduationCap,
 } from "lucide-react";
@@ -28,8 +28,6 @@ export function ParentProfileForm() {
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [area, setArea] = useState("");
-  const [childGrade, setChildGrade] = useState("");
-  const [learningNote, setLearningNote] = useState("");
   const [linkedLinks, setLinkedLinks] = useState<StudentLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,37 +40,19 @@ export function ParentProfileForm() {
       try {
         setLoading(true);
 
-        // 1. Nạp từ cache/storage hồ sơ phụ huynh
+        // 1. Thông tin liên hệ phụ huynh lưu trên thiết bị này
         const savedProfileStr = localStorage.getItem("edufit_parent_profile");
+        let saved: { fullName?: string; phoneNumber?: string; area?: string } = {};
         if (savedProfileStr) {
           try {
-            const parsed = JSON.parse(savedProfileStr);
-            setFullName(parsed.fullName || user?.fullName || "Trần Văn Hưng");
-            setPhoneNumber(parsed.phoneNumber || "0988 123 456");
-            setArea(parsed.area || "Cầu Giấy, Hà Nội");
-            setChildGrade(parsed.childGrade || "Lớp 9 (Ôn thi vào 10)");
-            setLearningNote(
-              parsed.learningNote ||
-                "Tìm gia sư Toán và Tiếng Anh có kinh nghiệm luyện thi vào các trường THPT Chuyên tại Hà Nội."
-            );
+            saved = JSON.parse(savedProfileStr);
           } catch {
-            setFullName(user?.fullName || "Trần Văn Hưng");
-            setPhoneNumber("0988 123 456");
-            setArea("Cầu Giấy, Hà Nội");
-            setChildGrade("Lớp 9 (Ôn thi vào 10)");
-            setLearningNote(
-              "Tìm gia sư Toán và Tiếng Anh có kinh nghiệm luyện thi vào các trường THPT Chuyên tại Hà Nội."
-            );
+            saved = {};
           }
-        } else {
-          setFullName(user?.fullName || "Trần Văn Hưng");
-          setPhoneNumber("0988 123 456");
-          setArea("Cầu Giấy, Hà Nội");
-          setChildGrade("Lớp 9 (Ôn thi vào 10)");
-          setLearningNote(
-            "Tìm gia sư Toán và Tiếng Anh có kinh nghiệm luyện thi vào các trường THPT Chuyên tại Hà Nội."
-          );
         }
+        setFullName(saved.fullName || user?.fullName || "");
+        setPhoneNumber(saved.phoneNumber || "");
+        setArea(saved.area || "");
 
         // 2. Nạp danh sách liên kết học sinh thật từ Backend
         const links = await connectionApi.getLinks().catch(() => []);
@@ -121,8 +101,6 @@ export function ParentProfileForm() {
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
         area: area.trim(),
-        childGrade: childGrade.trim(),
-        learningNote: learningNote.trim(),
         updatedAt: new Date().toISOString(),
       };
       localStorage.setItem("edufit_parent_profile", JSON.stringify(profileData));
@@ -168,7 +146,7 @@ export function ParentProfileForm() {
               <span>Hồ Sơ Phụ Huynh (Parent Profile)</span>
             </div>
             <h3 className="font-heading text-xl font-bold text-neutral-900">
-              Thông tin liên hệ & Yêu cầu gia sư cho con
+              Thông tin liên hệ & Nhu cầu học của con
             </h3>
             <p className="text-xs text-neutral-500 mt-0.5">
               Giúp gia sư nắm bắt nhu cầu học tập và liên hệ thuận tiện với gia đình
@@ -258,43 +236,15 @@ export function ParentProfileForm() {
         </div>
       </div>
 
-      {/* 2. Thông Tin Nhu Cầu Tìm Gia Sư Cho Con */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-5">
-        <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
-          <BookOpen className="size-4 text-emerald-600" />
-          <h4 className="text-sm font-bold text-neutral-900">
-            Kế hoạch học tập của học sinh
-          </h4>
+      {/* 2. Nhu cầu học của từng con: lưu trên hệ thống, dùng để ghép và gửi cho gia sư */}
+      {linkedLinks.map((link, index) => (
+        <div key={link.linkId} className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-2">
+          <p className="text-[11px] font-semibold text-emerald-700 break-all">
+            Học sinh {index + 1} · mã {link.studentId.slice(-8)}
+          </p>
+          <LearningNeedManager studentId={link.studentId} />
         </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Cấp lớp học của con
-            </label>
-            <input
-              type="text"
-              value={childGrade}
-              onChange={(e) => setChildGrade(e.target.value)}
-              placeholder="VD: Lớp 9 (Chuẩn bị thi vào 10)"
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-neutral-900 font-medium"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Mục tiêu & Ghi chú dành cho gia sư
-            </label>
-            <textarea
-              rows={3}
-              value={learningNote}
-              onChange={(e) => setLearningNote(e.target.value)}
-              placeholder="Mô tả tính cách học sinh, học lực hiện tại, thời gian mong muốn học trong tuần..."
-              className="w-full p-3.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-neutral-900 font-medium resize-none"
-            />
-          </div>
-        </div>
-      </div>
+      ))}
 
       {/* 3. Liên Kết Tài Khoản Con Em (Parent - Student Link) Thật */}
       <div className="bg-stone-50/80 p-6 rounded-3xl border border-stone-200 space-y-4">

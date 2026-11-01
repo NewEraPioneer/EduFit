@@ -9,29 +9,20 @@ import { discoveryApi } from "@/features/discovery/api/discoveryApi";
 import { catalogService } from "@/services/catalog";
 import * as authContext from "@/context/AuthContext";
 import type { TutorDiscoveryCard, TutorDetail, SpringPage } from "@/features/discovery/types";
+import { makeCatalog, makeOffering, makeTutorCard, makeTutorDetail } from "../fixtures/learningNeeds";
 
 const mockTutorCards: TutorDiscoveryCard[] = [
-  {
+  makeTutorCard({
     tutorId: "tut-qa-001",
     displayName: "Thầy Lê Hoàng Long",
     headline: "Chuyên gia bồi dưỡng học sinh giỏi Toán",
     shortBio: "8 năm kinh nghiệm giảng dạy môn Toán cấp 2.",
-    teachingMode: "ONLINE",
-    area: "Hà Nội",
-    pricePerSession: 280000,
     experienceYears: 8,
     ratingAvg: 4.9,
     reviewCount: 42,
-    verified: true,
-    subjects: [
-      {
-        subjectId: 1,
-        subjectName: "Toán học",
-        educationLevelId: 4,
-        educationLevelName: "Lớp 9",
-      },
-    ],
-  },
+    minPricePerSession: 280000,
+    offerings: [makeOffering({ subjectName: "Toán học", levels: [{ id: 4, name: "Lớp 9" }], pricePerSession: 280000 })],
+  }),
 ];
 
 const mockPageResult: SpringPage<TutorDiscoveryCard> = {
@@ -45,32 +36,21 @@ const mockPageResult: SpringPage<TutorDiscoveryCard> = {
   empty: false,
 };
 
-const mockTutorDetail: TutorDetail = {
+const mockTutorDetail: TutorDetail = makeTutorDetail({
   tutorId: "tut-qa-001",
   displayName: "Thầy Lê Hoàng Long",
   headline: "Chuyên gia bồi dưỡng học sinh giỏi Toán",
   bio: "Tốt nghiệp ĐH Sư Phạm Hà Nội khoa Toán học, có nhiều năm luyện thi vào các trường chuyên.",
   teachingMethod: "Phương pháp tư duy logic, rèn luyện kỹ năng phân tích đề thi và tránh bẫy bài toán.",
   experienceYears: 8,
-  pricePerSession: 280000,
   ratingAvg: 4.9,
   reviewCount: 42,
-  verified: true,
-  teachingMode: "ONLINE",
-  area: "Hà Nội",
-  subjects: [
-    {
-      subjectId: 1,
-      subjectName: "Toán học",
-      educationLevelId: 4,
-      educationLevelName: "Lớp 9",
-    },
-  ],
+  offerings: [makeOffering({ subjectName: "Toán học", levels: [{ id: 4, name: "Lớp 9" }], pricePerSession: 280000 })],
   availabilitySlots: [
     { dayOfWeek: 2, startTime: "18:00", endTime: "20:00" },
     { dayOfWeek: 4, startTime: "18:00", endTime: "20:00" },
   ],
-};
+});
 
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -89,12 +69,7 @@ describe("QA R4: Đánh giá Gia sư & Thư mục Công khai (Reviews & Public D
     vi.restoreAllMocks();
     mockPush.mockReset();
 
-    vi.spyOn(catalogService, "getSubjects").mockResolvedValue([
-      { subjectId: 1, name: "Toán học" },
-    ]);
-    vi.spyOn(catalogService, "getEducationLevels").mockResolvedValue([
-      { levelId: 4, name: "Lớp 9", sortOrder: 4 },
-    ]);
+    vi.spyOn(catalogService, "getLearningCatalog").mockResolvedValue(makeCatalog());
   });
 
   afterEach(() => {

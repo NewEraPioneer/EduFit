@@ -6,9 +6,12 @@ import Link from "next/link";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/shared/ui/Toast";
-import { profileService } from "@/services/profile";
-import { catalogService, EducationLevel, SubjectItem } from "@/services/catalog";
+import { profileService, type TutorProfileData, type TutorType } from "@/services/profile";
 import { verificationService } from "@/services/verification";
+import { useLearningCatalog } from "@/features/learning-needs/hooks/useLearningCatalog";
+import { TUTOR_TYPE_LABELS, districtsOf } from "@/features/learning-needs/catalogRules";
+import { TutorOfferingManager } from "@/features/profile/components/TutorOfferingManager";
+import { offeringName } from "@/features/discovery/utils/tutorDisplay";
 import {
   ArrowRight,
   ArrowLeft,
@@ -18,7 +21,6 @@ import {
   Upload,
   Check,
   ShieldCheck,
-  DollarSign,
   MapPin,
   Clock,
   Loader2,
@@ -28,21 +30,6 @@ import { AiBioAssistantModal } from "@/features/profile/components/AiBioAssistan
 
 const MAX_CREDENTIAL_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_CREDENTIAL_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"];
-
-const MAJOR_VIETNAM_CITIES = [
-  "Hà Nội",
-  "TP. Hồ Chí Minh",
-  "Đà Nẵng",
-  "Hải Phòng",
-  "Cần Thơ",
-  "Bình Dương",
-  "Đồng Nai",
-  "Quảng Ninh",
-  "Huế",
-  "Khánh Hòa",
-  "Bà Rịa - Vũng Tàu",
-  "Toàn quốc (Online)",
-];
 
 export function TutorOnboardingWizard() {
   const router = useRouter();
@@ -68,18 +55,16 @@ export function TutorOnboardingWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<string>("Vừa cập nhật");
 
-  // Catalogs
-  const [subjectsCatalog, setSubjectsCatalog] = useState<SubjectItem[]>([]);
-  const [educationLevels, setEducationLevels] = useState<EducationLevel[]>([]);
+  const { catalog } = useLearningCatalog();
 
-  // Form State - Step 1: Chuyên môn
+  // Form State - Step 1: Thông tin chung & Gói dạy
+  const [profile, setProfile] = useState<TutorProfileData | null>(null);
   const [displayName, setDisplayName] = useState(user?.fullName || "");
-  const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([]);
-  const [selectedLevelIds, setSelectedLevelIds] = useState<number[]>([]);
+  const [tutorType, setTutorType] = useState<TutorType | null>(null);
   const [teachingMode, setTeachingMode] = useState<"ONLINE" | "OFFLINE" | "BOTH">("ONLINE");
-  const [pricePerSession, setPricePerSession] = useState<number>(0);
+  const [provinceId, setProvinceId] = useState<number | null>(null);
+  const [districtIds, setDistrictIds] = useState<number[]>([]);
   const [experienceYears, setExperienceYears] = useState<number>(0);
-  const [area, setArea] = useState<string>("");
 
   // Form State - Step 2: CV & Bio
   const [headline, setHeadline] = useState("");
@@ -91,6 +76,7 @@ export function TutorOnboardingWizard() {
   const [credentialInstitution, setCredentialInstitution] = useState("");
   const [credentialYear, setCredentialYear] = useState<number | undefined>(new Date().getFullYear());
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [credentialOfferingId, setCredentialOfferingId] = useState<string>("");
 
   // AI Bio Tool state
   const [showAiModal, setShowAiModal] = useState(false);
@@ -99,31 +85,22 @@ export function TutorOnboardingWizard() {
     async function loadData() {
       try {
         setLoading(true);
-        const [levels, subjects, myProfile] = await Promise.all([
-          catalogService.getEducationLevels(),
-          catalogService.getSubjects(),
-          profileService.getMyTutorProfile().catch(() => null),
-        ]);
-
-        setEducationLevels(levels);
-        setSubjectsCatalog(subjects);
+        const myProfile = await profileService.getMyTutorProfile().catch(() => null);
 
         if (myProfile) {
+          setProfile(myProfile);
           if (myProfile.displayName) setDisplayName(myProfile.displayName);
           if (myProfile.headline) setHeadline(myProfile.headline);
           if (myProfile.bio) setBio(myProfile.bio);
           if (myProfile.teachingMethod) setTeachingMethod(myProfile.teachingMethod);
-          if (myProfile.pricePerSession) setPricePerSession(myProfile.pricePerSession);
           if (myProfile.experienceYears) setExperienceYears(myProfile.experienceYears);
-          if (myProfile.area) setArea(myProfile.area);
           if (myProfile.teachingMode) setTeachingMode(myProfile.teachingMode);
-          if (myProfile.subjects && myProfile.subjects.length > 0) {
-            setSelectedSubjectIds(Array.from(new Set(myProfile.subjects.map((s) => s.subjectId))));
-            setSelectedLevelIds(Array.from(new Set(myProfile.subjects.map((s) => s.educationLevelId))));
-            // Nếu đã lưu chuyên môn và khu vực, tự động chuyển sang Bước 2 để không phải nhập lại
-            if (myProfile.area) {
-              setStep(2);
-            }
+          setTutorType(myProfile.tutorType);
+          setProvinceId(myProfile.provinceId);
+          setDistrictIds(myProfile.districts.map((d) => d.id));
+          // Đã có gói dạy thì chuyển sang Bước 2 để không phải nhập lại
+          if (myProfile.offerings.length > 0) {
+            setStep(2);
           }
         }
       } catch (err) {
@@ -136,91 +113,69 @@ export function TutorOnboardingWizard() {
     loadData();
   }, []);
 
-  const toggleSubject = (id: number) => {
-    setSelectedSubjectIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
+  const inPerson = teachingMode !== "ONLINE";
 
-  const toggleLevel = (id: number) => {
-    setSelectedLevelIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+  /** Thông tin chung của hồ sơ; dạy trực tiếp mới gửi tỉnh/khu vực. */
+  const profilePayload = () => ({
+    displayName: displayName.trim() || user?.fullName || "Gia sư EduFit",
+    headline: headline.trim(),
+    bio: bio.trim(),
+    teachingMode,
+    tutorType,
+    provinceId: inPerson ? provinceId : null,
+    districtIds: inPerson ? districtIds : [],
+    experienceYears: Number(experienceYears) || 0,
+    teachingMethod: teachingMethod.trim(),
+  });
+
+  /** Lưu thông tin chung (tạo hồ sơ nếu chưa có) để có thể thêm gói dạy. */
+  const handleSaveBasics = async () => {
+    if (!displayName.trim()) {
+      showToast("Vui lòng nhập họ tên hiển thị!", "error");
+      return;
+    }
+    if (inPerson && !provinceId) {
+      showToast("Vui lòng chọn tỉnh/thành nơi bạn dạy trực tiếp!", "error");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setProfile(await profileService.updateTutorProfile(profilePayload()));
+      setLastSaved(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }));
+      showToast("Đã lưu thông tin chung. Tiếp theo, thêm gói dạy.", "success");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu thông tin", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleNextFromStep1 = async () => {
-    if (selectedSubjectIds.length === 0) {
-      showToast("Vui lòng chọn ít nhất 1 môn giảng dạy!", "error");
+    if (!profile) {
+      showToast("Vui lòng lưu thông tin chung trước!", "error");
       return;
     }
-    if (selectedLevelIds.length === 0) {
-      showToast("Vui lòng chọn ít nhất 1 khối lớp giảng dạy!", "error");
+    if (profile.offerings.length === 0) {
+      showToast("Vui lòng thêm ít nhất 1 gói dạy!", "error");
       return;
     }
-    if (!area.trim()) {
-      showToast("Vui lòng nhập hoặc chọn khu vực giảng dạy của bạn!", "error");
-      return;
-    }
-
     try {
       setSubmitting(true);
-      // 1. Lưu thông tin hồ sơ gia sư xuống server
-      await profileService.updateTutorProfile({
-        displayName: displayName.trim() || user?.fullName || "Gia sư EduFit",
-        headline: headline.trim(),
-        bio: bio.trim(),
-        teachingMode,
-        area: area.trim(),
-        pricePerSession: Number(pricePerSession) || 200000,
-        experienceYears: Number(experienceYears) || 1,
-        teachingMethod: teachingMethod.trim(),
-      });
-
-      // 2. Lưu các cặp môn học & khối lớp đã chọn
-      for (const subId of selectedSubjectIds) {
-        for (const lvlId of selectedLevelIds) {
-          try {
-            await profileService.addTutorSubject(subId, lvlId);
-          } catch {
-            // bỏ qua nếu đã tồn tại
-          }
-        }
-      }
-
+      setProfile(await profileService.updateTutorProfile(profilePayload()));
       setLastSaved(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }));
       setStep(2);
-      showToast("Đã lưu thông tin chuyên môn thành công!", "success");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu thông tin chuyên môn";
-      showToast(message, "error");
+      showToast(err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu thông tin chuyên môn", "error");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleSkipToDashboard = async () => {
-    // Nếu gia sư đã chọn môn và khu vực hợp lệ ở bước 1, lưu nháp xuống server
-    if (selectedSubjectIds.length > 0 && selectedLevelIds.length > 0 && area.trim()) {
+    // Lưu nháp thông tin chung nếu đã đủ điều kiện hợp lệ
+    if (profile && (!inPerson || provinceId)) {
       try {
-        await profileService.updateTutorProfile({
-          displayName: displayName.trim() || user?.fullName || "Gia sư EduFit",
-          headline: headline.trim(),
-          bio: bio.trim(),
-          teachingMode,
-          area: area.trim(),
-          pricePerSession: Number(pricePerSession) || 200000,
-          experienceYears: Number(experienceYears) || 1,
-          teachingMethod: teachingMethod.trim(),
-        });
-        for (const subId of selectedSubjectIds) {
-          for (const lvlId of selectedLevelIds) {
-            try {
-              await profileService.addTutorSubject(subId, lvlId);
-            } catch {
-              // bỏ qua nếu đã có
-            }
-          }
-        }
+        await profileService.updateTutorProfile(profilePayload());
       } catch (err) {
         console.warn("Lưu nháp khi bỏ qua onboarding:", err);
       }
@@ -233,7 +188,7 @@ export function TutorOnboardingWizard() {
           completedAt: new Date().toISOString(),
           skipped: true,
           displayName,
-          subjectsCount: selectedSubjectIds.length,
+          offeringsCount: profile?.offerings.length ?? 0,
           step: "SKIPPED",
         })
       );
@@ -299,30 +254,10 @@ export function TutorOnboardingWizard() {
   const handleComplete = async () => {
     setSubmitting(true);
     try {
-      // 1. Cập nhật hồ sơ gia sư lên Backend
-      await profileService.updateTutorProfile({
-        displayName: displayName.trim() || user?.fullName || "Gia sư EduFit",
-        headline: headline.trim(),
-        bio: bio.trim(),
-        teachingMode,
-        area: area.trim(),
-        pricePerSession: Number(pricePerSession) || 200000,
-        experienceYears: Number(experienceYears) || 1,
-        teachingMethod: teachingMethod.trim(),
-      });
+      // 1. Cập nhật hồ sơ gia sư lên Backend (gói dạy đã được lưu ở Bước 1)
+      await profileService.updateTutorProfile(profilePayload());
 
-      // 2. Cập nhật môn học & khối lớp giảng dạy
-      for (const subId of selectedSubjectIds) {
-        for (const lvlId of selectedLevelIds) {
-          try {
-            await profileService.addTutorSubject(subId, lvlId);
-          } catch {
-            // bỏ qua nếu đã tồn tại
-          }
-        }
-      }
-
-      // 3. Gửi đúng các tệp người dùng đã chọn. Lỗi phiên hoặc lỗi upload phải được hiển thị,
+      // 2. Gửi đúng các tệp người dùng đã chọn. Lỗi phiên hoặc lỗi upload phải được hiển thị,
       // không được nuốt lỗi rồi đánh dấu hồ sơ là đã nộp.
       await verificationService.submitVerification(
         {
@@ -331,21 +266,22 @@ export function TutorOnboardingWizard() {
               type: credentialType,
               institution: credentialInstitution.trim(),
               year: credentialYear ? Number(credentialYear) : undefined,
-              note: `Hồ sơ đăng ký gia sư chuyên môn ${selectedSubjectIds.length} môn`,
+              note: `Hồ sơ đăng ký gia sư với ${profile?.offerings.length ?? 0} gói dạy`,
               fileIndexes: selectedFiles.map((_, index) => index),
+              offeringId: credentialOfferingId || null,
             },
           ],
         },
         selectedFiles
       );
 
-      // 4. Lưu trạng thái hoàn tất vào Local Storage
+      // 3. Lưu trạng thái hoàn tất vào Local Storage
       localStorage.setItem(
         "edufit_tutor_onboarding_completed",
         JSON.stringify({
           completedAt: new Date().toISOString(),
           displayName,
-          subjectsCount: selectedSubjectIds.length,
+          offeringsCount: profile?.offerings.length ?? 0,
           step: "COMPLETED",
         })
       );
@@ -487,235 +423,178 @@ export function TutorOnboardingWizard() {
           </div>
         </div>
 
-        {/* STEP 1: THÔNG TIN CHUYÊN MÔN */}
+        {/* STEP 1: THÔNG TIN CHUNG & GÓI DẠY */}
         {step === 1 && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200/90 shadow-xs space-y-6">
+          <div className="bg-white rounded-3xl p-5 sm:p-8 border border-stone-200/90 shadow-xs space-y-6">
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
                 BƯỚC 1 / 3
               </span>
               <h2 className="font-heading text-2xl font-bold text-neutral-900">
-                Thông tin chuyên môn & Học phí
+                Thông tin chung & Gói dạy
               </h2>
               <p className="text-xs text-neutral-500">
-                Lựa chọn môn dạy, khối lớp phụ trách và mức học phí mong muốn để học sinh dễ dàng tìm kiếm.
+                Cho biết bạn là ai, dạy ở đâu, rồi thêm các gói dạy (môn, khối lớp, mục tiêu và học phí riêng).
               </p>
             </div>
 
-            <div className="space-y-5 pt-2">
-              {/* Họ tên hiển thị */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="sm:col-span-2">
+                <label htmlFor="onb-display-name" className="block text-xs font-bold text-neutral-700 mb-1.5">
                   Họ và tên gia sư hiển thị <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id="onb-display-name"
                   type="text"
                   required
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="VD: Cô Nguyễn Hoàng Lan"
-                  className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-neutral-900 font-medium"
+                  className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 text-neutral-900 font-medium"
                 />
               </div>
 
-              {/* Môn học giảng dạy */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-neutral-700">
-                    Môn học bạn nhận dạy <span className="text-rose-500">*</span>
-                  </label>
-                  <span className="text-[11px] text-neutral-400">Chọn 1 hoặc nhiều môn</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {subjectsCatalog.map((subj) => {
-                    const isSelected = selectedSubjectIds.includes(subj.subjectId);
-                    return (
-                      <button
-                        key={subj.subjectId}
-                        type="button"
-                        onClick={() => toggleSubject(subj.subjectId)}
-                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-amber-500 text-white shadow-xs"
-                            : "bg-stone-100 hover:bg-stone-200 text-neutral-700"
-                        }`}
-                      >
-                        {isSelected && <Check className="size-3 inline-block mr-1.5" />}
-                        {subj.name}
-                      </button>
-                    );
-                  })}
+                <label htmlFor="onb-tutor-type" className="block text-xs font-bold text-neutral-700 mb-1.5">
+                  Bạn là
+                </label>
+                <select
+                  id="onb-tutor-type"
+                  value={tutorType ?? ""}
+                  onChange={(e) => setTutorType((e.target.value || null) as TutorType | null)}
+                  className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 text-neutral-900 font-medium"
+                >
+                  <option value="">-- Chọn --</option>
+                  {(Object.keys(TUTOR_TYPE_LABELS) as TutorType[]).map((type) => (
+                    <option key={type} value={type}>{TUTOR_TYPE_LABELS[type]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="onb-experience" className="block text-xs font-bold text-neutral-700 mb-1.5">
+                  Số năm kinh nghiệm gia sư
+                </label>
+                <input
+                  id="onb-experience"
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={experienceYears}
+                  onChange={(e) => setExperienceYears(Number(e.target.value))}
+                  className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 text-neutral-900 font-medium"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <span className="block text-xs font-bold text-neutral-700 mb-1.5">Hình thức giảng dạy</span>
+                <div className="grid grid-cols-3 gap-2" role="group" aria-label="Hình thức giảng dạy">
+                  {[
+                    { id: "ONLINE", label: "Online" },
+                    { id: "OFFLINE", label: "Trực tiếp" },
+                    { id: "BOTH", label: "Cả hai" },
+                  ].map((mode) => (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      aria-pressed={teachingMode === mode.id}
+                      onClick={() => setTeachingMode(mode.id as "ONLINE" | "OFFLINE" | "BOTH")}
+                      className={`py-2 text-xs font-semibold rounded-xl border text-center transition-all cursor-pointer ${
+                        teachingMode === mode.id
+                          ? "border-amber-500 bg-amber-50 text-amber-800"
+                          : "border-stone-200 hover:bg-stone-50 text-neutral-600"
+                      }`}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Khối lớp giảng dạy & Kinh nghiệm */}
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold text-neutral-700">
-                      Khối lớp bạn nhận dạy <span className="text-rose-500">*</span>
+              {inPerson && (
+                <div className="sm:col-span-2 space-y-3">
+                  <div>
+                    <label htmlFor="onb-province" className="block text-xs font-bold text-neutral-700 mb-1.5">
+                      Tỉnh/thành dạy trực tiếp <span className="text-rose-500">*</span>
                     </label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (selectedLevelIds.length === educationLevels.length) {
-                            setSelectedLevelIds([]);
-                          } else {
-                            setSelectedLevelIds(educationLevels.map((l) => l.levelId));
-                          }
-                        }}
-                        className="text-[11px] text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
+                    <div className="relative">
+                      <MapPin className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <select
+                        id="onb-province"
+                        value={provinceId ?? ""}
+                        onChange={(e) => { setProvinceId(e.target.value ? Number(e.target.value) : null); setDistrictIds([]); }}
+                        className="w-full pl-10 pr-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 text-neutral-900 font-medium"
                       >
-                        {selectedLevelIds.length === educationLevels.length
-                          ? "Bỏ chọn tất cả"
-                          : "Chọn tất cả khối lớp"}
-                      </button>
-                      <span className="text-[11px] text-neutral-400">• Chọn 1 hoặc nhiều khối</span>
+                        <option value="">-- Chọn tỉnh/thành --</option>
+                        {catalog?.provinces.map((province) => (
+                          <option key={province.provinceId} value={province.provinceId}>{province.name}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {educationLevels.map((lvl) => {
-                      const isSelected = selectedLevelIds.includes(lvl.levelId);
-                      return (
-                        <button
-                          key={lvl.levelId}
-                          type="button"
-                          onClick={() => toggleLevel(lvl.levelId)}
-                          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                            isSelected
-                              ? "bg-amber-500 text-white shadow-xs"
-                              : "bg-stone-100 hover:bg-stone-200 text-neutral-700"
-                          }`}
-                        >
-                          {isSelected && <Check className="size-3 inline-block mr-1.5" />}
-                          {lvl.name} (THCS)
-                        </button>
-                      );
-                    })}
-                    {educationLevels.length === 0 && (
-                      <span className="text-xs text-neutral-400 italic">Đang tải danh sách khối lớp...</span>
-                    )}
-                  </div>
+                  {catalog && districtsOf(catalog, provinceId).length > 0 && (
+                    <fieldset>
+                      <legend className="block text-xs font-bold text-neutral-700 mb-1.5">
+                        Khu vực nhận dạy (bỏ trống = toàn tỉnh/thành)
+                      </legend>
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                        {districtsOf(catalog, provinceId).map((district) => {
+                          const active = districtIds.includes(district.districtId);
+                          return (
+                            <button
+                              key={district.districtId}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => setDistrictIds((prev) => active
+                                ? prev.filter((id) => id !== district.districtId)
+                                : [...prev, district.districtId])}
+                              className={`px-2.5 py-1 text-[11px] rounded-lg transition-all cursor-pointer font-medium ${
+                                active
+                                  ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
+                                  : "bg-stone-100 hover:bg-stone-200 text-neutral-600"
+                              }`}
+                            >
+                              {district.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  )}
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                    Số năm kinh nghiệm gia sư
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={30}
-                    value={experienceYears}
-                    onChange={(e) => setExperienceYears(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 text-neutral-900"
-                  />
-                </div>
+              <div className="sm:col-span-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSaveBasics}
+                  disabled={submitting}
+                  className="inline-flex items-center gap-2 px-5 py-2 border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting && <Loader2 className="size-4 animate-spin" />}
+                  {profile ? "Cập nhật thông tin chung" : "Lưu thông tin chung"}
+                </button>
               </div>
+            </div>
 
-              {/* Học phí & Hình thức dạy */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                    Mức học phí đề xuất (VNĐ / buổi học 90p)
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="number"
-                      step={10000}
-                      min={100000}
-                      value={pricePerSession}
-                      onChange={(e) => setPricePerSession(Number(e.target.value))}
-                      className="w-full pl-10 pr-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 text-neutral-900 font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                    Hình thức giảng dạy
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: "ONLINE", label: "Online" },
-                      { id: "OFFLINE", label: "Trực tiếp" },
-                      { id: "BOTH", label: "Cả hai" },
-                    ].map((mode) => (
-                      <button
-                        key={mode.id}
-                        type="button"
-                        onClick={() => setTeachingMode(mode.id as "ONLINE" | "OFFLINE" | "BOTH")}
-                        className={`py-2 text-xs font-semibold rounded-xl border text-center transition-all cursor-pointer ${
-                          teachingMode === mode.id
-                            ? "border-amber-500 bg-amber-50 text-amber-800"
-                            : "border-stone-200 hover:bg-stone-50 text-neutral-600"
-                        }`}
-                      >
-                        {mode.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Khu vực nhận dạy */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                  Khu vực hoạt động chính (Quận / Huyện, Thành phố) <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <MapPin className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    placeholder="VD: Cầu Giấy, Nam Từ Liêm, Hà Nội (hoặc chọn bên dưới)"
-                    className="w-full pl-10 pr-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 text-neutral-900 font-medium"
-                  />
-                </div>
-                {/* Danh sách các tỉnh thành lớn & gợi ý nhanh */}
-                <div className="mt-2.5 space-y-1.5">
-                  <span className="text-[11px] text-neutral-400 font-medium block">
-                    Chọn nhanh tỉnh/thành lớn (hoặc tự nhập tỉnh/thành khác vào ô phía trên):
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {MAJOR_VIETNAM_CITIES.map((city) => {
-                      const isMatch = area.toLowerCase().includes(city.toLowerCase());
-                      return (
-                        <button
-                          key={city}
-                          type="button"
-                          onClick={() => {
-                            if (city === "Toàn quốc (Online)") {
-                              setArea("Toàn quốc");
-                            } else {
-                              setArea(city);
-                            }
-                          }}
-                          className={`px-2.5 py-1 text-[11px] rounded-lg transition-all cursor-pointer font-medium ${
-                            isMatch
-                              ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold shadow-2xs"
-                              : "bg-stone-100 hover:bg-stone-200 text-neutral-600"
-                          }`}
-                        >
-                          {city}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+            <div className="pt-4 border-t border-stone-100">
+              {profile ? (
+                <TutorOfferingManager offerings={profile.offerings} onChange={setProfile} />
+              ) : (
+                <p className="text-xs text-neutral-500 bg-stone-50 rounded-2xl p-4">
+                  Lưu thông tin chung để bắt đầu thêm gói dạy.
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-end pt-4 border-t border-stone-100">
               <button
                 type="button"
                 onClick={handleNextFromStep1}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                disabled={submitting || !profile || profile.offerings.length === 0}
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
               >
-                <span>Lưu và tiếp tục</span>
+                <span>Tiếp tục</span>
                 <ArrowRight className="size-4" />
               </button>
             </div>
@@ -797,6 +676,32 @@ export function TutorOnboardingWizard() {
                   />
                 </div>
               </div>
+
+              {profile && profile.offerings.some((offering) => offering.goals.some((goal) => goal.premium)) && (
+                <div>
+                  <label htmlFor="credential-offering" className="text-xs font-bold text-neutral-700">
+                    Giấy tờ này chứng minh cho gói dạy (không bắt buộc)
+                  </label>
+                  <select
+                    id="credential-offering"
+                    value={credentialOfferingId}
+                    onChange={(event) => setCredentialOfferingId(event.target.value)}
+                    className="mt-1.5 w-full px-3 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-amber-500"
+                  >
+                    <option value="">Minh chứng chung</option>
+                    {profile.offerings
+                      .filter((offering) => offering.goals.some((goal) => goal.premium))
+                      .map((offering) => (
+                        <option key={offering.offeringId} value={offering.offeringId}>
+                          {offeringName(offering)} · {offering.goals.filter((g) => g.premium).map((g) => g.name).join(", ")}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    Mục tiêu như HSG, IELTS cần minh chứng (thành tích, chứng chỉ) để hiển thị không kèm cảnh báo.
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-neutral-700">
@@ -954,30 +859,18 @@ export function TutorOnboardingWizard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-2">
                 <span className="text-[11px] font-bold text-neutral-400 uppercase">
-                  Chuyên môn & Học phí
+                  Gói dạy
                 </span>
                 <p className="text-sm font-bold text-neutral-900">{displayName}</p>
-                <p className="text-xs text-neutral-600">
-                  Môn dạy:{" "}
-                  <strong>
-                    {subjectsCatalog
-                      .filter((s) => selectedSubjectIds.includes(s.subjectId))
-                      .map((s) => s.name)
-                      .join(", ") || "Chưa chọn"}
-                  </strong>
-                </p>
-                <p className="text-xs text-neutral-600">
-                  Cấp học:{" "}
-                  <strong>
-                    {educationLevels
-                      .filter((l) => selectedLevelIds.includes(l.levelId))
-                      .map((l) => l.name)
-                      .join(", ") || "Chưa chọn"}
-                  </strong>
-                </p>
-                <p className="text-xs text-amber-700 font-semibold">
-                  Học phí: {pricePerSession.toLocaleString("vi-VN")} đ / buổi
-                </p>
+                {tutorType && <p className="text-xs text-neutral-600">{TUTOR_TYPE_LABELS[tutorType]}</p>}
+                <ul className="space-y-1">
+                  {(profile?.offerings ?? []).map((offering) => (
+                    <li key={offering.offeringId} className="text-xs text-neutral-700 break-words">
+                      <strong>{offeringName(offering)}</strong> · {offering.levels.map((l) => l.name).join(", ")} ·{" "}
+                      <span className="text-amber-700 font-semibold">{offering.pricePerSession.toLocaleString("vi-VN")} đ/buổi</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-2">
@@ -985,7 +878,15 @@ export function TutorOnboardingWizard() {
                   Địa điểm & Hình thức
                 </span>
                 <p className="text-xs text-neutral-700">
-                  Khu vực: <strong>{area}</strong>
+                  Khu vực:{" "}
+                  <strong>
+                    {!inPerson
+                      ? "Toàn quốc (Online)"
+                      : [
+                          catalog?.districts.filter((d) => districtIds.includes(d.districtId)).map((d) => d.name).join(", "),
+                          catalog?.provinces.find((p) => p.provinceId === provinceId)?.name,
+                        ].filter(Boolean).join(" · ") || "Chưa chọn"}
+                  </strong>
                 </p>
                 <p className="text-xs text-neutral-700">
                   Hình thức:{" "}
@@ -1071,12 +972,8 @@ export function TutorOnboardingWizard() {
         isOpen={showAiModal}
         onClose={() => setShowAiModal(false)}
         displayName={displayName}
-        subjects={subjectsCatalog
-          .filter((s) => selectedSubjectIds.includes(s.subjectId))
-          .map((s) => s.name)}
-        educationLevels={educationLevels
-          .filter((l) => selectedLevelIds.includes(l.levelId))
-          .map((l) => l.name)}
+        subjects={(profile?.offerings ?? []).map((offering) => offeringName(offering))}
+        educationLevels={Array.from(new Set((profile?.offerings ?? []).flatMap((o) => o.levels.map((l) => l.name))))}
         experienceYears={experienceYears}
         currentBio={bio}
         onApplyBio={(newBio) => setBio(newBio)}

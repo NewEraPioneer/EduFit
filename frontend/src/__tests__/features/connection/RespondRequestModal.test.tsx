@@ -5,22 +5,14 @@ import { RespondRequestModal } from "@/features/connection/components/RespondReq
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import type { TutorInboxItem } from "@/features/connection/types";
 import { ApiError } from "@/lib/api";
+import { makeInboxItem } from "../../fixtures/learningNeeds";
 
-const mockRequest: TutorInboxItem = {
+const mockRequest: TutorInboxItem = makeInboxItem({
   requestId: "req-101",
-  goalType: "EXAM_PREPARATION",
-  subjectId: 1,
-  educationLevelId: 4,
   desiredSlots: ["Mon 19:00", "Wed 19:00"],
   message: "Em muốn ôn thi vào lớp 10 chuyên",
-  senderRole: "STUDENT",
-  status: "PENDING",
-  expiresAt: "2026-10-25T00:00:00Z",
   studentDisplayName: "Nguyễn Văn An",
-  subjectName: "Toán học",
-  educationLevelName: "Lớp 9",
-  hasSlotConflict: false,
-};
+});
 
 const mockConflictRequest: TutorInboxItem = {
   ...mockRequest,
@@ -52,7 +44,7 @@ describe("RespondRequestModal", () => {
       classId: "cls-created-1",
       studentId: "stu-1",
       tutorId: "tut-1",
-      goalId: "goal-1",
+      needId: "need-1",
     });
 
     const onClose = vi.fn();

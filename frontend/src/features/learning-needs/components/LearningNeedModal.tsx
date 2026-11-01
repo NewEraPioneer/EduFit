@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Target, X } from "lucide-react";
 import type { LearningNeed, SaveLearningNeedPayload } from "@/services/learningNeeds";
 import { useLearningCatalog } from "../hooks/useLearningCatalog";
@@ -18,7 +19,10 @@ export interface LearningNeedModalProps {
   onSaved: (need: LearningNeed) => void | Promise<void>;
 }
 
-/** Hộp thoại tạo/sửa một nhu cầu học (đầy đủ điều kiện học). */
+/**
+ * Hộp thoại tạo/sửa một nhu cầu học (đầy đủ điều kiện học). Render qua portal vì có thể được mở
+ * từ bên trong một form khác (hồ sơ phụ huynh, hộp thoại gửi yêu cầu).
+ */
 export function LearningNeedModal({
   isOpen,
   title,
@@ -33,8 +37,8 @@ export function LearningNeedModal({
   const { catalog, error } = useLearningCatalog();
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/50 backdrop-blur-xs overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-neutral-950/50 backdrop-blur-xs overflow-y-auto">
       <div role="dialog" aria-modal="true" aria-labelledby="learning-need-title"
         className="bg-white rounded-3xl max-w-xl w-full border border-stone-200 shadow-2xl my-auto">
         <div className="px-6 py-5 border-b border-stone-100 flex items-start justify-between gap-4">
@@ -74,6 +78,7 @@ export function LearningNeedModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -223,3 +223,8 @@ ALTER TABLE matching_run_log ADD CONSTRAINT fk_matching_log_need
 -- 5. BỎ MÔ HÌNH CŨ
 DROP TABLE IF EXISTS goal_availability_slot;
 DROP TABLE IF EXISTS learning_goal;
+
+-- 6. DỌN HÀM TẠM (Flyway có thể chạy migration kế tiếp trên cùng phiên)
+DROP FUNCTION pg_temp.edufit_match_district(TEXT, INT);
+DROP FUNCTION pg_temp.edufit_match_province(TEXT);
+DROP FUNCTION pg_temp.edufit_area_text(TEXT);

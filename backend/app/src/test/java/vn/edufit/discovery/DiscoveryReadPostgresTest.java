@@ -52,11 +52,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.json.JsonMapper;
 import vn.edufit.ai.api.AiGateway;
 import vn.edufit.connection.api.ConnectionFacade;
+import vn.edufit.discovery.application.matching.MatchWeights;
 import vn.edufit.discovery.application.service.DiscoveryQueryService;
 import vn.edufit.discovery.application.service.MatchExplanationService;
 import vn.edufit.discovery.application.service.NeedAccessService;
 import vn.edufit.discovery.application.service.TutorMatchingService;
-import vn.edufit.discovery.domain.policy.MatchWeights;
 import vn.edufit.discovery.web.DiscoveryController;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.port.ParentStudentLinkPort;
@@ -136,7 +136,9 @@ class DiscoveryReadPostgresTest {
     clearSql();
     var results = matching.match(actor, NEED, 5);
     assertEquals(5, results.size());
-    assertTrue(queryCount() < 50, "Matching stays bounded: " + queryCount());
+    // Phần cố định (nhu cầu, danh mục, nhật ký) + mỗi lô 50 ứng viên nạp 5 bảng con; ứng viên tối đa 200
+    long hydrationBatches = (Math.min(count, 200) + 49) / 50;
+    assertTrue(queryCount() <= 30 + 5 * hydrationBatches, "Matching stays bounded: " + queryCount());
     assertDetached();
   }
 

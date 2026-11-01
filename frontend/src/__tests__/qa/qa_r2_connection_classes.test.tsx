@@ -6,47 +6,31 @@ import { TutorActiveClasses } from "@/features/connection/components/TutorActive
 import { RespondRequestModal } from "@/features/connection/components/RespondRequestModal";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import type { TutorInboxItem, TutoringClass } from "@/features/connection/types";
+import { makeInboxItem } from "../fixtures/learningNeeds";
 
 const mockInboxItems: TutorInboxItem[] = [
-  {
+  makeInboxItem({
     requestId: "req-conflict-01",
-    goalType: "LEARNING_GOAL",
-    subjectId: 1,
-    educationLevelId: 4,
     studentDisplayName: "Nguyễn Văn An",
     senderRole: "STUDENT",
-    subjectName: "Toán học",
-    educationLevelName: "Lớp 9",
-    status: "PENDING",
+    need: { ...makeInboxItem().need, subjectName: "Toán học", educationLevelName: "Lớp 9", mode: "OFFLINE",
+      provinceName: "Hà Nội", districtName: "Cầu Giấy", budgetMaxPerSession: 300000 },
     desiredSlots: ["Thứ 2 (18:00 - 20:00)", "Thứ 4 (18:00 - 20:00)"],
     hasSlotConflict: true,
     conflictingSlots: ["Thứ 2 (18:00 - 20:00)"],
-    area: "Hà Nội",
-    district: "Cầu Giấy",
-    budgetMin: 200000,
-    budgetMax: 300000,
     message: "Em muốn ôn thi vào lớp 10 chuyên Toán ạ.",
     expiresAt: "2026-10-24T08:00:00.000Z",
-  },
-  {
+  }),
+  makeInboxItem({
     requestId: "req-clean-02",
-    goalType: "LEARNING_GOAL",
-    subjectId: 2,
-    educationLevelId: 3,
     studentDisplayName: "Trần Mai Anh",
     senderRole: "PARENT",
-    subjectName: "Tiếng Anh",
-    educationLevelName: "Lớp 8",
-    status: "PENDING",
+    need: { ...makeInboxItem().need, subjectName: "Tiếng Anh", educationLevelName: "Lớp 8", mode: "OFFLINE",
+      provinceName: "Hà Nội", districtName: "Ba Đình", budgetMaxPerSession: 350000 },
     desiredSlots: ["Chủ nhật (09:00 - 11:00)"],
-    hasSlotConflict: false,
-    conflictingSlots: [],
-    area: "Hà Nội",
-    district: "Ba Đình",
-    budgetMax: 350000,
     message: "Tôi muốn tìm gia sư kèm con gái học ngữ pháp và giao tiếp.",
     expiresAt: "2026-10-24T09:00:00.000Z",
-  },
+  }),
 ];
 
 const mockTutorClasses: TutoringClass[] = [
@@ -54,7 +38,7 @@ const mockTutorClasses: TutoringClass[] = [
     classId: "cls-pending-01",
     tutorId: "6ba7b811-9dad-11d1-80b4-00c04fd430c8",
     studentId: "6ba7b812-9dad-11d1-80b4-00c04fd430c8",
-    goalId: "goal-001",
+    needId: "need-001",
     studentDisplayName: "Nguyễn Văn An",
     subjectName: "Toán học",
     educationLevelName: "Lớp 9",
@@ -67,7 +51,7 @@ const mockTutorClasses: TutoringClass[] = [
     classId: "cls-scheduled-02",
     tutorId: "6ba7b811-9dad-11d1-80b4-00c04fd430c8",
     studentId: "6ba7b813-9dad-11d1-80b4-00c04fd430c8",
-    goalId: "goal-002",
+    needId: "need-002",
     studentDisplayName: "Trần Mai Anh",
     subjectName: "Tiếng Anh",
     educationLevelName: "Lớp 8",
