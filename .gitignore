@@ -24,6 +24,7 @@ Thumbs.db
 .codex-doc-review/
 .agents/
 AGENTS.md
+.claude/
 
 # Runtime uploads and local cookies
 **/var/

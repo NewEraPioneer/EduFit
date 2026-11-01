@@ -43,7 +43,7 @@ class PaymentFlowIT {
     String user = System.getenv().getOrDefault("PAYMENT_TEST_USER", "payment_test");
     String pass = System.getenv().getOrDefault("PAYMENT_TEST_PASSWORD", "");
     if (url == null) {
-      container = new PostgreSQLContainer<>("postgres:17-alpine");
+      container = new PostgreSQLContainer<>("postgres:17");
       container.start();
       url = container.getJdbcUrl();
       user = container.getUsername();

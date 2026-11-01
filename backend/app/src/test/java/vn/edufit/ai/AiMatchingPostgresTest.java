@@ -45,12 +45,12 @@ import vn.edufit.shared.auth.CurrentUser;
 /**
  * Actual scorer/ranking, Gemini HTTP adapter, audit/reservation stores and matching transaction.
  */
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(AiMatchingPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AiMatchingPostgresTest {
   @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
   @Autowired DataSource source;
   @Autowired JpaTransactionManager manager;

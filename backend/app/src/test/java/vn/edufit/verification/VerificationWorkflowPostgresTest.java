@@ -68,14 +68,14 @@ import vn.edufit.verification.web.request.ReviewVerificationRequest;
 import vn.edufit.verification.web.request.SubmitVerificationRequest;
 import vn.edufit.web.advice.GlobalExceptionHandler;
 
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(VerificationWorkflowPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @DisplayName("Kiểm thử tích hợp vòng đời Verification & Thẩm định KYC trên PostgreSQL 17 thật (Testcontainers)")
 class VerificationWorkflowPostgresTest {
 
   @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine")
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
       .withEnv("TZ", "Asia/Ho_Chi_Minh");
 
   @TempDir

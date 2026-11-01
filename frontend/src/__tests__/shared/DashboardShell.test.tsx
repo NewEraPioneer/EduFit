@@ -6,7 +6,8 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/student/payments" }));
 vi.mock("@/shared/ui/Sidebar", () => ({
   Sidebar: () => (
     <nav>
-      <a href="/student/payments">Mở ví</a>
+      {/* jsdom không hỗ trợ điều hướng: chặn hành vi mặc định, click vẫn lan lên để shell đóng menu */}
+      <a href="/student/payments" onClick={(event) => event.preventDefault()}>Mở ví</a>
     </nav>
   ),
 }));

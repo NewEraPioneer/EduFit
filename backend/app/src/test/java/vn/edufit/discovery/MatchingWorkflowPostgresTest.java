@@ -54,12 +54,12 @@ import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.notification.NotificationSink;
 
 /** Real Flyway schema, Connection link reads, JPA transactions and AFTER_COMMIT delivery. */
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(MatchingWorkflowPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class MatchingWorkflowPostgresTest {
 
-  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
   @Autowired private DiscoveryFacade facade;
   @Autowired private TutorMatchingService matching;
   @Autowired private DiscoveryQueryService queries;

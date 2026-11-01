@@ -41,12 +41,12 @@ import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 
 /** Real flush/commit failures; Docker absence fails rather than silently skipping. */
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(AiLogPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AiLogPostgresTest {
   @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
   @Autowired AiGatewayService gateway;
   @Autowired AiRequestLogger logger;

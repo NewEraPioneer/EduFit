@@ -40,13 +40,13 @@ import vn.edufit.profile.application.service.ProfileFacadeImpl;
 import vn.edufit.profile.infra.persistence.repository.*;
 
 /** Exercises real Hibernate JPQL and bounded hydration on an isolated PostgreSQL database. */
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(MatchingCandidatesPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class MatchingCandidatesPostgresTest {
 
   @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
   @Autowired private ProfileFacade facade;
   @Autowired private DataSource dataSource;

@@ -55,18 +55,18 @@ import vn.edufit.scheduling.infra.persistence.repository.SpringDataTutoringSessi
  *   </li>
  *   <li><b>Testcontainers PostgreSQL:</b> Khởi chạy container PostgreSQL 17 thật để thực thi chính xác
  *       ràng buộc GiST (vốn không được hỗ trợ bởi H2 In-Memory Database).</li>
- *   <li><b>disabledWithoutDocker = true:</b> Đảm bảo bài test an toàn nếu môi trường dev local chưa mở Docker,
- *       nhưng sẽ tự động kích hoạt 100% khi chạy trên CI GitHub Actions.</li>
+ *   <li><b>Bắt buộc có Docker:</b> Thiếu Docker thì test báo lỗi thay vì âm thầm bỏ qua, để Exit Code 0
+ *       luôn có nghĩa là ràng buộc CSDL thật đã được kiểm chứng.</li>
  * </ul>
  */
 @SpringBootTest(classes = TestApplication.class)
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @DisplayName("Concurrency Stress Test: Chống Double-Booking trên PostgreSQL 17 thật (NFR-17)")
 class ConcurrentSchedulingIT {
 
   @Container
   @SuppressWarnings("resource")
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine")
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
       .withDatabaseName("edufit_scheduling_concurrency_test")
       .withUsername("edufit")
       .withPassword("edufit-test-secret");

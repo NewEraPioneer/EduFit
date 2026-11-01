@@ -61,6 +61,8 @@ Volume có tên `edufit_postgres_data` giữ nguyên schema và dữ liệu tron
 
 ## Kiểm tra chất lượng backend trên máy
 
+Test tích hợp dùng Testcontainers với đúng image `postgres:17` của `compose.yaml`, nên **Docker phải đang chạy**. Thiếu Docker thì test báo lỗi chứ không tự bỏ qua, để Exit Code 0 luôn có nghĩa là các ràng buộc trên CSDL thật đã được kiểm chứng.
+
 Nếu máy đã cài Java 21, hãy dùng Maven Wrapper đi kèm dự án:
 
 ```bash

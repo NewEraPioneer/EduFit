@@ -35,7 +35,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  *       docs/edufit-schema.dbml}.
  * </ul>
  */
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @DisplayName("Kiểm thử tích hợp Flyway Migration trên PostgreSQL thật (Testcontainers)")
 class FlywayMigrationIT {
 
@@ -48,7 +48,7 @@ class FlywayMigrationIT {
   @Container
   @SuppressWarnings("resource")
   static PostgreSQLContainer<?> postgres =
-      new PostgreSQLContainer<>("postgres:17-alpine")
+      new PostgreSQLContainer<>("postgres:17")
           .withDatabaseName("edufit_test")
           .withUsername("edufit")
           .withPassword("edufit-local-only");

@@ -47,11 +47,11 @@ import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.shared.audit.AuditSink;
 import vn.edufit.shared.notification.NotificationSink;
 
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(ConnectionTransactionPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ConnectionTransactionPostgresTest {
-  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
   @Autowired vn.edufit.connection.infra.persistence.repository.LinkInvitationRepository invitationRows;
   @Autowired vn.edufit.connection.infra.persistence.repository.ConnectionRequestRepository requestRows;
   @Autowired vn.edufit.connection.infra.persistence.repository.ParentStudentLinkRepository linkRows;

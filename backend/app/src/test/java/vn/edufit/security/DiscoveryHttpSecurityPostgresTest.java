@@ -31,11 +31,11 @@ import vn.edufit.iam.infra.security.Argon2PasswordService;
  */
 @SpringBootTest(
     properties = {"edufit.ai.provider=stub", "spring.session.jdbc.initialize-schema=never"})
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @DirtiesContext
 class DiscoveryHttpSecurityPostgresTest {
   @Container
-  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
   @DynamicPropertySource
   static void properties(DynamicPropertyRegistry registry) {

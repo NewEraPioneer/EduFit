@@ -50,11 +50,11 @@ import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.web.advice.GlobalExceptionHandler;
 
 /** Detached read models and bounded workflows on the real migrated PostgreSQL schema. */
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(DiscoveryReadPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class DiscoveryReadPostgresTest {
-  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
   private static final UUID STUDENT_USER = new UUID(1, 1), STUDENT = new UUID(1, 2), GOAL = new UUID(1, 3);
   @Autowired private ProfileFacade profile;
   @Autowired private DiscoveryQueryService queries;

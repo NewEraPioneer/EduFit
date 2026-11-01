@@ -18,7 +18,7 @@ class PaymentApplicationIT {
  static PostgreSQLContainer<?> container;
  @DynamicPropertySource static void database(DynamicPropertyRegistry props) {
   String url=System.getenv("PAYMENT_TEST_JDBC");String user=System.getenv().getOrDefault("PAYMENT_TEST_USER","payment_test");String password=System.getenv().getOrDefault("PAYMENT_TEST_PASSWORD","");
-  if(url==null) {container=new PostgreSQLContainer<>("postgres:17-alpine");container.start();url=container.getJdbcUrl();user=container.getUsername();password=container.getPassword();}
+  if(url==null) {container=new PostgreSQLContainer<>("postgres:17");container.start();url=container.getJdbcUrl();user=container.getUsername();password=container.getPassword();}
   String schema="payment_app_"+UUID.randomUUID().toString().replace("-","");String jdbc=url+(url.contains("?")?"&":"?")+"currentSchema="+schema;String u=user,p=password;
   props.add("spring.datasource.url",()->jdbc);props.add("spring.datasource.username",()->u);props.add("spring.datasource.password",()->p);props.add("spring.flyway.schemas",()->schema);props.add("edufit.ai.provider",()->"stub");props.add("spring.mail.test-connection",()->false);
  }

@@ -60,14 +60,14 @@ import vn.edufit.iam.infra.security.Argon2PasswordService;
       "edufit.ai.gemini.model=test-model",
       "spring.session.jdbc.initialize-schema=never"
     })
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @DirtiesContext
 class AiDiscoveryConnectionE2ETest {
   private static final String PASSWORD = "Password123@";
   private static final JsonMapper JSON = JsonMapper.builder().build();
 
   @Container
-  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
   static final AtomicInteger providerCalls = new AtomicInteger();
   static final ExecutorService providerExecutor = Executors.newVirtualThreadPerTaskExecutor();

@@ -39,6 +39,8 @@
         <maven-surefire-plugin.version>3.5.0</maven-surefire-plugin.version>
         <jacoco.version>0.8.12</jacoco.version>
         <jacoco.haltOnFailure>false</jacoco.haltOnFailure>
+        <!-- Giá trị mặc định để @{argLine} hợp lệ cả khi JaCoCo bị bỏ qua (-Djacoco.skip) -->
+        <argLine></argLine>
       </properties>
 
     <dependencyManagement>
@@ -197,6 +199,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
+          <configuration>
+            <!-- Test không chạy qua EduFitApplication.main() nên phải dùng cùng múi giờ chuẩn của production (NFR-18).
+                 Thiếu dòng này, JVM trên Windows mang alias cũ "Asia/Saigon" mà PostgreSQL 17 (Debian) từ chối. -->
+            <argLine>@{argLine} -Duser.timezone=Asia/Ho_Chi_Minh</argLine>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.springframework.boot</groupId>

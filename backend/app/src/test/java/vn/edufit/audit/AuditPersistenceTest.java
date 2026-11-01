@@ -24,11 +24,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.*;
 import vn.edufit.shared.audit.*;
 
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(AuditPersistenceTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AuditPersistenceTest {
-  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
   @Autowired AuditSink sink;
   @Autowired DataSource source;
   @Autowired JpaTransactionManager manager;

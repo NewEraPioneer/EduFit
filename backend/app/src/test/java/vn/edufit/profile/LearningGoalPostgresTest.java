@@ -35,14 +35,14 @@ import vn.edufit.profile.web.LearningGoalController;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.web.advice.GlobalExceptionHandler;
 
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(LearningGoalPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class LearningGoalPostgresTest {
   static final String ROOT = "/api/v1/profiles/students/me/goals";
 
   @Container
-  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
   @Autowired ApplicationContext context;
   @Autowired DataSource source;
