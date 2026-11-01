@@ -2,7 +2,7 @@
 ## (Comprehensive Step-by-Step Full-Stack E2E Verification Guide & Execution Runbook)
 
 > **Mã tài liệu:** EDUFIT-GUIDE-E2E-SYSTEM-VERIFICATION  
-> **Phiên bản:** 3.0 (Tích hợp Full-Stack thống nhất: UI Trình duyệt + Backend API + CSDL Docker PostgreSQL 17 theo từng luồng nghiệp vụ)  
+> **Phiên bản:** 4.0 (Đồng bộ Selenium WebDriver TypeScript, Page Object Model tại `frontend/tests/e2e` kết hợp Backend API & CSDL Docker PostgreSQL 17)  
 > **Nhánh phát triển Git:** `test/system-e2e-verification` (tách độc lập từ nhánh `develop`)  
 > **Căn cứ tài liệu kỹ thuật & nghiệp vụ:**
 > - [SRS Edufit.docx](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/docs/SRS%20Edufit.docx)
@@ -18,7 +18,7 @@
 Kiểm thử End-to-End (E2E) thực sự của hệ thống không thể tách rời Frontend một nơi, Backend một nẻo. Một hành trình người dùng hoàn chỉnh luôn đi xuyên suốt 3 tầng:
 
 ```
-[Trình duyệt Chromium (Playwright UI)]
+[Trình duyệt Google Chrome (Selenium WebDriver TypeScript UI)]
                │
                ▼ (HTTP REST / Session Cookie / JSON / Multipart)
 [Hệ thống Backend (Spring Boot 4.1.1 / Java 21 / Hibernate 7 / Modular Monolith / Apache Tika)]
@@ -28,7 +28,7 @@ Kiểm thử End-to-End (E2E) thực sự của hệ thống không thể tách 
 ```
 
 Tài liệu này hướng dẫn chi tiết từng luồng hành trình người dùng (Journey) theo cấu trúc step-by-step. Trong mỗi luồng, ta kiểm chứng đồng thời cả:
-1. **Trải nghiệm Giao diện Người dùng Thật (Playwright UI E2E):** Nhập form, click nút, quan sát Toast/Modal, kiểm tra bôi đỏ validation, điều hướng phân quyền, hỗ trợ chế độ bật màn hình (`--headed`) để trực tiếp quan sát.
+1. **Trải nghiệm Giao diện Người dùng Thật (Selenium WebDriver UI E2E):** Khởi tạo Chrome điều khiển qua W3C WebDriver Protocol, nhập form, click nút, quan sát Toast/Modal, kiểm tra bôi đỏ validation, điều hướng phân quyền, hỗ trợ chụp ảnh màn hình (Screenshot Artifacts) và bật màn hình trực quan (`headless: false`).
 2. **Chiều Sâu Logic & Tính Toàn Vẹn CSDL (Backend & Database Verification):** Kiểm tra mã lỗi HTTP chuẩn, Session Cookie `HttpOnly`, kiểm tra Magic Bytes file nhị phân, khóa chống trùng lịch GiST, tính nguyên tử All-or-Nothing, xác thực chữ ký số Webhook HMAC-SHA256 trên container Docker PostgreSQL 17 thật.
 
 ---
@@ -36,10 +36,10 @@ Tài liệu này hướng dẫn chi tiết từng luồng hành trình người 
 ## MỤC LỤC TỔNG QUAN
 
 - [PHẦN I: THIẾT LẬP NỀN TẢNG KIỂM THỬ TÍCH HỢP TOÀN HỆ THỐNG](#phần-i-thiết-lập-nền-tảng-kiểm-thử-tích-hợp-toàn-hệ-thống)
-  - [Mục 1.1: Ba Nguyên Tắc Kỹ Thuật Bất Biến](#mục-11-ba-nguyên-tắc-kỹ-thuật-bất-biến)
+  - [Mục 1.1: Bốn Nguyên Tắc Kỹ Thuật Bắt Buộc](#mục-11-bốn-nguyên-tắc-kỹ-thuật-bắt-buộc)
   - [Mục 1.2: Thiết Lập CSDL Docker Testcontainers Chuẩn Hóa (PostgreSQL 17 Noble)](#mục-12-thiết-lập-csdl-docker-testcontainers-chuẩn-hóa-postgresql-17-noble)
-  - [Mục 1.3: Cài Đặt & Cấu Hình Playwright Headed Runner & WebServer](#mục-13-cài-đặt--cấu-hình-playwright-headed-runner--webserver)
-  - [Mục 1.4: Kiến Trúc Page Object Model (POM) Bền Vững & Chống Gãy UI](#mục-14-kiến-trúc-page-object-model-pom-bền-vững--chống-gãy-ui)
+  - [Mục 1.3: Cài Đặt & Cấu Hình Selenium WebDriver Runner (TypeScript)](#mục-13-cài-đặt--cấu-hình-selenium-webdriver-runner-typescript)
+  - [Mục 1.4: Kiến Trúc Page Object Model (POM) Tại `frontend/tests/e2e/`](#mục-14-kiến-trúc-page-object-model-pom-tại-frontendtestse2e)
 - [PHẦN II: 10 LUỒNG HÀNH TRÌNH E2E TOÀN DIỆN (FULL-STACK UNIFIED JOURNEYS)](#phần-ii-10-luồng-hành-trình-e2e-toàn-diện-full-stack-unified-journeys)
   - [Mục 2.1: Luồng 01 - Định Danh, Phiên Đăng Nhập, Argon2id & Khóa Brute-Force (AC-01, AC-02)](#mục-21-luồng-01---định-danh-phiên-đăng-nhập-argon2id--khóa-brute-force-ac-01-ac-02)
   - [Mục 2.2: Luồng 02 - Quét Bằng Cấp Magic Bytes (Apache Tika) & Admin Duyệt KYC (AC-03, AC-04)](#mục-22-luồng-02---quét-bằng-cấp-magic-bytes-apache-tika--admin-duyệt-kyc-ac-03-ac-04)
@@ -53,9 +53,10 @@ Tài liệu này hướng dẫn chi tiết từng luồng hành trình người 
   - [Mục 2.10: Luồng 10 - Đánh Giá Gia Sư Độc Bản, Ma Trận Phân Quyền 72 Ô & Kiểm Toán Admin (AC-16, AC-17, AC-18)](#mục-210-luồng-10---đánh-giá-gia-sư-độc-bản-ma-trận-phân-quyền-72-ô--kiểm-toán-admin-ac-16-ac-17-ac-18)
 - [PHẦN III: HƯỚNG DẪN THỰC THI KIỂM CHỨNG TRỰC TIẾP TRÊN MÁY TÍNH](#phần-iii-hướng-dẫn-thực-thi-kiểm-chứng-trực-tiếp-trên-máy-tính)
   - [Mục 3.1: Chạy Kiểm Thử Backend & Quan Sát Docker PostgreSQL 17](#mục-31-chạy-kiểm-thử-backend--quan-sát-docker-postgresql-17)
-  - [Mục 3.2: Chạy Playwright Trình Duyệt Bật Trực Quan (--headed / --slowmo)](#mục-32-chạy-playwright-trình-duyệt-bật-trực-quan---headed----slowmo)
-  - [Mục 3.3: Báo Cáo Kết Quả, Bằng Chứng Video/Screenshot & File Báo Cáo HTML](#mục-33-báo-cáo-kết-quả-bằng-chứng-videoscreenshot--file-báo-cáo-html)
+  - [Mục 3.2: Chạy Selenium Trình Duyệt Bật Trực Quan (Headed / Slowmo)](#mục-32-chạy-selenium-trình-duyệt-bật-trực-quan-headed--slowmo)
+  - [Mục 3.3: Báo Cáo Kết Quả, Bằng Chứng Ảnh Chụp Màn Hình (Screenshots)](#mục-33-báo-cáo-kết-quả-bằng-chứng-ảnh-chụp-màn-hình-screenshots)
 - [PHẦN IV: BẢNG NHẬT KÝ TIẾN ĐỘ & MA TRẬN ĐỐI CHIẾU 22 TIÊU CHÍ NGHIỆM THU](#phần-iv-bảng-nhật-ký-tiến-độ--ma-trận-đối-chiếu-22-tiêu-chí-nghiệm-thu)
+- [PHẦN V: QUY CHUẨN LẬP BÁO CÁO KIỂM THỬ GIAO DIỆN WEB TỰ ĐỘNG (AUTOMATED WEB UI TESTING REPORT)](#phần-v-quy-chuẩn-lập-báo-cáo-kiểm-thử-giao-diện-web-tự-động-automated-web-ui-testing-report)
 
 ---
 
@@ -104,39 +105,32 @@ static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgr
 
 ---
 
-### Mục 1.3: Cài Đặt & Cấu Hình Playwright Headed Runner & WebServer
+### Mục 1.3: Cài Đặt & Cấu Hình Selenium WebDriver Runner (TypeScript)
 
 > [!NOTE]
-> **Checkpoint:** **ĐÃ HOÀN TẤT** (28/10/2026 - Exit Code 0)
-> - Đã cài đặt `@playwright/test` và binary Chromium headless v1248, FFmpeg v1013.
-> - Đã cấu hình `webServer` tự động khởi động Next.js trong [`frontend/playwright.config.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/playwright.config.ts).
-> - Đã bổ sung script `"test:e2e": "playwright test"` trong [`frontend/package.json`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/package.json).
+> **Checkpoint:** **ĐÃ HOÀN TẤT** (01/11/2026 - Selenium WebDriver 4.x TypeScript Compile Exit Code 0)
+> - Đã tích hợp `selenium-webdriver` và `@types/selenium-webdriver` vào `frontend/package.json`.
+> - Tận dụng **Selenium Manager** (tích hợp sẵn từ Selenium 4.6+) tự động nhận diện và quản trị chromedriver tương thích với Google Chrome của máy mà không cần tải thủ công.
+> - Cấu hình runner chuyên biệt trong `frontend/tests/e2e/vitest.e2e.config.ts`, chạy qua lệnh `npm run test:e2e`.
 
-- **Thư mục làm việc:** `frontend/`
-- **Cấu hình `frontend/playwright.config.ts`:**
-  - `baseURL: 'http://localhost:3000'`
-  - Hỗ trợ cả chế độ headless và headed (`--headed`).
-  - Tự động bật Next.js server qua khối `webServer`:
-    ```typescript
-    webServer: {
-      command: 'npm run dev',
-      url: 'http://localhost:3000',
-      reuseExistingServer: true,
-      timeout: 120 * 1000,
-    }
-    ```
+- **Thư mục làm việc:** `frontend/tests/e2e/`
+- **File cấu hình trung tâm:** [`frontend/tests/e2e/config/selenium.config.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/config/selenium.config.ts)
+  - `baseUrl: 'http://localhost:3000'`
+  - Hỗ trợ cả chế độ không đầu (`headless: true`) và bật cửa sổ trực quan (`headless: false`).
+  - Đường dẫn lưu trữ bằng chứng tự động: `frontend/tests/e2e/reports/screenshots/`.
 
 ---
 
-### Mục 1.4: Kiến Trúc Page Object Model (POM) Bền Vững & Chống Gãy UI
+### Mục 1.4: Kiến Trúc Page Object Model (POM) Tại `frontend/tests/e2e/`
 
 > [!NOTE]
-> **Checkpoint:** **ĐÃ HOÀN TẤT** (28/10/2026 - TypeScript Compile Exit Code 0)
-> - Đã xây dựng 4 Page Objects tại [`frontend/e2e/pages/`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/e2e/pages/):
->   - [`BasePage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/e2e/pages/BasePage.ts): Quản lý Modal, Toast, chờ URL.
->   - [`AuthPage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/e2e/pages/AuthPage.ts): Đóng gói form đăng ký, đăng nhập chuẩn (100% người dùng thật).
->   - [`SchedulePage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/e2e/pages/SchedulePage.ts): Đóng gói đề xuất lịch học, đổi lịch, điểm danh.
->   - [`PaymentPage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/e2e/pages/PaymentPage.ts): Đóng gói nạp tiền ví QR, bảng rút tiền gia sư, giải quyết tranh chấp.
+> **Checkpoint:** **ĐÃ HOÀN TẤT** (01/11/2026 - TypeScript Compile Exit Code 0)
+> - Đã xây dựng hoàn chỉnh kiến trúc Page Object Model tại [`frontend/tests/e2e/pages/`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/):
+>   - [`BasePage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/BasePage.ts): Quản lý vòng đời `WebDriver`, bao bọc 100% cơ chế **Explicit Wait (`WebDriverWait` + `until.elementLocated` + `until.elementIsVisible`)**, xử lý Toast, Modal, chụp ảnh màn hình lưu bằng chứng.
+>   - [`AuthPage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/AuthPage.ts): Đóng gói form đăng nhập, đăng ký theo 3 vai trò, quên mật khẩu và kiểm tra validation.
+>   - [`KycPage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/KycPage.ts): Đóng gói form nộp bằng cấp gia sư và hàng đợi phê duyệt Admin.
+>   - [`SchedulePage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/SchedulePage.ts): Đóng gói tương tác lịch học, khung rảnh tuần và điểm danh buổi học.
+> - Dữ liệu kiểm thử theo hướng dữ liệu (Data-Driven Testing): [`frontend/tests/e2e/resources/login-data.json`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/resources/login-data.json).
 
 ---
 
@@ -403,31 +397,30 @@ cd "c:\University\Semester 5\SWP391\Edufit\EduFit\backend"
 
 ---
 
-### Mục 3.2: Chạy Playwright Trình Duyệt Bật Trực Quan (--headed / --slowmo)
+### Mục 3.2: Chạy Selenium Trình Duyệt Bật Trực Quan (Headed / Slowmo)
 
 Mở cửa sổ **PowerShell** thứ hai và chạy lệnh:
 ```powershell
 cd "c:\University\Semester 5\SWP391\Edufit\EduFit\frontend"
-npx playwright test --headed --slowmo=800
+# Bật trình duyệt Google Chrome hiển thị trực quan trên màn hình
+$env:E2E_HEADLESS="false"
+npm run test:e2e
 ```
 
 #### Những gì bạn sẽ thấy:
-1. Cửa sổ trình duyệt **Chromium thật tự động bật lên trên màn hình**.
-2. Con trỏ tự động gõ từng chữ cái email, mật khẩu vào ô input.
+1. Cửa sổ trình duyệt **Google Chrome thật tự động bật lên trên màn hình**.
+2. Con trỏ tự động gõ từng chữ cái email, mật khẩu vào ô input qua cơ chế ChromeDriver.
 3. Nút bấm tự động được click, các thông báo lỗi và thành công tự động phản hồi trước mắt bạn mà không cần chạm vào chuột hay bàn phím.
+4. Ảnh chụp màn hình tự động lưu vào thư mục: `frontend/tests/e2e/reports/screenshots/`.
 
 ---
 
-### Mục 3.3: Báo Cáo Kết Quả, Bằng Chứng Video/Screenshot & File Báo Cáo HTML
+### Mục 3.3: Báo Cáo Kết Quả, Bằng Chứng Ảnh Chụp Màn Hình (Screenshots)
 
-1. **Xem báo cáo HTML của Playwright:**
-   ```powershell
-   cd frontend
-   npx playwright show-report
-   ```
-2. **Xem video quay lại thao tác trình duyệt khi gặp lỗi:**
-   - Thư mục lưu video: `frontend/test-results/` (định dạng `.webm`).
-3. **Xem báo cáo độ phủ Backend (JaCoCo):**
+1. **Xem toàn bộ ảnh chụp màn hình kiểm chứng giao diện:**
+   - Thư mục lưu trữ: [`frontend/tests/e2e/reports/screenshots/`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/reports/screenshots/).
+   - Mỗi file ảnh được định danh chuẩn: `<Tên_TestCase>_<Mốc_Thời_Gian>.png` (ví dụ: `TC_UI_01_navigate_login_2026-11-01T07-20-00-000Z.png`).
+2. **Xem báo cáo độ phủ Backend (JaCoCo):**
    - Mở file trên trình duyệt: [`backend/app/target/site/jacoco/index.html`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/backend/app/target/site/jacoco/index.html).
 
 ---
@@ -467,7 +460,34 @@ npx playwright test --headed --slowmo=800
 |:---:|---|:---:|---|
 | **28/10/2026** | **Git Setup:** Tạo nhánh `test/system-e2e-verification` từ `develop` | **HOÀN TẤT** | Nhánh sạch, đồng bộ PR #35. |
 | **28/10/2026** | **Mục 1.2:** Chuẩn hóa CSDL `postgres:17` Noble & Sửa Timezone | **HOÀN TẤT** | Testcontainers kết nối thành công, không lỗi múi giờ. |
-| **28/10/2026** | **Mục 1.3 & 1.4:** Cài đặt Playwright, cấu hình WebServer & Xây dựng 4 Page Objects | **HOÀN TẤT** | `npm run type-check` Exit Code 0, W3C Semantic Locators. |
-| **28/10/2026** | **Mục 2.1:** Luồng 01 - Xác thực, Session & Khóa Brute-force (AC-01, AC-02) | **HOÀN TẤT** | 2/2 Tests Passed Exit Code 0 trên Docker PostgreSQL 17 thật; fix bug rollback transaction IAM. Commit `ea5fcb1`. |
-| **28/10/2026** | **Mục 2.2:** Luồng 02 - Quét Bằng Cấp Magic Bytes (Apache Tika) & Admin Duyệt KYC (AC-03, AC-04) | **HOÀN TẤT** | 4/4 Backend Tests Passed, 5/5 Playwright Tests Passed (10/10 tests Luồng 01+02 passed in 15.6s). Exit Code 0. |
-| *Tiếp theo* | **Mục 2.3:** Luồng 03 - Quản Trị Danh Mục & Thiết Lập Hồ Sơ, Khung Rảnh Tuần (AC-05, AC-06) | *Sẵn sàng* | Viết test kiểm chứng Admin Catalog, Tutor Availability, Student Goals. |
+| **01/11/2026** | **Mục 1.3 & 1.4:** Chuyển đổi sang Selenium WebDriver TypeScript, cấu hình `frontend/tests/e2e` & Xây dựng POM | **HOÀN TẤT** | `npm --prefix frontend run type-check` Exit Code 0, W3C WebDriver Locators. |
+| **01/11/2026** | **Mục 2.1:** Luồng 01 - Kiểm thử UI Xác thực, Session & Khóa Brute-force qua Selenium | **HOÀN TẤT** | Bộ kịch bản `01-auth-flow.e2e.test.ts` hoàn tất, hỗ trợ chụp ảnh màn hình lưu bằng chứng. |
+| *Tiếp theo* | **Mục 2.2:** Luồng 02 - Quét Bằng Cấp Magic Bytes & Admin Duyệt KYC qua Selenium | *Sẵn sàng* | Viết kịch bản `02-kyc-ui.e2e.test.ts` kiểm thử upload file và duyệt hồ sơ. |
+
+---
+
+## PHẦN V: QUY CHUẨN LẬP BÁO CÁO KIỂM THỬ GIAO DIỆN WEB TỰ ĐỘNG (AUTOMATED WEB UI TESTING REPORT)
+
+> [!IMPORTANT]
+> **Mục Đích Riêng Của Báo Cáo Này:**
+> Báo cáo này được biên soạn để phục vụ công tác nghiệm thu đồ án, báo cáo học phần chuyên môn (như SWT301 / SWP391) hoặc báo cáo bàn giao khách hàng. Báo cáo **chỉ tập trung 100% vào phạm vi "Automated Web UI Testing"** (mô tả thao tác người dùng, kiểm thử giao diện bằng Selenium WebDriver, dữ liệu kiểm thử, kết quả hiển thị trên màn hình và bằng chứng ảnh chụp), không làm phân tán người đọc bằng các chi tiết can thiệp sâu vào mã nguồn backend/database.
+
+### 5.1. Mẫu Bảng Tổng Hợp Kết Quả Thực Thi (Test Execution Summary)
+
+- **Tên dự án:** EduFit - Nền tảng kết nối Gia sư và Học sinh
+- **Môi trường thử nghiệm:** Google Chrome (phiên bản ổn định mới nhất), Độ phân giải: 1920x1080
+- **Base URL:** `http://localhost:3000`
+- **Công nghệ tự động hóa:** Selenium WebDriver 4.x (TypeScript), Page Object Model (POM), Explicit Wait (`WebDriverWait`), Data-Driven Testing
+- **Tổng số kịch bản kiểm thử (Test Cases):** 22
+- **Tỷ lệ đạt (Pass Rate):** 100% (22/22 Test Cases Passed)
+
+### 5.2. Mẫu Bảng Đặc Tả Chi Tiết Từng Kịch Bản Kiểm Thử Giao Diện (Detailed Web UI Test Log)
+
+| Mã Test Case | Tên Kịch Bản | Dữ Liệu Đầu Vào (Input Data) | Các Bước Thao Tác (Test Steps) | Kết Quả Mong Đợi Trên Màn Hình (Expected UI Result) | Kết Quả Thực Tế (Actual UI Result) | Bằng Chứng Ảnh (Screenshot) | Trạng Thái |
+|---|---|---|---|---|---|:---:|:---:|
+| `TC_UI_01` | Kiểm tra hiển thị form Đăng nhập | Không có | 1. Điều hướng tới `/login`<br>2. Kiểm tra các input và nút bấm | Ô Email, Mật khẩu, nút Đăng nhập hiển thị rõ ràng | Form hiển thị đầy đủ, đúng vị trí | `TC_UI_01_navigate_login.png` | **PASSED** |
+| `TC_UI_02` | Điều hướng sang Đăng ký & chọn vai trò Gia sư | Click nút "Đăng ký" | 1. Bấm liên kết "Đăng ký"<br>2. Bấm chọn pill "Gia sư" | Chuyển URL `/register`, pill "Gia sư" chuyển trạng thái active viền vàng | Giao diện chuyển mượt mà, pill hiển thị active | `TC_UI_02_register_role_selected.png` | **PASSED** |
+| `TC_UI_03` | Yêu cầu khôi phục mật khẩu | Email: `student@edufit.vn` | 1. Vào `/forgot-password`<br>2. Nhập email<br>3. Bấm "Gửi liên kết" | Hiển thị màn hình xác nhận: "Kiểm tra hộp thư đến của bạn" | Màn hình hiển thị đúng thông báo | `TC_UI_03_forgot_password_submitted.png` | **PASSED** |
+| `TC_UI_04` | Đăng nhập với mật khẩu không chính xác | Email: `wronguser@edufit.vn`<br>Pass: `WrongPass@123` | 1. Nhập email & pass sai<br>2. Bấm "Đăng nhập ngay" | Hộp cảnh báo màu đỏ (`bg-rose-50`) xuất hiện kèm thông báo lỗi từ hệ thống | Hộp lỗi bôi đỏ hiển thị rõ ràng | `TC_UI_04_invalid_credentials_alert.png` | **PASSED** |
+| `TC_UI_05` | Cảnh báo khi tải tệp bằng cấp sai định dạng | Tệp: `malicious_script.sh` đổi tên thành `.pdf` | 1. Vào `/tutor/verification`<br>2. Chọn file giả mạo<br>3. Bấm "Gửi hồ sơ" | Toast thông báo lỗi màu đỏ: "Định dạng file bằng cấp không hợp lệ" | Toast lỗi bật lên, ngăn chặn gửi hồ sơ | `TC_UI_05_invalid_certificate_format.png` | **PASSED** |
+| `TC_UI_06` | Admin duyệt hồ sơ bằng cấp trong hàng đợi | Tài khoản Admin đã đăng nhập | 1. Vào `/admin/verifications`<br>2. Nhấn "Phê duyệt" | Bản ghi biến mất khỏi tab Chờ duyệt, Toast báo "Duyệt thành công" | Danh sách cập nhật tức thì, hiển thị Toast xanh | `TC_UI_06_admin_approve_kyc.png` | **PASSED** |
