@@ -11,12 +11,10 @@ import org.junit.jupiter.api.Test;
 
 class PayosGatewayTest {
   PaymentSettings config() {
-    var s = new PaymentSettings();
-    s.clientId = "client";
-    s.apiKey = "api";
-    s.checksumKey = "test-checksum";
-    s.bankAccount = "12345678";
-    return s;
+    return vn.edufit.payment.TestPaymentSettings.builder()
+        .payos("client", "api", "test-checksum")
+        .bankAccount("12345678")
+        .build();
   }
 
   String payload(Map<String, Object> data) throws Exception {
@@ -52,7 +50,7 @@ class PayosGatewayTest {
 
   @Test
   void authenticReceiptHasOrderAmountAndReference() throws Exception {
-    var r = new PayosGateway(config()).verify(payload(data()));
+    var r = new PayosGateway(config(), new PayosTransport()).verify(payload(data()));
     assertEquals(42, r.orderCode());
     assertEquals(100000, r.amount());
     assertEquals("BANK123", r.reference());
@@ -63,14 +61,14 @@ class PayosGatewayTest {
     var text = payload(data()).replace("100000", "200000");
     assertThrows(
         vn.edufit.shared.exception.InvalidOperationException.class,
-        () -> new PayosGateway(config()).verify(text));
+        () -> new PayosGateway(config(), new PayosTransport()).verify(text));
   }
 
   @Test
   void missingSignatureCannotCreditWallet() {
     assertThrows(
         vn.edufit.shared.exception.InvalidOperationException.class,
-        () -> new PayosGateway(config()).verify("{\"success\":true,\"data\":{}}"));
+        () -> new PayosGateway(config(), new PayosTransport()).verify("{\"success\":true,\"data\":{}}"));
   }
 
   @Test
@@ -80,13 +78,13 @@ class PayosGatewayTest {
     var failed = payload(d);
     assertThrows(
         vn.edufit.shared.exception.InvalidOperationException.class,
-        () -> new PayosGateway(config()).verify(failed));
+        () -> new PayosGateway(config(), new PayosTransport()).verify(failed));
     d = data();
     d.put("amount", 100000.5);
     var fractional = payload(d);
     assertThrows(
         vn.edufit.shared.exception.InvalidOperationException.class,
-        () -> new PayosGateway(config()).verify(fractional));
+        () -> new PayosGateway(config(), new PayosTransport()).verify(fractional));
   }
 
   Map<String, Object> checkoutData() {
@@ -135,7 +133,7 @@ class PayosGatewayTest {
   void webhookRetainsMainAndVirtualAccountForMatchingTheStoredCheckout() throws Exception {
     var data = data();
     data.put("virtualAccountNumber", "VQR123456789");
-    var receipt = new PayosGateway(config()).verify(payload(data));
+    var receipt = new PayosGateway(config(), new PayosTransport()).verify(payload(data));
     assertTrue(receipt.matchesAccount("VQR123456789"));
     assertTrue(receipt.matchesAccount("12345678"));
     assertFalse(receipt.matchesAccount("VQR_DIFFERENT"));

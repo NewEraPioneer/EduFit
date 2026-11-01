@@ -532,6 +532,17 @@ class VerificationWorkflowPostgresTest {
   })
   static class Config {
 
+    // AdminVerificationService bắt buộc ghi audit và tra cứu IAM; slice test cung cấp mock tường minh
+    @Bean
+    vn.edufit.shared.audit.AuditSink auditSink() {
+      return org.mockito.Mockito.mock(vn.edufit.shared.audit.AuditSink.class);
+    }
+
+    @Bean
+    vn.edufit.iam.api.IamFacade iamFacade() {
+      return org.mockito.Mockito.mock(vn.edufit.iam.api.IamFacade.class);
+    }
+
     @Bean(destroyMethod = "close")
     HikariDataSource dataSource() {
       HikariDataSource source = new HikariDataSource();

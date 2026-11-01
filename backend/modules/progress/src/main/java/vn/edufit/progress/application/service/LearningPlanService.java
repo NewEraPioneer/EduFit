@@ -10,7 +10,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edufit.connection.api.ConnectionFacade;
@@ -49,14 +48,14 @@ public class LearningPlanService {
       ConnectionFacade connectionFacade,
       ProfileFacade profileFacade,
       NotificationSink notifications,
-      @Autowired(required = false) Clock clock
+      Clock clock
   ) {
     this.planRepository = planRepository;
     this.historyRepository = historyRepository;
     this.connectionFacade = connectionFacade;
     this.profileFacade = profileFacade;
     this.notifications = notifications;
-    this.clock = clock != null ? clock : Clock.systemDefaultZone();
+    this.clock = java.util.Objects.requireNonNull(clock);
   }
 
   /**

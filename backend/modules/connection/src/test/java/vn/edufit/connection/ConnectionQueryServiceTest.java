@@ -40,8 +40,7 @@ class ConnectionQueryServiceTest {
   ConnectionQueryService service;
 
   @BeforeEach void setup() {
-    service = new ConnectionQueryService(invitations, links, requests, classes, profile, iam, facade, null,
-        new vn.edufit.connection.application.policy.SlotConflictDetector(), Optional.empty(), Clock.systemUTC());
+    service = new ConnectionQueryService(invitations, links, requests, classes, profile, iam, facade, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.systemUTC());
   }
 
   private CurrentUser actor(UUID id, String role) {
@@ -58,7 +57,7 @@ class ConnectionQueryServiceTest {
     var invitation = new LinkInvitation(user, UUID.randomUUID(), deadline.minusSeconds(14 * 86400));
     Clock clock = mock(Clock.class);
     when(clock.instant()).thenReturn(deadline.plusNanos(offset));
-    service = new ConnectionQueryService(invitations, links, requests, profile, iam, facade, clock);
+    service = new ConnectionQueryService(invitations, links, requests, org.mockito.Mockito.mock(vn.edufit.connection.infra.persistence.repository.TutoringClassRepository.class), profile, iam, facade, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
     when(invitations.findByInviterUserIdOrInvitedUserIdOrderByCreatedAtDesc(user, user))
         .thenReturn(List.of(invitation));
     service.invitations(actor(user, "PARENT"));
@@ -491,13 +490,7 @@ class ConnectionQueryServiceTest {
         classId, new vn.edufit.connection.api.ClassScheduleStatusProvider.ClassScheduleInfo("SCHEDULED", 2, 4, 6)
     ));
 
-    var customService = new ConnectionQueryService(
-        invitations, links, requests, classes, profile, iam, facade, null,
-        new vn.edufit.connection.application.policy.SlotConflictDetector(),
-        Optional.empty(),
-        Optional.of(mockScheduleProvider),
-        Clock.systemUTC()
-    );
+    var customService = new ConnectionQueryService(invitations, links, requests, classes, profile, iam, facade, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), mockScheduleProvider, Clock.systemUTC());
 
     var results = customService.classes(actor(user, "TUTOR"));
     assertEquals(1, results.size());

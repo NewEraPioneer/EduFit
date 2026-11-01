@@ -302,7 +302,7 @@ class AiMatchingPostgresTest {
             explanations,
             new DiscoveryQueryService(profile),
             mock(ConnectionFacade.class),
-            event -> {});
+            event -> {}, manager);
   }
 
   TutorDiscoveryProfileDto tutor(String rating, List<WeeklyAvailabilityDto> slots) {

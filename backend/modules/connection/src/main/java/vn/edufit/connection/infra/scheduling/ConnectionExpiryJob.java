@@ -33,10 +33,6 @@ public class ConnectionExpiryJob {
     this.batchSize = batchSize > 0 ? batchSize : 100;
   }
 
-  public ConnectionExpiryJob(ConnectionExpiryService expiryService, Clock clock) {
-    this(expiryService, clock, 100);
-  }
-
   @Scheduled(
       fixedDelayString = "${edufit.connection.expiry-job.interval-ms:60000}",
       initialDelayString = "${edufit.connection.expiry-job.initial-delay-ms:10000}"

@@ -62,7 +62,6 @@ public class ProfileFacadeImpl implements ProfileFacade {
   private final SubjectRepository subjectRepository;
   private final int candidateLimit;
 
-  @org.springframework.beans.factory.annotation.Autowired
   public ProfileFacadeImpl(
       TutorProfileRepository tutorProfileRepository,
       StudentProfileRepository studentProfileRepository,
@@ -80,27 +79,12 @@ public class ProfileFacadeImpl implements ProfileFacade {
     this.tutorAvailabilitySlotRepository = tutorAvailabilitySlotRepository;
     this.learningGoalRepository = learningGoalRepository;
     this.goalAvailabilitySlotRepository = goalAvailabilitySlotRepository;
-    this.educationLevelRepository = educationLevelRepository;
-    this.subjectRepository = subjectRepository;
+    this.educationLevelRepository = java.util.Objects.requireNonNull(educationLevelRepository);
+    this.subjectRepository = java.util.Objects.requireNonNull(subjectRepository);
     if (candidateLimit < 1) {
       throw new IllegalArgumentException("Matching candidate limit must be positive.");
     }
     this.candidateLimit = candidateLimit;
-  }
-
-  public ProfileFacadeImpl(
-      TutorProfileRepository tutorProfileRepository,
-      StudentProfileRepository studentProfileRepository,
-      TutorSubjectRepository tutorSubjectRepository,
-      TutorAvailabilitySlotRepository tutorAvailabilitySlotRepository,
-      LearningGoalRepository learningGoalRepository,
-      GoalAvailabilitySlotRepository goalAvailabilitySlotRepository,
-      EducationLevelRepository educationLevelRepository,
-      int candidateLimit
-  ) {
-    this(tutorProfileRepository, studentProfileRepository, tutorSubjectRepository,
-        tutorAvailabilitySlotRepository, learningGoalRepository, goalAvailabilitySlotRepository,
-        educationLevelRepository, null, candidateLimit);
   }
 
   @Override
@@ -310,10 +294,10 @@ public class ProfileFacadeImpl implements ProfileFacade {
   public Optional<ConnectionGoalDto> findGoalForConnection(UUID goalId) {
     return learningGoalRepository.findById(goalId).flatMap(goal -> studentProfileRepository
         .findById(goal.getStudentId()).map(student -> {
-          String subjectName = (subjectRepository != null && goal.getSubjectId() != null)
+          String subjectName = goal.getSubjectId() != null
               ? subjectRepository.findById(goal.getSubjectId()).map(Subject::getName).orElse(null)
               : null;
-          String levelName = (educationLevelRepository != null && student.getEducationLevelId() != null)
+          String levelName = student.getEducationLevelId() != null
               ? educationLevelRepository.findById(student.getEducationLevelId()).map(EducationLevel::getName).orElse(null)
               : null;
           String area = (goal.getArea() != null && !goal.getArea().isBlank()) ? goal.getArea() : student.getArea();
@@ -352,7 +336,7 @@ public class ProfileFacadeImpl implements ProfileFacade {
         .collect(Collectors.toMap(StudentProfile::getStudentId, s -> s));
 
     Set<Integer> subjectIds = goals.stream().map(LearningGoal::getSubjectId).filter(java.util.Objects::nonNull).collect(Collectors.toSet());
-    Map<Integer, String> subjects = (subjectRepository != null && !subjectIds.isEmpty())
+    Map<Integer, String> subjects = !subjectIds.isEmpty()
         ? subjectRepository.findAllById(subjectIds).stream().collect(Collectors.toMap(Subject::getSubjectId, Subject::getName))
         : Map.of();
 

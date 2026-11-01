@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,30 +38,15 @@ public class AdminVerificationService {
 
   public AdminVerificationService(
       VerificationRequestRepository verificationRequestRepository,
-      ProfileFacade profileFacade
-  ) {
-    this(verificationRequestRepository, profileFacade, null, null);
-  }
-
-  public AdminVerificationService(
-      VerificationRequestRepository verificationRequestRepository,
       ProfileFacade profileFacade,
-      AuditSink auditSink
+      AuditSink auditSink,
+      IamFacade iamFacade
   ) {
-    this(verificationRequestRepository, profileFacade, auditSink, null);
-  }
-
-  @Autowired
-  public AdminVerificationService(
-      VerificationRequestRepository verificationRequestRepository,
-      ProfileFacade profileFacade,
-      @Autowired(required = false) AuditSink auditSink,
-      @Autowired(required = false) IamFacade iamFacade
-  ) {
-    this.verificationRequestRepository = verificationRequestRepository;
-    this.profileFacade = profileFacade;
-    this.auditSink = auditSink;
-    this.iamFacade = iamFacade;
+    this.verificationRequestRepository = Objects.requireNonNull(verificationRequestRepository);
+    this.profileFacade = Objects.requireNonNull(profileFacade);
+    // Quyết định thu hồi của Admin bắt buộc phải được ghi audit, không được là tùy chọn
+    this.auditSink = Objects.requireNonNull(auditSink);
+    this.iamFacade = Objects.requireNonNull(iamFacade);
   }
 
   @Transactional(readOnly = true)
@@ -116,7 +101,7 @@ public class AdminVerificationService {
     for (UUID tutorId : tutorIds) {
       profileFacade.findTutorById(tutorId).ifPresent(tutorDto -> {
         tutorMap.put(tutorId, tutorDto);
-        if (iamFacade != null && tutorDto.userId() != null) {
+        if (tutorDto.userId() != null) {
           iamFacade.findUserSummaryById(tutorDto.userId())
               .ifPresent(userSummary -> emailMap.put(tutorId, userSummary.email()));
         }
@@ -222,21 +207,19 @@ public class AdminVerificationService {
     profileFacade.markTutorUnverified(request.getTutorId());
 
     // 3. Ghi nhận sự kiện vào bảng audit_log
-    if (auditSink != null) {
-      auditSink.record(new AuditRecord(
-          currentUser.getUserId(),
-          "TUTOR_VERIFICATION_REVOKED",
-          "VERIFICATION_REQUEST",
-          requestId,
-          reason,
-          now,
-          Map.of(
-              "tutorId", request.getTutorId().toString(),
-              "verificationId", requestId.toString(),
-              "reason", reason
-          )
-      ));
-    }
+    auditSink.record(new AuditRecord(
+        currentUser.getUserId(),
+        "TUTOR_VERIFICATION_REVOKED",
+        "VERIFICATION_REQUEST",
+        requestId,
+        reason,
+        now,
+        Map.of(
+            "tutorId", request.getTutorId().toString(),
+            "verificationId", requestId.toString(),
+            "reason", reason
+        )
+    ));
 
     return VerificationRequestDetailResponse.from(saved);
   }

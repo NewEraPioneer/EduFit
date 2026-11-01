@@ -53,13 +53,7 @@ public class LinkInvitationService {
     this.lock = lock;
     this.quotaService = quotaService;
     this.events = events;
-    this.expiryService = expiryService;
-  }
-
-  public LinkInvitationService(LinkInvitationRepository invitations, ParentStudentLinkRepository links,
-      IamFacade iam, ProfileFacade profile, ConnectionLock lock, InvitationQuotaService quotaService,
-      ApplicationEventPublisher events, Clock clock) {
-    this(invitations, links, iam, profile, lock, quotaService, events, null, clock);
+    this.expiryService = java.util.Objects.requireNonNull(expiryService);
   }
 
   private static void requireRole(CurrentUser actor, String... roles) {
@@ -99,8 +93,7 @@ public class LinkInvitationService {
     List<LinkInvitation> history = invitations.findPendingPair(a, b);
     for (LinkInvitation i : history) {
       if (ConnectionTransitions.isDue(i.getExpiresAt(), now)) {
-        if (expiryService != null) expiryService.expireInvitation(i.getId(), now);
-        else i.expire(now);
+        expiryService.expireInvitation(i.getId(), now);
       }
     }
     invitations.flush();
@@ -140,8 +133,7 @@ public class LinkInvitationService {
     requireActiveActor(actor);
     Instant now = clock.instant();
     if (ConnectionTransitions.isDue(invitation.getExpiresAt(), now)) {
-      if (expiryService != null) expiryService.expireInvitation(id, now);
-      else invitation.expire(now);
+      expiryService.expireInvitation(id, now);
       return TransitionResult.conflict("EXPIRED", "Không còn ở trạng thái chờ xử lý");
     }
     if (!"PENDING".equals(invitation.getStatus()))
@@ -195,8 +187,7 @@ public class LinkInvitationService {
     requireActiveActor(actor);
     Instant now = clock.instant();
     if (ConnectionTransitions.isDue(invitation.getExpiresAt(), now)) {
-      if (expiryService != null) expiryService.expireInvitation(id, now);
-      else invitation.expire(now);
+      expiryService.expireInvitation(id, now);
       return TransitionResult.conflict("EXPIRED", "Không còn ở trạng thái chờ xử lý");
     }
     if (!"PENDING".equals(invitation.getStatus()))

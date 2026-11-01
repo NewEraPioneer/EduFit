@@ -41,7 +41,7 @@ class ConnectionRequestRulesTest {
     when(profile.tutorTeaches(tutor,1,4)).thenReturn(true);
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
     when(rows.save(any())).thenAnswer(call -> {var row=(ConnectionRequest)call.getArgument(0);org.springframework.test.util.ReflectionTestUtils.setField(row,"id",id);return row;});
-    service=new ConnectionRequestService(rows,classes,profile,iam,lock,sink,facade,new ConnectionRequestInput("legacy-compatible"),events,Clock.fixed(now,ZoneOffset.UTC));
+    service=new ConnectionRequestService(rows, classes, profile, iam, lock, sink, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now,ZoneOffset.UTC));
   }
   private void account(UUID user,String role,AccountStatus status) {
     when(iam.findUserSummaryById(user)).thenReturn(Optional.of(new UserSummaryView(user,"actor@test.invalid","Actor",AccountRole.valueOf(role),status)));
@@ -226,11 +226,7 @@ class ConnectionRequestRulesTest {
     vn.edufit.connection.api.TutorScheduleConflictChecker checker = mock(vn.edufit.connection.api.TutorScheduleConflictChecker.class);
     when(checker.hasConflictWithScheduledSessions(tutor, List.of("Tue 19:00"))).thenReturn(true);
 
-    ConnectionRequestService serviceWithChecker = new ConnectionRequestService(
-        rows, classes, profile, iam, lock, sink, facade, new ConnectionRequestInput("legacy-compatible"),
-        events, null, new vn.edufit.connection.application.policy.SlotConflictDetector(),
-        Optional.of(checker), Clock.fixed(now, ZoneOffset.UTC)
-    );
+    ConnectionRequestService serviceWithChecker = new ConnectionRequestService(rows, classes, profile, iam, lock, sink, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), checker, ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now, ZoneOffset.UTC));
 
     var ex = assertThrows(ResourceConflictException.class, () ->
         serviceWithChecker.respondRequest(actor(tutorUser, "TUTOR"), id, true, null));

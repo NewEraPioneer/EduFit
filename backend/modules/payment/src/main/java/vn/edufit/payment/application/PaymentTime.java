@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 @Component
 public final class PaymentTime {
  private final Clock clock;
- public PaymentTime() {this(Clock.systemUTC());}
- public PaymentTime(Clock clock) {this.clock=clock;}
+ public PaymentTime(Clock clock) {this.clock=java.util.Objects.requireNonNull(clock);}
  public Instant instant() {return clock.instant();}
 }

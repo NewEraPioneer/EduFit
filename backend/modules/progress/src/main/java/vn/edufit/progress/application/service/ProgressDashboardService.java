@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -64,7 +63,7 @@ public class ProgressDashboardService {
       ProfileFacade profileFacade,
       IamFacade iamFacade,
       SessionFacade sessionFacade,
-      @Autowired(required = false) Clock clock
+      Clock clock
   ) {
     this.planRepository = planRepository;
     this.noteRepository = noteRepository;
@@ -72,7 +71,7 @@ public class ProgressDashboardService {
     this.profileFacade = profileFacade;
     this.iamFacade = iamFacade;
     this.sessionFacade = sessionFacade;
-    this.clock = clock != null ? clock : Clock.systemDefaultZone();
+    this.clock = java.util.Objects.requireNonNull(clock);
   }
 
   /**

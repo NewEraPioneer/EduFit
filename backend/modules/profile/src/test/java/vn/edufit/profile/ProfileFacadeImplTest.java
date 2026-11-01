@@ -115,14 +115,14 @@ class ProfileFacadeImplTest {
         () -> profileFacade.findVerifiedCandidatesBySubject(new TutorCandidateCriteria(0, "ONLINE", null)));
     var limited = new ProfileFacadeImpl(tutorProfileRepository, studentProfileRepository, tutorSubjectRepository,
         tutorAvailabilitySlotRepository, learningGoalRepository, goalAvailabilitySlotRepository,
-        educationLevelRepository, 2);
+        educationLevelRepository, org.mockito.Mockito.mock(vn.edufit.profile.infra.persistence.repository.SubjectRepository.class), 2);
     limited.findVerifiedCandidatesBySubject(new TutorCandidateCriteria(1, "ONLINE", null));
     verify(tutorProfileRepository).findVerifiedCandidatesBySubject(
         TutorStatus.VERIFIED, 1, true, false, null, PageRequest.of(0, 2));
     assertThrows(IllegalArgumentException.class, () -> new ProfileFacadeImpl(
         tutorProfileRepository, studentProfileRepository, tutorSubjectRepository,
         tutorAvailabilitySlotRepository, learningGoalRepository, goalAvailabilitySlotRepository,
-        educationLevelRepository, 0));
+        educationLevelRepository, org.mockito.Mockito.mock(vn.edufit.profile.infra.persistence.repository.SubjectRepository.class), 0));
   }
 
   @Test
@@ -167,7 +167,7 @@ class ProfileFacadeImplTest {
         tutorAvailabilitySlotRepository,
         learningGoalRepository,
         goalAvailabilitySlotRepository,
-        educationLevelRepository,
+        educationLevelRepository, org.mockito.Mockito.mock(vn.edufit.profile.infra.persistence.repository.SubjectRepository.class),
         200
     );
   }

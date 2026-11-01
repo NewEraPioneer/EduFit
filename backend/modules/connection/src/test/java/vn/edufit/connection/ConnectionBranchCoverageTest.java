@@ -160,7 +160,7 @@ class ConnectionBranchCoverageTest {
     ConnectionFacade facade = mock(ConnectionFacade.class);
     ConnectionExpiryService expiryService = mock(ConnectionExpiryService.class);
 
-    ConnectionQueryService service = new ConnectionQueryService(invRepo, linkRepo, reqRepo, profile, iam, facade, expiryService, clock);
+    ConnectionQueryService service = new ConnectionQueryService(invRepo, linkRepo, reqRepo, org.mockito.Mockito.mock(vn.edufit.connection.infra.persistence.repository.TutoringClassRepository.class), profile, iam, facade, expiryService, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
 
     UUID userId = UUID.randomUUID();
     UUID studentId = UUID.randomUUID();
@@ -305,8 +305,7 @@ class ConnectionBranchCoverageTest {
     ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
     ConnectionExpiryService expiryService = mock(ConnectionExpiryService.class);
 
-    ConnectionRequestService service = new ConnectionRequestService(reqRepo, classRepo, profile, iam, lock,
-        notifications, facade, input, events, expiryService, clock);
+    ConnectionRequestService service = new ConnectionRequestService(reqRepo, classRepo, profile, iam, lock, notifications, facade, input, events, expiryService, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
 
     UUID userId = UUID.randomUUID();
     UUID studentId = UUID.randomUUID();
@@ -417,7 +416,7 @@ class ConnectionBranchCoverageTest {
     ConnectionFacade facade = mock(ConnectionFacade.class);
     ConnectionExpiryService expiryService = mock(ConnectionExpiryService.class);
 
-    ConnectionQueryService service = new ConnectionQueryService(invRepo, linkRepo, reqRepo, profile, iam, facade, expiryService, clock);
+    ConnectionQueryService service = new ConnectionQueryService(invRepo, linkRepo, reqRepo, org.mockito.Mockito.mock(vn.edufit.connection.infra.persistence.repository.TutoringClassRepository.class), profile, iam, facade, expiryService, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
 
     UUID adminId = UUID.randomUUID();
     UUID parentId = UUID.randomUUID();
@@ -493,7 +492,7 @@ class ConnectionBranchCoverageTest {
   // 9. Additional Fallback & Action Branches
   // =========================================================================
   @Test
-  void linkInvitationServiceCoversFallbackAndWithdrawBranches() {
+  void linkInvitationServiceDelegatesExpiryAndCoversWithdrawBranches() {
     LinkInvitationRepository invRepo = mock(LinkInvitationRepository.class);
     ParentStudentLinkRepository linkRepo = mock(ParentStudentLinkRepository.class);
     IamFacade iam = mock(IamFacade.class);
@@ -502,19 +501,24 @@ class ConnectionBranchCoverageTest {
     InvitationQuotaService quotaService = mock(InvitationQuotaService.class);
     ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
 
-    // Instantiate without expiryService (fallback branches)
-    LinkInvitationService service = new LinkInvitationService(invRepo, linkRepo, iam, profile, lock, quotaService, events, clock);
+    ConnectionExpiryService expiryService = mock(ConnectionExpiryService.class);
+    LinkInvitationService service = new LinkInvitationService(invRepo, linkRepo, iam, profile, lock, quotaService, events, expiryService, clock);
 
     UUID inviter = UUID.randomUUID();
     UUID invited = UUID.randomUUID();
     CurrentUser actor = mockActor(inviter, "PARENT");
     when(iam.findUserSummaryById(inviter)).thenReturn(Optional.of(new UserSummaryView(inviter, "p@test.com", "Parent", AccountRole.PARENT, AccountStatus.ACTIVE)));
 
-    // Fallback in invite: overdue invitation expired in loop
+    // invite: lời mời quá hạn trong vòng lặp phải ủy quyền cho ConnectionExpiryService
     when(quotaService.consume(inviter)).thenReturn(new InvitationQuotaService.Consumption(true, NOW));
     when(iam.findUserSummaryByEmail("target@test.com")).thenReturn(Optional.of(new UserSummaryView(invited, "target@test.com", "Target", AccountRole.STUDENT, AccountStatus.ACTIVE)));
     LinkInvitation overdueInv = new LinkInvitation(inviter, invited, NOW.minus(ConnectionTransitions.INVITATION_TTL).minusSeconds(10));
     when(invRepo.findPendingPair(inviter, invited)).thenReturn(List.of(overdueInv));
+    // Mô phỏng hiệu ứng lên DB của ConnectionExpiryService để lần truy vấn lại không còn lời mời PENDING
+    when(expiryService.expireInvitation(overdueInv.getId(), NOW)).thenAnswer(call -> {
+      overdueInv.expire(NOW);
+      return true;
+    });
     UUID studentId = UUID.randomUUID();
     when(profile.findStudentByUserId(invited)).thenReturn(Optional.of(new StudentSummaryDto(studentId, invited, 4, null, true)));
     when(linkRepo.existsByParentUserIdAndStudentIdAndStatus(inviter, studentId, "CONFIRMED")).thenReturn(false);
@@ -524,7 +528,7 @@ class ConnectionBranchCoverageTest {
       return inv;
     });
     assertTrue(service.invite(actor, "target@test.com"));
-    assertEquals("EXPIRED", overdueInv.getStatus());
+    verify(expiryService).expireInvitation(overdueInv.getId(), NOW);
 
     // withdrawInvitation branches
     UUID invId = UUID.randomUUID();
@@ -569,7 +573,7 @@ class ConnectionBranchCoverageTest {
   }
 
   @Test
-  void requestServiceCoversFallbackAndResponseBranches() {
+  void requestServiceDelegatesExpiryAndCoversResponseBranches() {
     ConnectionRequestRepository reqRepo = mock(ConnectionRequestRepository.class);
     TutoringClassRepository classRepo = mock(TutoringClassRepository.class);
     ProfileFacade profile = mock(ProfileFacade.class);
@@ -580,8 +584,8 @@ class ConnectionBranchCoverageTest {
     ConnectionRequestInput input = new ConnectionRequestInput("legacy-compatible");
     ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
 
-    // Instantiate without expiryService (fallback branches)
-    ConnectionRequestService service = new ConnectionRequestService(reqRepo, classRepo, profile, iam, lock, notifications, facade, input, events, clock);
+    ConnectionExpiryService expiryService = mock(ConnectionExpiryService.class);
+    ConnectionRequestService service = new ConnectionRequestService(reqRepo, classRepo, profile, iam, lock, notifications, facade, input, events, expiryService, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
 
     UUID tutorUserId = UUID.randomUUID();
     UUID tutorId = UUID.randomUUID();
@@ -609,14 +613,14 @@ class ConnectionBranchCoverageTest {
     assertInstanceOf(TransitionResult.Success.class, rejectRes);
     assertEquals("REJECTED", req.getStatus());
 
-    // respondRequest: overdue fallback (expires inline)
+    // respondRequest: yêu cầu quá hạn phải ủy quyền cho ConnectionExpiryService (đường production)
     ConnectionRequest overdueReq = new ConnectionRequest(studentId, tutorId, goalId, studentUserId, List.of("Mon 18:00"), null, NOW.minus(ConnectionTransitions.REQUEST_TTL).minusSeconds(10));
     org.springframework.test.util.ReflectionTestUtils.setField(overdueReq, "id", reqId);
     when(reqRepo.findById(reqId)).thenReturn(Optional.of(overdueReq));
     when(reqRepo.lockById(reqId)).thenReturn(Optional.of(overdueReq));
     var overdueRes = service.respondRequest(tutor, reqId, true, null);
     assertInstanceOf(TransitionResult.Conflict.class, overdueRes);
-    assertEquals("EXPIRED", overdueReq.getStatus());
+    verify(expiryService).expireRequest(reqId, NOW);
   }
 }
 

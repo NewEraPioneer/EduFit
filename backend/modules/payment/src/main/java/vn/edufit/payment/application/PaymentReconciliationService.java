@@ -58,7 +58,7 @@ public class PaymentReconciliationService {
       throw new InvalidOperationException("Cần đối soát các khoản chuyển nhiều lần");
     var receipt = transactions.get(0);
     String expectedAccount = t.get("provider_account_number") instanceof String account
-        ? account : settings.bankAccount;
+        ? account : settings.bankAccount();
     if (!PayosGateway.matchesReceivingAccount(expectedAccount,
             receipt.path("accountNumber").asText(), receipt.path("virtualAccountNumber").asText())
         || !receipt.path("amount").isIntegralNumber()
@@ -77,7 +77,7 @@ public class PaymentReconciliationService {
           if (current.get("provider_id") != null && !link.equals(current.get("provider_id")))
             throw new InvalidOperationException("Mã thanh toán đã đổi");
           String currentAccount = current.get("provider_account_number") instanceof String account
-              ? account : settings.bankAccount;
+              ? account : settings.bankAccount();
           if (!PayosGateway.matchesReceivingAccount(currentAccount,
               receipt.path("accountNumber").asText(), receipt.path("virtualAccountNumber").asText()))
             throw new InvalidOperationException("Tài khoản nhận của yêu cầu nạp đã đổi");

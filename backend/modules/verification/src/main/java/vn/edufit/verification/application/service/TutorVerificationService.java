@@ -44,22 +44,13 @@ public class TutorVerificationService {
   public TutorVerificationService(
       VerificationRequestRepository verificationRequestRepository,
       CredentialStorageService credentialStorageService,
-      ProfileFacade profileFacade
-  ) {
-    this(verificationRequestRepository, credentialStorageService, profileFacade, null);
-  }
-
-  @org.springframework.beans.factory.annotation.Autowired
-  public TutorVerificationService(
-      VerificationRequestRepository verificationRequestRepository,
-      CredentialStorageService credentialStorageService,
       ProfileFacade profileFacade,
       CredentialFileRepository credentialFileRepository
   ) {
     this.verificationRequestRepository = verificationRequestRepository;
     this.credentialStorageService = credentialStorageService;
     this.profileFacade = profileFacade;
-    this.credentialFileRepository = credentialFileRepository;
+    this.credentialFileRepository = java.util.Objects.requireNonNull(credentialFileRepository);
   }
 
   @Transactional(readOnly = true)
@@ -68,12 +59,6 @@ public class TutorVerificationService {
       throw new InvalidOperationException(
           ErrorCode.UNAUTHORIZED,
           "Phiên làm việc chưa được xác thực hoặc đã hết hạn"
-      );
-    }
-    if (credentialFileRepository == null) {
-      throw new InvalidOperationException(
-          ErrorCode.INVALID_OPERATION,
-          "CredentialFileRepository chưa được cấu hình"
       );
     }
 

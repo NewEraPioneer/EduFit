@@ -1594,6 +1594,9 @@ class ConnectionTransactionPostgresTest {
     @Bean ProfileFacade profile() { return mock(ProfileFacade.class); }
     @Bean IamFacade iam() { return mock(IamFacade.class); }
     @Bean AuditSink audit() { return mock(AuditSink.class); }
+    // Port do module scheduling hiện thực; slice test chỉ nạp connection nên khai báo hành vi trung tính tường minh
+    @Bean vn.edufit.connection.api.TutorScheduleConflictChecker noScheduleConflicts() { return (tutorId, slots) -> false; }
+    @Bean vn.edufit.connection.api.ClassScheduleStatusProvider noScheduledSessions() { return classIds -> java.util.Map.of(); }
     @Bean NotificationSink notifications() { return mock(NotificationSink.class); }
   }
 }

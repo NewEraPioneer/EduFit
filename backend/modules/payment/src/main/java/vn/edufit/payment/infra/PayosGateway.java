@@ -19,10 +19,6 @@ public class PayosGateway {
   private final PayosTransport transport;
   private final ObjectMapper json = new ObjectMapper();
 
-  public PayosGateway(PaymentSettings settings) {
-    this(settings, new PayosTransport());
-  }
-
   @org.springframework.beans.factory.annotation.Autowired
   public PayosGateway(PaymentSettings settings, PayosTransport transport) {
     this.settings = settings;
@@ -56,7 +52,7 @@ public class PayosGateway {
 
   public Checkout create(long order, long amount, String returnPath, Instant expires) {
     if (!settings.payos()) throw new InvalidOperationException("Chưa cấu hình payOS");
-    String base = settings.frontendUrl.replaceAll("/+$", "");
+    String base = settings.frontendUrl().replaceAll("/+$", "");
     String callback = base + returnPath;
     String description = "EF" + Long.toString(order, 36).toUpperCase(Locale.ROOT);
     var data = new TreeMap<String, Object>();
@@ -65,7 +61,7 @@ public class PayosGateway {
     data.put("description", description);
     data.put("orderCode", order);
     data.put("returnUrl", callback);
-    String signature = sign(canonical(data), settings.checksumKey);
+    String signature = sign(canonical(data), settings.checksumKey());
     data.put("signature", signature);
     data.put("expiredAt", expires.getEpochSecond());
     var result =
@@ -73,9 +69,9 @@ public class PayosGateway {
             "POST",
             "/v2/payment-requests",
             data,
-            settings.clientId,
-            settings.apiKey,
-            settings.checksumKey,
+            settings.clientId(),
+            settings.apiKey(),
+            settings.checksumKey(),
             false,
             null);
     String url = result.path("checkoutUrl").asText(), id = result.path("paymentLinkId").asText();
@@ -113,9 +109,9 @@ public class PayosGateway {
         "GET",
         "/v2/payment-requests/" + order,
         null,
-        settings.clientId,
-        settings.apiKey,
-        settings.checksumKey,
+        settings.clientId(),
+        settings.apiKey(),
+        settings.checksumKey(),
         false,
         null);
   }
@@ -136,7 +132,7 @@ public class PayosGateway {
                 values.put(e.getKey(), e.getValue().isNull() ? "" : e.getValue().asText());
               });
       String received = body.path("signature").asText();
-      String expected = sign(canonical(values), settings.checksumKey);
+      String expected = sign(canonical(values), settings.checksumKey());
       if (!received.matches("[0-9a-fA-F]{64}")
           || !MessageDigest.isEqual(
               expected.getBytes(StandardCharsets.UTF_8),

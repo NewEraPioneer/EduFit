@@ -68,7 +68,9 @@ class VerificationDecisionMatrixCsvTest {
   void setUp() {
     adminVerificationService = new AdminVerificationService(
         verificationRequestRepository,
-        profileFacade
+        profileFacade,
+        org.mockito.Mockito.mock(vn.edufit.shared.audit.AuditSink.class),
+        org.mockito.Mockito.mock(vn.edufit.iam.api.IamFacade.class)
     );
 
     tutorVerificationService = new TutorVerificationService(

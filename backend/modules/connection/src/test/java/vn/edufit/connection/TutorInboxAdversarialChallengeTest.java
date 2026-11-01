@@ -68,19 +68,7 @@ class TutorInboxAdversarialChallengeTest {
 
   @BeforeEach
   void setUp() {
-    queryService = new ConnectionQueryService(
-        invitations,
-        links,
-        requests,
-        classes,
-        profile,
-        iam,
-        facade,
-        null,
-        new SlotConflictDetector(),
-        Optional.of(scheduleConflictChecker),
-        Clock.systemUTC()
-    );
+    queryService = new ConnectionQueryService(invitations, links, requests, classes, profile, iam, facade, ConnectionTestDefaults.expiryMock(), new SlotConflictDetector(), scheduleConflictChecker, ConnectionTestDefaults.noScheduledSessions(), Clock.systemUTC());
   }
 
   private CurrentUser createTutorActor(UUID userId) {

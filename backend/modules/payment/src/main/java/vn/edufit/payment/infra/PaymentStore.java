@@ -20,26 +20,14 @@ public class PaymentStore {
   private final vn.edufit.shared.notification.NotificationSink notifications;
   private final org.springframework.context.ApplicationEventPublisher events;
 
-  public PaymentStore(
-      JdbcTemplate db, org.springframework.transaction.PlatformTransactionManager manager) {
-    this(db, manager, (user, student, type, title, text, target, id) -> {});
-  }
-
-  public PaymentStore(
-      JdbcTemplate db,
-      org.springframework.transaction.PlatformTransactionManager manager,
-      vn.edufit.shared.notification.NotificationSink notifications) {
-    this(db, manager, notifications, event -> {});
-  }
-
-  @org.springframework.beans.factory.annotation.Autowired
   public PaymentStore(JdbcTemplate db, org.springframework.transaction.PlatformTransactionManager manager,
       vn.edufit.shared.notification.NotificationSink notifications,
       org.springframework.context.ApplicationEventPublisher events) {
-    this.db = db;
-    this.tx = new TransactionTemplate(manager);
-    this.notifications = notifications;
-    this.events = events;
+    this.db = Objects.requireNonNull(db);
+    this.tx = new TransactionTemplate(Objects.requireNonNull(manager));
+    // Thông báo và PaymentSessionChangedEvent là một phần của nghiệp vụ thanh toán, không được nuốt mất
+    this.notifications = Objects.requireNonNull(notifications);
+    this.events = Objects.requireNonNull(events);
   }
 
   public void notice(UUID user, UUID ref, String type, String title, String text) {

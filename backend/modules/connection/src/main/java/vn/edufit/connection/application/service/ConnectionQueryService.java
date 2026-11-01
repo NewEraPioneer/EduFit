@@ -62,44 +62,23 @@ public class ConnectionQueryService {
   public ConnectionQueryService(LinkInvitationRepository invitations, ParentStudentLinkRepository links,
       ConnectionRequestRepository requests, TutoringClassRepository classes, ProfileFacade profile,
       IamFacade iam, ConnectionFacade facade, ConnectionExpiryService expiryService,
-      SlotConflictDetector slotConflictDetector, Optional<TutorScheduleConflictChecker> scheduleConflictChecker,
-      Optional<ClassScheduleStatusProvider> scheduleStatusProvider,
+      SlotConflictDetector slotConflictDetector, TutorScheduleConflictChecker scheduleConflictChecker,
+      ClassScheduleStatusProvider scheduleStatusProvider,
       Clock clock) {
-    this.clock = clock;
-    this.invitations = invitations;
-    this.links = links;
-    this.requests = requests;
-    this.classes = classes;
-    this.profile = profile;
-    this.iam = iam;
-    this.facade = facade;
-    this.expiryService = expiryService;
-    this.slotConflictDetector = slotConflictDetector != null ? slotConflictDetector : new SlotConflictDetector();
-    this.scheduleConflictChecker = scheduleConflictChecker != null ? scheduleConflictChecker.orElse(null) : null;
-    this.scheduleStatusProvider = scheduleStatusProvider != null ? scheduleStatusProvider.orElse(null) : null;
+    this.clock = Objects.requireNonNull(clock);
+    this.invitations = Objects.requireNonNull(invitations);
+    this.links = Objects.requireNonNull(links);
+    this.requests = Objects.requireNonNull(requests);
+    this.classes = Objects.requireNonNull(classes);
+    this.profile = Objects.requireNonNull(profile);
+    this.iam = Objects.requireNonNull(iam);
+    this.facade = Objects.requireNonNull(facade);
+    this.expiryService = Objects.requireNonNull(expiryService);
+    this.slotConflictDetector = Objects.requireNonNull(slotConflictDetector);
+    this.scheduleConflictChecker = Objects.requireNonNull(scheduleConflictChecker);
+    this.scheduleStatusProvider = Objects.requireNonNull(scheduleStatusProvider);
   }
 
-  public ConnectionQueryService(LinkInvitationRepository invitations, ParentStudentLinkRepository links,
-      ConnectionRequestRepository requests, TutoringClassRepository classes, ProfileFacade profile,
-      IamFacade iam, ConnectionFacade facade, ConnectionExpiryService expiryService,
-      SlotConflictDetector slotConflictDetector, Optional<TutorScheduleConflictChecker> scheduleConflictChecker,
-      Clock clock) {
-    this(invitations, links, requests, classes, profile, iam, facade, expiryService,
-        slotConflictDetector, scheduleConflictChecker, Optional.empty(), clock);
-  }
-
-  public ConnectionQueryService(LinkInvitationRepository invitations, ParentStudentLinkRepository links,
-      ConnectionRequestRepository requests, ProfileFacade profile, IamFacade iam, ConnectionFacade facade,
-      ConnectionExpiryService expiryService, Clock clock) {
-    this(invitations, links, requests, null, profile, iam, facade, expiryService,
-        new SlotConflictDetector(), Optional.empty(), Optional.empty(), clock);
-  }
-
-  public ConnectionQueryService(LinkInvitationRepository invitations, ParentStudentLinkRepository links,
-      ConnectionRequestRepository requests, ProfileFacade profile, IamFacade iam, ConnectionFacade facade, Clock clock) {
-    this(invitations, links, requests, null, profile, iam, facade, null,
-        new SlotConflictDetector(), Optional.empty(), Optional.empty(), clock);
-  }
 
   private static void requireRole(CurrentUser actor, String... roles) {
     for (String role : roles) if (actor.hasRole(role)) return;
@@ -121,7 +100,7 @@ public class ConnectionQueryService {
     Instant now = clock.instant();
     for (LinkInvitation i : result) {
       if ("PENDING".equals(i.getStatus()) && vn.edufit.connection.application.policy.ConnectionTransitions.isDue(i.getExpiresAt(), now)) {
-        if (expiryService != null) expiryService.expireInvitation(i.getId(), now);
+        expiryService.expireInvitation(i.getId(), now);
         i.expire(now);
       }
     }
@@ -156,7 +135,7 @@ public class ConnectionQueryService {
     Instant now = clock.instant();
     for (ConnectionRequest r : result) {
       if ("PENDING".equals(r.getStatus()) && vn.edufit.connection.application.policy.ConnectionTransitions.isDue(r.getExpiresAt(), now)) {
-        if (expiryService != null) expiryService.expireRequest(r.getId(), now);
+        expiryService.expireRequest(r.getId(), now);
         r.expire(now);
       }
     }
@@ -171,7 +150,7 @@ public class ConnectionQueryService {
     Instant now = clock.instant();
     for (ConnectionRequest r : result) {
       if ("PENDING".equals(r.getStatus()) && vn.edufit.connection.application.policy.ConnectionTransitions.isDue(r.getExpiresAt(), now)) {
-        if (expiryService != null) expiryService.expireRequest(r.getId(), now);
+        expiryService.expireRequest(r.getId(), now);
         r.expire(now);
       }
     }
@@ -215,7 +194,7 @@ public class ConnectionQueryService {
     Instant now = clock.instant();
     for (LinkInvitation i : content) {
       if ("PENDING".equals(i.getStatus()) && vn.edufit.connection.application.policy.ConnectionTransitions.isDue(i.getExpiresAt(), now)) {
-        if (expiryService != null) expiryService.expireInvitation(i.getId(), now);
+        expiryService.expireInvitation(i.getId(), now);
         i.expire(now);
       }
     }
@@ -395,7 +374,7 @@ public class ConnectionQueryService {
     Instant now = clock.instant();
     for (ConnectionRequest r : content) {
       if ("PENDING".equals(r.getStatus()) && vn.edufit.connection.application.policy.ConnectionTransitions.isDue(r.getExpiresAt(), now)) {
-        if (expiryService != null) expiryService.expireRequest(r.getId(), now);
+        expiryService.expireRequest(r.getId(), now);
         r.expire(now);
       }
     }
@@ -414,7 +393,7 @@ public class ConnectionQueryService {
     Instant now = clock.instant();
     for (ConnectionRequest r : content) {
       if ("PENDING".equals(r.getStatus()) && vn.edufit.connection.application.policy.ConnectionTransitions.isDue(r.getExpiresAt(), now)) {
-        if (expiryService != null) expiryService.expireRequest(r.getId(), now);
+        expiryService.expireRequest(r.getId(), now);
         r.expire(now);
       }
     }
@@ -445,9 +424,6 @@ public class ConnectionQueryService {
   }
 
   private List<String> getActiveSlotsForTutor(UUID tutorId) {
-    if (classes == null) {
-      return List.of();
-    }
     List<TutoringClass> activeClasses = classes.findByTutorIdAndStatus(tutorId, "ACTIVE");
     if (activeClasses.isEmpty()) {
       return List.of();
@@ -492,11 +468,11 @@ public class ConnectionQueryService {
       studentDisplayName = sender.fullName() != null ? toSafeDisplayName(sender.fullName()) : "Học sinh";
     }
 
-    List<String> conflicts = (slotConflictDetector != null && r.getDesiredSlots() != null)
+    List<String> conflicts = r.getDesiredSlots() != null
         ? slotConflictDetector.findConflictingSlots(r.getDesiredSlots(), activeSlots)
         : List.of();
     boolean hasConflict = !conflicts.isEmpty();
-    if (!hasConflict && scheduleConflictChecker != null && r.getDesiredSlots() != null
+    if (!hasConflict && r.getDesiredSlots() != null
         && scheduleConflictChecker.hasConflictWithScheduledSessions(tutorId, r.getDesiredSlots())) {
       hasConflict = true;
     }
@@ -531,14 +507,14 @@ public class ConnectionQueryService {
     List<TutoringClass> classList;
     if (actor.hasRole("TUTOR")) {
       UUID tutorId = profile.getTutorIdByUserId(actor.getUserId());
-      classList = (classes != null && tutorId != null) ? classes.findByTutorId(tutorId) : List.of();
+      classList = tutorId != null ? classes.findByTutorId(tutorId) : List.of();
     } else if (actor.hasRole("STUDENT")) {
       UUID studentId = profile.getStudentIdByUserId(actor.getUserId());
-      classList = (classes != null && studentId != null) ? classes.findByStudentId(studentId) : List.of();
+      classList = studentId != null ? classes.findByStudentId(studentId) : List.of();
     } else {
       List<ParentStudentLinkResult> linkResults = links(actor);
       List<UUID> sIds = linkResults.stream().map(ParentStudentLinkResult::studentId).distinct().toList();
-      classList = classes != null ? sIds.stream().flatMap(s -> classes.findByStudentId(s).stream()).toList() : List.of();
+      classList = sIds.stream().flatMap(s -> classes.findByStudentId(s).stream()).toList();
     }
     if (classList.isEmpty()) {
       return List.of();
@@ -549,7 +525,7 @@ public class ConnectionQueryService {
 
     List<UUID> classIds = classList.stream().map(TutoringClass::getId).toList();
     Map<UUID, ClassScheduleStatusProvider.ClassScheduleInfo> scheduleInfoMap =
-        (scheduleStatusProvider != null && !classIds.isEmpty())
+        !classIds.isEmpty()
             ? scheduleStatusProvider.getScheduleInfoBatch(classIds)
             : Map.of();
 

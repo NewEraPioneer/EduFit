@@ -200,8 +200,9 @@ class MatchingCandidatesPostgresTest {
     @Bean
     ProfileFacade facade(TutorProfileRepository tutors, StudentProfileRepository students,
         TutorSubjectRepository subjects, TutorAvailabilitySlotRepository slots,
-        LearningGoalRepository goals, GoalAvailabilitySlotRepository goalSlots, EducationLevelRepository levels) {
-      return new ProfileFacadeImpl(tutors, students, subjects, slots, goals, goalSlots, levels, 200);
+        LearningGoalRepository goals, GoalAvailabilitySlotRepository goalSlots, EducationLevelRepository levels,
+        vn.edufit.profile.infra.persistence.repository.SubjectRepository subjectCatalog) {
+      return new ProfileFacadeImpl(tutors, students, subjects, slots, goals, goalSlots, levels, subjectCatalog, 200);
     }
   }
 }

@@ -76,15 +76,15 @@ public class WalletService {
     String info = "EF" + Long.toString(order, 36).toUpperCase(Locale.ROOT);
     String qr =
         "https://img.vietqr.io/image/"
-            + settings.bankBin
+            + settings.bankBin()
             + "-"
-            + settings.bankAccount
+            + settings.bankAccount()
             + "-compact2.png?amount="
             + amount
             + "&addInfo="
             + enc(info)
             + "&accountName="
-            + enc(settings.bankHolder);
+            + enc(settings.bankHolder());
     store.locked(
         () -> {
           store.checkout(id, qr, null);
@@ -96,9 +96,9 @@ public class WalletService {
         "qrUrl",
         qr,
         "bankAccount",
-        settings.bankAccount,
+        settings.bankAccount(),
         "bankHolder",
-        settings.bankHolder,
+        settings.bankHolder(),
         "description",
         info,
         "amount",
@@ -126,7 +126,7 @@ public class WalletService {
               || !receipt.paymentLinkId().equals(t.get("provider_id")))
             throw new InvalidOperationException("Webhook không khớp khoản nạp");
           String expectedAccount = t.get("provider_account_number") instanceof String account
-              ? account : settings.bankAccount;
+              ? account : settings.bankAccount();
           if (!receipt.matchesAccount(expectedAccount))
             throw new InvalidOperationException("Sai tài khoản nhận tiền");
           store.creditTopup((UUID) t.get("id"), receipt.reference(), null);

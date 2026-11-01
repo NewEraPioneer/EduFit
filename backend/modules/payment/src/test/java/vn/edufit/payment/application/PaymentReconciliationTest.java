@@ -16,13 +16,10 @@ class PaymentReconciliationTest {
   final UUID id = UUID.randomUUID(), owner = UUID.randomUUID();
   final PaymentStore store = mock(PaymentStore.class);
   final PayosGateway gateway = mock(PayosGateway.class);
-  final PaymentSettings settings = new PaymentSettings();
+  final PaymentSettings settings =
+      vn.edufit.payment.TestPaymentSettings.builder().payos("client", "api", "key").bankAccount("12345678").build();
 
   PaymentReconciliationService service() {
-    settings.clientId = "client";
-    settings.apiKey = "api";
-    settings.checksumKey = "key";
-    settings.bankAccount = "12345678";
     when(store.locked(any())).thenAnswer(i -> ((Supplier<?>) i.getArgument(0)).get());
     when(store.topup(id))
         .thenReturn(

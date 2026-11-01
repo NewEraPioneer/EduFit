@@ -157,9 +157,7 @@ class ConnectionMatrixDdtTest {
   ) {
     Instant testTime = T0.plus(Duration.ofHours(hoursElapsed));
     Clock fixedClock = Clock.fixed(testTime, ZoneOffset.UTC);
-    LinkInvitationService service = new LinkInvitationService(
-        invitations, links, iam, profile, locks, quota, events, fixedClock
-    );
+    LinkInvitationService service = new LinkInvitationService(invitations, links, iam, profile, locks, quota, events, ConnectionTestDefaults.expiryMock(), fixedClock);
 
     LinkInvitation invitation = new LinkInvitation(parentUser, studentUser, T0);
     ReflectionTestUtils.setField(invitation, "id", invitationId);
@@ -216,10 +214,7 @@ class ConnectionMatrixDdtTest {
   ) {
     Instant testTime = T0.plus(Duration.ofHours(hoursElapsed));
     Clock fixedClock = Clock.fixed(testTime, ZoneOffset.UTC);
-    ConnectionRequestService service = new ConnectionRequestService(
-        requests, classes, profile, iam, locks, notifications, facade,
-        new ConnectionRequestInput("legacy-compatible"), events, fixedClock
-    );
+    ConnectionRequestService service = new ConnectionRequestService(requests, classes, profile, iam, locks, notifications, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), fixedClock);
 
     ConnectionRequest request = new ConnectionRequest(
         studentId, tutorId, goalId, studentUser, List.of("Tue 19:00"), null, T0
@@ -282,10 +277,7 @@ class ConnectionMatrixDdtTest {
     when(profile.findStudentById(studentUser)).thenReturn(Optional.empty());
 
     CurrentUser studentActor = actor(studentUser, "STUDENT");
-    ConnectionRequestService service = new ConnectionRequestService(
-        requests, classes, profile, iam, locks, notifications, facade,
-        new ConnectionRequestInput("legacy-compatible"), events, Clock.fixed(T0, ZoneOffset.UTC)
-    );
+    ConnectionRequestService service = new ConnectionRequestService(requests, classes, profile, iam, locks, notifications, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(T0, ZoneOffset.UTC));
 
     // If goal had wrong student profile mapping, request creation is rejected
     UUID fakeGoal = UUID.randomUUID();
@@ -318,10 +310,7 @@ class ConnectionMatrixDdtTest {
     when(facade.hasConfirmedParentLink(parentUser, student2Id)).thenReturn(true);
 
     CurrentUser parentActor = actor(parentUser, "PARENT");
-    ConnectionRequestService reqService = new ConnectionRequestService(
-        requests, classes, profile, iam, locks, notifications, facade,
-        new ConnectionRequestInput("legacy-compatible"), events, Clock.fixed(T0, ZoneOffset.UTC)
-    );
+    ConnectionRequestService reqService = new ConnectionRequestService(requests, classes, profile, iam, locks, notifications, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(T0, ZoneOffset.UTC));
 
     // 1. Parent can create request for Student 1
     var res1 = reqService.request(parentActor, goalId, tutorId, List.of("Tue 19:00"), null);

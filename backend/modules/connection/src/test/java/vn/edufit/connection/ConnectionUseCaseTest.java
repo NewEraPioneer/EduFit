@@ -50,8 +50,10 @@ class ConnectionUseCaseTest {
   ParentStudentLinkService linkService;
 
   @BeforeEach void setup() {
-    service = new ConnectionRequestService(requests, classes, profile, iam, lock, notifications, new ConnectionFacadeImpl(links, classes), new vn.edufit.connection.application.policy.ConnectionRequestInput("legacy-compatible"), events, Clock.systemUTC());
-    invitationService = new LinkInvitationService(invitations, links, iam, profile, lock, new InvitationQuotaService(quotas, lock, Clock.systemUTC()), events, Clock.systemUTC());
+    // Expiry service thật trên cùng repository mock: test đi đúng đường hết hạn của production (kèm event)
+    var expiry = new vn.edufit.connection.application.service.ConnectionExpiryService(invitations, requests, lock, profile, events, Clock.systemUTC());
+    service = new ConnectionRequestService(requests, classes, profile, iam, lock, notifications, new ConnectionFacadeImpl(links, classes), new vn.edufit.connection.application.policy.ConnectionRequestInput("legacy-compatible"), events, expiry, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.systemUTC());
+    invitationService = new LinkInvitationService(invitations, links, iam, profile, lock, new InvitationQuotaService(quotas, lock, Clock.systemUTC()), events, expiry, Clock.systemUTC());
     linkService = new ParentStudentLinkService(links, profile, lock, audit, events, iam, Clock.systemUTC());
   }
 
@@ -88,6 +90,7 @@ class ConnectionUseCaseTest {
     assertInstanceOf(vn.edufit.connection.application.dto.TransitionResult.Conflict.class,
         invitationService.respondInvitation(actor(student, "STUDENT"), id, true));
     assertEquals("EXPIRED", invitation.getStatus());
+    verify(events).publishEvent(any(vn.edufit.connection.api.event.LinkInvitationChangedEvent.class));
     verify(links, never()).save(any());
   }
 
@@ -246,13 +249,7 @@ class ConnectionUseCaseTest {
     when(mockProvider.getScheduleInfoBatch(List.of(classId))).thenReturn(
         java.util.Map.of(classId, new vn.edufit.connection.api.ClassScheduleStatusProvider.ClassScheduleInfo("SCHEDULED", 2, 5, 7))
     );
-    ConnectionRequestService customService = new ConnectionRequestService(
-        requests, classes, profile, iam, lock, notifications,
-        new ConnectionFacadeImpl(links, classes),
-        new vn.edufit.connection.application.policy.ConnectionRequestInput("legacy-compatible"),
-        events, null,
-        new vn.edufit.connection.application.policy.SlotConflictDetector(), Optional.empty(), Optional.of(mockProvider), Clock.systemUTC()
-    );
+    ConnectionRequestService customService = new ConnectionRequestService(requests, classes, profile, iam, lock, notifications, new ConnectionFacadeImpl(links, classes), new vn.edufit.connection.application.policy.ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), mockProvider, Clock.systemUTC());
 
     var ex = assertThrows(InvalidOperationException.class, () -> customService.endClass(actor, classId, "Kết thúc lớp"));
     assertTrue(ex.getMessage().contains("vẫn còn buổi học đã lên lịch"));

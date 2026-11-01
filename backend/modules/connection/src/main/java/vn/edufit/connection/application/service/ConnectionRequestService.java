@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.Clock;
 import vn.edufit.connection.application.dto.TransitionResult;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +32,6 @@ import vn.edufit.connection.api.event.TutoringClassCreatedEvent;
 import vn.edufit.connection.api.event.TutoringClassEndedEvent;
 import vn.edufit.connection.application.dto.TutoringClassResult;
 import vn.edufit.connection.application.policy.ConnectionTransitions;
-import java.util.Optional;
 import vn.edufit.connection.api.TutorScheduleConflictChecker;
 import vn.edufit.connection.application.policy.SlotConflictDetector;
 import vn.edufit.connection.api.ClassScheduleStatusProvider;
@@ -56,54 +56,30 @@ public class ConnectionRequestService {
   private final ConnectionExpiryService expiryService;
   private final SlotConflictDetector slotConflictDetector;
   private final TutorScheduleConflictChecker scheduleConflictChecker;
-  private final Optional<ClassScheduleStatusProvider> scheduleStatusProvider;
+  private final ClassScheduleStatusProvider scheduleStatusProvider;
 
-  @org.springframework.beans.factory.annotation.Autowired
   public ConnectionRequestService(ConnectionRequestRepository requests, TutoringClassRepository classes,
       ProfileFacade profile, IamFacade iam, ConnectionLock lock, NotificationSink notifications,
       ConnectionFacade facade, ConnectionRequestInput input, ApplicationEventPublisher events,
       ConnectionExpiryService expiryService, SlotConflictDetector slotConflictDetector,
-      Optional<TutorScheduleConflictChecker> scheduleConflictChecker,
-      Optional<ClassScheduleStatusProvider> scheduleStatusProvider,
+      TutorScheduleConflictChecker scheduleConflictChecker,
+      ClassScheduleStatusProvider scheduleStatusProvider,
       Clock clock) {
-    this.clock = clock;
-    this.requests = requests;
-    this.classes = classes;
-    this.profile = profile;
-    this.iam = iam;
-    this.lock = lock;
-    this.notifications = notifications;
-    this.facade = facade;
-    this.input = input;
-    this.events = events;
-    this.expiryService = expiryService;
-    this.slotConflictDetector = slotConflictDetector != null ? slotConflictDetector : new SlotConflictDetector();
-    this.scheduleConflictChecker = scheduleConflictChecker != null ? scheduleConflictChecker.orElse(null) : null;
-    this.scheduleStatusProvider = scheduleStatusProvider != null ? scheduleStatusProvider : Optional.empty();
-  }
-
-  public ConnectionRequestService(ConnectionRequestRepository requests, TutoringClassRepository classes,
-      ProfileFacade profile, IamFacade iam, ConnectionLock lock, NotificationSink notifications,
-      ConnectionFacade facade, ConnectionRequestInput input, ApplicationEventPublisher events,
-      ConnectionExpiryService expiryService, SlotConflictDetector slotConflictDetector,
-      Optional<TutorScheduleConflictChecker> scheduleConflictChecker, Clock clock) {
-    this(requests, classes, profile, iam, lock, notifications, facade, input, events, expiryService,
-        slotConflictDetector, scheduleConflictChecker, Optional.empty(), clock);
-  }
-
-  public ConnectionRequestService(ConnectionRequestRepository requests, TutoringClassRepository classes,
-      ProfileFacade profile, IamFacade iam, ConnectionLock lock, NotificationSink notifications,
-      ConnectionFacade facade, ConnectionRequestInput input, ApplicationEventPublisher events,
-      ConnectionExpiryService expiryService, Clock clock) {
-    this(requests, classes, profile, iam, lock, notifications, facade, input, events, expiryService,
-        new SlotConflictDetector(), Optional.empty(), clock);
-  }
-
-  public ConnectionRequestService(ConnectionRequestRepository requests, TutoringClassRepository classes,
-      ProfileFacade profile, IamFacade iam, ConnectionLock lock, NotificationSink notifications,
-      ConnectionFacade facade, ConnectionRequestInput input, ApplicationEventPublisher events, Clock clock) {
-    this(requests, classes, profile, iam, lock, notifications, facade, input, events, null,
-        new SlotConflictDetector(), Optional.empty(), clock);
+    this.clock = Objects.requireNonNull(clock);
+    this.requests = Objects.requireNonNull(requests);
+    this.classes = Objects.requireNonNull(classes);
+    this.profile = Objects.requireNonNull(profile);
+    this.iam = Objects.requireNonNull(iam);
+    this.lock = Objects.requireNonNull(lock);
+    this.notifications = Objects.requireNonNull(notifications);
+    this.facade = Objects.requireNonNull(facade);
+    this.input = Objects.requireNonNull(input);
+    this.events = Objects.requireNonNull(events);
+    // Hết hạn, chống trùng lịch và chặn kết thúc lớp là quy tắc nghiệp vụ bắt buộc, không được tùy chọn
+    this.expiryService = Objects.requireNonNull(expiryService);
+    this.slotConflictDetector = Objects.requireNonNull(slotConflictDetector);
+    this.scheduleConflictChecker = Objects.requireNonNull(scheduleConflictChecker);
+    this.scheduleStatusProvider = Objects.requireNonNull(scheduleStatusProvider);
   }
 
   private static void requireRole(CurrentUser actor, String... roles) {
@@ -151,8 +127,7 @@ public class ConnectionRequestService {
     Instant now = clock.instant();
     for (ConnectionRequest r : requests.findByStudentIdAndStatus(goal.studentId(), "PENDING")) {
       if (ConnectionTransitions.isDue(r.getExpiresAt(), now)) {
-        if (expiryService != null) expiryService.expireRequest(r.getId(), now);
-        else r.expire(now);
+        expiryService.expireRequest(r.getId(), now);
       }
     }
     requests.flush();
@@ -180,8 +155,7 @@ public class ConnectionRequestService {
     requireStudentAccess(actor, request.getStudentId());
     Instant now = clock.instant();
     if (ConnectionTransitions.isDue(request.getExpiresAt(), now)) {
-      if (expiryService != null) expiryService.expireRequest(id, now);
-      else request.expire(now);
+      expiryService.expireRequest(id, now);
       return TransitionResult.conflict("EXPIRED", "Không còn ở trạng thái chờ xử lý");
     }
     if (!"PENDING".equals(request.getStatus()))
@@ -213,8 +187,7 @@ public class ConnectionRequestService {
       throw new ForbiddenOperationException("Không phải gia sư nhận yêu cầu");
     Instant now = clock.instant();
     if (ConnectionTransitions.isDue(request.getExpiresAt(), now)) {
-      if (expiryService != null) expiryService.expireRequest(id, now);
-      else request.expire(now);
+      expiryService.expireRequest(id, now);
       return TransitionResult.conflict("EXPIRED", "Không còn ở trạng thái chờ xử lý");
     }
     if (!"PENDING".equals(request.getStatus()))
@@ -272,7 +245,7 @@ public class ConnectionRequestService {
       }
 
       // Source 2: Scheduled sessions via SPI
-      if (scheduleConflictChecker != null && scheduleConflictChecker.hasConflictWithScheduledSessions(tutorId, request.getDesiredSlots())) {
+      if (scheduleConflictChecker.hasConflictWithScheduledSessions(tutorId, request.getDesiredSlots())) {
         throw new ResourceConflictException(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,
             "Khung giờ đề xuất trùng với buổi học đã được lên lịch của gia sư.");
       }
@@ -325,14 +298,11 @@ public class ConnectionRequestService {
       throw new ForbiddenOperationException("Bạn không có quyền kết thúc lớp học này");
     }
 
-    if (scheduleStatusProvider != null && scheduleStatusProvider.isPresent()) {
-      var scheduleInfoMap = scheduleStatusProvider.get().getScheduleInfoBatch(List.of(classId));
-      var scheduleInfo = scheduleInfoMap.get(classId);
-      if (scheduleInfo != null && scheduleInfo.scheduledCount() > 0) {
-        throw new InvalidOperationException(
-            "Không thể kết thúc lớp học khi vẫn còn buổi học đã lên lịch. Vui lòng hoàn thành buổi học hoặc xử lý từng buổi học trước."
-        );
-      }
+    var scheduleInfo = scheduleStatusProvider.getScheduleInfoBatch(List.of(classId)).get(classId);
+    if (scheduleInfo != null && scheduleInfo.scheduledCount() > 0) {
+      throw new InvalidOperationException(
+          "Không thể kết thúc lớp học khi vẫn còn buổi học đã lên lịch. Vui lòng hoàn thành buổi học hoặc xử lý từng buổi học trước."
+      );
     }
 
     Instant now = clock.instant();

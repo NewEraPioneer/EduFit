@@ -423,12 +423,7 @@ class SlotConflictStressChallengeTest {
         return c;
       });
 
-      service = new ConnectionRequestService(
-          requests, classes, profile, iam, lock, sink, facade,
-          new ConnectionRequestInput("legacy-compatible"),
-          events, null, detector, Optional.of(scheduleChecker),
-          Clock.fixed(now, ZoneOffset.UTC)
-      );
+      service = new ConnectionRequestService(requests, classes, profile, iam, lock, sink, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), detector, scheduleChecker, ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now, ZoneOffset.UTC));
     }
 
     private CurrentUser tutorActor() {

@@ -6,8 +6,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -45,7 +43,6 @@ public class TutorMatchingService {
   private final ApplicationEventPublisher eventPublisher;
   private final TransactionOperations transactionOperations;
 
-  @Autowired
   public TutorMatchingService(
       ProfileFacade profileFacade,
       MatchingRunLogRepository matchingRunLogRepository,
@@ -53,7 +50,7 @@ public class TutorMatchingService {
       DiscoveryQueryService queryService,
       ConnectionFacade connectionFacade,
       ApplicationEventPublisher eventPublisher,
-      ObjectProvider<PlatformTransactionManager> transactionManagerProvider
+      PlatformTransactionManager transactionManager
   ) {
     this.profileFacade = profileFacade;
     this.matchingRunLogRepository = matchingRunLogRepository;
@@ -61,19 +58,8 @@ public class TutorMatchingService {
     this.queryService = queryService;
     this.connectionFacade = connectionFacade;
     this.eventPublisher = eventPublisher;
-    PlatformTransactionManager tm = transactionManagerProvider != null ? transactionManagerProvider.getIfAvailable() : null;
-    this.transactionOperations = tm != null ? new TransactionTemplate(tm) : TransactionOperations.withoutTransaction();
-  }
-
-  public TutorMatchingService(
-      ProfileFacade profileFacade,
-      MatchingRunLogRepository matchingRunLogRepository,
-      MatchExplanationService explanationService,
-      DiscoveryQueryService queryService,
-      ConnectionFacade connectionFacade,
-      ApplicationEventPublisher eventPublisher
-  ) {
-    this(profileFacade, matchingRunLogRepository, explanationService, queryService, connectionFacade, eventPublisher, null);
+    // Lưu log và phát MatchingExecutedEvent phải cùng một transaction; không có chế độ chạy không transaction
+    this.transactionOperations = new TransactionTemplate(java.util.Objects.requireNonNull(transactionManager));
   }
 
   public List<TutorMatchResult> match(CurrentUser currentUser, UUID goalId, int topN) {

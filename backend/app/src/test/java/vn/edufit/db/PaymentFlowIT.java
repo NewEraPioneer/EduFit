@@ -72,7 +72,9 @@ class PaymentFlowIT {
   @BeforeEach
   void setup() {
     db = new JdbcTemplate(datasource);
-    store = new PaymentStore(db, new DataSourceTransactionManager(datasource));
+    store = new PaymentStore(db, new DataSourceTransactionManager(datasource),
+        mock(vn.edufit.shared.notification.NotificationSink.class),
+        mock(org.springframework.context.ApplicationEventPublisher.class));
     db.execute(
         "truncate"
             + " payment_entry,payment_audit,payment_charge,payment_topup,payment_withdrawal,payment_wallet,payment_payout_account,payment_case_message");
@@ -434,13 +436,16 @@ class PaymentFlowIT {
 
   vn.edufit.payment.infra.PayosPayoutGateway payoutGateway;
 
-  PaymentPayoutService payouts() {
+  /** PaymentSettings bất biến: chỉ bật tài khoản nhận và/hoặc payout giả lập theo nhu cầu từng test. */
+  private static vn.edufit.payment.infra.PaymentSettings paymentSettings(String bankAccount, boolean payout) {
+    String key = payout ? "test" : "";
+    return new vn.edufit.payment.infra.PaymentSettings(
+        "", "", "", "", bankAccount, "", "http://localhost:3000", payout, key, key, key);
+  }
+
+    PaymentPayoutService payouts() {
     payoutGateway = mock(vn.edufit.payment.infra.PayosPayoutGateway.class);
-    var settings = new vn.edufit.payment.infra.PaymentSettings();
-    settings.payoutEnabled = true;
-    settings.payoutClientId = "test";
-    settings.payoutApiKey = "test";
-    settings.payoutChecksumKey = "test";
+    var settings = paymentSettings("", true);
     return new PaymentPayoutService(
         store,
         new PaymentAccess(profiles, connections),
@@ -552,7 +557,8 @@ class PaymentFlowIT {
   @Test
   void notificationAndWalletCommitTogetherAndDuplicateWebhookNotifiesOnlyOnce() {
     var sink = mock(vn.edufit.shared.notification.NotificationSink.class);
-    var notified = new PaymentStore(db, new DataSourceTransactionManager(datasource), sink);
+    var notified = new PaymentStore(db, new DataSourceTransactionManager(datasource), sink,
+        mock(org.springframework.context.ApplicationEventPublisher.class));
     var topup = store.locked(() -> store.createTopup(parentUser, 30000, "PAYOS", end));
     UUID id = (UUID) topup.get("id");
     doThrow(new IllegalStateException("notification unavailable"))
@@ -655,8 +661,7 @@ class PaymentFlowIT {
       return null;
     }));
     var gateway = mock(vn.edufit.payment.infra.PayosGateway.class);
-    var settings = new vn.edufit.payment.infra.PaymentSettings();
-    settings.bankAccount = "12345678";
+    var settings = paymentSettings("12345678", false);
     var wallet = new WalletService(store, new PaymentAccess(profiles, connections), settings, gateway,
         new PaymentTime(Clock.fixed(end, ZoneOffset.UTC)));
     when(gateway.verify("virtual-paid")).thenReturn(new vn.edufit.payment.infra.PayosGateway.Receipt(
@@ -696,7 +701,7 @@ class PaymentFlowIT {
 
   @Test
   void savedRecipientIsOwnerScopedAndPendingWithdrawalKeepsItsBankSnapshot() {
-    var settings = new vn.edufit.payment.infra.PaymentSettings();
+    var settings = paymentSettings("", false);
     var wallet = new WalletService(store, new PaymentAccess(profiles, connections), settings,
         mock(vn.edufit.payment.infra.PayosGateway.class), new PaymentTime(Clock.fixed(end, ZoneOffset.UTC)));
     var tutor = actor(tutorUser, "TUTOR");

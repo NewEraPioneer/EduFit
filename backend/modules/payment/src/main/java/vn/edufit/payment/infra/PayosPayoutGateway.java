@@ -59,9 +59,9 @@ public class PayosPayoutGateway {
         method,
         path,
         body,
-        settings.payoutClientId,
-        settings.payoutApiKey,
-        settings.payoutChecksumKey,
+        settings.payoutClientId(),
+        settings.payoutApiKey(),
+        settings.payoutChecksumKey(),
         true,
         idempotency);
   }

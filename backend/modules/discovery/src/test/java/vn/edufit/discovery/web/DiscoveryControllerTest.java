@@ -75,7 +75,7 @@ class DiscoveryControllerTest {
         new DiscoveryQueryService(profileFacade),
         new TutorMatchingService(profileFacade, logRepository, explanations, new DiscoveryQueryService(profileFacade),
             org.mockito.Mockito.mock(vn.edufit.connection.api.ConnectionFacade.class),
-            org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class)),
+            org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class), org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class)),
         currentUserProvider
     )).build();
   }

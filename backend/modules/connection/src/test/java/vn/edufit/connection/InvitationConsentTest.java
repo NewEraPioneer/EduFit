@@ -32,8 +32,7 @@ class InvitationConsentTest {
   private final InvitationQuotaService quota = mock(InvitationQuotaService.class);
   private final NotificationSink notifications = mock(NotificationSink.class);
   private final org.springframework.context.ApplicationEventPublisher events = mock(org.springframework.context.ApplicationEventPublisher.class);
-  private final LinkInvitationService service = new LinkInvitationService(invitations, links, iam, profile, locks,
-      quota, events, Clock.fixed(NOW, ZoneOffset.UTC));
+  private final LinkInvitationService service = new LinkInvitationService(invitations, links, iam, profile, locks, quota, events, ConnectionTestDefaults.expiryMock(), Clock.fixed(NOW, ZoneOffset.UTC));
 
   @BeforeEach void accounts() {
     when(iam.findUserSummaryById(parent)).thenReturn(Optional.of(summary(parent, AccountRole.PARENT, AccountStatus.ACTIVE)));

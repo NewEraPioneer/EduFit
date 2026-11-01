@@ -61,7 +61,7 @@ class TutorMatchingServiceTest {
   @BeforeEach
   void setUp() {
     matchingService = new TutorMatchingService(profileFacade, logRepository, explanationService,
-        new DiscoveryQueryService(profileFacade), connectionFacade, eventPublisher);
+        new DiscoveryQueryService(profileFacade), connectionFacade, eventPublisher, org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class));
     userId = UUID.randomUUID();
     goalId = UUID.randomUUID();
     monday = new WeeklyAvailabilityDto((short) 1, LocalTime.of(18, 0), LocalTime.of(20, 0));
@@ -288,7 +288,7 @@ class TutorMatchingServiceTest {
     when(gateway.complete(any())).thenReturn(new vn.edufit.ai.api.AiResponse(
         "1|Lịch người đầu phù hợp đầy đủ.\n2|Học phí người thứ hai cần cân nhắc.", 1, 1));
     var service = new TutorMatchingService(profileFacade, logRepository, new MatchExplanationService(gateway),
-        new DiscoveryQueryService(profileFacade), connectionFacade, eventPublisher);
+        new DiscoveryQueryService(profileFacade), connectionFacade, eventPublisher, org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class));
     var results = service.match(currentUser(userId, "PARENT"), goalId, 5);
     assertEquals(2, results.size());
     assertEquals(true, results.getFirst().aiGenerated());
