@@ -165,7 +165,7 @@ export function ConnectionRequestDialog({
   const [quickMode, setQuickMode] = useState<"ONLINE" | "OFFLINE" | "BOTH">(
     tutor?.teachingMode === "OFFLINE" ? "OFFLINE" : "ONLINE"
   );
-  const [quickArea, setQuickArea] = useState<string>(tutor?.area || "Hà Nội");
+  const [quickArea, setQuickArea] = useState<string>(tutor?.area || "");
   const [quickBudgetMax, setQuickBudgetMax] = useState<number>(tutor?.pricePerSession || 300000);
 
   const defaultSlots = useMemo(() => {
@@ -240,7 +240,7 @@ export function ConnectionRequestDialog({
         goalType: quickGoalType,
         deadline,
         mode: quickMode,
-        area: quickMode === "ONLINE" ? undefined : quickArea || "Hà Nội",
+        area: quickMode === "ONLINE" ? undefined : quickArea.trim() || undefined,
         budgetMax: quickBudgetMax,
         availabilitySlots: quickSlots,
       });

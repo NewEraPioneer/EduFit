@@ -6,3 +6,4 @@ export * from "./components/ProgressDashboardView";
 export * from "./components/CreateLearningPlanModal";
 export * from "./components/SessionOutcomeModal";
 export * from "./components/TutorTeachingHistoryView";
+export * from "./utils/goalTitle";

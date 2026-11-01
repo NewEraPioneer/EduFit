@@ -37,13 +37,13 @@ export function StudentOnboardingWizard() {
   const [subjectsCatalog, setSubjectsCatalog] = useState<SubjectItem[]>([]);
 
   // Step 1: Chọn lớp
-  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(4); // Default: Lớp 9
+  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
 
   // Step 2: Môn học, Khu vực, Hình thức & Mục tiêu
-  const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([1, 3]); // Toán, Tiếng Anh
-  const [area, setArea] = useState<string>("Cầu Giấy, Hà Nội");
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([]);
+  const [area, setArea] = useState<string>("");
   const [learningMode, setLearningMode] = useState<"ONLINE" | "OFFLINE" | "BOTH">("BOTH");
-  const [goalTitle, setGoalTitle] = useState<string>("Chuẩn bị cho mục tiêu vào lớp 10");
+  const [goalTitle, setGoalTitle] = useState<string>("");
 
   useEffect(() => {
     async function loadCatalogs() {

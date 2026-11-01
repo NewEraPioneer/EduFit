@@ -42,37 +42,18 @@ export function ParentProfileForm() {
       try {
         setLoading(true);
 
-        // 1. Nạp từ cache/storage hồ sơ phụ huynh
-        const savedProfileStr = localStorage.getItem("edufit_parent_profile");
-        if (savedProfileStr) {
-          try {
-            const parsed = JSON.parse(savedProfileStr);
-            setFullName(parsed.fullName || user?.fullName || "Trần Văn Hưng");
-            setPhoneNumber(parsed.phoneNumber || "0988 123 456");
-            setArea(parsed.area || "Cầu Giấy, Hà Nội");
-            setChildGrade(parsed.childGrade || "Lớp 9 (Ôn thi vào 10)");
-            setLearningNote(
-              parsed.learningNote ||
-                "Tìm gia sư Toán và Tiếng Anh có kinh nghiệm luyện thi vào các trường THPT Chuyên tại Hà Nội."
-            );
-          } catch {
-            setFullName(user?.fullName || "Trần Văn Hưng");
-            setPhoneNumber("0988 123 456");
-            setArea("Cầu Giấy, Hà Nội");
-            setChildGrade("Lớp 9 (Ôn thi vào 10)");
-            setLearningNote(
-              "Tìm gia sư Toán và Tiếng Anh có kinh nghiệm luyện thi vào các trường THPT Chuyên tại Hà Nội."
-            );
-          }
-        } else {
-          setFullName(user?.fullName || "Trần Văn Hưng");
-          setPhoneNumber("0988 123 456");
-          setArea("Cầu Giấy, Hà Nội");
-          setChildGrade("Lớp 9 (Ôn thi vào 10)");
-          setLearningNote(
-            "Tìm gia sư Toán và Tiếng Anh có kinh nghiệm luyện thi vào các trường THPT Chuyên tại Hà Nội."
-          );
+        // 1. Nạp từ cache/storage hồ sơ phụ huynh; thiếu thì để trống cho phụ huynh tự nhập
+        let saved: Partial<Record<"fullName" | "phoneNumber" | "area" | "childGrade" | "learningNote", string>> = {};
+        try {
+          saved = JSON.parse(localStorage.getItem("edufit_parent_profile") || "{}");
+        } catch {
+          saved = {};
         }
+        setFullName(saved.fullName || user?.fullName || "");
+        setPhoneNumber(saved.phoneNumber || "");
+        setArea(saved.area || "");
+        setChildGrade(saved.childGrade || "");
+        setLearningNote(saved.learningNote || "");
 
         // 2. Nạp danh sách liên kết học sinh thật từ Backend
         const links = await connectionApi.getLinks().catch(() => []);

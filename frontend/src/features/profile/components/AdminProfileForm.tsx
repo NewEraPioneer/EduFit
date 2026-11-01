@@ -40,18 +40,17 @@ export function AdminProfileForm() {
       if (savedProfileStr) {
         try {
           const parsed = JSON.parse(savedProfileStr);
-          setFullName(parsed.fullName || user?.fullName || "Quản Trị Viên EduFit");
+          setFullName(parsed.fullName || user?.fullName || "");
           setDepartment(
-            parsed.department ||
-              "Ban Kiểm Duyệt & Vận Hành Hệ Thống (Operations)"
+            parsed.department || ""
           );
         } catch {
-          setFullName(user?.fullName || "Quản Trị Viên EduFit");
-          setDepartment("Ban Kiểm Duyệt & Vận Hành Hệ Thống (Operations)");
+          setFullName(user?.fullName || "");
+          setDepartment("");
         }
       } else {
-        setFullName(user?.fullName || "Quản Trị Viên EduFit");
-        setDepartment("Ban Kiểm Duyệt & Vận Hành Hệ Thống (Operations)");
+        setFullName(user?.fullName || "");
+        setDepartment("");
       }
     } finally {
       setLoading(false);

@@ -81,7 +81,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
         const mappedRequests: PendingRequestItem[] = requests.map((r) => ({
           name: r.studentDisplayName || "Học sinh",
           subject: `${r.subjectName || "Môn học kèm"}${r.educationLevelName ? ` · ${r.educationLevelName}` : ""}`,
-          note: r.message || "Mong muốn kết nối và học cùng Thầy/Cô",
+          note: r.message || "",
           match: r.hasSlotConflict ? "Trùng lịch" : "Phù hợp",
         }));
         setPendingRequests(mappedRequests);
@@ -178,7 +178,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
     },
     {
       title: "Nhận yêu cầu & Bắt đầu dạy",
-      description: "Chấp nhận lời mời học thử từ học sinh và tạo lớp học 1-1 trực tiếp.",
+      description: "Chấp nhận yêu cầu kết nối từ học sinh, phụ huynh để mở lớp học 1-1.",
       href: "/tutor/requests",
       actionText: "Xem hàng đợi",
       completed: activeClasses.length > 0,

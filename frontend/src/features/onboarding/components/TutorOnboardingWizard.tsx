@@ -66,7 +66,7 @@ export function TutorOnboardingWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [lastSaved, setLastSaved] = useState<string>("Vừa cập nhật");
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
 
   // Catalogs
   const [subjectsCatalog, setSubjectsCatalog] = useState<SubjectItem[]>([]);
@@ -166,7 +166,7 @@ export function TutorOnboardingWizard() {
       setSubmitting(true);
       // 1. Lưu thông tin hồ sơ gia sư xuống server
       await profileService.updateTutorProfile({
-        displayName: displayName.trim() || user?.fullName || "Gia sư EduFit",
+        displayName: displayName.trim() || user?.fullName || "",
         headline: headline.trim(),
         bio: bio.trim(),
         teachingMode,
@@ -203,7 +203,7 @@ export function TutorOnboardingWizard() {
     if (selectedSubjectIds.length > 0 && selectedLevelIds.length > 0 && area.trim()) {
       try {
         await profileService.updateTutorProfile({
-          displayName: displayName.trim() || user?.fullName || "Gia sư EduFit",
+          displayName: displayName.trim() || user?.fullName || "",
           headline: headline.trim(),
           bio: bio.trim(),
           teachingMode,
@@ -301,7 +301,7 @@ export function TutorOnboardingWizard() {
     try {
       // 1. Cập nhật hồ sơ gia sư lên Backend
       await profileService.updateTutorProfile({
-        displayName: displayName.trim() || user?.fullName || "Gia sư EduFit",
+        displayName: displayName.trim() || user?.fullName || "",
         headline: headline.trim(),
         bio: bio.trim(),
         teachingMode,
@@ -389,10 +389,12 @@ export function TutorOnboardingWizard() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 text-xs text-neutral-400">
-            <Clock className="size-3.5" />
-            <span>Đã lưu nháp lúc {lastSaved}</span>
-          </div>
+          {lastSaved && (
+            <div className="hidden md:flex items-center gap-2 text-xs text-neutral-400">
+              <Clock className="size-3.5" />
+              <span>Đã lưu nháp lúc {lastSaved}</span>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleSkipToDashboard}

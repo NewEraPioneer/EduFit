@@ -37,7 +37,7 @@ export function TutorPendingRequests({ requests = [] }: TutorPendingRequestsProp
           theme="sky"
           compact
           title="Chưa có yêu cầu kết nối mới"
-          description="Hồ sơ được xác minh bằng cấp KYC và có lịch rảnh đầy đủ sẽ nhận được nhiều hơn 80% lượt mời dạy từ phụ huynh."
+          description="Hoàn tất xác minh bằng cấp (KYC) và khai báo lịch rảnh để hồ sơ của bạn xuất hiện khi học sinh, phụ huynh tìm gia sư."
           action={{
             label: "Xác minh bằng cấp KYC",
             href: "/tutor/verification",
@@ -83,7 +83,9 @@ export function TutorPendingRequests({ requests = [] }: TutorPendingRequestsProp
                 </span>
               </div>
               <p className="text-xs font-semibold text-neutral-700 mt-0.5">{req.subject}</p>
-              <p className="text-xs text-neutral-500 mt-1 italic font-sans">{`"${req.note}"`}</p>
+              <p className="text-xs text-neutral-500 mt-1 italic font-sans">
+                {req.note ? `"${req.note}"` : "Không kèm lời nhắn"}
+              </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button

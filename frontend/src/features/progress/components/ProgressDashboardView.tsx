@@ -30,6 +30,7 @@ import type {
   PlanResponse,
 } from "../types";
 import { calculateWeightedProgress } from "../utils/progressCalculator";
+import { formatGoalTitle } from "../utils/goalTitle";
 
 interface ProgressDashboardViewProps {
   role?: "STUDENT" | "PARENT" | "TUTOR";
@@ -129,7 +130,7 @@ export function ProgressDashboardView({
     if (studentData?.progressPercentage !== null && studentData?.progressPercentage !== undefined) {
       return studentData.progressPercentage;
     }
-    return calculateWeightedProgress(milestones) ?? 0;
+    return calculateWeightedProgress(milestones);
   }, [studentData?.progressPercentage, milestones]);
 
   // Milestone weight stats
@@ -280,7 +281,7 @@ export function ProgressDashboardView({
                     : "bg-white text-neutral-600 hover:bg-stone-100 border border-stone-200"
                 }`}
               >
-                {cls.title} ({cls.progressPercentage ?? 0}%)
+                {formatGoalTitle(cls.title)} ({cls.progressPercentage != null ? `${cls.progressPercentage}%` : "chưa có lộ trình"})
               </button>
             );
           })}
@@ -296,17 +297,21 @@ export function ProgressDashboardView({
             <TrendingUp className="size-4 text-amber-600" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-neutral-900">{weightedProgress}%</span>
+            <span className="text-3xl font-black text-neutral-900">
+              {weightedProgress !== null ? `${weightedProgress}%` : "—"}
+            </span>
             <span className="text-xs text-neutral-400 font-medium">bình quân gia quyền</span>
           </div>
           <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-amber-500 rounded-full transition-all duration-500"
-              style={{ width: `${weightedProgress}%` }}
+              style={{ width: `${weightedProgress ?? 0}%` }}
             />
           </div>
           <p className="text-[11px] text-neutral-500">
-            Trọng số đạt được: {achievedWeight}/{totalWeight || 0} điểm
+            {totalWeight > 0
+              ? `Trọng số đạt được: ${achievedWeight}/${totalWeight} điểm`
+              : "Gia sư chưa lập lộ trình học"}
           </p>
         </div>
 
@@ -359,7 +364,7 @@ export function ProgressDashboardView({
               {studentData?.tutorName || "Gia sư EduFit"}
             </span>
             <span className="text-xs text-neutral-400 font-medium block truncate">
-              {studentData?.goalTitle || "Khóa học kèm 1:1"}
+              {formatGoalTitle(studentData?.goalTitle) || "Khóa học kèm 1:1"}
             </span>
           </div>
           <p className="text-[11px] text-neutral-500 truncate">
