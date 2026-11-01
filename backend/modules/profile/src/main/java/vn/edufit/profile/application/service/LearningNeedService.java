@@ -53,8 +53,18 @@ public class LearningNeedService {
 
   @Transactional(readOnly = true)
   public List<LearningNeedView> list(CurrentUser actor, UUID studentId) {
+    if (isStudentWithoutProfile(actor, studentId)) {
+      return List.of();
+    }
     StudentProfile student = authorizedStudent(actor, studentId);
     return viewsFor(student);
+  }
+
+  /** Học sinh vừa đăng ký chưa có hồ sơ thì chưa có nhu cầu nào; không cần tạo hồ sơ chỉ để xem. */
+  private boolean isStudentWithoutProfile(CurrentUser actor, UUID requestedStudentId) {
+    return actor != null && actor.getUserId() != null && actor.hasRole("STUDENT")
+        && requestedStudentId == null
+        && students.findByUserId(actor.getUserId()).isEmpty();
   }
 
   @Transactional
@@ -126,8 +136,9 @@ public class LearningNeedService {
       throw new ForbiddenOperationException("Yêu cầu cần được xác thực.");
     }
     if (actor.hasRole("STUDENT")) {
+      // Hồ sơ học sinh chỉ được tạo khi gọi API hồ sơ; học sinh vừa đăng ký có thể vào thẳng form nhu cầu.
       StudentProfile own = students.findByUserId(actor.getUserId())
-          .orElseThrow(() -> EntityNotFoundException.of("StudentProfile", actor.getUserId()));
+          .orElseGet(() -> students.saveAndFlush(new StudentProfile(actor.getUserId())));
       if (requestedStudentId != null && !requestedStudentId.equals(own.getStudentId())) {
         throw new ForbiddenOperationException("Học sinh chỉ quản lý được nhu cầu học của mình.");
       }

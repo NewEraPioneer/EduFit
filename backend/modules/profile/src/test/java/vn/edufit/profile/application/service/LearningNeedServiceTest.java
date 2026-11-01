@@ -116,6 +116,33 @@ class LearningNeedServiceTest {
   }
 
   @Test
+  @DisplayName("Học sinh vừa đăng ký chưa có hồ sơ: tạo nhu cầu tự khởi tạo hồ sơ học sinh")
+  void newStudentWithoutProfileGetsProfileCreated() {
+    UUID freshUserId = UUID.randomUUID();
+    when(students.findByUserId(freshUserId)).thenReturn(Optional.empty());
+    when(students.saveAndFlush(any(StudentProfile.class))).thenAnswer(invocation -> {
+      StudentProfile created = invocation.getArgument(0);
+      ReflectionTestUtils.setField(created, "studentId", UUID.randomUUID());
+      return created;
+    });
+
+    var view = service.create(actor(freshUserId, "STUDENT"), onboardingRequest(null));
+
+    assertEquals("INCOMPLETE", view.status());
+    verify(students).saveAndFlush(any(StudentProfile.class));
+  }
+
+  @Test
+  @DisplayName("Học sinh chưa có hồ sơ xem danh sách nhu cầu: trả danh sách rỗng, không lỗi, không tạo hồ sơ")
+  void newStudentWithoutProfileListsEmpty() {
+    UUID freshUserId = UUID.randomUUID();
+    when(students.findByUserId(freshUserId)).thenReturn(Optional.empty());
+
+    assertTrue(service.list(actor(freshUserId, "STUDENT"), null).isEmpty());
+    verify(students, never()).saveAndFlush(any(StudentProfile.class));
+  }
+
+  @Test
   @DisplayName("Tổ hợp sai luật trả lỗi theo đúng trường")
   void invalidCombinationReturnsFieldErrors() {
     var request = new SaveLearningNeedRequest(null, LEVEL_6, MATH, null, GRADE10_EXAM, null, HA_NOI, null,
