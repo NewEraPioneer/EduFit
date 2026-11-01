@@ -17,6 +17,7 @@ const mockStudentClasses: TutoringClass[] = [
     educationLevelName: "Lớp 11",
     scheduleStatus: "PROPOSED",
     sessionCount: 0,
+    scheduledCount: 0,
     startedAt: "2026-10-17T10:00:00Z",
   },
   {
@@ -30,6 +31,7 @@ const mockStudentClasses: TutoringClass[] = [
     educationLevelName: "Lớp 11",
     scheduleStatus: "SCHEDULED",
     sessionCount: 8,
+    scheduledCount: 8,
     startedAt: "2026-09-01T10:00:00Z",
   },
 ];

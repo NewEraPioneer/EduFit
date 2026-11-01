@@ -34,18 +34,22 @@ export function EndClassModal({
 
   const totalCount = classItem.totalCount ?? classItem.sessionCount ?? 0;
   const completedCount = classItem.completedCount ?? 0;
-  // If scheduledCount is explicitly defined, use it; otherwise don't falsely block mock tests
   const scheduledCount = classItem.scheduledCount;
-  const isOngoing = scheduledCount !== undefined && scheduledCount > 0;
+  // Fail-closed: không biết số buổi đã lên lịch thì không cho kết thúc lớp
+  const isScheduleUnknown = scheduledCount === undefined;
+  const isOngoing = !isScheduleUnknown && scheduledCount > 0;
+  const isBlocked = isOngoing || isScheduleUnknown;
   const isBatchCompleted =
     scheduledCount === 0 &&
     totalCount > 0 &&
     completedCount >= totalCount;
-  const isUnscheduled = totalCount === 0 && (scheduledCount === 0 || scheduledCount === undefined);
+  const isUnscheduled = totalCount === 0 && scheduledCount === 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (isScheduleUnknown) return;
 
     if (isOngoing) {
       setError(
@@ -165,6 +169,18 @@ export function EndClassModal({
             </div>
           )}
 
+          {isScheduleUnknown && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 border border-amber-200 text-amber-900 text-xs dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-300"
+            >
+              <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <p className="leading-relaxed">
+                Chưa xác định được lịch học của lớp này nên chưa thể kết thúc lớp. Vui lòng tải lại trang và thử lại.
+              </p>
+            </div>
+          )}
+
           {/* Batch Completed Information */}
           {isBatchCompleted && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300 space-y-1.5">
@@ -184,7 +200,7 @@ export function EndClassModal({
           )}
 
           {/* Standard / Unscheduled Conditions & Cascade Warning */}
-          {!isOngoing && !isBatchCompleted && (
+          {!isBlocked && !isBatchCompleted && (
             <>
               <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 text-xs text-neutral-700 dark:border-zinc-800 dark:bg-zinc-800/40 dark:text-zinc-300 space-y-1.5">
                 <p className="font-bold text-neutral-900 dark:text-zinc-100 flex items-center gap-1.5">
@@ -219,7 +235,7 @@ export function EndClassModal({
             </div>
           )}
 
-          {!isOngoing && (
+          {!isBlocked && (
             <div>
               <label
                 htmlFor="end-class-reason"
@@ -257,9 +273,9 @@ export function EndClassModal({
               disabled={loading}
               className="h-9 px-4 rounded-xl border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 cursor-pointer"
             >
-              {isOngoing ? "Đã hiểu & Đóng" : "Hủy"}
+              {isBlocked ? "Đã hiểu & Đóng" : "Hủy"}
             </button>
-            {!isOngoing && (
+            {!isBlocked && (
               <button
                 type="submit"
                 disabled={loading}

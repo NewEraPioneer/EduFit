@@ -24,6 +24,7 @@ describe("EndClassModal Component", () => {
     tutorDisplayName: "Thầy Hưng",
     scheduleStatus: "SCHEDULED",
     sessionCount: 5,
+    scheduledCount: 0,
     startedAt: "2026-10-01T10:00:00Z",
   };
 
@@ -36,6 +37,16 @@ describe("EndClassModal Component", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("chặn kết thúc lớp khi chưa xác định được số buổi đã lên lịch (fail-closed)", () => {
+    const { scheduledCount: _unknown, ...withoutSchedule } = mockClass;
+    render(<EndClassModal {...defaultProps} classItem={withoutSchedule} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Chưa xác định được lịch học");
+    expect(screen.queryByLabelText(/Lý do kết thúc lớp học/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Xác nhận kết thúc|Kết thúc lớp/ })).not.toBeInTheDocument();
+    expect(connectionApi.endClass).not.toHaveBeenCalled();
   });
 
   it("không hiển thị khi isOpen = false", () => {
