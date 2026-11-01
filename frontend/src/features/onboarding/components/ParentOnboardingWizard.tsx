@@ -215,7 +215,7 @@ export function ParentOnboardingWizard() {
                   required
                   value={inputEmail}
                   onChange={(e) => setInputEmail(e.target.value)}
-                  placeholder="VD: con.yeu@edufit.vn hoặc student.demo@edufit.vn"
+                  placeholder="VD: email.cua.con@gmail.com"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-2xl text-xs font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>

@@ -112,7 +112,7 @@ class TutorBioServiceTest {
 
     String mockAiText = "Chào các em, thầy là Minh gia sư Toán 5 năm kinh nghiệm...";
     when(aiGateway.complete(any(AiRequest.class)))
-        .thenReturn(new AiResponse(mockAiText, 350, 80));
+        .thenReturn(new AiResponse(mockAiText, 350, 80, true));
 
     GenerateTutorBioRequest req = new GenerateTutorBioRequest(
         "Thầy Minh", List.of("Toán"), List.of("Cấp 3"), 5, "friendly", "exam", "Luyện thi ĐH"
@@ -185,7 +185,7 @@ class TutorBioServiceTest {
         .thenReturn(Optional.of(profile));
 
     when(aiGateway.complete(any(AiRequest.class)))
-        .thenReturn(new AiResponse("Bio sinh từ DB...", 200, 50));
+        .thenReturn(new AiResponse("Bio sinh từ DB...", 200, 50, true));
 
     GenerateTutorBioRequest req = new GenerateTutorBioRequest(
         null, null, null, null, "friendly", "exam", null
@@ -213,7 +213,7 @@ class TutorBioServiceTest {
 
     org.mockito.ArgumentCaptor<AiRequest> captor = org.mockito.ArgumentCaptor.forClass(AiRequest.class);
     when(aiGateway.complete(captor.capture()))
-        .thenReturn(new AiResponse("Bio hoàn chỉnh kết hợp sơ đồ tư duy cho môn Toán 4 năm...", 150, 40));
+        .thenReturn(new AiResponse("Bio hoàn chỉnh kết hợp sơ đồ tư duy cho môn Toán 4 năm...", 150, 40, true));
 
     GenerateTutorBioResponse resp = tutorBioService.generateBio(testCurrentUser, req);
 

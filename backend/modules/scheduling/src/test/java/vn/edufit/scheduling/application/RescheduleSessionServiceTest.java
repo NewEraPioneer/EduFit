@@ -306,4 +306,16 @@ class RescheduleSessionServiceTest {
     assertEquals(proposalId, result.get().getProposalId());
     verify(schedulingSecurityResolver).requireSessionAccess(studentUser, scheduledSession);
   }
+
+  @Test
+  @DisplayName("Người không thuộc buổi học không được xem đề xuất đổi lịch")
+  void shouldRejectProposalLookupForNonMember() {
+    when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(scheduledSession));
+    doThrow(new ForbiddenOperationException("Bạn không phải thành viên của buổi học này"))
+        .when(schedulingSecurityResolver).requireSessionAccess(studentUser, scheduledSession);
+
+    assertThrows(ForbiddenOperationException.class,
+        () -> service.findActiveProposalBySessionId(sessionId, studentUser));
+    verify(proposalRepository, never()).findPendingBySessionId(any());
+  }
 }

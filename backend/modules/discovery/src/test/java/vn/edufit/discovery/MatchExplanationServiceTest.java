@@ -92,7 +92,7 @@ class MatchExplanationServiceTest {
   @org.junit.jupiter.params.ParameterizedTest
   @org.junit.jupiter.params.provider.ValueSource(strings = {"", "   "})
   void emptyGatewayResponseReturnsFactsInsteadOfAiFlag(String text) {
-    when(aiGateway.complete(any())).thenReturn(new AiResponse(text, 0, null));
+    when(aiGateway.complete(any())).thenReturn(new AiResponse(text, 0, null, true));
     var score = score();
     var result = service().explainTopMatch(UUID.randomUUID(), score, tutor());
     assertFalse(result.aiGenerated());
@@ -102,7 +102,7 @@ class MatchExplanationServiceTest {
   @Test
   void forwardsActorAndFeatureToGatewayWhichOwnsAtomicQuota() {
     UUID actor = UUID.randomUUID();
-    when(aiGateway.complete(any())).thenReturn(new AiResponse("Grounded AI explanation", 30, 8));
+    when(aiGateway.complete(any())).thenReturn(new AiResponse("Grounded AI explanation", 30, 8, true));
     var result = service().explainTopMatch(actor, score(), tutor());
     assertTrue(result.aiGenerated());
     assertEquals("Grounded AI explanation", result.text());

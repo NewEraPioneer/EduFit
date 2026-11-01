@@ -214,7 +214,7 @@ export function ParentProfileForm() {
               <input
                 type="email"
                 disabled
-                value={user?.email || "parent.demo@edufit.vn"}
+                value={user?.email ?? ""}
                 className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-100 border border-stone-200 rounded-xl text-neutral-500 font-medium cursor-not-allowed"
               />
             </div>

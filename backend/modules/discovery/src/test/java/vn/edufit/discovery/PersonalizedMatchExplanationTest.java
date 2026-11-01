@@ -25,7 +25,7 @@ class PersonalizedMatchExplanationTest {
     var second = score();
     when(gateway.complete(any())).thenReturn(new AiResponse(
         "1|Bạn nên cân nhắc người này vì lịch học đáp ứng đủ nhu cầu.\n"
-        + "2|Lựa chọn này có học phí thấp hơn nhưng ít phản hồi hơn.", 50, 40));
+        + "2|Lựa chọn này có học phí thấp hơn nhưng ít phản hồi hơn.", 50, 40, true));
     var results = service.explainMatches(UUID.randomUUID(), goal(), List.of(first, second),
         List.of(tutor(first.tutorId(), 200000), tutor(second.tutorId(), 150000)));
     assertEquals(2, results.size());
@@ -46,7 +46,7 @@ class PersonalizedMatchExplanationTest {
   void validEntryIsKeptWhileMissingEntryFallsBackIndependently() {
     var first = score();
     var second = score();
-    when(gateway.complete(any())).thenReturn(new AiResponse("1|Lịch học này phù hợp với lịch bạn đã chọn.", 1, 1));
+    when(gateway.complete(any())).thenReturn(new AiResponse("1|Lịch học này phù hợp với lịch bạn đã chọn.", 1, 1, true));
     var results = service.explainMatches(UUID.randomUUID(), goal(), List.of(first, second),
         List.of(tutor(first.tutorId(), 200000), tutor(second.tutorId(), 150000)));
     assertTrue(results.getFirst().aiGenerated());
@@ -59,7 +59,7 @@ class PersonalizedMatchExplanationTest {
     var first = score();
     var second = score();
     when(gateway.complete(any())).thenReturn(new AiResponse(
-        "1|Lịch học đáp ứng nhu cầu của bạn.\n2|Lịch học đáp ứng nhu cầu của bạn.", 1, 1));
+        "1|Lịch học đáp ứng nhu cầu của bạn.\n2|Lịch học đáp ứng nhu cầu của bạn.", 1, 1, true));
     var results = service.explainMatches(UUID.randomUUID(), goal(), List.of(first, second),
         List.of(tutor(first.tutorId(), 200000), tutor(second.tutorId(), 150000)));
     assertTrue(results.stream().noneMatch(MatchExplanationService.Explanation::aiGenerated));
@@ -80,7 +80,7 @@ class PersonalizedMatchExplanationTest {
     var first = score();
     var second = score();
     when(gateway.complete(any())).thenReturn(new AiResponse(
-        "1|Một lý do.\n1|Lý do bị trùng.\n99|Không có gia sư này.", 1, 1));
+        "1|Một lý do.\n1|Lý do bị trùng.\n99|Không có gia sư này.", 1, 1, true));
     var results = service.explainMatches(UUID.randomUUID(), goal(), List.of(first, second),
         List.of(tutor(first.tutorId(), 200000), tutor(second.tutorId(), 150000)));
     assertTrue(results.stream().noneMatch(MatchExplanationService.Explanation::aiGenerated));
@@ -106,7 +106,7 @@ class PersonalizedMatchExplanationTest {
     var second = score();
     when(gateway.complete(any())).thenReturn(new AiResponse(
         "1|Bạn phù hợp với gia sư có 5 năm kinh nghiệm, học phí 200000 đồng.\n"
-        + "2|Bạn phù hợp với gia sư có 8 năm kinh nghiệm, học phí 150000 đồng.", 1, 1));
+        + "2|Bạn phù hợp với gia sư có 8 năm kinh nghiệm, học phí 150000 đồng.", 1, 1, true));
     var result = service.explainMatches(UUID.randomUUID(), goal(), List.of(first, second),
         List.of(tutor(first.tutorId(), 200000), tutor(second.tutorId(), 150000)));
     assertTrue(result.stream().noneMatch(MatchExplanationService.Explanation::aiGenerated));
@@ -116,7 +116,7 @@ class PersonalizedMatchExplanationTest {
   @Test
   void longModelOutputFallsBackInsteadOfFloodingTheCard() {
     var score = score();
-    when(gateway.complete(any())).thenReturn(new AiResponse("1|" + "Nội dung dài. ".repeat(30), 1, 1));
+    when(gateway.complete(any())).thenReturn(new AiResponse("1|" + "Nội dung dài. ".repeat(30), 1, 1, true));
     var result = service.explainMatches(UUID.randomUUID(), goal(), List.of(score),
         List.of(tutor(score.tutorId(), 200000))).getFirst();
     assertFalse(result.aiGenerated());

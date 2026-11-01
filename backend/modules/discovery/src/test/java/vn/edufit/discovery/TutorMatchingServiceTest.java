@@ -286,7 +286,7 @@ class TutorMatchingServiceTest {
     when(profileFacade.findVerifiedCandidatesBySubject(any()))
         .thenReturn(List.of(tutor(BigDecimal.valueOf(5), 10, 200000), tutor(BigDecimal.valueOf(4), 8, 300000)));
     when(gateway.complete(any())).thenReturn(new vn.edufit.ai.api.AiResponse(
-        "1|Lịch người đầu phù hợp đầy đủ.\n2|Học phí người thứ hai cần cân nhắc.", 1, 1));
+        "1|Lịch người đầu phù hợp đầy đủ.\n2|Học phí người thứ hai cần cân nhắc.", 1, 1, true));
     var service = new TutorMatchingService(profileFacade, logRepository, new MatchExplanationService(gateway),
         new DiscoveryQueryService(profileFacade), connectionFacade, eventPublisher, org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class));
     var results = service.match(currentUser(userId, "PARENT"), goalId, 5);

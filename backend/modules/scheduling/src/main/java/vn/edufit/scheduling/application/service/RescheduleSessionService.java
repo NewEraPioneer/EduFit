@@ -303,12 +303,4 @@ public class RescheduleSessionService {
     schedulingSecurityResolver.requireSessionAccess(actor, session);
     return proposalRepository.findPendingBySessionId(sessionId);
   }
-
-  /**
-   * Tra cứu đề xuất đổi lịch đang chờ xử lý (PENDING) không cần kiểm tra quyền (dùng nội bộ / test).
-   */
-  @Transactional(readOnly = true)
-  public Optional<SessionRescheduleProposal> findActiveProposalBySessionId(UUID sessionId) {
-    return proposalRepository.findPendingBySessionId(sessionId);
-  }
 }
