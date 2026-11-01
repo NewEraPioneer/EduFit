@@ -1,34 +1,39 @@
 package vn.edufit.profile.application.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edufit.profile.api.event.ProfileUpdatedEvent;
+import vn.edufit.profile.infra.persistence.entity.District;
 import vn.edufit.profile.infra.persistence.entity.EducationLevel;
+import vn.edufit.profile.infra.persistence.entity.Province;
 import vn.edufit.profile.infra.persistence.entity.StudentProfile;
-import vn.edufit.profile.infra.persistence.repository.EducationLevelRepository;
 import vn.edufit.profile.infra.persistence.repository.StudentProfileRepository;
 import vn.edufit.profile.web.request.UpdateStudentProfileRequest;
 import vn.edufit.profile.web.response.StudentProfileResponse;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
+import vn.edufit.shared.exception.FieldValidationException;
 import vn.edufit.shared.exception.ForbiddenOperationException;
 
 @Service
 public class StudentProfileService {
 
   private final StudentProfileRepository studentProfileRepository;
-  private final EducationLevelRepository educationLevelRepository;
+  private final LearningCatalogLoader learningCatalogLoader;
   private final ApplicationEventPublisher eventPublisher;
 
   public StudentProfileService(
       StudentProfileRepository studentProfileRepository,
-      EducationLevelRepository educationLevelRepository,
+      LearningCatalogLoader learningCatalogLoader,
       ApplicationEventPublisher eventPublisher
   ) {
     this.studentProfileRepository = studentProfileRepository;
-    this.educationLevelRepository = educationLevelRepository;
+    this.learningCatalogLoader = learningCatalogLoader;
     this.eventPublisher = eventPublisher;
   }
 
@@ -64,22 +69,23 @@ public class StudentProfileService {
     StudentProfile profile = studentProfileRepository.findByUserId(userId)
         .orElseGet(() -> new StudentProfile(userId));
 
-    if (request.educationLevelId() != null) {
-      if (!educationLevelRepository.existsById(request.educationLevelId())) {
-        throw EntityNotFoundException.of("EducationLevel", request.educationLevelId());
-      }
-      profile.setEducationLevelId(request.educationLevelId());
-    } else {
-      profile.setEducationLevelId(null);
+    LearningCatalog catalog = learningCatalogLoader.load();
+    Map<String, String> errors = new LinkedHashMap<>();
+    if (request.educationLevelId() != null && catalog.level(request.educationLevelId())
+        .filter(level -> Boolean.TRUE.equals(level.getIsActive())).isEmpty()) {
+      errors.put("educationLevelId", "Khối lớp không hợp lệ.");
     }
-
-    String area = request.area() != null ? request.area().trim() : null;
-    profile.setArea(area);
-
-    boolean isComplete = profile.getEducationLevelId() != null
-        && profile.getArea() != null
-        && !profile.getArea().isBlank();
-    profile.setProfileComplete(isComplete);
+    if (request.provinceId() != null || request.districtId() != null) {
+      catalog.validateLocation(request.provinceId(),
+          request.districtId() == null ? List.of() : List.of(request.districtId()),
+          "provinceId", "districtId", errors);
+    }
+    if (!errors.isEmpty()) {
+      throw new FieldValidationException(errors);
+    }
+    profile.setEducationLevelId(request.educationLevelId());
+    profile.setLocation(request.provinceId(), request.districtId());
+    profile.setProfileComplete(profile.getEducationLevelId() != null);
 
     StudentProfile saved = studentProfileRepository.save(profile);
     eventPublisher.publishEvent(ProfileUpdatedEvent.of(userId, "STUDENT", saved.getStudentId()));
@@ -88,19 +94,16 @@ public class StudentProfileService {
   }
 
   public StudentProfileResponse toResponse(StudentProfile profile) {
-    String levelName = null;
-    if (profile.getEducationLevelId() != null) {
-      levelName = educationLevelRepository.findById(profile.getEducationLevelId())
-          .map(EducationLevel::getName)
-          .orElse(null);
-    }
-
+    LearningCatalog catalog = learningCatalogLoader.load();
     return new StudentProfileResponse(
         profile.getStudentId(),
         profile.getUserId(),
         profile.getEducationLevelId(),
-        levelName,
-        profile.getArea(),
+        catalog.level(profile.getEducationLevelId()).map(EducationLevel::getName).orElse(null),
+        profile.getProvinceId(),
+        catalog.province(profile.getProvinceId()).map(Province::getName).orElse(null),
+        profile.getDistrictId(),
+        catalog.district(profile.getDistrictId()).map(District::getName).orElse(null),
         profile.isProfileComplete(),
         profile.getCreatedAt(),
         profile.getUpdatedAt()

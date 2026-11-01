@@ -11,12 +11,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import vn.edufit.profile.application.service.StudentProfileService;
 import vn.edufit.profile.application.service.TutorBioService;
 import vn.edufit.profile.application.service.TutorProfileService;
-import vn.edufit.profile.web.request.AddTutorSubjectRequest;
+import vn.edufit.profile.web.request.SaveTutorOfferingRequest;
 import vn.edufit.profile.web.request.GenerateTutorBioRequest;
 import vn.edufit.profile.web.request.SetAvailabilitySlotsRequest;
 import vn.edufit.profile.web.request.UpdateStudentProfileRequest;
@@ -133,23 +132,27 @@ public class ProfileController {
     return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin gia sư thành công"));
   }
 
-  @PostMapping("/tutors/me/subjects")
-  public ResponseEntity<ApiResponse<TutorProfileResponse>> addTutorSubject(
-      @Valid @RequestBody AddTutorSubjectRequest request
+  @PostMapping("/tutors/me/offerings")
+  public ResponseEntity<ApiResponse<TutorProfileResponse>> createTutorOffering(
+      @Valid @RequestBody SaveTutorOfferingRequest request
   ) {
-    CurrentUser currentUser = getCurrentUser();
-    TutorProfileResponse response = tutorProfileService.addSubject(currentUser, request);
-    return ResponseEntity.ok(ApiResponse.success(response, "Thêm môn học giảng dạy thành công"));
+    TutorProfileResponse response = tutorProfileService.createOffering(getCurrentUser(), request);
+    return ResponseEntity.ok(ApiResponse.success(response, "Thêm gói dạy thành công"));
   }
 
-  @DeleteMapping("/tutors/me/subjects")
-  public ResponseEntity<ApiResponse<TutorProfileResponse>> removeTutorSubject(
-      @RequestParam Integer subjectId,
-      @RequestParam Integer educationLevelId
+  @PutMapping("/tutors/me/offerings/{offeringId}")
+  public ResponseEntity<ApiResponse<TutorProfileResponse>> updateTutorOffering(
+      @PathVariable UUID offeringId,
+      @Valid @RequestBody SaveTutorOfferingRequest request
   ) {
-    CurrentUser currentUser = getCurrentUser();
-    TutorProfileResponse response = tutorProfileService.removeSubject(currentUser, subjectId, educationLevelId);
-    return ResponseEntity.ok(ApiResponse.success(response, "Xóa môn học giảng dạy thành công"));
+    TutorProfileResponse response = tutorProfileService.updateOffering(getCurrentUser(), offeringId, request);
+    return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật gói dạy thành công"));
+  }
+
+  @DeleteMapping("/tutors/me/offerings/{offeringId}")
+  public ResponseEntity<ApiResponse<TutorProfileResponse>> deleteTutorOffering(@PathVariable UUID offeringId) {
+    TutorProfileResponse response = tutorProfileService.deleteOffering(getCurrentUser(), offeringId);
+    return ResponseEntity.ok(ApiResponse.success(response, "Xóa gói dạy thành công"));
   }
 
   @PutMapping("/tutors/me/availability-slots")

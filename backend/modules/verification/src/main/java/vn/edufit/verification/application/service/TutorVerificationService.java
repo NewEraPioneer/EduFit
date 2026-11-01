@@ -117,7 +117,13 @@ public class TutorVerificationService {
     try {
       VerificationRequest verificationRequest = VerificationRequest.pending(tutorId, Instant.now());
       for (SubmitVerificationRequest.CredentialItem item : request.credentials()) {
-        Credential credential = Credential.create(item.type(), item.institution(), item.year(), item.note());
+        if (item.offeringId() != null && profileFacade.findTutorOfferings(tutorId).stream()
+            .noneMatch(offering -> offering.offeringId().equals(item.offeringId()))) {
+          throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED,
+              "Gói dạy được chọn làm bằng chứng không thuộc hồ sơ của bạn");
+        }
+        Credential credential = Credential.create(
+            item.type(), item.institution(), item.year(), item.note(), item.offeringId());
         for (Integer fileIndex : item.fileIndexes()) {
           MultipartFile file = getFile(files, fileIndex);
           StoredCredentialFile storedFile = credentialStorageService.store(file);

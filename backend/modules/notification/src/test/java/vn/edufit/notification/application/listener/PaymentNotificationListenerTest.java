@@ -17,7 +17,7 @@ class PaymentNotificationListenerTest {
     var profiles = mock(ProfileFacade.class);
     var accounts = mock(IamFacade.class);
     UUID student = UUID.randomUUID(), pupil = UUID.randomUUID(), payer = UUID.randomUUID(), tutor = UUID.randomUUID(), admin = UUID.randomUUID(), session = UUID.randomUUID();
-    when(profiles.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, pupil, null, null, true)));
+    when(profiles.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, pupil, null, null, null, true)));
     when(accounts.findActiveAdminIds()).thenReturn(List.of(admin));
     var listener = new PaymentNotificationListener(sink, profiles, accounts);
     listener.onChange(new PaymentSessionChangedEvent(UUID.randomUUID(), Instant.now(), session, payer, tutor, student, "ADMIN_REVIEW", null));
@@ -28,7 +28,7 @@ class PaymentNotificationListenerTest {
   @Test void payerStudentReceivesOnlyOneCopyOfTheReviewWindowNotification() {
     var sink = mock(NotificationSink.class); var profiles = mock(ProfileFacade.class); var accounts = mock(IamFacade.class);
     UUID student = UUID.randomUUID(), payer = UUID.randomUUID(), tutor = UUID.randomUUID();
-    when(profiles.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, payer, null, null, true)));
+    when(profiles.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, payer, null, null, null, true)));
     new PaymentNotificationListener(sink, profiles, accounts).onChange(new PaymentSessionChangedEvent(UUID.randomUUID(), Instant.now(), UUID.randomUUID(), payer, tutor, student, "AWAITING_CONFIRMATION", Instant.now()));
     verify(sink, times(2)).notify(any(), any(), anyString(), anyString(), anyString(), eq("PAYMENT_SESSION"), any());
     verifyNoInteractions(accounts);

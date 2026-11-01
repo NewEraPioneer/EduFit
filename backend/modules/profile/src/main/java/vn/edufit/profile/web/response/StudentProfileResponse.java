@@ -8,7 +8,10 @@ public record StudentProfileResponse(
     UUID userId,
     Integer educationLevelId,
     String educationLevelName,
-    String area,
+    Integer provinceId,
+    String provinceName,
+    Integer districtId,
+    String districtName,
     Boolean profileComplete,
     Instant createdAt,
     Instant updatedAt

@@ -1,15 +1,19 @@
 package vn.edufit.discovery;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static vn.edufit.discovery.DiscoveryTestData.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,119 +21,116 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.discovery.application.service.DiscoveryQueryService;
+import vn.edufit.discovery.application.service.DiscoveryQueryService.SortBy;
+import vn.edufit.discovery.application.service.NeedAccessService;
+import vn.edufit.discovery.domain.policy.MatchWeights;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.dto.EducationLevelOrderDto;
 import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
 import vn.edufit.profile.api.dto.TutorSearchCriteria;
-import vn.edufit.profile.api.dto.TutorSummaryDto;
-import vn.edufit.profile.api.dto.TutorSubjectDto;
-import vn.edufit.profile.api.dto.WeeklyAvailabilityDto;
-import vn.edufit.shared.exception.EntityNotFoundException;
+import vn.edufit.shared.auth.CurrentUser;
+import vn.edufit.shared.exception.ForbiddenOperationException;
+import vn.edufit.shared.exception.InvalidOperationException;
 
 @ExtendWith(MockitoExtension.class)
 class DiscoveryQueryServiceTest {
 
-  @Mock
-  private ProfileFacade profileFacade;
+  @Mock private ProfileFacade profileFacade;
+  @Mock private ConnectionFacade connectionFacade;
 
-  private DiscoveryQueryService discoveryQueryService;
-
-  @Test
-  void shouldMapCatalogOrderingToPureDomainModel() {
-    when(profileFacade.findEducationLevelsForMatching()).thenReturn(List.of(
-        new EducationLevelOrderDto(80, 10), new EducationLevelOrderDto(3, 30),
-        new EducationLevelOrderDto(41, 60)
-    ));
-    var order = discoveryQueryService.getEducationLevelOrder();
-    assertEquals(List.of(80, 3, 41), order.levelIds());
-    assertEquals(true, order.areAdjacent(80, 3));
-    assertEquals(false, order.areAdjacent(80, 41));
-  }
+  private DiscoveryQueryService service;
+  private final UUID userId = UUID.randomUUID();
+  private final UUID needId = UUID.randomUUID();
+  private TutorDiscoveryProfileDto cheapButFar;
+  private TutorDiscoveryProfileDto bestFit;
+  private TutorDiscoveryProfileDto topRated;
 
   @BeforeEach
   void setUp() {
-    discoveryQueryService = new DiscoveryQueryService(profileFacade);
+    service = new DiscoveryQueryService(profileFacade, new NeedAccessService(profileFacade, connectionFacade),
+        MatchWeights.standard(), 500);
+    lenient().when(profileFacade.findEducationLevelsForMatching()).thenReturn(List.of(
+        new EducationLevelOrderDto(LEVEL_8, 3), new EducationLevelOrderDto(LEVEL_9, 4)));
+    cheapButFar = tutor(new UUID(0, 1), "ONLINE", null, List.of(), List.of(), BigDecimal.valueOf(3), 2,
+        offering().price(150000).levels(LEVEL_8).build());
+    bestFit = tutor(new UUID(0, 2), "BOTH", HA_NOI, List.of(CAU_GIAY), List.of(slot(2, 18, 22)),
+        BigDecimal.valueOf(4), 5, offering().price(280000).build());
+    topRated = tutor(new UUID(0, 3), "ONLINE", null, List.of(), List.of(), BigDecimal.valueOf(5), 99,
+        offering().price(400000).levels(LEVEL_8).build());
+    lenient().when(profileFacade.searchVerifiedTutors(org.mockito.ArgumentMatchers.any(), anyInt()))
+        .thenReturn(List.of(cheapButFar, bestFit, topRated));
+  }
+
+  private static CurrentUser student(UUID id) {
+    return new CurrentUser() {
+      @Override public UUID getUserId() { return id; }
+      @Override public String getEmail() { return "s@edufit.vn"; }
+      @Override public Set<String> getRoles() { return Set.of("STUDENT"); }
+      @Override public boolean hasRole(String role) { return "STUDENT".equals(role); }
+    };
+  }
+
+  private List<UUID> ids(org.springframework.data.domain.Page<vn.edufit.discovery.application.dto.DiscoveredTutor> page) {
+    return page.getContent().stream().map(t -> t.profile().tutor().tutorId()).toList();
   }
 
   @Test
-  @DisplayName("Giữ summary khi không có chi tiết hydrate cho gia sư")
-  void shouldFallBackToSummaryWhenDetailsAreMissing() {
-    TutorSearchCriteria criteria = new TutorSearchCriteria(1, 2, "Hà Nội", "ONLINE", 100_000L, 300_000L, BigDecimal.valueOf(4));
-    PageRequest pageable = PageRequest.of(0, 20);
-    TutorSummaryDto tutor = tutor(UUID.randomUUID(), "VERIFIED");
+  @DisplayName("Không kèm nhu cầu: sắp theo đánh giá; giá tăng dần khi sắp theo giá")
+  void sortsWithoutNeed() {
+    var byRating = service.searchTutors(TutorSearchCriteria.none(), null, null, SortBy.RELEVANCE, false, 0, 10);
+    assertEquals(List.of(topRated.tutor().tutorId(), bestFit.tutor().tutorId(), cheapButFar.tutor().tutorId()), ids(byRating));
+    assertNull(byRating.getContent().getFirst().fit());
 
-    when(profileFacade.searchTutors(criteria, pageable)).thenReturn(new PageImpl<>(java.util.List.of(tutor)));
-
-    Page<TutorDiscoveryProfileDto> result = discoveryQueryService.searchTutors(criteria, pageable);
-
-    assertEquals(1, result.getTotalElements());
-    assertEquals(tutor, result.getContent().getFirst().tutor());
-    assertEquals(java.util.List.of(), result.getContent().getFirst().subjects());
+    var byPrice = service.searchTutors(TutorSearchCriteria.none(), null, null, SortBy.PRICE, true, 0, 10);
+    assertEquals(cheapButFar.tutor().tutorId(), ids(byPrice).getFirst());
   }
 
   @Test
-  void shouldReturnHydratedProfilesAndPreservePageMetadata() {
-    var criteria = new TutorSearchCriteria(null, null, null, null, null, null, null);
-    var pageable = PageRequest.of(1, 10);
-    var summary = tutor(UUID.randomUUID(), "VERIFIED");
-    var hydrated = new TutorDiscoveryProfileDto(
-        summary, List.of(new TutorSubjectDto(1, "Math", 2, "Secondary")),
-        List.of(new WeeklyAvailabilityDto((short) 1, LocalTime.of(18, 0), LocalTime.of(20, 0))),
-        Instant.parse("2025-01-01T00:00:00Z")
-    );
-    when(profileFacade.searchTutors(criteria, pageable))
-        .thenReturn(new PageImpl<>(List.of(summary), pageable, 25));
-    when(profileFacade.findVerifiedTutorDetails(List.of(summary.tutorId())))
-        .thenReturn(List.of(hydrated));
+  @DisplayName("Kèm nhu cầu: tiêu chí của nhu cầu chỉ để xếp hạng, gia sư khớp nhiều nhất đứng đầu, không loại ai")
+  void needOnlyReordersResults() {
+    when(profileFacade.findLearningNeed(needId)).thenReturn(Optional.of(need().id(needId).student(UUID.randomUUID(), userId).build()));
 
-    var result = discoveryQueryService.searchTutors(criteria, pageable);
+    var page = service.searchTutors(TutorSearchCriteria.none(), needId, student(userId), SortBy.RELEVANCE, false, 0, 10);
 
-    assertSame(hydrated, result.getContent().getFirst());
-    assertEquals(25, result.getTotalElements());
-    assertEquals(pageable, result.getPageable());
+    assertEquals(3, page.getTotalElements());
+    assertEquals(bestFit.tutor().tutorId(), ids(page).getFirst());
+    assertNotNull(page.getContent().getFirst().fit());
   }
 
   @Test
-  void shouldSearchWithoutFiltersWhenCriteriaAreNull() {
-    var pageable = PageRequest.of(0, 10);
-    var criteria = new TutorSearchCriteria(null, null, null, null, null, null, null);
-    when(profileFacade.searchTutors(criteria, pageable)).thenReturn(Page.empty(pageable));
-
-    var result = discoveryQueryService.searchTutors(null, pageable);
-
-    assertEquals(0, result.getTotalElements());
-    assertEquals(pageable, result.getPageable());
+  void pagesInMemoryAfterSorting() {
+    var page = service.searchTutors(TutorSearchCriteria.none(), null, null, SortBy.RATING, false, 1, 2);
+    assertEquals(3, page.getTotalElements());
+    assertEquals(2, page.getTotalPages());
+    assertEquals(List.of(cheapButFar.tutor().tutorId()), ids(page));
   }
 
   @Test
-  @DisplayName("Không trả chi tiết gia sư nếu hồ sơ chưa VERIFIED")
-  void shouldRejectUnverifiedTutorDetail() {
-    UUID tutorId = UUID.randomUUID();
-    when(profileFacade.findVerifiedTutorDetail(tutorId)).thenReturn(Optional.empty());
-
-    assertThrows(EntityNotFoundException.class, () -> discoveryQueryService.getTutorDetail(tutorId));
+  void needRequiresAuthenticatedOwner() {
+    assertThrows(ForbiddenOperationException.class,
+        () -> service.searchTutors(TutorSearchCriteria.none(), needId, null, SortBy.RELEVANCE, false, 0, 10));
+    when(profileFacade.findLearningNeed(needId)).thenReturn(Optional.of(need().id(needId).build()));
+    assertThrows(ForbiddenOperationException.class,
+        () -> service.searchTutors(TutorSearchCriteria.none(), needId, student(userId), SortBy.RELEVANCE, false, 0, 10));
   }
 
-  private TutorSummaryDto tutor(UUID tutorId, String status) {
-    return new TutorSummaryDto(
-        tutorId,
-        UUID.randomUUID(),
-        "Gia sư A",
-        "Luyện thi Toán",
-        "Bio nội bộ không trả ở card",
-        "ONLINE",
-        "Hà Nội",
-        200_000L,
-        (short) 5,
-        "Phương pháp",
-        status,
-        Instant.now(),
-        BigDecimal.valueOf(4.8),
-        12
-    );
+  @Test
+  void fitForSingleTutorAndHardFiltersAreForwarded() {
+    when(profileFacade.findLearningNeed(needId)).thenReturn(Optional.of(need().id(needId).student(UUID.randomUUID(), userId).build()));
+    when(profileFacade.findVerifiedTutorDetail(bestFit.tutor().tutorId())).thenReturn(Optional.of(bestFit));
+    assertEquals(new BigDecimal("97.00"), service.fit(student(userId), needId, bestFit.tutor().tutorId()).fit().total());
+
+    var criteria = new TutorSearchCriteria(LEVEL_9, MATH, null, null, null, null, null, null, null, null, null,
+        null, null, null, null, null);
+    service.searchTutors(criteria, null, null, SortBy.RATING, false, 0, 10);
+    verify(profileFacade).searchVerifiedTutors(criteria, 500);
+  }
+
+  @Test
+  void invalidSortIsRejected() {
+    assertThrows(InvalidOperationException.class, () -> DiscoveryQueryService.parseSort("distance"));
+    assertEquals(SortBy.PRICE, DiscoveryQueryService.parseSort("price"));
   }
 }

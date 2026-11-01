@@ -33,7 +33,7 @@ class ConnectionEventContractTest {
       case "LinkInvitationChangedEvent" -> Set.of("inviterUserId", "invitedUserId", "linkId", "cause");
       case "ParentStudentLinkChangedEvent" -> Set.of("parentUserId", "studentUserId");
       case "ConnectionRequestChangedEvent" -> Set.of("sentByUserId", "studentUserId", "tutorUserId", "classId");
-      default -> Set.of("requestId", "tutorId", "goalId");
+      default -> Set.of("requestId", "tutorId", "needId");
     });
     assertEquals(expected, Arrays.stream(type.getRecordComponents()).map(RecordComponent::getName).collect(Collectors.toSet()));
     for (var component : type.getRecordComponents())

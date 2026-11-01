@@ -173,9 +173,9 @@ class SchedulingSecurityAdversarialTest {
     lenient().when(profileFacade.findTutorByUserId(strangerUserId)).thenReturn(Optional.empty());
 
     lenient().when(profileFacade.findStudentByUserId(studentUserId))
-        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUserId, 1, "Hà Nội", true)));
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUserId, 1, null, null, true)));
     lenient().when(profileFacade.findStudentByUserId(otherStudentUserId))
-        .thenReturn(Optional.of(new StudentSummaryDto(otherStudentId, otherStudentUserId, 1, "Hà Nội", true)));
+        .thenReturn(Optional.of(new StudentSummaryDto(otherStudentId, otherStudentUserId, 1, null, null, true)));
     lenient().when(profileFacade.findStudentByUserId(tutorUserId)).thenReturn(Optional.empty());
     lenient().when(profileFacade.findStudentByUserId(confirmedParentUserId)).thenReturn(Optional.empty());
     lenient().when(profileFacade.findStudentByUserId(unconfirmedParentUserId)).thenReturn(Optional.empty());
@@ -188,9 +188,7 @@ class SchedulingSecurityAdversarialTest {
   }
 
   private TutorSummaryDto createTutorDto(UUID tid, UUID uid, String name) {
-    return new TutorSummaryDto(
-        tid, uid, name, null, null, null, null, null, null, null, "VERIFIED", fixedNow, null, 0
-    );
+    return new TutorSummaryDto(tid, uid, name, null, null, null, null, false, null, null, null, null, "VERIFIED", fixedNow, null, 0);
   }
 
   private TutoringSession createMockSession(UUID proposedBy, SessionStatus status) {

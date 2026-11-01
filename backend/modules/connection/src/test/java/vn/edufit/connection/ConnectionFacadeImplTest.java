@@ -40,7 +40,7 @@ class ConnectionFacadeImplTest {
   void activeClassLookupReturnsOnlyActiveDetachedView(String status) {
     UUID student = UUID.randomUUID(), tutor = UUID.randomUUID(), goal = UUID.randomUUID();
     var request = new ConnectionRequest(student, tutor, goal, UUID.randomUUID(), List.of("Tue 19:00"), null, Instant.now());
-    var tutoringClass = new TutoringClass(request, Instant.now());
+    var tutoringClass = new TutoringClass(request, 200000L, Instant.now());
     UUID id = UUID.randomUUID();
     ReflectionTestUtils.setField(tutoringClass, "id", id);
     when(classes.findByStudentIdAndTutorIdAndStatus(student, tutor, "ACTIVE"))
@@ -55,12 +55,12 @@ class ConnectionFacadeImplTest {
   void findActiveClassesReturnsListOfActiveViews() {
     UUID student = UUID.randomUUID(), tutor = UUID.randomUUID(), goal1 = UUID.randomUUID(), goal2 = UUID.randomUUID();
     var req1 = new ConnectionRequest(student, tutor, goal1, UUID.randomUUID(), List.of("Tue 19:00"), null, Instant.now());
-    var class1 = new TutoringClass(req1, Instant.now());
+    var class1 = new TutoringClass(req1, 200000L, Instant.now());
     UUID id1 = UUID.randomUUID();
     ReflectionTestUtils.setField(class1, "id", id1);
 
     var req2 = new ConnectionRequest(student, tutor, goal2, UUID.randomUUID(), List.of("Thu 19:00"), null, Instant.now());
-    var class2 = new TutoringClass(req2, Instant.now());
+    var class2 = new TutoringClass(req2, 200000L, Instant.now());
     UUID id2 = UUID.randomUUID();
     ReflectionTestUtils.setField(class2, "id", id2);
 
@@ -119,10 +119,10 @@ class ConnectionFacadeImplTest {
     UUID classId = UUID.randomUUID();
     UUID tutorId = UUID.randomUUID();
     UUID studentId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID();
+    UUID needId = UUID.randomUUID();
 
-    var request = new ConnectionRequest(studentId, tutorId, goalId, UUID.randomUUID(), List.of("Tue 19:00"), null, Instant.now());
-    var tutoringClass = new TutoringClass(request, Instant.now());
+    var request = new ConnectionRequest(studentId, tutorId, needId, UUID.randomUUID(), List.of("Tue 19:00"), null, Instant.now());
+    var tutoringClass = new TutoringClass(request, 200000L, Instant.now());
     ReflectionTestUtils.setField(tutoringClass, "id", classId);
 
     when(classes.findByIdAndStatus(classId, "ACTIVE")).thenReturn(Optional.of(tutoringClass));
@@ -133,7 +133,7 @@ class ConnectionFacadeImplTest {
     assertEquals(classId, result.get().classId());
     assertEquals(studentId, result.get().studentId());
     assertEquals(tutorId, result.get().tutorId());
-    assertEquals(goalId, result.get().goalId());
+    assertEquals(needId, result.get().needId());
 
     assertTrue(facade.findActiveClassById(null).isEmpty());
   }
@@ -143,11 +143,11 @@ class ConnectionFacadeImplTest {
     UUID classId = UUID.randomUUID();
     UUID tutorId = UUID.randomUUID();
     UUID studentId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID();
+    UUID needId = UUID.randomUUID();
     Instant now = Instant.now();
 
-    var request = new ConnectionRequest(studentId, tutorId, goalId, UUID.randomUUID(), List.of("Mon 08:00"), null, now);
-    var tutoringClass = new TutoringClass(request, now);
+    var request = new ConnectionRequest(studentId, tutorId, needId, UUID.randomUUID(), List.of("Mon 08:00"), null, now);
+    var tutoringClass = new TutoringClass(request, 200000L, now);
     ReflectionTestUtils.setField(tutoringClass, "id", classId);
 
     when(classes.findById(classId)).thenReturn(Optional.of(tutoringClass));

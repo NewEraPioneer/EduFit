@@ -69,17 +69,22 @@ public class Credential {
   @Column(name = "note", length = 500)
   private String note;
 
+  /** Gói dạy mà giấy tờ này làm bằng chứng cho mục tiêu premium (HSG & Thi chuyên, chứng chỉ quốc tế). */
+  @Column(name = "offering_id")
+  private UUID offeringId;
+
   @OneToMany(mappedBy = "credential", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("uploadedAt ASC")
   @org.hibernate.annotations.BatchSize(size = 20)
   private java.util.Set<CredentialFile> files = new java.util.LinkedHashSet<>();
 
-  public static Credential create(Type type, String institution, Short year, String note) {
+  public static Credential create(Type type, String institution, Short year, String note, UUID offeringId) {
     Credential credential = new Credential();
     credential.type = type;
     credential.institution = institution.trim();
     credential.year = year;
     credential.note = note == null || note.isBlank() ? null : note.trim();
+    credential.offeringId = offeringId;
     return credential;
   }
 

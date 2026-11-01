@@ -32,7 +32,7 @@ class ReviewVerificationRequestTest {
   void shouldInstantiateReviewVerificationRequest() {
     ReviewVerificationRequest approveReq = new ReviewVerificationRequest(
         ReviewVerificationRequest.Action.APPROVE,
-        null
+        null, null
     );
     assertNotNull(approveReq);
     assertEquals(ReviewVerificationRequest.Action.APPROVE, approveReq.action());
@@ -40,7 +40,7 @@ class ReviewVerificationRequestTest {
 
     ReviewVerificationRequest rejectReq = new ReviewVerificationRequest(
         ReviewVerificationRequest.Action.REJECT,
-        "Ảnh chứng chỉ bị mờ"
+        "Ảnh chứng chỉ bị mờ", null
     );
     assertNotNull(rejectReq);
     assertEquals(ReviewVerificationRequest.Action.REJECT, rejectReq.action());
@@ -68,7 +68,7 @@ class ReviewVerificationRequestTest {
         "Cục Cảnh sát QLHC về TTXH",
         null,
         "Căn cước công dân",
-        List.of(0)
+        List.of(0), null
     );
     SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(item));
 

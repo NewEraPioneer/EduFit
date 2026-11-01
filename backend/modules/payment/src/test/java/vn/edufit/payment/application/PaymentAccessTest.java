@@ -23,7 +23,7 @@ class PaymentAccessTest {
   assertFalse(access.learner(actor(parent,"PARENT"),charge));
   UUID otherParent=UUID.randomUUID();when(links.hasConfirmedParentLink(otherParent,student)).thenReturn(true);
   assertFalse(access.learner(actor(otherParent,"PARENT"),charge));
-  when(profiles.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student,studentUser,null,null,true)));
+  when(profiles.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, null, null, null, true)));
   assertTrue(access.learner(actor(studentUser,"STUDENT"),charge));
   assertThrows(RuntimeException.class,()->access.participant(actor(UUID.randomUUID(),"TUTOR"),charge));
  }

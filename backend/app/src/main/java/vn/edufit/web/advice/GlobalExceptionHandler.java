@@ -19,6 +19,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import vn.edufit.shared.exception.BaseBusinessException;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
+import vn.edufit.shared.exception.FieldValidationException;
 import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.exception.ResourceConflictException;
@@ -90,6 +91,19 @@ public class GlobalExceptionHandler {
     log.warn("Invalid operation: {}", ex.getMessage());
     ApiError error = ApiError.of(ex.getErrorCode().name(), ex.getMessage());
     return ResponseEntity.status(mapErrorCodeToHttpStatus(ex.getErrorCode())).body(error);
+  }
+
+  /**
+   * Bắt lỗi nghiệp vụ theo từng trường (FieldValidationException) -> HTTP 400 kèm danh sách lỗi trường.
+   */
+  @ExceptionHandler(FieldValidationException.class)
+  public ResponseEntity<ApiError> handleFieldValidation(FieldValidationException ex) {
+    List<FieldErrorItem> details = ex.getFieldErrors().entrySet().stream()
+        .map(entry -> new FieldErrorItem(entry.getKey(), entry.getValue(), null))
+        .toList();
+    log.warn("Field validation failed with {} errors", details.size());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(ApiError.of(ErrorCode.VALIDATION_FAILED.name(), ex.getMessage(), details));
   }
 
   /**

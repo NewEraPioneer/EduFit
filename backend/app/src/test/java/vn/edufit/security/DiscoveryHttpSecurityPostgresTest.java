@@ -78,12 +78,12 @@ class DiscoveryHttpSecurityPostgresTest {
         accountId);
     jdbc.update(
         "insert into"
-            + " learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max)"
+            + " learning_goal(need_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max)"
             + " values(?,?,1,1,2,'IMPROVE_GRADES',current_date+30,'ONLINE',200000)",
         goalId,
         studentId);
     jdbc.update(
-        "insert into goal_availability_slot(goal_id,day_of_week,start_time,end_time)"
+        "insert into goal_availability_slot(need_id,day_of_week,start_time,end_time)"
             + " values(?,1,'09:00','10:00')",
         goalId);
   }
@@ -278,6 +278,6 @@ class DiscoveryHttpSecurityPostgresTest {
   }
 
   String matchBody() {
-    return "{\"goalId\":\"" + goalId + "\"}";
+    return "{\"needId\":\"" + goalId + "\"}";
   }
 }

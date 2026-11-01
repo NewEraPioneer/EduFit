@@ -97,22 +97,7 @@ class NotificationEventListenerTest {
     UUID reviewerUserId = UUID.randomUUID();
     UUID reviewId = UUID.randomUUID();
 
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorProfileId,
-        tutorUserId,
-        "Tutor Name",
-        "headline",
-        "bio",
-        "ONLINE",
-        "HN",
-        100000L,
-        (short) 2,
-        "method",
-        "ACTIVE",
-        Instant.now(),
-        java.math.BigDecimal.valueOf(5.0),
-        1
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorProfileId, tutorUserId, "Tutor Name", "headline", "bio", "ONLINE", null, false, null, "HN", (short) 2, "method", "ACTIVE", Instant.now(), java.math.BigDecimal.valueOf(5.0), 1);
 
     when(profileFacade.findTutorById(tutorProfileId)).thenReturn(Optional.of(tutorDto));
 

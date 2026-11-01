@@ -37,7 +37,7 @@ class InvitationConsentTest {
   @BeforeEach void accounts() {
     when(iam.findUserSummaryById(parent)).thenReturn(Optional.of(summary(parent, AccountRole.PARENT, AccountStatus.ACTIVE)));
     when(iam.findUserSummaryById(studentUser)).thenReturn(Optional.of(summary(studentUser, AccountRole.STUDENT, AccountStatus.ACTIVE)));
-    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, false)));
+    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, false)));
     when(quota.consume(any())).thenReturn(new InvitationQuotaService.Consumption(true, NOW));
     when(invitations.save(any())).thenAnswer(call -> { var row = (LinkInvitation) call.getArgument(0); ReflectionTestUtils.setField(row, "id", UUID.randomUUID()); return row; });
     when(links.save(any())).thenAnswer(call -> { var row = (ParentStudentLink) call.getArgument(0); ReflectionTestUtils.setField(row, "id", UUID.randomUUID()); return row; });

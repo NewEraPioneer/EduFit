@@ -36,7 +36,9 @@ public class OpenApiConfig {
           "/api/v1/discovery/tutors/{tutorId}",
           "/api/v1/catalogs",
           "/api/v1/catalogs/education-levels",
-          "/api/v1/catalogs/subjects");
+          "/api/v1/catalogs/subjects",
+          "/api/v1/catalogs/learning",
+          "/api/v1/catalogs/goal-tags");
 
   @Bean
   public OpenAPI customOpenAPI() {

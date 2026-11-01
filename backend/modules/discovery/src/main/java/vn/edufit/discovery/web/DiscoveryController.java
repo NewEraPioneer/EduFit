@@ -6,17 +6,20 @@ import java.util.Locale;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import vn.edufit.discovery.application.service.DiscoveryQueryService;
 import vn.edufit.discovery.application.service.TutorMatchingService;
 import vn.edufit.discovery.web.request.TutorMatchRequest;
 import vn.edufit.discovery.web.request.TutorSearchRequest;
-import vn.edufit.discovery.web.response.TutorDiscoveryCardResponse;
 import vn.edufit.discovery.web.response.TutorDetailResponse;
+import vn.edufit.discovery.web.response.TutorDiscoveryCardResponse;
 import vn.edufit.discovery.web.response.TutorMatchResponse;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ForbiddenOperationException;
@@ -50,16 +53,18 @@ public class DiscoveryController {
       @Valid TutorSearchRequest request,
       @RequestParam(defaultValue = "" + DEFAULT_PAGE) int page,
       @RequestParam(defaultValue = "" + DEFAULT_SIZE) int size,
-      @RequestParam(defaultValue = "rating") String sortBy,
+      @RequestParam(defaultValue = "relevance") String sortBy,
       @RequestParam(defaultValue = "desc") String sortDirection
   ) {
-    Pageable pageable = PageRequest.of(
-        Math.max(page, 0),
-        Math.min(Math.max(size, 1), MAX_SIZE),
-        resolveSort(sortBy, sortDirection)
-    );
+    boolean ascending = switch (sortDirection.toLowerCase(Locale.ROOT)) {
+      case "asc" -> true;
+      case "desc" -> false;
+      default -> throw new InvalidOperationException("sortDirection phải là asc hoặc desc");
+    };
     Page<TutorDiscoveryCardResponse> response = discoveryQueryService
-        .searchTutors(request.toCriteria(), pageable)
+        .searchTutors(request.toCriteria(), request.needId(), currentUserProvider.getIfAvailable(),
+            DiscoveryQueryService.parseSort(sortBy), ascending,
+            Math.max(page, 0), Math.min(Math.max(size, 1), MAX_SIZE))
         .map(TutorDiscoveryCardResponse::from);
     return ResponseEntity.ok(ApiResponse.success(response, "Tìm kiếm gia sư thành công"));
   }
@@ -70,33 +75,23 @@ public class DiscoveryController {
     return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin gia sư thành công"));
   }
 
+  /** Độ khớp một gia sư với nhu cầu học (✔/⚠ từng tiêu chí), dùng trước khi gửi yêu cầu kết nối. */
+  @GetMapping("/needs/{needId}/tutors/{tutorId}/fit")
+  public ResponseEntity<ApiResponse<TutorDiscoveryCardResponse>> fit(
+      @PathVariable UUID needId, @PathVariable UUID tutorId) {
+    TutorDiscoveryCardResponse response = TutorDiscoveryCardResponse.from(
+        discoveryQueryService.fit(currentUser(), needId, tutorId));
+    return ResponseEntity.ok(ApiResponse.success(response, "Đánh giá độ khớp thành công"));
+  }
+
   @PostMapping("/match")
   public ResponseEntity<ApiResponse<List<TutorMatchResponse>>> matchTutors(
       @Valid @RequestBody TutorMatchRequest request
   ) {
     List<TutorMatchResponse> response = tutorMatchingService
-        .match(currentUser(), request.goalId(), request.resolvedTopN())
+        .match(currentUser(), request.needId(), request.resolvedTopN())
         .stream().map(TutorMatchResponse::from).toList();
     return ResponseEntity.ok(ApiResponse.success(response, "Ghép đôi gia sư thành công"));
-  }
-
-  private Sort resolveSort(String sortBy, String sortDirection) {
-    String property = switch (sortBy.toLowerCase(Locale.ROOT)) {
-      case "rating", "relevance" -> "ratingAvg";
-      case "price" -> "pricePerSession";
-      case "experience" -> "experienceYears";
-      default -> throw new InvalidOperationException("sortBy phải là relevance, rating, price hoặc experience");
-    };
-    Sort.Direction direction;
-    try {
-      direction = Sort.Direction.fromString(sortDirection);
-    } catch (IllegalArgumentException ex) {
-      throw new InvalidOperationException("sortDirection phải là asc hoặc desc");
-    }
-    Sort sort = Sort.by(direction, property);
-    return "ratingAvg".equals(property)
-        ? sort.and(Sort.by(Sort.Direction.DESC, "reviewCount"))
-        : sort;
   }
 
   private CurrentUser currentUser() {

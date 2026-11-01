@@ -24,8 +24,8 @@ public class MatchingRunLogEntity {
   @Column(name = "student_id", nullable = false)
   private UUID studentId;
 
-  @Column(name = "goal_id", nullable = false)
-  private UUID goalId;
+  @Column(name = "need_id", nullable = false)
+  private UUID needId;
 
   @Column(name = "result_count", nullable = false)
   private int resultCount;
@@ -37,10 +37,10 @@ public class MatchingRunLogEntity {
     // JPA required
   }
 
-  public MatchingRunLogEntity(UUID userId, UUID studentId, UUID goalId, int resultCount) {
+  public MatchingRunLogEntity(UUID userId, UUID studentId, UUID needId, int resultCount) {
     this.userId = userId;
     this.studentId = studentId;
-    this.goalId = goalId;
+    this.needId = needId;
     this.resultCount = resultCount;
   }
 
@@ -56,8 +56,8 @@ public class MatchingRunLogEntity {
     return studentId;
   }
 
-  public UUID getGoalId() {
-    return goalId;
+  public UUID getNeedId() {
+    return needId;
   }
 
   public int getResultCount() {

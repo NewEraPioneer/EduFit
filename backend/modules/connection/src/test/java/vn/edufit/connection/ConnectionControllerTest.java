@@ -60,8 +60,8 @@ class ConnectionControllerTest {
   private static final Instant NOW = Instant.parse("2026-10-11T03:00:00Z");
   private static final Instant EXPIRES = Instant.parse("2026-10-18T03:00:00Z");
   private static final String LINK = "{\"linkId\":\"%s\",\"parentUserId\":\"%s\",\"studentId\":\"%s\",\"status\":\"CONFIRMED\",\"confirmedAt\":\"2026-10-11T03:00:00Z\"}".formatted(ID, ID, ID);
-  private static final String REQUEST = "{\"requestId\":\"%s\",\"studentId\":\"%s\",\"tutorId\":\"%s\",\"goalId\":\"%s\",\"status\":\"PENDING\",\"createdAt\":\"2026-10-11T03:00:00Z\",\"expiresAt\":\"2026-10-18T03:00:00Z\"}".formatted(ID, ID, ID, ID);
-  private static final String CLASS = "{\"classId\":\"%s\",\"studentId\":\"%s\",\"tutorId\":\"%s\",\"goalId\":\"%s\"}".formatted(ID, ID, ID, ID);
+  private static final String REQUEST = "{\"requestId\":\"%s\",\"studentId\":\"%s\",\"tutorId\":\"%s\",\"needId\":\"%s\",\"status\":\"PENDING\",\"createdAt\":\"2026-10-11T03:00:00Z\",\"expiresAt\":\"2026-10-18T03:00:00Z\"}".formatted(ID, ID, ID, ID);
+  private static final String CLASS = "{\"classId\":\"%s\",\"studentId\":\"%s\",\"tutorId\":\"%s\",\"needId\":\"%s\"}".formatted(ID, ID, ID, ID);
 
   private ConnectionRequestResult requestResult() {
     return new ConnectionRequestResult(UUID_ID, UUID_ID, UUID_ID, UUID_ID, "PENDING", NOW, EXPIRES,
@@ -116,7 +116,7 @@ class ConnectionControllerTest {
   @Test void createRequestKeepsShapeAndInputs() throws Exception {
     when(service.request(actor, UUID_ID, UUID_ID, List.of("Tue 19:00"), "hello")).thenReturn(TransitionResult.success(requestResult()));
     data(mvc.perform(post(BASE + "/requests").contentType(MediaType.APPLICATION_JSON)
-        .content("{\"goalId\":\"%s\",\"tutorId\":\"%s\",\"desiredSlots\":[\"Tue 19:00\"],\"message\":\"hello\"}".formatted(ID, ID))), REQUEST);
+        .content("{\"needId\":\"%s\",\"tutorId\":\"%s\",\"desiredSlots\":[\"Tue 19:00\"],\"message\":\"hello\"}".formatted(ID, ID))), REQUEST);
   }
 
   @Test void learnerListDoesNotLeakInternalFields() throws Exception {
@@ -125,19 +125,34 @@ class ConnectionControllerTest {
     verify(queries).requests(actor, UUID_ID);
   }
 
-  @Test void tutorInboxKeepsPrivacyWhitelistAndLegacySlots() throws Exception {
-    when(actor.hasRole("TUTOR")).thenReturn(true);
-    when(queries.tutorInbox(actor)).thenReturn(List.of(new TutorInboxResult(UUID_ID, "EXAM", 1, 4,
-        List.of("Tue 19:00"), null, "PARENT", "PENDING", EXPIRES)));
-    data(mvc.perform(get(BASE + "/requests")), "[{\"requestId\":\"%s\",\"goalType\":\"EXAM\",\"subjectId\":1,\"educationLevelId\":4,\"desiredSlots\":[\"Tue 19:00\"],\"message\":null,\"senderRole\":\"PARENT\",\"status\":\"PENDING\",\"expiresAt\":\"2026-10-18T03:00:00Z\"}]".formatted(ID));
+  private static TutorInboxResult inboxItem(List<String> slots) {
+    var need = ConnectionTestFixtures.need(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1, 4, "ACTIVE");
+    return new TutorInboxResult(UUID_ID, slots, null, "PARENT", "PENDING", EXPIRES, "Nguyễn Minh", need, "Toán",
+        List.of(new vn.edufit.profile.api.fit.FitCheck(vn.edufit.profile.api.fit.FitCriterion.LEVEL, 100, true, "Dạy Lớp 9"),
+            new vn.edufit.profile.api.fit.FitCheck(vn.edufit.profile.api.fit.FitCriterion.BUDGET, 40, false,
+                "Học phí 450.000đ/buổi vượt ngân sách 50%")),
+        false, List.of());
   }
 
-  @Test void tutorInboxHydratesDeadlineToJson() throws Exception {
+  @Test void tutorInboxShowsNeedAndFitWithoutInternalIdentifiers() throws Exception {
     when(actor.hasRole("TUTOR")).thenReturn(true);
-    when(queries.tutorInbox(actor)).thenReturn(List.of(new TutorInboxResult(UUID_ID, "EXAM", 1, 4,
-        List.of("MONDAY 18:00-19:00"), null, "PARENT", "PENDING", EXPIRES, java.time.LocalDate.parse("2027-01-01"))));
-    data(mvc.perform(get(BASE + "/requests")),
-        "[{\"requestId\":\"%s\",\"goalType\":\"EXAM\",\"subjectId\":1,\"educationLevelId\":4,\"desiredSlots\":[\"MONDAY 18:00-19:00\"],\"message\":null,\"senderRole\":\"PARENT\",\"status\":\"PENDING\",\"expiresAt\":\"2026-10-18T03:00:00Z\",\"deadline\":\"2027-01-01\"}]".formatted(ID));
+    when(queries.tutorInbox(actor)).thenReturn(List.of(inboxItem(List.of("Tue 19:00"))));
+    success(mvc.perform(get(BASE + "/requests")))
+        .andExpect(jsonPath("$.data[0].requestId").value(ID))
+        .andExpect(jsonPath("$.data[0].desiredSlots[0]").value("Tue 19:00"))
+        .andExpect(jsonPath("$.data[0].senderRole").value("PARENT"))
+        .andExpect(jsonPath("$.data[0].need.subjectName").value("Toán"))
+        .andExpect(jsonPath("$.data[0].need.goalTagName").value("Chuyển cấp – Luyện thi vào 10"))
+        .andExpect(jsonPath("$.data[0].need.examProvinceName").value("Hà Nội"))
+        .andExpect(jsonPath("$.data[0].need.budgetMaxPerSession").value(300000))
+        .andExpect(jsonPath("$.data[0].fitChecks[0].matched").value(true))
+        .andExpect(jsonPath("$.data[0].fitChecks[1].matched").value(false))
+        .andExpect(jsonPath("$.data[0].fitChecks[1].label").value("Học phí 450.000đ/buổi vượt ngân sách 50%"))
+        // Không lộ định danh nội bộ của học sinh/phụ huynh
+        .andExpect(jsonPath("$.data[0].need.studentId").doesNotExist())
+        .andExpect(jsonPath("$.data[0].need.studentUserId").doesNotExist())
+        .andExpect(jsonPath("$.data[0].need.createdBy").doesNotExist())
+        .andExpect(jsonPath("$.data[0].sentByUserId").doesNotExist());
   }
 
   @Test void invitationsHydrateInviterMetadataAndCooldownToJson() throws Exception {
@@ -169,7 +184,7 @@ class ConnectionControllerTest {
     String slot=kind.equals("oversize")?"x".repeat(101):kind.equals("blank")?" ":"Tue 19:00";
     String slots=kind.equals("empty")?"[]":kind.equals("null")?"null":"[\""+slot+"\"]";
     String message=kind.equals("message")?"x".repeat(501):"";
-    String body="{\"goalId\":\""+ID+"\",\"tutorId\":\""+ID+"\",\"desiredSlots\":"+slots+",\"message\":\""+message+"\"}";
+    String body="{\"needId\":\""+ID+"\",\"tutorId\":\""+ID+"\",\"desiredSlots\":"+slots+",\"message\":\""+message+"\"}";
     mvc.perform(post(BASE+"/requests").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(result -> assertInstanceOf(MethodArgumentNotValidException.class,result.getResolvedException()));
@@ -194,13 +209,16 @@ class ConnectionControllerTest {
     data(mvc.perform(get(BASE + "/requests/page").param("studentId", ID)), expected);
   }
 
-  @Test void requestsPageTutorKeepsExactPagedShape() throws Exception {
+  @Test void requestsPageTutorKeepsPagedShape() throws Exception {
     when(actor.hasRole("TUTOR")).thenReturn(true);
-    when(queries.tutorInboxPage(actor, 0, 20)).thenReturn(PageResponse.of(List.of(new TutorInboxResult(UUID_ID, "EXAM", 1, 4,
-        List.of("Tue 19:00"), null, "PARENT", "PENDING", EXPIRES)), 0, 20, 1));
-    String item = "{\"requestId\":\"%s\",\"goalType\":\"EXAM\",\"subjectId\":1,\"educationLevelId\":4,\"desiredSlots\":[\"Tue 19:00\"],\"message\":null,\"senderRole\":\"PARENT\",\"status\":\"PENDING\",\"expiresAt\":\"2026-10-18T03:00:00Z\"}".formatted(ID);
-    String expected = "{\"items\":[%s],\"page\":0,\"size\":20,\"totalElements\":1,\"totalPages\":1}".formatted(item);
-    data(mvc.perform(get(BASE + "/requests/page")), expected);
+    when(queries.tutorInboxPage(actor, 0, 20)).thenReturn(PageResponse.of(List.of(inboxItem(List.of("Tue 19:00"))), 0, 20, 1));
+    success(mvc.perform(get(BASE + "/requests/page")))
+        .andExpect(jsonPath("$.data.items[0].requestId").value(ID))
+        .andExpect(jsonPath("$.data.items[0].need.educationLevelName").value("Lớp 9"))
+        .andExpect(jsonPath("$.data.page").value(0))
+        .andExpect(jsonPath("$.data.size").value(20))
+        .andExpect(jsonPath("$.data.totalElements").value(1))
+        .andExpect(jsonPath("$.data.totalPages").value(1));
   }
 
   @Test void adminLinksPageKeepsExactPagedShape() throws Exception {
@@ -221,7 +239,7 @@ class ConnectionControllerTest {
         UUID_ID, UUID_ID, UUID_ID, UUID_ID, "ACTIVE", "Học sinh Minh", "Gia sư Nam", "Toán", "Lớp 10", "PROPOSED", 0, 0, 0, 0, NOW, null
     )));
     data(mvc.perform(get(BASE + "/classes")),
-        "[{\"classId\":\"%s\",\"studentId\":\"%s\",\"tutorId\":\"%s\",\"goalId\":\"%s\",\"status\":\"ACTIVE\",\"studentDisplayName\":\"Học sinh Minh\",\"tutorDisplayName\":\"Gia sư Nam\",\"subjectName\":\"Toán\",\"educationLevelName\":\"Lớp 10\",\"scheduleStatus\":\"PROPOSED\",\"sessionCount\":0,\"completedCount\":0,\"scheduledCount\":0,\"totalCount\":0,\"startedAt\":\"2026-10-11T03:00:00Z\"}]".formatted(ID, ID, ID, ID));
+        "[{\"classId\":\"%s\",\"studentId\":\"%s\",\"tutorId\":\"%s\",\"needId\":\"%s\",\"status\":\"ACTIVE\",\"studentDisplayName\":\"Học sinh Minh\",\"tutorDisplayName\":\"Gia sư Nam\",\"subjectName\":\"Toán\",\"educationLevelName\":\"Lớp 10\",\"scheduleStatus\":\"PROPOSED\",\"sessionCount\":0,\"completedCount\":0,\"scheduledCount\":0,\"totalCount\":0,\"startedAt\":\"2026-10-11T03:00:00Z\"}]".formatted(ID, ID, ID, ID));
     verify(queries).classes(actor);
   }
 

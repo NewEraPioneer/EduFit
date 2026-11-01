@@ -161,7 +161,9 @@ class AiLogPostgresTest {
           .executeWithoutResult(
               tx -> {
                 var explanations = new MatchExplanationService(gateway);
-                var result = explanations.explainTopMatch(actor, score(), tutor());
+                var result = explanations.explainMatches(actor,
+                    vn.edufit.connection.ConnectionTestFixtures.need(UUID.randomUUID(), UUID.randomUUID(), actor, 1, 4, "ACTIVE"),
+                    List.of(score()), List.of(tutor())).getFirst();
                 assertThat(result.aiGenerated()).isFalse();
                 assertThat(result.text()).isEqualTo(explanations.ruleBased(score()));
                 assertThat(tx.isRollbackOnly()).isFalse();
@@ -197,38 +199,17 @@ class AiLogPostgresTest {
 
   static MatchScore score() {
     return new MatchScore(
-        UUID.randomUUID(),
+        UUID.nameUUIDFromBytes("tutor".getBytes()),
         new BigDecimal("97.00"),
-        new BigDecimal("100.00"),
-        new BigDecimal("100.00"),
-        new BigDecimal("100.00"),
         new BigDecimal("80.00"),
-        new BigDecimal("100.00"),
-        1,
+        vn.edufit.connection.ConnectionTestFixtures.offerings(1, 4).getFirst(),
+        List.of(new vn.edufit.profile.api.fit.FitCheck(vn.edufit.profile.api.fit.FitCriterion.LEVEL, 100, true, "Dạy Lớp 9")),
         8,
-        Instant.now());
+        Instant.parse("2026-01-01T00:00:00Z"));
   }
 
   static TutorDiscoveryProfileDto tutor() {
-    return new TutorDiscoveryProfileDto(
-        new TutorSummaryDto(
-            UUID.randomUUID(),
-            UUID.randomUUID(),
-            "Tutor",
-            "Math",
-            "",
-            "ONLINE",
-            "Hanoi",
-            200000L,
-            (short) 5,
-            "",
-            "VERIFIED",
-            Instant.now(),
-            new BigDecimal("4.00"),
-            8),
-        List.of(),
-        List.of(),
-        Instant.now());
+    return vn.edufit.connection.ConnectionTestFixtures.tutorProfile(UUID.randomUUID());
   }
 
   static class TestProvider implements LlmProvider {

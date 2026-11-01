@@ -1,18 +1,19 @@
 package vn.edufit.discovery.web;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static vn.edufit.discovery.DiscoveryTestData.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,23 +25,26 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.PlatformTransactionManager;
+import vn.edufit.ai.api.AiGateway;
+import vn.edufit.ai.api.AiResponse;
+import vn.edufit.ai.api.AiTimeoutException;
+import vn.edufit.ai.api.AiUnavailableException;
+import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.discovery.application.service.DiscoveryQueryService;
 import vn.edufit.discovery.application.service.MatchExplanationService;
+import vn.edufit.discovery.application.service.NeedAccessService;
 import vn.edufit.discovery.application.service.TutorMatchingService;
+import vn.edufit.discovery.domain.policy.MatchWeights;
 import vn.edufit.discovery.infra.persistence.repository.MatchingRunLogRepository;
 import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.LearningGoalDiscoveryDto;
+import vn.edufit.profile.api.dto.EducationLevelOrderDto;
 import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
 import vn.edufit.profile.api.dto.TutorSearchCriteria;
-import vn.edufit.profile.api.dto.TutorSubjectDto;
-import vn.edufit.profile.api.dto.TutorSummaryDto;
-import vn.edufit.profile.api.dto.WeeklyAvailabilityDto;
 import vn.edufit.shared.auth.CurrentUser;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,170 +52,111 @@ class DiscoveryControllerTest {
 
   @Mock private ProfileFacade profileFacade;
   @Mock private MatchingRunLogRepository logRepository;
-  @Mock private MatchExplanationService explanationService;
   @Mock private ObjectProvider<CurrentUser> currentUserProvider;
   @Mock private CurrentUser currentUser;
 
-  private MockMvc mvc;
+  private final UUID userId = UUID.randomUUID();
+  private final UUID needId = UUID.randomUUID();
   private TutorDiscoveryProfileDto profile;
 
   @BeforeEach
   void setUp() {
-    mvc = mvc(explanationService);
-    profile = new TutorDiscoveryProfileDto(
-        new TutorSummaryDto(
-            UUID.randomUUID(), UUID.randomUUID(), "Tutor A", "Math", "x".repeat(200),
-            "ONLINE", "Hanoi", 200_000L, (short) 5, "Practice", "VERIFIED",
-            Instant.parse("2025-01-01T00:00:00Z"), BigDecimal.valueOf(5), 10
-        ),
-        List.of(new TutorSubjectDto(1, "Math", 2, "Secondary")),
-        List.of(new WeeklyAvailabilityDto((short) 1, LocalTime.of(18, 0), LocalTime.of(20, 0))),
-        Instant.parse("2025-01-01T00:00:00Z")
-    );
+    profile = tutor(UUID.randomUUID(), "BOTH", HA_NOI, List.of(CAU_GIAY), List.of(slot(2, 18, 22)),
+        BigDecimal.valueOf(5), 10, offering().build());
+    lenient().when(profileFacade.findEducationLevelsForMatching()).thenReturn(List.of(
+        new EducationLevelOrderDto(LEVEL_8, 3), new EducationLevelOrderDto(LEVEL_9, 4)));
   }
 
   private MockMvc mvc(MatchExplanationService explanations) {
+    var access = new NeedAccessService(profileFacade, mock(ConnectionFacade.class));
     return MockMvcBuilders.standaloneSetup(new DiscoveryController(
-        new DiscoveryQueryService(profileFacade),
-        new TutorMatchingService(profileFacade, logRepository, explanations, new DiscoveryQueryService(profileFacade),
-            org.mockito.Mockito.mock(vn.edufit.connection.api.ConnectionFacade.class),
-            org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class), org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class)),
+        new DiscoveryQueryService(profileFacade, access, MatchWeights.standard(), 500),
+        new TutorMatchingService(profileFacade, logRepository, explanations, access,
+            mock(ApplicationEventPublisher.class), MatchWeights.standard(), mock(PlatformTransactionManager.class)),
         currentUserProvider
     )).build();
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"SUCCESS", "TIMEOUT", "UNAVAILABLE", "QUOTA"})
-  void aiFailuresAndQuotaStillReturnSuccessfulMatchingHttpResponse(String outcome) throws Exception {
-    var gateway = org.mockito.Mockito.mock(vn.edufit.ai.api.AiGateway.class);
-    UUID userId = UUID.randomUUID(), goalId = UUID.randomUUID();
+  private void loggedInStudent() {
     when(currentUserProvider.getIfAvailable()).thenReturn(currentUser);
-    when(currentUser.getUserId()).thenReturn(userId);
-    when(currentUser.hasRole("STUDENT")).thenReturn(true);
-    when(profileFacade.findLearningGoalForDiscovery(goalId)).thenReturn(Optional.of(new LearningGoalDiscoveryDto(
-        goalId, UUID.randomUUID(), userId, 1, 2, "ONLINE", "Hanoi", 0L, 300000L, "ACTIVE", profile.availabilitySlots())));
-    when(profileFacade.findVerifiedCandidatesBySubject(any())).thenReturn(List.of(profile));
+    lenient().when(currentUser.getUserId()).thenReturn(userId);
+    lenient().when(currentUser.hasRole("STUDENT")).thenReturn(true);
+    when(profileFacade.findLearningNeed(needId)).thenReturn(Optional.of(
+        need().id(needId).student(UUID.randomUUID(), userId).build()));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"SUCCESS", "TIMEOUT", "UNAVAILABLE"})
+  void aiFailuresStillReturnSuccessfulMatchingWithFitLabels(String outcome) throws Exception {
+    var gateway = mock(AiGateway.class);
+    loggedInStudent();
+    when(profileFacade.findVerifiedCandidatesBySubject(MATH)).thenReturn(List.of(profile));
     if (outcome.equals("SUCCESS")) {
-      when(gateway.complete(any())).thenReturn(new vn.edufit.ai.api.AiResponse("1|Grounded AI explanation", 1, 1, true));
+      when(gateway.complete(any())).thenReturn(new AiResponse("1|Lịch học và khu vực đều thuận tiện cho gia đình.", 1, 1, true));
     } else {
       when(gateway.complete(any())).thenThrow(outcome.equals("TIMEOUT")
-          ? new vn.edufit.ai.api.AiTimeoutException("Deadline") : new vn.edufit.ai.api.AiUnavailableException("Offline"));
+          ? new AiTimeoutException("Deadline") : new AiUnavailableException("Offline"));
     }
     mvc(new MatchExplanationService(gateway))
         .perform(post("/api/v1/discovery/match").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"goalId\":\"" + goalId + "\"}"))
+            .content("{\"needId\":\"" + needId + "\"}"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.data[0].matchScore").value(100))
         .andExpect(jsonPath("$.data[0].aiGenerated").value(outcome.equals("SUCCESS")))
-        .andExpect(jsonPath("$.data[0].explanation").isNotEmpty());
+        .andExpect(jsonPath("$.data[0].tutorInfo.fit.checks[0].matched").value(true))
+        .andExpect(jsonPath("$.data[0].tutorInfo.offerings[0].pricePerSession").value(250000));
     verify(logRepository).save(any());
-    verify(gateway).complete(any());
   }
 
   @Test
-  void searchPreservesFiltersPaginationAndPublicCard() throws Exception {
-    var pageable = PageRequest.of(1, 2, Sort.by(Sort.Direction.ASC, "pricePerSession"));
-    var criteria = new TutorSearchCriteria(
-        1, 2, "Hanoi", "ONLINE", 100_000L, 300_000L, new BigDecimal("4.5"),
-        "Math", (short) 1, LocalTime.of(18, 0), LocalTime.of(20, 0)
-    );
-    when(profileFacade.searchTutors(criteria, pageable))
-        .thenReturn(new PageImpl<>(List.of(profile.tutor()), pageable, 5));
-    when(profileFacade.findVerifiedTutorDetails(List.of(profile.tutor().tutorId())))
-        .thenReturn(List.of(profile));
+  void searchForwardsHardFiltersAndReturnsCardsWithOfferings() throws Exception {
+    when(profileFacade.searchVerifiedTutors(any(), anyInt())).thenReturn(List.of(profile));
 
-    mvc.perform(get("/api/v1/discovery/tutors")
-            .param("subjectId", "1").param("levelId", "2").param("area", "Hanoi")
-            .param("mode", "ONLINE").param("minPrice", "100000").param("maxPrice", "300000")
-            .param("minRating", "4.5").param("keyword", "Math").param("dayOfWeek", "1")
-            .param("availableFrom", "18:00").param("availableTo", "20:00")
-            .param("page", "1").param("size", "2").param("sortBy", "price").param("sortDirection", "asc"))
+    mvc(mock(MatchExplanationService.class)).perform(get("/api/v1/discovery/tutors")
+            .param("levelId", "4").param("subjectId", "1").param("goalTagId", "1").param("textbookSeriesId", "1")
+            .param("tutorType", "GRADUATE").param("mode", "OFFLINE").param("provinceId", "1").param("districtId", "5")
+            .param("maxPrice", "300000").param("sortBy", "price").param("sortDirection", "asc"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data.totalElements").value(5))
-        .andExpect(jsonPath("$.data.number").value(1))
         .andExpect(jsonPath("$.data.content[0].tutorId").value(profile.tutor().tutorId().toString()))
-        .andExpect(jsonPath("$.data.content[0].displayName").value("Tutor A"))
-        .andExpect(jsonPath("$.data.content[0].shortBio").value("x".repeat(177) + "..."))
-        .andExpect(jsonPath("$.data.content[0].verified").value(true))
-        .andExpect(jsonPath("$.data.content[0].subjects[0].subjectId").value(1))
-        .andExpect(jsonPath("$.data.content[0].userId").doesNotExist())
-        .andExpect(jsonPath("$.data.content[0].bio").doesNotExist());
-    verify(profileFacade).searchTutors(criteria, pageable);
+        .andExpect(jsonPath("$.data.content[0].minPricePerSession").value(250000))
+        .andExpect(jsonPath("$.data.content[0].districts[0].name").value("Cầu Giấy"))
+        .andExpect(jsonPath("$.data.content[0].fit").doesNotExist());
+
+    verify(profileFacade).searchVerifiedTutors(eq(new TutorSearchCriteria(4, 1, null, 1, 1, "GRADUATE", "OFFLINE", 1, 5,
+        null, 300000L, null, null, null, null, null)), eq(500));
   }
 
   @Test
-  void detailPreservesPublicFieldsAndAssociations() throws Exception {
-    UUID tutorId = profile.tutor().tutorId();
-    when(profileFacade.findVerifiedTutorDetail(tutorId)).thenReturn(Optional.of(profile));
+  void searchWithNeedAddsFitAndRejectsAnonymous() throws Exception {
+    when(profileFacade.searchVerifiedTutors(any(), anyInt())).thenReturn(List.of(profile));
+    // Không có handler lỗi chung ở test standalone: ngoại lệ nghiệp vụ được bọc trong ServletException
+    var anonymous = org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class, () ->
+        mvc(mock(MatchExplanationService.class)).perform(get("/api/v1/discovery/tutors").param("needId", needId.toString())));
+    org.junit.jupiter.api.Assertions.assertInstanceOf(
+        vn.edufit.shared.exception.ForbiddenOperationException.class, anonymous.getCause());
 
-    mvc.perform(get("/api/v1/discovery/tutors/{tutorId}", tutorId))
+    loggedInStudent();
+    mvc(mock(MatchExplanationService.class)).perform(get("/api/v1/discovery/tutors").param("needId", needId.toString()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.tutorId").value(tutorId.toString()))
-        .andExpect(jsonPath("$.data.bio").value("x".repeat(200)))
-        .andExpect(jsonPath("$.data.teachingMethod").value("Practice"))
-        .andExpect(jsonPath("$.data.subjects[0].educationLevelId").value(2))
-        .andExpect(jsonPath("$.data.availabilitySlots[0].dayOfWeek").value(1))
-        .andExpect(jsonPath("$.data.verified").value(true))
-        .andExpect(jsonPath("$.data.userId").doesNotExist());
+        .andExpect(jsonPath("$.data.content[0].fit.matchScore").value(100));
   }
 
   @Test
-  void matchPreservesDefaultTopNScoreBreakdownAndExplanation() throws Exception {
-    UUID userId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID();
-    when(currentUserProvider.getIfAvailable()).thenReturn(currentUser);
-    when(currentUser.getUserId()).thenReturn(userId);
-    when(currentUser.hasRole("STUDENT")).thenReturn(true);
-    when(profileFacade.findLearningGoalForDiscovery(goalId)).thenReturn(Optional.of(
-        new LearningGoalDiscoveryDto(goalId, UUID.randomUUID(), userId, 1, 2, "ONLINE", "Hanoi",
-            100_000L, 300_000L, "ACTIVE", profile.availabilitySlots())
-    ));
-    List<TutorDiscoveryProfileDto> candidates = java.util.stream.IntStream.range(0, 6)
-        .mapToObj(index -> new TutorDiscoveryProfileDto(
-            new TutorSummaryDto(UUID.randomUUID(), UUID.randomUUID(), "Tutor " + index,
-                "Math", "Bio", "ONLINE", "Hanoi", 200_000L, (short) 5,
-                "Practice", "VERIFIED", Instant.parse("2025-01-01T00:00:00Z"), BigDecimal.valueOf(5), 10),
-            profile.subjects(), profile.availabilitySlots(), profile.registeredAt()
-        )).toList();
-    when(profileFacade.findVerifiedCandidatesBySubject(any())).thenReturn(candidates);
-    when(explanationService.explainMatches(eq(userId), any(), any(), any()))
-        .thenReturn(java.util.Collections.nCopies(5,
-            new MatchExplanationService.Explanation("Grounded explanation", true)));
-
-    mvc.perform(post("/api/v1/discovery/match").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"goalId\":\"" + goalId + "\"}"))
+  void fitEndpointReturnsLabelsForOneTutor() throws Exception {
+    loggedInStudent();
+    when(profileFacade.findVerifiedTutorDetail(profile.tutor().tutorId())).thenReturn(Optional.of(profile));
+    mvc(mock(MatchExplanationService.class))
+        .perform(get("/api/v1/discovery/needs/{needId}/tutors/{tutorId}/fit", needId, profile.tutor().tutorId()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data.length()").value(5))
-        .andExpect(jsonPath("$.data[0].matchScore").value(100))
-        .andExpect(jsonPath("$.data[0].scoreBreakdown.scheduleFit").value(100))
-        .andExpect(jsonPath("$.data[0].scoreBreakdown.ratingFit").value(100))
-        .andExpect(jsonPath("$.data[0].scoreBreakdown.budgetFit").value(100))
-        .andExpect(jsonPath("$.data[0].scoreBreakdown.subjectFit").value(100))
-        .andExpect(jsonPath("$.data[0].scoreBreakdown.levelFit").value(100))
-        .andExpect(jsonPath("$.data[0].scoreBreakdown.overlappingSlots").value(1))
-        .andExpect(jsonPath("$.data[0].explanation").value("Grounded explanation"))
-        .andExpect(jsonPath("$.data[0].aiGenerated").value(true))
-        .andExpect(jsonPath("$.data[0].tutorInfo.verified").value(true))
-        .andExpect(jsonPath("$.data[0].tutorInfo.userId").doesNotExist())
-        .andExpect(jsonPath("$.data[1].aiGenerated").value(true));
-  }
-
-  @ParameterizedTest
-  @ValueSource(ints = {0, 11})
-  void matchRejectsInvalidTopNBeforeCallingApplication(int topN) throws Exception {
-    mvc.perform(post("/api/v1/discovery/match").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"goalId\":\"" + UUID.randomUUID() + "\",\"topN\":" + topN + "}"))
-        .andExpect(status().isBadRequest());
-    verifyNoInteractions(profileFacade, logRepository, explanationService, currentUserProvider);
+        .andExpect(jsonPath("$.data.fit.offeringName").value("Toán"))
+        .andExpect(jsonPath("$.data.fit.checks.length()").value(6));
   }
 
   @Test
-  void searchRejectsInvalidPriceRange() throws Exception {
-    mvc.perform(get("/api/v1/discovery/tutors").param("minPrice", "300000").param("maxPrice", "100000"))
-        .andExpect(status().isBadRequest());
-    verifyNoInteractions(profileFacade);
+  void invalidSortParametersAreRejected() throws Exception {
+    var invalid = org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class, () ->
+        mvc(mock(MatchExplanationService.class)).perform(get("/api/v1/discovery/tutors").param("sortBy", "distance")));
+    org.junit.jupiter.api.Assertions.assertInstanceOf(
+        vn.edufit.shared.exception.InvalidOperationException.class, invalid.getCause());
   }
 }

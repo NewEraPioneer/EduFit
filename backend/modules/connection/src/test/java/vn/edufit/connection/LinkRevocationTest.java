@@ -36,7 +36,7 @@ class LinkRevocationTest {
   @BeforeEach void setup() {
     row=new ParentStudentLink(parent,student,now.minusSeconds(60));
     when(rows.findById(id)).thenReturn(Optional.of(row));when(rows.lockById(id)).thenReturn(Optional.of(row));
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student,studentUser,4,null,true)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
     service=new ParentStudentLinkService(rows,profile,lock,audit,events,iam,Clock.fixed(now,ZoneOffset.UTC));
   }
   private CurrentUser actor(UUID user,String role) {

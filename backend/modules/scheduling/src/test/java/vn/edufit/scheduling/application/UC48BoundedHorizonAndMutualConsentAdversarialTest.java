@@ -138,17 +138,13 @@ class UC48BoundedHorizonAndMutualConsentAdversarialTest {
         .thenReturn(Optional.of(new ActiveClassInfo(classId, studentId, tutorId, UUID.randomUUID())));
 
     // Profile mock bindings
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorId, tutorUserId, "Thầy Hoàng", null, null, null, null, null, null, null, "VERIFIED", fixedNow, null, 0
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorId, tutorUserId, "Thầy Hoàng", null, null, null, null, false, null, null, null, null, "VERIFIED", fixedNow, null, 0);
     lenient().when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
     lenient().when(profileFacade.findTutorByUserId(studentUserId)).thenReturn(Optional.empty());
     lenient().when(profileFacade.findTutorByUserId(parentUserId)).thenReturn(Optional.empty());
     lenient().when(profileFacade.findTutorByUserId(strangerUserId)).thenReturn(Optional.empty());
 
-    StudentSummaryDto studentDto = new StudentSummaryDto(
-        studentId, studentUserId, 1, "Hà Nội", true
-    );
+    StudentSummaryDto studentDto = new StudentSummaryDto(studentId, studentUserId, 1, null, null, true);
     lenient().when(profileFacade.findStudentByUserId(studentUserId)).thenReturn(Optional.of(studentDto));
     lenient().when(profileFacade.findStudentByUserId(tutorUserId)).thenReturn(Optional.empty());
     lenient().when(profileFacade.findStudentByUserId(parentUserId)).thenReturn(Optional.empty());

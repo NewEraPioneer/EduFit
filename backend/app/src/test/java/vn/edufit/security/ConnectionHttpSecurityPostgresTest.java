@@ -88,7 +88,7 @@ class ConnectionHttpSecurityPostgresTest {
     jdbc.update("insert into education_level(level_id, name, sort_order) values(1, 'Grade 10', 1)");
     jdbc.update("insert into subject(subject_id, name) values(1, 'Math')");
     jdbc.update("insert into student_profile(student_id, user_id, education_level_id) values (?, ?, 1)", studentId, studentUser);
-    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, price_per_session, status) values (?, ?, 'Tutor Pro', 'ONLINE', 150000, 'VERIFIED')", tutorId, tutorUser);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor Pro', 'ONLINE', 'VERIFIED')", tutorId, tutorUser);
   }
 
   // --- Helpers ---
@@ -277,10 +277,10 @@ class ConnectionHttpSecurityPostgresTest {
     UUID goalId = UUID.randomUUID();
     Instant now = Instant.now();
 
-    jdbc.update("insert into learning_goal(goal_id, student_id, subject_id, current_level, desired_level, goal_type, deadline, mode, budget_max, status) " +
+    jdbc.update("insert into learning_goal(need_id, student_id, subject_id, current_level, desired_level, goal_type, deadline, mode, budget_max, status) " +
         "values (?, ?, 1, 1, 2, 'EXAM_PREPARATION', current_date + 30, 'ONLINE', 200000, 'ACTIVE')", goalId, studentId);
 
-    jdbc.update("insert into connection_request(request_id, student_id, tutor_id, goal_id, sent_by_user_id, desired_slots, message, status, expires_at) " +
+    jdbc.update("insert into connection_request(request_id, student_id, tutor_id, need_id, sent_by_user_id, desired_slots, message, status, expires_at) " +
         "values (?, ?, ?, ?, ?, cast(? as jsonb), 'Please help with Math', 'PENDING', ?)",
         reqId, studentId, tutorId, goalId, studentUser, "[\"Tue 19:00\"]", java.sql.Timestamp.from(now.plusSeconds(86400)));
 

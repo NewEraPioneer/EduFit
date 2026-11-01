@@ -5,9 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,14 +15,9 @@ import vn.edufit.ai.api.AiGateway;
 import vn.edufit.ai.api.AiRequest;
 import vn.edufit.ai.api.AiResponse;
 import vn.edufit.ai.api.AiUsageQuery;
-import vn.edufit.profile.infra.persistence.entity.EducationLevel;
-import vn.edufit.profile.infra.persistence.entity.Subject;
+import vn.edufit.profile.api.dto.CatalogRef;
 import vn.edufit.profile.infra.persistence.entity.TutorProfile;
-import vn.edufit.profile.infra.persistence.entity.TutorSubject;
-import vn.edufit.profile.infra.persistence.repository.EducationLevelRepository;
-import vn.edufit.profile.infra.persistence.repository.SubjectRepository;
 import vn.edufit.profile.infra.persistence.repository.TutorProfileRepository;
-import vn.edufit.profile.infra.persistence.repository.TutorSubjectRepository;
 import vn.edufit.profile.web.request.GenerateTutorBioRequest;
 import vn.edufit.profile.web.response.GenerateTutorBioResponse;
 import vn.edufit.shared.auth.CurrentUser;
@@ -60,24 +53,18 @@ public class TutorBioService {
   private final AiGateway aiGateway;
   private final AiUsageQuery aiUsageQuery;
   private final TutorProfileRepository tutorProfileRepository;
-  private final TutorSubjectRepository tutorSubjectRepository;
-  private final SubjectRepository subjectRepository;
-  private final EducationLevelRepository educationLevelRepository;
+  private final TutorProfileAssembler tutorProfileAssembler;
 
   public TutorBioService(
       AiGateway aiGateway,
       AiUsageQuery aiUsageQuery,
       TutorProfileRepository tutorProfileRepository,
-      TutorSubjectRepository tutorSubjectRepository,
-      SubjectRepository subjectRepository,
-      EducationLevelRepository educationLevelRepository
+      TutorProfileAssembler tutorProfileAssembler
   ) {
     this.aiGateway = aiGateway;
     this.aiUsageQuery = aiUsageQuery;
     this.tutorProfileRepository = tutorProfileRepository;
-    this.tutorSubjectRepository = tutorSubjectRepository;
-    this.subjectRepository = subjectRepository;
-    this.educationLevelRepository = educationLevelRepository;
+    this.tutorProfileAssembler = tutorProfileAssembler;
   }
 
   @Transactional(readOnly = true)
@@ -177,14 +164,14 @@ public class TutorBioService {
 
     // Nếu request chưa có môn/cấp học, nạp từ cơ sở dữ liệu
     if (subjects.isEmpty() && profileOpt.isPresent()) {
-      List<TutorSubject> tutorSubjects = tutorSubjectRepository.findByTutorId(profileOpt.get().getTutorId());
-      if (!tutorSubjects.isEmpty()) {
-        Set<Integer> subIds = tutorSubjects.stream().map(TutorSubject::getSubjectId).collect(Collectors.toSet());
-        Set<Integer> lvlIds = tutorSubjects.stream().map(TutorSubject::getEducationLevelId).collect(Collectors.toSet());
-
-        subjects = subjectRepository.findAllById(subIds).stream().map(Subject::getName).toList();
-        educationLevels = educationLevelRepository.findAllById(lvlIds).stream().map(EducationLevel::getName).toList();
-      }
+      var offerings = tutorProfileAssembler.offeringsOf(profileOpt.get().getTutorId());
+      subjects = offerings.stream()
+          .map(offering -> offering.trackName() == null
+              ? offering.subjectName() : offering.subjectName() + " (" + offering.trackName() + ")")
+          .distinct().toList();
+      educationLevels = offerings.stream()
+          .flatMap(offering -> offering.levels().stream())
+          .map(CatalogRef::name).distinct().toList();
     }
 
     String tone = request != null ? request.resolvedTone() : "friendly";

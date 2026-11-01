@@ -49,7 +49,7 @@ import vn.edufit.iam.api.AccountStatus;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.iam.api.dto.UserSummaryView;
 import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
+import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.shared.auth.CurrentUser;
 
 @ExtendWith(MockitoExtension.class)
@@ -69,6 +69,10 @@ class TutorInboxAdversarialChallengeTest {
   @BeforeEach
   void setUp() {
     queryService = new ConnectionQueryService(invitations, links, requests, classes, profile, iam, facade, ConnectionTestDefaults.expiryMock(), new SlotConflictDetector(), scheduleConflictChecker, ConnectionTestDefaults.noScheduledSessions(), Clock.systemUTC());
+    lenient().when(profile.findTutorById(any())).thenAnswer(invocation ->
+        java.util.Optional.of(ConnectionTestFixtures.tutorSummary(invocation.getArgument(0))));
+    lenient().when(profile.findVerifiedTutorDetail(any())).thenAnswer(invocation ->
+        java.util.Optional.of(ConnectionTestFixtures.tutorProfile(invocation.getArgument(0))));
   }
 
   private CurrentUser createTutorActor(UUID userId) {
@@ -111,28 +115,7 @@ class TutorInboxAdversarialChallengeTest {
     UUID tutorId = UUID.randomUUID();
     CurrentUser actor = createTutorActor(tutorId);
 
-    TutorInboxResult resultItem = new TutorInboxResult(
-        UUID.randomUUID(),
-        "EXAM",
-        1,
-        4,
-        List.of("MONDAY 18:00-19:00"),
-        "Xin chào thầy",
-        "STUDENT",
-        "PENDING",
-        Instant.parse("2026-10-18T03:00:00Z"),
-        LocalDate.of(2027, 5, 1),
-        "Nguyễn Minh",
-        8,
-        10,
-        200000L,
-        400000L,
-        "Quận Cầu Giấy, Hà Nội",
-        "Toán học",
-        "Lớp 10",
-        false,
-        List.of()
-    );
+    TutorInboxResult resultItem = new TutorInboxResult(UUID.randomUUID(), List.of("MONDAY 18:00-19:00"), "Xin chào thầy", "STUDENT", "PENDING", Instant.parse("2026-10-18T03:00:00Z"), "Nguyễn Minh", ConnectionTestFixtures.needNamed(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Toán học", "Lớp 10"), "Toán", List.of(), false, List.of());
 
     ConnectionQueryService mockQueries = mock(ConnectionQueryService.class);
     when(mockQueries.tutorInbox(actor)).thenReturn(List.of(resultItem));
@@ -154,8 +137,8 @@ class TutorInboxAdversarialChallengeTest {
     MvcResult mvcResult = mvc.perform(get("/api/v1/connections/requests"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data[0].studentDisplayName").value("Nguyễn Minh"))
-        .andExpect(jsonPath("$.data[0].district").value("Quận Cầu Giấy"))
-        .andExpect(jsonPath("$.data[0].city").value("Hà Nội"))
+        .andExpect(jsonPath("$.data[0].need.districtName").value("Cầu Giấy"))
+        .andExpect(jsonPath("$.data[0].need.provinceName").value("Hà Nội"))
         .andExpect(jsonPath("$.data[0].phone").doesNotExist())
         .andExpect(jsonPath("$.data[0].email").doesNotExist())
         .andExpect(jsonPath("$.data[0].password").doesNotExist())
@@ -193,7 +176,7 @@ class TutorInboxAdversarialChallengeTest {
         List.of("MONDAY 18:00-20:00"), null, Instant.now()
     );
     ReflectionTestUtils.setField(activeReq, "id", activeReqId);
-    TutoringClass activeClass = new TutoringClass(activeReq, Instant.now());
+    TutoringClass activeClass = new TutoringClass(activeReq, 200000L, Instant.now());
     when(classes.findByTutorIdAndStatus(tutorId, "ACTIVE")).thenReturn(List.of(activeClass));
     when(requests.findAllById(List.of(activeReqId))).thenReturn(List.of(activeReq));
 
@@ -230,15 +213,11 @@ class TutorInboxAdversarialChallengeTest {
 
     when(requests.findByTutorIdOrderByCreatedAtDesc(tutorId)).thenReturn(List.of(r1, r2, r3, r4));
 
-    when(profile.findGoalsForConnection(anyList())).thenReturn(Map.of(
-        goal1, new ConnectionGoalDto(goal1, UUID.randomUUID(), sender1, 1, 4, "EXAM", LocalDate.of(2027, 1, 1), "ACTIVE",
-            8, 10, 100000L, 200000L, "Quận 1, TP HCM", "Toán", "Lớp 10"),
-        goal2, new ConnectionGoalDto(goal2, UUID.randomUUID(), sender2, 1, 4, "EXAM", LocalDate.of(2027, 1, 1), "ACTIVE",
-            8, 10, 100000L, 200000L, "Quận 1, TP HCM", "Toán", "Lớp 10"),
-        goal3, new ConnectionGoalDto(goal3, UUID.randomUUID(), sender3, 1, 4, "EXAM", LocalDate.of(2027, 1, 1), "ACTIVE",
-            8, 10, 100000L, 200000L, "Quận 1, TP HCM", "Toán", "Lớp 10"),
-        goal4, new ConnectionGoalDto(goal4, UUID.randomUUID(), sender4, 1, 4, "EXAM", LocalDate.of(2027, 1, 1), "ACTIVE",
-            8, 10, 100000L, 200000L, "Quận 1, TP HCM", "Toán", "Lớp 10")
+    when(profile.findLearningNeeds(anyList())).thenReturn(Map.of(
+        goal1, ConnectionTestFixtures.needNamed(goal1, UUID.randomUUID(), sender1, "Toán", "Lớp 10"),
+        goal2, ConnectionTestFixtures.needNamed(goal2, UUID.randomUUID(), sender2, "Toán", "Lớp 10"),
+        goal3, ConnectionTestFixtures.needNamed(goal3, UUID.randomUUID(), sender3, "Toán", "Lớp 10"),
+        goal4, ConnectionTestFixtures.needNamed(goal4, UUID.randomUUID(), sender4, "Toán", "Lớp 10")
     ));
 
     when(iam.findUserSummariesByIds(anyList())).thenReturn(Map.of(
@@ -285,19 +264,16 @@ class TutorInboxAdversarialChallengeTest {
 
     UUID parentUserId = UUID.randomUUID();
     UUID studentUserId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID();
+    UUID needId = UUID.randomUUID();
 
     ConnectionRequest request = new ConnectionRequest(
-        UUID.randomUUID(), tutorId, goalId, parentUserId,
+        UUID.randomUUID(), tutorId, needId, parentUserId,
         List.of("MONDAY 18:00-19:00"), "Tìm gia sư cho con", Instant.now().plusSeconds(3600)
     );
     when(requests.findByTutorIdOrderByCreatedAtDesc(tutorId)).thenReturn(List.of(request));
 
-    ConnectionGoalDto goal = new ConnectionGoalDto(
-        goalId, UUID.randomUUID(), studentUserId, 1, 4, "EXAM", LocalDate.of(2027, 1, 1), "ACTIVE",
-        8, 10, 200000L, 400000L, "Quận 1, TP HCM", "Toán", "Lớp 10"
-    );
-    when(profile.findGoalsForConnection(List.of(goalId))).thenReturn(Map.of(goalId, goal));
+    LearningNeedView goal = ConnectionTestFixtures.needNamed(needId, UUID.randomUUID(), studentUserId, "Toán", "Lớp 10");
+    when(profile.findLearningNeeds(List.of(needId))).thenReturn(Map.of(needId, goal));
 
     // When iam.findUserSummariesByIds is called with whatever ConnectionQueryService requests:
     when(iam.findUserSummariesByIds(argThat(list -> list.contains(parentUserId))))

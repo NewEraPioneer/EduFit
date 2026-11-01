@@ -87,7 +87,7 @@ class TutorVerificationControllerTest {
 
     SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "ĐH Bách Khoa", (short) 2024, "Bằng cử nhân", List.of(0)
+            Credential.Type.DEGREE, "ĐH Bách Khoa", (short) 2024, "Bằng cử nhân", List.of(0), null
         )
     ));
     List<MultipartFile> files = List.of(

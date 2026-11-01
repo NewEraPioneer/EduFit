@@ -9,7 +9,7 @@ public record TutoringClassResponse(
     UUID classId,
     UUID studentId,
     UUID tutorId,
-    UUID goalId,
+    UUID needId,
     String status,
     @JsonInclude(JsonInclude.Include.NON_NULL) String studentDisplayName,
     @JsonInclude(JsonInclude.Include.NON_NULL) String tutorDisplayName,
@@ -27,7 +27,7 @@ public record TutoringClassResponse(
       UUID classId,
       UUID studentId,
       UUID tutorId,
-      UUID goalId,
+      UUID needId,
       String status,
       String studentDisplayName,
       String tutorDisplayName,
@@ -38,7 +38,7 @@ public record TutoringClassResponse(
       Instant startedAt,
       Instant endedAt
   ) {
-    this(classId, studentId, tutorId, goalId, status, studentDisplayName, tutorDisplayName,
+    this(classId, studentId, tutorId, needId, status, studentDisplayName, tutorDisplayName,
         subjectName, educationLevelName, scheduleStatus, sessionCount, sessionCount, 0, sessionCount, startedAt, endedAt);
   }
 
@@ -47,7 +47,7 @@ public record TutoringClassResponse(
         r.classId(),
         r.studentId(),
         r.tutorId(),
-        r.goalId(),
+        r.needId(),
         r.status(),
         r.studentDisplayName(),
         r.tutorDisplayName(),

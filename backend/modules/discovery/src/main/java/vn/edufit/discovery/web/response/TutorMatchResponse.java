@@ -7,7 +7,6 @@ import vn.edufit.discovery.application.dto.TutorMatchResult;
 public record TutorMatchResponse(
     UUID tutorId,
     BigDecimal matchScore,
-    MatchScoreBreakdownResponse scoreBreakdown,
     String explanation,
     boolean aiGenerated,
     TutorDiscoveryCardResponse tutorInfo
@@ -16,12 +15,8 @@ public record TutorMatchResponse(
   public static TutorMatchResponse from(TutorMatchResult result) {
     var score = result.score();
     return new TutorMatchResponse(
-        score.tutorId(), score.total(),
-        new MatchScoreBreakdownResponse(
-            score.scheduleFit(), score.ratingFit(), score.budgetFit(), score.overlappingSlots(),
-            score.subjectFit(), score.levelFit()
-        ),
-        result.explanation(), result.aiGenerated(), TutorDiscoveryCardResponse.from(result.profile())
+        score.tutorId(), score.total(), result.explanation(), result.aiGenerated(),
+        TutorDiscoveryCardResponse.from(result.profile(), FitResponse.from(score))
     );
   }
 }

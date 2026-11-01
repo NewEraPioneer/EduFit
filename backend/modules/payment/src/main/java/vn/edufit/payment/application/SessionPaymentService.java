@@ -61,7 +61,7 @@ public class SessionPaymentService {
               profiles
                   .findTutorById(source.tutorId())
                   .orElseThrow(() -> new InvalidOperationException("Không tìm thấy gia sư"));
-          if (tutor.pricePerSession() == null || tutor.pricePerSession() != expectedAmount)
+          if (classPrice(source.classId()) != expectedAmount)
             throw new InvalidOperationException(
                 "Đơn giá đã thay đổi, hãy tải lại và kiểm tra học phí");
           if (actor.getUserId().equals(tutor.userId()))
@@ -225,7 +225,7 @@ public class SessionPaymentService {
                   source.status(),
                   source.startAt(),
                   source.endAt(),
-                  tutor.pricePerSession() == null ? 0 : tutor.pricePerSession(),
+                  cls.pricePerSession(),
                   1000,
                   null,
                   "UNFUNDED",
@@ -275,7 +275,7 @@ public class SessionPaymentService {
         src.status(),
         src.startAt(),
         src.endAt(),
-        tutor.pricePerSession() == null ? 0 : tutor.pricePerSession(),
+        classPrice(src.classId()),
         1000,
         null,
         "UNFUNDED",
@@ -417,6 +417,13 @@ public class SessionPaymentService {
       store.audit(actor.getUserId(), id, "ADMIN_RESOLVED", "VND=" + amount + "; " + note);
       return view(c, src, actor);
     });
+  }
+
+  /** Học phí mỗi buổi được chốt trên lớp khi gia sư nhận yêu cầu kết nối. */
+  private long classPrice(UUID classId) {
+    return connections.findClassById(classId)
+        .map(ConnectionFacade.ClassDetailView::pricePerSession)
+        .orElseThrow(() -> new InvalidOperationException("Không tìm thấy lớp học của buổi này"));
   }
 
   private SessionSummaryView source(UUID id) {

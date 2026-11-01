@@ -53,9 +53,7 @@ class SessionNoteServiceTest {
     when(actor.hasRole("TUTOR")).thenReturn(true);
     when(actor.getUserId()).thenReturn(userId);
 
-    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(
-        classId, studentId, tutorId, UUID.randomUUID(), "ACTIVE", Instant.now(), null
-    );
+    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(classId, studentId, tutorId, UUID.randomUUID(), "ACTIVE", Instant.now(), null, 200000L);
     when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(cls));
     when(profileFacade.getTutorIdByUserId(userId)).thenReturn(tutorId);
 
@@ -94,9 +92,7 @@ class SessionNoteServiceTest {
     when(actor.hasRole("STUDENT")).thenReturn(false);
     when(actor.hasRole("PARENT")).thenReturn(false);
 
-    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(
-        classId, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "ACTIVE", Instant.now(), null
-    );
+    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(classId, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "ACTIVE", Instant.now(), null, 200000L);
     when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(cls));
 
     assertThatThrownBy(() -> sessionNoteService.getClassNotesTimeline(actor, classId, null, null, 0, 10))

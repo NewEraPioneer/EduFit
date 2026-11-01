@@ -21,7 +21,7 @@ import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.iam.api.dto.UserSummaryView;
 import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
+import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.progress.application.dto.ProgressViews.ClassSelectorItemView;
@@ -108,17 +108,14 @@ public class ProgressDashboardService {
     Map<UUID, LearningPlan> planMap = planRepository.findByClassIdIn(classIds).stream()
         .collect(Collectors.toMap(LearningPlan::getClassId, p -> p));
 
-    List<UUID> goalIds = classes.stream().map(ConnectionFacade.ClassDetailView::goalId).filter(java.util.Objects::nonNull).toList();
-    Map<UUID, ConnectionGoalDto> goalMap = profileFacade.findGoalsForConnection(goalIds);
+    List<UUID> needIds = classes.stream().map(ConnectionFacade.ClassDetailView::needId).filter(java.util.Objects::nonNull).toList();
+    Map<UUID, LearningNeedView> goalMap = profileFacade.findLearningNeeds(needIds);
 
     List<ClassSelectorItemView> selectorItems = new ArrayList<>();
     for (ConnectionFacade.ClassDetailView c : classes) {
       LearningPlan p = planMap.get(c.classId());
       Integer prog = p != null ? p.calculateProgressPercentage() : null;
-      ConnectionGoalDto g = goalMap.get(c.goalId());
-      String title = (g != null && g.goalType() != null)
-          ? "Mục tiêu " + g.goalType()
-          : "Lớp học";
+      String title = needTitle(goalMap.get(c.needId()), "Lớp học");
       selectorItems.add(new ClassSelectorItemView(c.classId(), title, c.status(), prog));
     }
 
@@ -155,10 +152,7 @@ public class ProgressDashboardService {
     }
 
     // Tiêu đề mục tiêu
-    ConnectionGoalDto goal = goalMap.get(selectedClass.goalId());
-    String goalTitle = (goal != null && goal.goalType() != null)
-        ? "Mục tiêu " + goal.goalType()
-        : "Mục tiêu học tập";
+    String goalTitle = needTitle(goalMap.get(selectedClass.needId()), "Mục tiêu học tập");
 
     // Session stats từ Scheduling
     Map<UUID, ClassSessionStatsView> statsMap = sessionFacade.getSessionStatsByClassIds(List.of(classId), null, null);
@@ -194,7 +188,7 @@ public class ProgressDashboardService {
         classId,
         selectedClass.tutorId(),
         tutorName,
-        selectedClass.goalId(),
+        selectedClass.needId(),
         goalTitle,
         plan != null ? plan.calculateProgressPercentage() : null,
         plan != null ? PlanDetailView.from(plan) : null,
@@ -288,18 +282,15 @@ public class ProgressDashboardService {
     Map<UUID, LearningPlan> planMap = planRepository.findByClassIdIn(pagedClassIds).stream()
         .collect(Collectors.toMap(LearningPlan::getClassId, p -> p));
 
-    List<UUID> pagedGoalIds = pagedClasses.stream().map(ConnectionFacade.ClassDetailView::goalId).filter(java.util.Objects::nonNull).toList();
-    Map<UUID, ConnectionGoalDto> goalMap = profileFacade.findGoalsForConnection(pagedGoalIds);
+    List<UUID> pagedNeedIds = pagedClasses.stream().map(ConnectionFacade.ClassDetailView::needId).filter(java.util.Objects::nonNull).toList();
+    Map<UUID, LearningNeedView> goalMap = profileFacade.findLearningNeeds(pagedNeedIds);
 
     List<TeachingHistoryItemView> items = new ArrayList<>();
     for (ConnectionFacade.ClassDetailView c : pagedClasses) {
       StudentSummaryDto student = profileFacade.findStudentById(c.studentId()).orElse(null);
       String studentName = resolveStudentName(student);
 
-      ConnectionGoalDto goal = goalMap.get(c.goalId());
-      String goalTitle = (goal != null && goal.goalType() != null)
-          ? "Mục tiêu " + goal.goalType()
-          : "Mục tiêu";
+      String goalTitle = needTitle(goalMap.get(c.needId()), "Mục tiêu");
 
       LearningPlan p = planMap.get(c.classId());
       Integer progress = p != null ? p.calculateProgressPercentage() : null;
@@ -310,7 +301,7 @@ public class ProgressDashboardService {
           c.classId(),
           c.studentId(),
           studentName,
-          c.goalId(),
+          c.needId(),
           goalTitle,
           c.status(),
           progress,
@@ -406,5 +397,17 @@ public class ProgressDashboardService {
     return iamFacade.findUserSummaryById(student.userId())
         .map(UserSummaryView::fullName)
         .orElse("Học sinh");
+  }
+
+  /** Tiêu đề lớp theo nhu cầu học, ví dụ "Luyện thi vào 10 · Toán · Lớp 9". */
+  private static String needTitle(LearningNeedView need, String fallback) {
+    if (need == null || need.goalTagName() == null) {
+      return fallback;
+    }
+    var parts = new java.util.ArrayList<String>();
+    parts.add(need.goalTagName());
+    if (need.subjectName() != null) parts.add(need.subjectName());
+    if (need.educationLevelName() != null) parts.add(need.educationLevelName());
+    return String.join(" · ", parts);
   }
 }

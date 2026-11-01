@@ -12,18 +12,21 @@ public class TutoringClass {
   @Column(name = "connection_request_id", nullable = false) private UUID connectionRequestId;
   @Column(name = "student_id", nullable = false) private UUID studentId;
   @Column(name = "tutor_id", nullable = false) private UUID tutorId;
-  @Column(name = "goal_id", nullable = false) private UUID goalId;
+  @Column(name = "need_id", nullable = false) private UUID needId;
+  @Column(name = "price_per_session", nullable = false, updatable = false) private Long pricePerSession;
   @Column(name = "status", nullable = false) private String status;
   @Column(name = "started_at", nullable = false) private Instant startedAt;
   @Column(name = "ended_at") private Instant endedAt;
   @Column(name = "end_reason") private String endReason;
 
   protected TutoringClass() {}
-  public TutoringClass(ConnectionRequest request, Instant now) {
+  /** Học phí mỗi buổi được chốt từ gói dạy khi gia sư nhận yêu cầu; thanh toán dùng giá này. */
+  public TutoringClass(ConnectionRequest request, long pricePerSession, Instant now) {
     connectionRequestId = request.getId();
     studentId = request.getStudentId();
     tutorId = request.getTutorId();
-    goalId = request.getGoalId();
+    needId = request.getNeedId();
+    this.pricePerSession = pricePerSession;
     status = "ACTIVE";
     startedAt = now;
   }
@@ -31,7 +34,8 @@ public class TutoringClass {
   public UUID getConnectionRequestId() { return connectionRequestId; }
   public UUID getStudentId() { return studentId; }
   public UUID getTutorId() { return tutorId; }
-  public UUID getGoalId() { return goalId; }
+  public UUID getNeedId() { return needId; }
+  public Long getPricePerSession() { return pricePerSession; }
   public String getStatus() { return status; }
   public Instant getStartedAt() { return startedAt; }
   public Instant getEndedAt() { return endedAt; }
