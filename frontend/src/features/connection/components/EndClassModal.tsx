@@ -89,9 +89,9 @@ export function EndClassModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="end-class-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
     >
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 dark:bg-zinc-900 dark:border-zinc-800">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 dark:bg-zinc-900 dark:border-zinc-800 my-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stone-100 dark:border-zinc-800 px-6 py-4">
           <div className="flex items-center gap-2.5">

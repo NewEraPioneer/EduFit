@@ -137,8 +137,8 @@ export function MatchingNeedModal({ isOpen, currentNeed, onClose, onSave }: Matc
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/50 backdrop-blur-xs">
-      <div role="dialog" aria-modal="true" aria-labelledby="matching-need-title" className="bg-white rounded-3xl max-w-lg w-full border border-stone-200 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/50 backdrop-blur-xs overflow-y-auto">
+      <div role="dialog" aria-modal="true" aria-labelledby="matching-need-title" className="bg-white rounded-3xl max-w-lg w-full border border-stone-200 shadow-2xl overflow-hidden my-auto">
         <div className="px-6 py-5 border-b border-stone-100 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">

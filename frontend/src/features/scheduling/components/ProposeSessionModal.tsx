@@ -168,9 +168,9 @@ export function ProposeSessionModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="propose-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto"
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
           <div className="flex items-center gap-2.5">
