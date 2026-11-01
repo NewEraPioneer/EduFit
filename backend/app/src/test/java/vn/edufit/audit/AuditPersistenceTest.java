@@ -35,7 +35,12 @@ class AuditPersistenceTest {
   @Autowired vn.edufit.connection.application.service.ParentStudentLinkService links;
   @Autowired vn.edufit.profile.api.ProfileFacade profile;
   @Autowired vn.edufit.iam.api.IamFacade iam;
-  private static final UUID ACTOR = UUID.fromString("11111111-1111-1111-1111-111111111111");
+  private static final UUID ACTOR = UUID.randomUUID();
+
+  // Không dựa vào tài khoản demo của profile dev: tự tạo actor cho ràng buộc fk_audit_actor
+  @org.junit.jupiter.api.BeforeEach void ensureActorAccount() {
+    new JdbcTemplate(source).update("insert into account(user_id,email,password_hash,full_name,role) values (?,?,'test-only','Audit actor','ADMIN') on conflict do nothing",ACTOR,ACTOR+"@test.invalid");
+  }
 
   @Test void structuredSnapshotRetainsAccountsReasonAndBusinessTime() {
     UUID target = UUID.randomUUID(); Instant time = Instant.parse("2026-10-11T00:00:00Z");

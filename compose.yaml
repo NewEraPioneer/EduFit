@@ -32,6 +32,7 @@ services:
     build:
       context: ./backend
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-edufit}?options=-c%20timezone=Asia/Ho_Chi_Minh
       DB_USERNAME: ${POSTGRES_USER:-edufit}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-edufit-local-only}

@@ -8,6 +8,9 @@ interface QuickLoginPillsProps {
 }
 
 export function QuickLoginPills({ onSelect }: QuickLoginPillsProps) {
+  // Tài khoản demo chỉ tồn tại khi backend chạy profile dev (db/seed) nên chỉ hiện khi bật cờ dev tương ứng
+  if (process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN !== "true") return null;
+
   const accounts = [
     {
       role: "Học sinh",

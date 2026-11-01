@@ -65,7 +65,7 @@ spring:
   # 4. Quản lý Migration DB tập trung (ADR-002 Decision 3b)
   flyway:
     enabled: true
-    locations: classpath:db/migration # Quét đệ quy toàn bộ thư mục con (iam, scheduling...)
+    locations: classpath:db/migration # Quét đệ quy toàn bộ thư mục con (iam, scheduling...); seed demo chỉ có ở profile dev
     out-of-order: false # Ép thứ tự thời gian nghiêm ngặt, bắt lỗi version đặt sai ngay khi migrate
     validate-on-migrate: true # Kiểm tra checksum, migration đã áp dụng bị sửa -> build fail ngay
     baseline-on-migrate: true # Khởi tạo từ CSDL trắng, không baseline giả lập

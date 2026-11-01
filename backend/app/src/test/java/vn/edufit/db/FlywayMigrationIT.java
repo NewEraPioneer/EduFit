@@ -39,6 +39,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @DisplayName("Kiểm thử tích hợp Flyway Migration trên PostgreSQL thật (Testcontainers)")
 class FlywayMigrationIT {
 
+  /** Chuỗi migration triển khai thật: chỉ schema + danh mục tham chiếu, không có tài khoản demo. */
+  private static final String[] PROD_LOCATIONS = {"classpath:db/migration"};
+
+  /** Chuỗi migration của profile dev: thêm seed demo (V1.09, V1.10, V1.13) từ db/seed. */
+  private static final String[] DEV_LOCATIONS = {"classpath:db/migration", "classpath:db/seed"};
+
   @Container
   @SuppressWarnings("resource")
   static PostgreSQLContainer<?> postgres =
@@ -82,13 +88,13 @@ class FlywayMigrationIT {
     Flyway upgraded =
         Flyway.configure()
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-            .locations("classpath:db/migration")
+            .locations(DEV_LOCATIONS)
             .schemas(schema)
             .outOfOrder(false)
             .validateOnMigrate(true)
             .baselineOnMigrate(false)
             .load();
-    assertEquals(13, upgraded.migrate().migrationsExecuted);
+    assertEquals(14, upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted, "Rerun không thực thi lại migration");
     try (Connection connection =
@@ -128,6 +134,49 @@ class FlywayMigrationIT {
   }
 
   @Test
+  @DisplayName("CSDL triển khai thật (không profile dev) có danh mục tham chiếu nhưng không có tài khoản demo")
+  void productionLocationsMustNotSeedDemoAccounts() throws Exception {
+    String schema = "production_clean";
+    Flyway flyway =
+        Flyway.configure()
+            .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+            .locations(PROD_LOCATIONS)
+            .schemas(schema)
+            .outOfOrder(false)
+            .validateOnMigrate(true)
+            .load();
+
+    assertEquals(20, flyway.migrate().migrationsExecuted, "22 migration cũ - 3 seed demo + V1.23 danh mục");
+
+    try (Connection connection =
+            DriverManager.getConnection(
+                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        Statement statement = connection.createStatement()) {
+      statement.execute("SET search_path TO " + schema);
+      try (ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM account")) {
+        assertTrue(rs.next());
+        assertEquals(0, rs.getInt(1), "Production không được có tài khoản demo dùng mật khẩu công khai");
+      }
+      try (ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM tutor_profile")) {
+        assertTrue(rs.next());
+        assertEquals(0, rs.getInt(1), "Production không được có hồ sơ gia sư với rating giả");
+      }
+      try (ResultSet rs = statement.executeQuery(
+          "SELECT (SELECT COUNT(*) FROM education_level), (SELECT COUNT(*) FROM subject)")) {
+        assertTrue(rs.next());
+        assertEquals(4, rs.getInt(1));
+        assertEquals(6, rs.getInt(2));
+      }
+      // Identity sequence phải vượt các ID chèn tường minh để Admin thêm danh mục mới không trùng khóa
+      statement.executeUpdate("INSERT INTO subject (name) VALUES ('Lịch Sử')");
+      try (ResultSet rs = statement.executeQuery("SELECT subject_id FROM subject WHERE name = 'Lịch Sử'")) {
+        assertTrue(rs.next());
+        assertEquals(7, rs.getInt(1));
+      }
+    }
+  }
+
+  @Test
   @DisplayName(
       "Thực thi Flyway migrate trên CSDL sạch và xác minh bảng account, email_token và các bảng"
           + " SRS")
@@ -138,7 +187,7 @@ class FlywayMigrationIT {
     Flyway flyway =
         Flyway.configure()
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-            .locations("classpath:db/migration")
+            .locations(DEV_LOCATIONS)
             .outOfOrder(false)
             .validateOnMigrate(true)
             .baselineOnMigrate(false)
@@ -150,7 +199,7 @@ class FlywayMigrationIT {
     // 3. Kiểm chứng kết quả thực thi của Flyway
     assertTrue(result.success, "Quá trình migrate của Flyway phải thành công 100%");
     assertEquals(
-        22, result.migrationsExecuted, "Phải thực thi đúng 22 file migration V1.01 -> V1.22");
+        23, result.migrationsExecuted, "Phải thực thi đúng 23 file migration V1.01 -> V1.23 (kể cả seed dev)");
 
     // 4. Kiểm tra trực tiếp các bảng và ràng buộc đã được tạo trong PostgreSQL
     try (Connection connection =
@@ -186,7 +235,7 @@ class FlywayMigrationIT {
               "SELECT COUNT(*) FROM flyway_schema_history WHERE success = true")) {
         assertTrue(rs.next());
         assertEquals(
-            22, rs.getInt(1), "Lịch sử migration phải ghi nhận đúng 22 bản ghi thành công");
+            23, rs.getInt(1), "Lịch sử migration phải ghi nhận đúng 23 bản ghi thành công");
       }
     }
   }
@@ -197,7 +246,7 @@ class FlywayMigrationIT {
     Flyway existing =
         Flyway.configure()
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-            .locations("classpath:db/migration")
+            .locations(DEV_LOCATIONS)
             .schemas(schema)
             .target("1.21")
             .load();
@@ -216,12 +265,12 @@ class FlywayMigrationIT {
     Flyway upgraded =
         Flyway.configure()
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-            .locations("classpath:db/migration")
+            .locations(DEV_LOCATIONS)
             .schemas(schema)
             .outOfOrder(false)
             .validateOnMigrate(true)
             .load();
-    assertEquals(1, upgraded.migrate().migrationsExecuted);
+    assertEquals(2, upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
 
@@ -264,7 +313,7 @@ class FlywayMigrationIT {
   void auditUpgradePreservesExistingRowsAndSupportsStructuredMetadata() throws Exception {
     String schema = "audit_snapshot_upgrade";
     var builder = Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-        .locations("classpath:db/migration").schemas(schema);
+        .locations(DEV_LOCATIONS).schemas(schema);
     assertEquals(13, builder.target("1.13").load().migrate().migrationsExecuted);
     try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         var statement = connection.createStatement()) {
@@ -272,8 +321,8 @@ class FlywayMigrationIT {
       statement.execute("insert into audit_log(actor_user_id,action,target_type,target_id,reason,created_at) values ('11111111-1111-1111-1111-111111111111','LINK_REVOKED','PARENT_STUDENT_LINK','99999999-1111-1111-1111-111111111111','historical reason','2026-10-01T00:00:00Z')");
     }
     var upgraded = Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-        .locations("classpath:db/migration").schemas(schema).load();
-    assertEquals(9, upgraded.migrate().migrationsExecuted);
+        .locations(DEV_LOCATIONS).schemas(schema).load();
+    assertEquals(10, upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
     try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -294,7 +343,7 @@ class FlywayMigrationIT {
     Flyway previous =
         Flyway.configure()
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-            .locations("classpath:db/migration")
+            .locations(DEV_LOCATIONS)
             .schemas(schema)
             .target(MigrationVersion.fromVersion("1.11"))
             .load();
@@ -315,10 +364,10 @@ class FlywayMigrationIT {
     Flyway upgraded =
         Flyway.configure()
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-            .locations("classpath:db/migration")
+            .locations(DEV_LOCATIONS)
             .schemas(schema)
             .load();
-    assertEquals(11, upgraded.migrate().migrationsExecuted);
+    assertEquals(12, upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
     try (var connection =
@@ -351,7 +400,7 @@ class FlywayMigrationIT {
     Flyway previous =
         Flyway.configure()
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-            .locations("classpath:db/migration")
+            .locations(DEV_LOCATIONS)
             .schemas(schema)
             .target(MigrationVersion.fromVersion("1.10"))
             .load();
@@ -422,13 +471,13 @@ class FlywayMigrationIT {
     Flyway upgraded =
         Flyway.configure()
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-            .locations("classpath:db/migration")
+            .locations(DEV_LOCATIONS)
             .schemas(schema)
             .outOfOrder(false)
             .validateOnMigrate(true)
             .baselineOnMigrate(false)
             .load();
-    assertEquals(12, upgraded.migrate().migrationsExecuted, "Phải thực thi đúng 12 migrations: V1.11 -> V1.22");
+    assertEquals(13, upgraded.migrate().migrationsExecuted, "Phải thực thi đúng 13 migrations: V1.11 -> V1.23");
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted, "Rerun phải là no-op");
 

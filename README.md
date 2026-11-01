@@ -31,6 +31,16 @@ PostgreSQL mặc định được mở tại cổng `5433` trên máy host để
 
 Nếu cổng `5433` đang được dự án khác sử dụng, đặt `POSTGRES_PORT=5434` (hoặc cổng trống khác) trong `.env`, rồi chạy `docker compose up -d db`. Backend chạy từ IDE cần nạp cùng `.env`: các biến `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` được dùng làm cấu hình mặc định. Các biến `DB_URL`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`/`DB_USER`, `DB_PASSWORD` vẫn được ưu tiên nếu có. Không xóa volume khi đổi cổng; `POSTGRES_PASSWORD` phải khớp mật khẩu đã khởi tạo trong volume cũ.
 
+## Dữ liệu demo chỉ có ở profile `dev`
+
+Tài khoản demo (`*.demo@edufit.vn`, mật khẩu chung `Password123@`) và hồ sơ gia sư mẫu nằm ở `backend/app/src/main/resources/db/seed` và **chỉ được nạp khi backend chạy profile `dev`**. Chuỗi migration mặc định (`db/migration`) chỉ gồm schema và danh mục tham chiếu, dùng cho môi trường triển khai thật.
+
+- `docker compose up` đã đặt sẵn `SPRING_PROFILES_ACTIVE=dev`.
+- Chạy backend từ IDE/Maven trên máy local: đặt `SPRING_PROFILES_ACTIVE=dev`. Một CSDL local đã từng áp dụng V1.09/V1.10/V1.13 sẽ báo lỗi validate của Flyway nếu khởi động **không** có profile `dev`.
+- Nút điền nhanh tài khoản demo ở trang đăng nhập chỉ hiện khi frontend có `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true` (ví dụ trong `frontend/.env.local`).
+- Đăng nhập Google cần `GOOGLE_CLIENT_ID` (backend) trùng `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (frontend); thiếu cấu hình thì đăng nhập Google bị từ chối.
+- Email đặt lại mật khẩu được gửi qua SMTP (Mailpit tại `http://localhost:8025` khi chạy local); cấu hình bằng `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM`, `FRONTEND_BASE_URL`.
+
 ## Khởi tạo hoặc kiểm tra schema rỗng
 
 PostgreSQL entrypoint tự chạy `database/init/001-create-schema.sql` trong lần khởi động đầu tiên. Script có tính lặp an toàn và có thể chạy lại thủ công.
