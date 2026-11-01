@@ -12,12 +12,8 @@ export interface AuthUser {
 }
 
 export interface OAuthLoginPayload {
-  idToken?: string;
+  idToken: string;
   provider?: string;
-  email?: string;
-  fullName?: string;
-  providerUserId?: string;
-  avatarUrl?: string;
 }
 
 export interface OAuthLoginResult {

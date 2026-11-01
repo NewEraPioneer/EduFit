@@ -3,6 +3,7 @@ package vn.edufit.iam.infra.security;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -18,23 +19,72 @@ import vn.edufit.shared.exception.InvalidOperationException;
 
 class GoogleIdTokenVerifierAdapterTest {
 
+  private static final String CLIENT_ID = "edufit-web-client-id";
+
   private GoogleIdTokenVerifier mockGoogleVerifier;
   private GoogleIdTokenVerifierAdapter adapter;
 
   @BeforeEach
   void setUp() {
     mockGoogleVerifier = mock(GoogleIdTokenVerifier.class);
-    adapter = new GoogleIdTokenVerifierAdapter(mockGoogleVerifier, "test-client-id");
+    adapter = new GoogleIdTokenVerifierAdapter(mockGoogleVerifier, CLIENT_ID);
+  }
+
+  private static GoogleIdToken.Payload verifiedPayload() {
+    GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+    payload.setSubject("google-sub-1001");
+    payload.setEmail("student.verified@gmail.com");
+    payload.setEmailVerified(true);
+    payload.setAudience(CLIENT_ID);
+    return payload;
+  }
+
+  private void stubToken(String rawToken, GoogleIdToken.Payload payload) throws GeneralSecurityException, IOException {
+    GoogleIdToken token = mock(GoogleIdToken.class);
+    when(token.getPayload()).thenReturn(payload);
+    when(mockGoogleVerifier.verify(rawToken)).thenReturn(token);
   }
 
   @Test
-  @DisplayName("Constructor thật và no-arg của Adapter phải khởi tạo thành công không bị thiếu class")
-  void constructors_shouldInstantiateWithoutError() {
-    GoogleIdTokenVerifierAdapter realAdapter = new GoogleIdTokenVerifierAdapter("test-client-id");
-    assertThat(realAdapter).isNotNull();
+  @DisplayName("Thiếu GOOGLE_CLIENT_ID thì từ chối mọi token, không bao giờ xác thực bỏ qua audience")
+  void verify_withoutConfiguredClientId_shouldRejectWithoutCallingGoogle() {
+    GoogleIdTokenVerifierAdapter unconfigured = new GoogleIdTokenVerifierAdapter(mockGoogleVerifier, " ");
 
-    GoogleIdTokenVerifierAdapter defaultAdapter = new GoogleIdTokenVerifierAdapter();
-    assertThat(defaultAdapter).isNotNull();
+    assertThatThrownBy(() -> unconfigured.verify("any.google.token"))
+        .isInstanceOf(InvalidOperationException.class)
+        .satisfies(ex -> assertThat(((InvalidOperationException) ex).getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+    verifyNoInteractions(mockGoogleVerifier);
+  }
+
+  @Test
+  @DisplayName("Constructor dùng bởi Spring phải khởi tạo được cả khi chưa cấu hình client-id")
+  void springConstructor_shouldInstantiate() {
+    assertThat(new GoogleIdTokenVerifierAdapter(CLIENT_ID)).isNotNull();
+    assertThat(new GoogleIdTokenVerifierAdapter("")).isNotNull();
+  }
+
+  @Test
+  @DisplayName("Token cấp cho ứng dụng khác (audience sai) phải bị từ chối")
+  void verify_withForeignAudience_shouldThrowUnauthorized() throws GeneralSecurityException, IOException {
+    GoogleIdToken.Payload payload = verifiedPayload();
+    payload.setAudience("another-app-client-id");
+    stubToken("foreign.token", payload);
+
+    assertThatThrownBy(() -> adapter.verify("foreign.token"))
+        .isInstanceOf(InvalidOperationException.class)
+        .satisfies(ex -> assertThat(((InvalidOperationException) ex).getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+  }
+
+  @Test
+  @DisplayName("Email chưa được Google xác minh thì không được dùng làm danh tính (chống chiếm tài khoản qua liên kết email)")
+  void verify_withUnverifiedEmail_shouldThrowUnauthorized() throws GeneralSecurityException, IOException {
+    GoogleIdToken.Payload payload = verifiedPayload();
+    payload.setEmailVerified(false);
+    stubToken("unverified.token", payload);
+
+    assertThatThrownBy(() -> adapter.verify("unverified.token"))
+        .isInstanceOf(InvalidOperationException.class)
+        .satisfies(ex -> assertThat(((InvalidOperationException) ex).getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
   }
 
   @Test
@@ -63,15 +113,10 @@ class GoogleIdTokenVerifierAdapterTest {
   @Test
   @DisplayName("Khi GoogleIdTokenVerifier xác thực thành công, trích xuất chính xác OAuthUserInfo")
   void verify_withValidToken_shouldReturnOAuthUserInfo() throws GeneralSecurityException, IOException {
-    GoogleIdToken mockToken = mock(GoogleIdToken.class);
-    GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
-    payload.setSubject("google-sub-1001");
-    payload.setEmail("student.verified@gmail.com");
+    GoogleIdToken.Payload payload = verifiedPayload();
     payload.set("name", "Nguyễn Văn Test");
     payload.set("picture", "https://google.com/avatar.jpg");
-
-    when(mockToken.getPayload()).thenReturn(payload);
-    when(mockGoogleVerifier.verify("valid.google.token")).thenReturn(mockToken);
+    stubToken("valid.google.token", payload);
 
     OAuthUserInfo result = adapter.verify("valid.google.token");
 

@@ -35,32 +35,30 @@ public class GoogleIdTokenVerifierAdapter implements GoogleTokenVerifier {
   private final GoogleIdTokenVerifier verifier;
   private final String configuredClientId;
 
-  public GoogleIdTokenVerifierAdapter() {
-    this("");
-  }
-
   @Autowired
   public GoogleIdTokenVerifierAdapter(
       @Value("${edufit.oauth.google.client-id:}") String configuredClientId
   ) {
-    this.configuredClientId = configuredClientId != null ? configuredClientId.trim() : "";
-
-    GoogleIdTokenVerifier.Builder builder = new GoogleIdTokenVerifier.Builder(
-        new NetHttpTransport(),
-        GsonFactory.getDefaultInstance()
-    );
-
-    if (!this.configuredClientId.isEmpty()) {
-      builder.setAudience(Collections.singletonList(this.configuredClientId));
-    }
-
-    this.verifier = builder.build();
+    this(buildVerifier(normalize(configuredClientId)), configuredClientId);
   }
 
-  // Constructor hỗ trợ Dependency Injection cho Unit Tests
+  /** Nhận verifier đã dựng sẵn; luật audience/email vẫn được kiểm tra lại trong {@link #verify}. */
   GoogleIdTokenVerifierAdapter(GoogleIdTokenVerifier verifier, String configuredClientId) {
     this.verifier = verifier;
-    this.configuredClientId = configuredClientId;
+    this.configuredClientId = normalize(configuredClientId);
+    if (this.configuredClientId.isEmpty()) {
+      log.warn("Chưa cấu hình edufit.oauth.google.client-id: đăng nhập Google bị vô hiệu hóa");
+    }
+  }
+
+  private static String normalize(String clientId) {
+    return clientId != null ? clientId.trim() : "";
+  }
+
+  private static GoogleIdTokenVerifier buildVerifier(String clientId) {
+    return new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
+        .setAudience(Collections.singletonList(clientId))
+        .build();
   }
 
   @Override
@@ -69,6 +67,12 @@ public class GoogleIdTokenVerifierAdapter implements GoogleTokenVerifier {
       throw new InvalidOperationException(
           ErrorCode.VALIDATION_FAILED,
           "Google ID Token không được để trống"
+      );
+    }
+    if (configuredClientId.isEmpty()) {
+      throw new InvalidOperationException(
+          ErrorCode.UNAUTHORIZED,
+          "Đăng nhập Google chưa được cấu hình trên hệ thống"
       );
     }
 
@@ -82,6 +86,19 @@ public class GoogleIdTokenVerifierAdapter implements GoogleTokenVerifier {
       }
 
       GoogleIdToken.Payload payload = idToken.getPayload();
+      if (payload.getAudienceAsList() == null || !payload.getAudienceAsList().contains(configuredClientId)) {
+        throw new InvalidOperationException(
+            ErrorCode.UNAUTHORIZED,
+            "Google ID Token không được cấp cho ứng dụng EduFit"
+        );
+      }
+      if (!Boolean.TRUE.equals(payload.getEmailVerified())) {
+        throw new InvalidOperationException(
+            ErrorCode.UNAUTHORIZED,
+            "Email của tài khoản Google chưa được xác minh"
+        );
+      }
+
       String sub = payload.getSubject();
       String email = payload.getEmail();
       String name = (String) payload.get("name");

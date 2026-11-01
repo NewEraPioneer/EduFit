@@ -142,28 +142,14 @@ public class GoogleOAuthService {
   }
 
   private OAuthUserInfo extractUserInfo(OAuthLoginRequest request) {
-    String provider = request.getEffectiveProvider();
-
-    // Trường hợp 1: Có Google ID Token -> Xác thực chữ ký số mật mã học qua GoogleTokenVerifier
-    if (request.idToken() != null && !request.idToken().isBlank()) {
-      return tokenVerifier.verify(request.idToken().trim());
+    // Danh tính chỉ đến từ Google ID Token đã xác thực chữ ký số qua GoogleTokenVerifier
+    if (request.idToken() == null || request.idToken().isBlank()) {
+      throw new InvalidOperationException(
+          ErrorCode.VALIDATION_FAILED,
+          "Yêu cầu đăng nhập Google cần cung cấp idToken hợp lệ"
+      );
     }
-
-    // Trường hợp 2: Thông tin cung cấp trực tiếp (chế độ dev / fallback / mock)
-    if (request.email() != null && !request.email().isBlank()) {
-      String sub = request.providerUserId() != null && !request.providerUserId().isBlank()
-          ? request.providerUserId()
-          : "google-user-" + Math.abs(request.email().hashCode());
-      String fullName = request.fullName() != null && !request.fullName().isBlank()
-          ? request.fullName()
-          : "Người dùng Google";
-      return new OAuthUserInfo(provider, sub, request.email(), fullName, request.avatarUrl());
-    }
-
-    throw new InvalidOperationException(
-        ErrorCode.VALIDATION_FAILED,
-        "Yêu cầu đăng nhập Google cần cung cấp idToken hoặc thông tin định danh hợp lệ"
-    );
+    return tokenVerifier.verify(request.idToken().trim());
   }
 }
 

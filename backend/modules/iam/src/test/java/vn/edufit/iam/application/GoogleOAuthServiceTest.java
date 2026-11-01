@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,14 +66,14 @@ class GoogleOAuthServiceTest {
   @Test
   @DisplayName("Người dùng mới đăng nhập Google lần đầu phải yêu cầu chọn vai trò (needsRoleSelection = true)")
   void newGoogleUser_shouldRequireRoleSelection() {
-    OAuthLoginRequest request = new OAuthLoginRequest(
-        null,
+    OAuthLoginRequest request = new OAuthLoginRequest("new-user.id.token", "GOOGLE");
+    when(tokenVerifier.verify("new-user.id.token")).thenReturn(new OAuthUserInfo(
         "GOOGLE",
+        "google-sub-12345",
         "newuser@gmail.com",
         "Nguyễn Văn Mới",
-        "google-sub-12345",
         "https://avatar.google.com/newuser.png"
-    );
+    ));
 
     when(userSocialAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sub-12345"))
         .thenReturn(Optional.empty());
@@ -148,14 +149,9 @@ class GoogleOAuthServiceTest {
         .thenReturn(Optional.of(social));
     when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
 
-    OAuthLoginRequest request = new OAuthLoginRequest(
-        null,
-        "GOOGLE",
-        "existing@gmail.com",
-        "Đã Tồn Tại",
-        "sub-existing",
-        null
-    );
+    OAuthLoginRequest request = new OAuthLoginRequest("existing-user.id.token", "GOOGLE");
+    when(tokenVerifier.verify("existing-user.id.token")).thenReturn(new OAuthUserInfo(
+        "GOOGLE", "sub-existing", "existing@gmail.com", "Đã Tồn Tại", null));
 
     OAuthProcessOutcome outcome = googleOAuthService.authenticate(request);
 
@@ -183,14 +179,7 @@ class GoogleOAuthServiceTest {
     when(accountRepository.findByEmail("verified.user@gmail.com"))
         .thenReturn(Optional.empty());
 
-    OAuthLoginRequest request = new OAuthLoginRequest(
-        rawIdToken,
-        "GOOGLE",
-        null,
-        null,
-        null,
-        null
-    );
+    OAuthLoginRequest request = new OAuthLoginRequest(rawIdToken, "GOOGLE");
 
     OAuthProcessOutcome outcome = googleOAuthService.authenticate(request);
 
@@ -201,6 +190,22 @@ class GoogleOAuthServiceTest {
   }
 
   @Test
+  @DisplayName("Thiếu idToken thì phải từ chối, kể cả khi client tự khai email của tài khoản có sẵn")
+  void authenticateWithoutIdToken_shouldRejectSelfAssertedEmail() throws Exception {
+    // Client cố gửi kèm email/sub tự khai; record chỉ nhận idToken + provider nên các field này bị bỏ qua
+    OAuthLoginRequest request = new ObjectMapper().readValue(
+        "{\"provider\":\"GOOGLE\",\"email\":\"admin.demo@edufit.vn\",\"providerUserId\":\"forged-sub\"}",
+        OAuthLoginRequest.class);
+
+    assertThatThrownBy(() -> googleOAuthService.authenticate(request))
+        .isInstanceOf(InvalidOperationException.class)
+        .satisfies(ex -> assertThat(((InvalidOperationException) ex).getErrorCode())
+            .isEqualTo(vn.edufit.shared.exception.ErrorCode.VALIDATION_FAILED));
+
+    verifyNoInteractions(tokenVerifier, accountRepository, userSocialAccountRepository);
+  }
+
+  @Test
   @DisplayName("Khi idToken không hợp lệ hoặc hết hạn, hệ thống ném ngoại lệ và từ chối đăng nhập")
   void authenticateWithInvalidIdToken_shouldThrowUnauthorized() {
     String invalidIdToken = "invalid.token";
@@ -208,14 +213,7 @@ class GoogleOAuthServiceTest {
         new InvalidOperationException(vn.edufit.shared.exception.ErrorCode.UNAUTHORIZED, "Google ID Token không hợp lệ hoặc đã hết hạn")
     );
 
-    OAuthLoginRequest request = new OAuthLoginRequest(
-        invalidIdToken,
-        "GOOGLE",
-        null,
-        null,
-        null,
-        null
-    );
+    OAuthLoginRequest request = new OAuthLoginRequest(invalidIdToken, "GOOGLE");
 
     assertThatThrownBy(() -> googleOAuthService.authenticate(request))
         .isInstanceOf(InvalidOperationException.class)

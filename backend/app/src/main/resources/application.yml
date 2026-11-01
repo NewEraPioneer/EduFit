@@ -72,6 +72,10 @@ spring:
 
 # 5. Cấu hình AI Gateway (platform/ai)
 edufit:
+  mail:
+    from: ${MAIL_FROM:no-reply@edufit.local}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3000} # Dùng để dựng liên kết trong email (reset mật khẩu)
   oauth:
     google:
       client-id: ${GOOGLE_CLIENT_ID:}

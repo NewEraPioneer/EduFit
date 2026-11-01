@@ -37,6 +37,8 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-edufit-local-only}
       MAIL_HOST: mail
       MAIL_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-no-reply@edufit.local}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
       AI_PROVIDER: ${AI_PROVIDER:-stub}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
