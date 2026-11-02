@@ -1,6 +1,7 @@
 package vn.edufit.progress.application.service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -19,11 +20,14 @@ import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.progress.application.dto.ProgressViews.AttendanceView;
+import vn.edufit.progress.application.dto.ProgressViews.ForecastView;
 import vn.edufit.progress.application.dto.ProgressViews.GoalProgressView;
 import vn.edufit.progress.application.dto.ProgressViews.MilestoneLevelView;
 import vn.edufit.progress.application.dto.ProgressViews.MissedSessionView;
 import vn.edufit.progress.application.dto.ProgressViews.OnTrackView;
 import vn.edufit.progress.application.dto.ProgressViews.ProgressOverviewView;
+import vn.edufit.progress.application.dto.ProgressViews.RadarAxisView;
+import vn.edufit.progress.application.dto.ProgressViews.RadarView;
 import vn.edufit.progress.application.dto.ProgressViews.SelfRatingPointView;
 import vn.edufit.progress.application.dto.SessionNoteTimelineView;
 import vn.edufit.progress.domain.model.HomeworkStatus;
@@ -31,15 +35,19 @@ import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.model.Milestone;
 import vn.edufit.progress.domain.model.MilestoneAssessment;
 import vn.edufit.progress.domain.model.MilestoneStatus;
+import vn.edufit.progress.domain.model.Topic;
 import vn.edufit.progress.domain.policy.AttendancePolicy;
 import vn.edufit.progress.domain.policy.AttendancePolicy.ClassifiedSession;
+import vn.edufit.progress.domain.policy.ForecastPolicy;
 import vn.edufit.progress.domain.policy.GoalProgressPolicy;
 import vn.edufit.progress.domain.policy.OnTrackPolicy;
 import vn.edufit.progress.domain.policy.RoadmapShapePolicy;
 import vn.edufit.progress.domain.policy.SessionMilestoneResolver;
+import vn.edufit.progress.domain.policy.TopicRadarPolicy;
 import vn.edufit.progress.domain.repository.PlanHistoryDomainRepository;
 import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
 import vn.edufit.progress.domain.repository.SessionMilestoneLinkDomainRepository;
+import vn.edufit.progress.domain.repository.TopicDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
 
 /**
@@ -55,9 +63,12 @@ public class ProgressOverviewService {
       LearningPlanService.ACTION_UPDATED, LearningPlanService.ACTION_REOPENED
   );
 
+  static final String NO_PLAN_REASON = "Gia sư chưa lập lộ trình";
+
   private final SessionFeedbackDomainRepository feedbackRepository;
   private final SessionMilestoneLinkDomainRepository linkRepository;
   private final PlanHistoryDomainRepository historyRepository;
+  private final TopicDomainRepository topicRepository;
   private final SessionFacade sessionFacade;
   private final ProfileFacade profileFacade;
   private final ConnectionFacade connectionFacade;
@@ -67,6 +78,7 @@ public class ProgressOverviewService {
       SessionFeedbackDomainRepository feedbackRepository,
       SessionMilestoneLinkDomainRepository linkRepository,
       PlanHistoryDomainRepository historyRepository,
+      TopicDomainRepository topicRepository,
       SessionFacade sessionFacade,
       ProfileFacade profileFacade,
       ConnectionFacade connectionFacade,
@@ -75,6 +87,7 @@ public class ProgressOverviewService {
     this.feedbackRepository = feedbackRepository;
     this.linkRepository = linkRepository;
     this.historyRepository = historyRepository;
+    this.topicRepository = topicRepository;
     this.sessionFacade = sessionFacade;
     this.profileFacade = profileFacade;
     this.connectionFacade = connectionFacade;
@@ -135,10 +148,12 @@ public class ProgressOverviewService {
         window
     );
 
+    Map<UUID, GoalProgressPolicy.LevelSummary> levelSummaries = active.stream()
+        .collect(Collectors.toMap(Milestone::getMilestoneId, m -> GoalProgressPolicy.summarizeLevels(
+            toLevelPoints(assessments.getOrDefault(m.getMilestoneId(), List.of())))));
     List<MilestoneLevelView> levels = active.stream()
         .map(m -> {
-          GoalProgressPolicy.LevelSummary summary = GoalProgressPolicy.summarizeLevels(
-              toLevelPoints(assessments.getOrDefault(m.getMilestoneId(), List.of())));
+          GoalProgressPolicy.LevelSummary summary = levelSummaries.get(m.getMilestoneId());
           return new MilestoneLevelView(
               m.getMilestoneId(),
               summary.startLevel() != null ? summary.startLevel().value() : null,
@@ -179,8 +194,62 @@ public class ProgressOverviewService {
                 .toList()
         ),
         levels,
-        selfRatingTrend(timeline, window.start())
+        selfRatingTrend(timeline, window.start()),
+        forecast(plan, levelSummaries, sessions, now, today),
+        radar(plan, assessments)
     );
+  }
+
+  private static ForecastView forecast(
+      LearningPlan plan,
+      Map<UUID, GoalProgressPolicy.LevelSummary> levelSummaries,
+      List<ClassifiedSession> sessions,
+      Instant now,
+      LocalDate today
+  ) {
+    if (plan == null) return new ForecastView(null, null, null, null, NO_PLAN_REASON);
+    Instant cadenceStart = now.minus(Duration.ofDays(ForecastPolicy.CADENCE_DAYS));
+    int recentCompleted = (int) sessions.stream()
+        .filter(s -> s.kind() == AttendancePolicy.AttendanceKind.COMPLETED
+            && !s.startAt().isBefore(cadenceStart) && !s.startAt().isAfter(now))
+        .count();
+    ForecastPolicy.Result result = ForecastPolicy.evaluate(
+        plan.orderedActiveMilestones().stream()
+            .map(m -> new ForecastPolicy.MilestoneEffort(
+                m.getStatus() == MilestoneStatus.ACHIEVED,
+                m.getSuggestedSessions(),
+                levelSummaries.get(m.getMilestoneId()).sessionCount()))
+            .toList(),
+        recentCompleted,
+        today);
+    ForecastPolicy.Forecast f = result.forecast();
+    return f == null
+        ? new ForecastView(null, null, null, null, result.unavailableReason())
+        : new ForecastView(f.remainingSessions(), f.remainingMilestones(), f.basis().name(), f.estimatedFinishDate(), null);
+  }
+
+  private RadarView radar(LearningPlan plan, Map<UUID, List<MilestoneAssessment>> assessments) {
+    if (plan == null) return new RadarView(List.of(), NO_PLAN_REASON);
+    List<Milestone> tagged = plan.getActiveMilestones().stream().filter(m -> m.getTopicId() != null).toList();
+    Map<UUID, Topic> topics = topicRepository
+        .findByIdIn(tagged.stream().map(Milestone::getTopicId).collect(Collectors.toSet()))
+        .stream()
+        .collect(Collectors.toMap(Topic::getTopicId, t -> t));
+    List<TopicRadarPolicy.TopicAssessment> latest = tagged.stream()
+        .filter(m -> topics.containsKey(m.getTopicId()))
+        .flatMap(m -> assessments.getOrDefault(m.getMilestoneId(), List.of()).stream()
+            .max(Comparator.comparing(MilestoneAssessment::getCreatedAt))
+            .map(a -> {
+              Topic t = topics.get(m.getTopicId());
+              return new TopicRadarPolicy.TopicAssessment(
+                  t.getTopicId(), t.getName(), t.getSortOrder(), a.getLevel(), a.getCreatedAt());
+            })
+            .stream())
+        .toList();
+    TopicRadarPolicy.Result result = TopicRadarPolicy.evaluate(!tagged.isEmpty(), latest);
+    return new RadarView(
+        result.axes().stream().map(a -> new RadarAxisView(a.topicId(), a.topicName(), a.level())).toList(),
+        result.unavailableReason());
   }
 
   private static List<SelfRatingPointView> selfRatingTrend(List<SessionNoteTimelineView> timeline, Instant windowStart) {

@@ -18,6 +18,8 @@ public record MilestoneResponse(
     LocalDate achievedDate,
     boolean isArchived,
     int sortOrder,
+    Integer suggestedSessions,
+    UUID topicId,
     List<MilestoneCriterionView> criteria
 ) {
   public static MilestoneResponse from(ProgressViews.MilestoneDetailView m) {
@@ -34,6 +36,8 @@ public record MilestoneResponse(
         m.achievedDate(),
         m.isArchived(),
         m.sortOrder(),
+        m.suggestedSessions(),
+        m.topicId(),
         m.criteria()
     );
   }

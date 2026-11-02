@@ -26,4 +26,7 @@ public interface SpringDataLearningPlanRepository extends JpaRepository<Learning
   List<LearningPlanJpaEntity> findByClassIdInWithMilestones(@Param("classIds") Collection<UUID> classIds);
 
   boolean existsByClassId(UUID classId);
+
+  @Query("SELECT p.classId FROM LearningPlanJpaEntity p")
+  List<UUID> findAllClassIds();
 }

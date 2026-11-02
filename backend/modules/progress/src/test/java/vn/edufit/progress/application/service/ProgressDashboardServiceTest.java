@@ -35,6 +35,7 @@ import vn.edufit.progress.domain.model.SessionMilestoneLink;
 import vn.edufit.progress.domain.model.SessionNote;
 import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
 import vn.edufit.progress.domain.repository.PlanHistoryDomainRepository;
+import vn.edufit.progress.domain.repository.TopicDomainRepository;
 import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
 import vn.edufit.progress.domain.repository.SessionMilestoneLinkDomainRepository;
 import vn.edufit.progress.domain.repository.SessionSelfRatingDomainRepository;
@@ -79,7 +80,7 @@ class ProgressDashboardServiceTest {
         new SessionNoteTimelineAssembler(noteRepository, feedbackRepository, mock(SessionSelfRatingDomainRepository.class)),
         new ProgressOverviewService(
             feedbackRepository, linkRepository, mock(PlanHistoryDomainRepository.class),
-            sessionFacade, profileFacade,
+            mock(TopicDomainRepository.class), sessionFacade, profileFacade,
             connectionFacade, fixedClock),
         new ProgressAccessGuard(connectionFacade, profileFacade)
     );

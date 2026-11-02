@@ -33,6 +33,7 @@ import vn.edufit.progress.domain.model.MilestoneStatus;
 import vn.edufit.progress.domain.model.PlanHistory;
 import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
 import vn.edufit.progress.domain.repository.PlanHistoryDomainRepository;
+import vn.edufit.progress.domain.repository.TopicDomainRepository;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.ForbiddenOperationException;
@@ -49,6 +50,7 @@ class LearningPlanServiceTest {
   private ConnectionFacade connectionFacade;
   private ProfileFacade profileFacade;
   private NotificationSink notifications;
+  private TopicDomainRepository topicRepository;
   private LearningPlanService planService;
 
   private final Instant fixedInstant = Instant.parse("2026-10-20T10:00:00Z");
@@ -67,6 +69,7 @@ class LearningPlanServiceTest {
     connectionFacade = mock(ConnectionFacade.class);
     profileFacade = mock(ProfileFacade.class);
     notifications = mock(NotificationSink.class);
+    topicRepository = mock(TopicDomainRepository.class);
     Clock fixedClock = Clock.fixed(fixedInstant, ZoneId.of("UTC"));
 
     planService = new LearningPlanService(
@@ -74,6 +77,8 @@ class LearningPlanServiceTest {
         historyRepository,
         new ProgressAccessGuard(connectionFacade, profileFacade),
         new MilestoneAchievementNotifier(connectionFacade, profileFacade, notifications),
+        new TopicCatalogService(topicRepository, new ProgressAccessGuard(connectionFacade, profileFacade),
+            new ClassNeedResolver(profileFacade), fixedClock),
         fixedClock
     );
 
@@ -112,9 +117,9 @@ class LearningPlanServiceTest {
   void createPlan_Success() {
     when(planRepository.existsByClassId(classId)).thenReturn(false);
     CreatePlanCommand cmd = new CreatePlanCommand(classId, "Lo trinh on thi THPT", List.of(
-        new CreatePlanCommand.CreateMilestoneItem("On tap Ham so", "Chuong 1", LocalDate.parse("2026-11-01"), 3, CRITERIA),
-        new CreatePlanCommand.CreateMilestoneItem("On tap Hinh hoc", "Chuong 2", null, 2, CRITERIA),
-        new CreatePlanCommand.CreateMilestoneItem("De thi thu", "Chuong 3", LocalDate.parse("2026-11-29"), 1, CRITERIA)
+        new CreatePlanCommand.CreateMilestoneItem("On tap Ham so", "Chuong 1", LocalDate.parse("2026-11-01"), 3, CRITERIA, null, null),
+        new CreatePlanCommand.CreateMilestoneItem("On tap Hinh hoc", "Chuong 2", null, 2, CRITERIA, null, null),
+        new CreatePlanCommand.CreateMilestoneItem("De thi thu", "Chuong 3", LocalDate.parse("2026-11-29"), 1, CRITERIA, null, null)
     ));
 
     LearningPlan result = planService.createPlan(tutor, cmd);
@@ -135,16 +140,16 @@ class LearningPlanServiceTest {
   void createPlan_RequiresRoadmapShape() {
     when(planRepository.existsByClassId(classId)).thenReturn(false);
     CreatePlanCommand tooShort = new CreatePlanCommand(classId, null, List.of(
-        new CreatePlanCommand.CreateMilestoneItem("M1", null, null, 1, CRITERIA),
-        new CreatePlanCommand.CreateMilestoneItem("M2", null, LocalDate.parse("2026-11-29"), 1, CRITERIA)));
+        new CreatePlanCommand.CreateMilestoneItem("M1", null, null, 1, CRITERIA, null, null),
+        new CreatePlanCommand.CreateMilestoneItem("M2", null, LocalDate.parse("2026-11-29"), 1, CRITERIA, null, null)));
     assertThatThrownBy(() -> planService.createPlan(tutor, tooShort))
         .isInstanceOf(InvalidOperationException.class)
         .hasMessageContaining("từ 3 đến 8 cột mốc");
 
     CreatePlanCommand noFinalDate = new CreatePlanCommand(classId, null, List.of(
-        new CreatePlanCommand.CreateMilestoneItem("M1", null, LocalDate.parse("2026-11-10"), 1, CRITERIA),
-        new CreatePlanCommand.CreateMilestoneItem("M2", null, null, 1, CRITERIA),
-        new CreatePlanCommand.CreateMilestoneItem("M3", null, null, 1, CRITERIA)));
+        new CreatePlanCommand.CreateMilestoneItem("M1", null, LocalDate.parse("2026-11-10"), 1, CRITERIA, null, null),
+        new CreatePlanCommand.CreateMilestoneItem("M2", null, null, 1, CRITERIA, null, null),
+        new CreatePlanCommand.CreateMilestoneItem("M3", null, null, 1, CRITERIA, null, null)));
     assertThatThrownBy(() -> planService.createPlan(tutor, noFinalDate))
         .isInstanceOf(InvalidOperationException.class)
         .hasMessageContaining("Cột mốc cuối");
@@ -155,7 +160,7 @@ class LearningPlanServiceTest {
   void createPlan_RejectsMilestoneWithoutCriteria() {
     when(planRepository.existsByClassId(classId)).thenReturn(false);
     CreatePlanCommand cmd = new CreatePlanCommand(classId, null, List.of(
-        new CreatePlanCommand.CreateMilestoneItem("M1", null, null, 1, List.of())));
+        new CreatePlanCommand.CreateMilestoneItem("M1", null, null, 1, List.of(), null, null)));
 
     assertThatThrownBy(() -> planService.createPlan(tutor, cmd))
         .isInstanceOf(InvalidOperationException.class)
@@ -167,7 +172,7 @@ class LearningPlanServiceTest {
   void createPlan_ForbiddenWhenNotClassTutor() {
     when(profileFacade.getTutorIdByUserId(tutorUserId)).thenReturn(UUID.randomUUID());
     CreatePlanCommand cmd = new CreatePlanCommand(classId, "Summary", List.of(
-        new CreatePlanCommand.CreateMilestoneItem("M1", null, null, 1, CRITERIA)));
+        new CreatePlanCommand.CreateMilestoneItem("M1", null, null, 1, CRITERIA, null, null)));
 
     assertThatThrownBy(() -> planService.createPlan(tutor, cmd)).isInstanceOf(ForbiddenOperationException.class);
   }
@@ -177,7 +182,7 @@ class LearningPlanServiceTest {
   void createPlan_InvalidWhenNotActive() {
     givenClass("COMPLETED");
     CreatePlanCommand cmd = new CreatePlanCommand(classId, "Summary", List.of(
-        new CreatePlanCommand.CreateMilestoneItem("M1", null, null, 1, CRITERIA)));
+        new CreatePlanCommand.CreateMilestoneItem("M1", null, null, 1, CRITERIA, null, null)));
 
     assertThatThrownBy(() -> planService.createPlan(tutor, cmd))
         .isInstanceOf(InvalidOperationException.class)
@@ -192,7 +197,7 @@ class LearningPlanServiceTest {
     when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
 
     UpdatePlanCommand cmd = new UpdatePlanCommand(1, "New Summary", List.of(
-        new UpdatePlanCommand.UpdateMilestoneItem(null, "New M", null, null, 1, List.of())));
+        new UpdatePlanCommand.UpdateMilestoneItem(null, "New M", null, null, 1, List.of(), null, null)));
 
     assertThatThrownBy(() -> planService.updatePlan(tutor, planId, cmd))
         .isInstanceOf(ResourceConflictException.class)
@@ -209,17 +214,17 @@ class LearningPlanServiceTest {
     when(planRepository.findById(planId)).thenReturn(Optional.of(plan));
     List<UpdatePlanCommand.CriterionItem> criteria = List.of(new UpdatePlanCommand.CriterionItem(null, "Tieu chi"));
     UpdatePlanCommand.UpdateMilestoneItem added = new UpdatePlanCommand.UpdateMilestoneItem(
-        null, "Moi", null, null, 1, criteria);
+        null, "Moi", null, null, 1, criteria, null, null);
     UpdatePlanCommand.UpdateMilestoneItem finalOne = new UpdatePlanCommand.UpdateMilestoneItem(
-        null, "Cuoi", null, LocalDate.parse("2026-12-20"), 1, criteria);
+        null, "Cuoi", null, LocalDate.parse("2026-12-20"), 1, criteria, null, null);
 
     UpdatePlanCommand unchanged = new UpdatePlanCommand(0, null, List.of(
-        new UpdatePlanCommand.UpdateMilestoneItem(legacy.getMilestoneId(), "Legacy", null, null, 2, List.of()),
+        new UpdatePlanCommand.UpdateMilestoneItem(legacy.getMilestoneId(), "Legacy", null, null, 2, List.of(), null, null),
         added, finalOne));
     assertThat(planService.updatePlan(tutor, planId, unchanged).getMilestones()).hasSize(3);
 
     UpdatePlanCommand renamed = new UpdatePlanCommand(0, null, List.of(
-        new UpdatePlanCommand.UpdateMilestoneItem(legacy.getMilestoneId(), "Legacy v2", null, null, 2, List.of()),
+        new UpdatePlanCommand.UpdateMilestoneItem(legacy.getMilestoneId(), "Legacy v2", null, null, 2, List.of(), null, null),
         added, finalOne));
     assertThatThrownBy(() -> planService.updatePlan(tutor, planId, renamed))
         .isInstanceOf(InvalidOperationException.class)

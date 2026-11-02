@@ -47,6 +47,8 @@ public class ProgressViews {
       LocalDate achievedDate,
       boolean isArchived,
       int sortOrder,
+      Integer suggestedSessions,
+      UUID topicId,
       List<MilestoneCriterionView> criteria
   ) {
     public static MilestoneDetailView from(Milestone m, RoadmapShapePolicy.ExpectedDate expected) {
@@ -62,6 +64,8 @@ public class ProgressViews {
           m.getAchievedDate(),
           m.isArchived(),
           m.getSortOrder(),
+          m.getSuggestedSessions(),
+          m.getTopicId(),
           m.getCriteria().stream().map(MilestoneCriterionView::from).toList()
       );
     }
@@ -119,8 +123,28 @@ public class ProgressViews {
       GoalProgressView goalProgress,
       AttendanceView attendance,
       List<MilestoneLevelView> milestoneLevels,
-      List<SelfRatingPointView> selfRatings
+      List<SelfRatingPointView> selfRatings,
+      ForecastView forecast,
+      RadarView radar
   ) {}
+
+  /**
+   * Dự báo "còn X buổi cho Y cột mốc". {@code basis} = PACE (nhịp thực tế) hoặc SUGGESTED (số buổi gợi ý);
+   * {@code estimatedFinishDate} chỉ có khi lớp học đều. Không dự báo được thì chỉ có {@code unavailableReason}.
+   */
+  public record ForecastView(
+      Integer remainingSessions,
+      Integer remainingMilestones,
+      String basis,
+      LocalDate estimatedFinishDate,
+      String unavailableReason
+  ) {}
+
+  /** Radar năng lực theo chủ đề chuẩn; ít hơn 3 trục thì {@code axes} rỗng và có {@code unavailableReason}. */
+  public record RadarView(List<RadarAxisView> axes, String unavailableReason) {}
+
+  /** {@code level}: mức tự lập 1–4 của lần chấm gần nhất trong chủ đề. */
+  public record RadarAxisView(UUID topicId, String topicName, int level) {}
 
   /**
    * Cảm nhận 1 chạm của học sinh trong cửa sổ 30 ngày, cũ trước mới sau, để phụ huynh xem xu hướng.

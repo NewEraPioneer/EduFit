@@ -56,6 +56,7 @@ class PlanTemplateServiceTest {
     profileFacade = mock(ProfileFacade.class);
     ConnectionFacade connectionFacade = mock(ConnectionFacade.class);
     service = new PlanTemplateService(repository, new ProgressAccessGuard(connectionFacade, profileFacade), profileFacade,
+        new ClassNeedResolver(profileFacade),
         Clock.fixed(now, ZoneId.of("UTC")));
     when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

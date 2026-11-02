@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import vn.edufit.progress.domain.policy.RoadmapShapePolicy;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.InvalidOperationException;
 
@@ -46,9 +47,26 @@ public class Milestone {
   private int sortOrder;
   private final Instant createdAt;
   private final List<MilestoneCriterion> criteria;
+  private Planning planning = Planning.NONE;
 
   /** Bản nháp tiêu chí gửi lên khi lập/sửa lộ trình; {@code criterionId} null nghĩa là tiêu chí mới. */
   public record CriterionDraft(UUID criterionId, String content) {}
+
+  /**
+   * Thông tin lập kế hoạch tùy chọn: số buổi gợi ý (2–6, dùng cho dự báo) và chủ đề chuẩn (trục radar).
+   * Cột mốc cũ để trống cả hai.
+   */
+  public record Planning(Integer suggestedSessions, UUID topicId) {
+    public static final Planning NONE = new Planning(null, null);
+
+    public Planning {
+      if (suggestedSessions != null) RoadmapShapePolicy.requireSuggestedSessions(suggestedSessions);
+    }
+
+    public static Planning of(Integer suggestedSessions, UUID topicId) {
+      return suggestedSessions == null && topicId == null ? NONE : new Planning(suggestedSessions, topicId);
+    }
+  }
 
   /** Tỉ lệ hoàn thành của cột mốc dưới dạng phân số {@code completed/total}. */
   public record CompletionShare(int completed, int total) {}
@@ -97,6 +115,7 @@ public class Milestone {
       int weight,
       int sortOrder,
       List<String> criteriaContents,
+      Planning planning,
       LocalDate today,
       Instant now
   ) {
@@ -112,7 +131,7 @@ public class Milestone {
     for (int i = 0; i < contents.size(); i++) {
       criteria.add(MilestoneCriterion.createNew(contents.get(i), i, now));
     }
-    return new Milestone(
+    Milestone milestone = new Milestone(
         UUID.randomUUID(),
         planId,
         title,
@@ -126,6 +145,13 @@ public class Milestone {
         now,
         criteria
     );
+    milestone.assignPlanning(planning);
+    return milestone;
+  }
+
+  /** Đặt số buổi gợi ý và chủ đề chuẩn; dùng khi lập/sửa lộ trình và khi nạp lại từ CSDL. */
+  public void assignPlanning(Planning planning) {
+    this.planning = planning != null ? planning : Planning.NONE;
   }
 
   /**
@@ -143,10 +169,12 @@ public class Milestone {
       int newWeight,
       int newSortOrder,
       List<CriterionDraft> criteriaDrafts,
+      Planning newPlanning,
       LocalDate today,
       Instant now
   ) {
     validateTitle(newTitle);
+    Planning nextPlanning = newPlanning != null ? newPlanning : Planning.NONE;
     validateWeight(newWeight);
 
     if (!Objects.equals(this.targetDate, newTargetDate) && newTargetDate != null && newTargetDate.isBefore(today)) {
@@ -160,7 +188,8 @@ public class Milestone {
     boolean detailsChanged = !this.title.equals(newTitle.trim())
         || !Objects.equals(this.description, newDescription)
         || !Objects.equals(this.targetDate, newTargetDate)
-        || this.weight != newWeight;
+        || this.weight != newWeight
+        || !this.planning.equals(nextPlanning);
     boolean criteriaChanged = !sameCriteria(drafts);
 
     if (criteriaChanged && this.status == MilestoneStatus.ACHIEVED) {
@@ -178,6 +207,7 @@ public class Milestone {
     this.targetDate = newTargetDate;
     this.weight = newWeight;
     this.sortOrder = newSortOrder;
+    this.planning = nextPlanning;
     if (criteriaChanged) {
       replaceCriteria(drafts, now);
     }
@@ -375,4 +405,7 @@ public class Milestone {
   public int getSortOrder() { return sortOrder; }
   public Instant getCreatedAt() { return createdAt; }
   public List<MilestoneCriterion> getCriteria() { return Collections.unmodifiableList(criteria); }
+  public Planning getPlanning() { return planning; }
+  public Integer getSuggestedSessions() { return planning.suggestedSessions(); }
+  public UUID getTopicId() { return planning.topicId(); }
 }

@@ -61,7 +61,7 @@ class FlywayMigrationScriptTest {
           .toList();
 
       assertFalse(sqlFiles.isEmpty(), "Phải có ít nhất một file migration SQL trong db/migration");
-      assertEquals(26, sqlFiles.size(), "Payment đến V1.21, Connection V1.22, danh mục V1.23, nhu cầu học V1.24–V1.26, dashboard tiến độ V1.28–V1.30; seed demo đã tách sang db/seed");
+      assertEquals(28, sqlFiles.size(), "Payment đến V1.21, Connection V1.22, danh mục V1.23, nhu cầu học V1.24–V1.26, dashboard tiến độ V1.28–V1.31, tính năng AI bản nháp lộ trình V1.32; seed demo đã tách sang db/seed");
       assertEquals(sqlFiles.size(), sqlFiles.stream()
           .map(path -> path.getFileName().toString().split("__", 2)[0])
           .distinct().count(), "Version Flyway phải duy nhất trên tất cả module");

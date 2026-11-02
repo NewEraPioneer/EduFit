@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class LearningPlanService {
   private final PlanHistoryDomainRepository historyRepository;
   private final ProgressAccessGuard accessGuard;
   private final MilestoneAchievementNotifier achievementNotifier;
+  private final TopicCatalogService topicCatalog;
   private final Clock clock;
 
   public LearningPlanService(
@@ -47,12 +49,14 @@ public class LearningPlanService {
       PlanHistoryDomainRepository historyRepository,
       ProgressAccessGuard accessGuard,
       MilestoneAchievementNotifier achievementNotifier,
+      TopicCatalogService topicCatalog,
       Clock clock
   ) {
     this.planRepository = planRepository;
     this.historyRepository = historyRepository;
     this.accessGuard = accessGuard;
     this.achievementNotifier = achievementNotifier;
+    this.topicCatalog = topicCatalog;
     this.clock = Objects.requireNonNull(clock);
   }
 
@@ -69,6 +73,8 @@ public class LearningPlanService {
     if (planRepository.existsByClassId(req.classId())) {
       throw new ResourceConflictException("Lớp học này đã có kế hoạch học tập");
     }
+    topicCatalog.requireAssignable(
+        cls, req.milestones().stream().map(CreatePlanCommand.CreateMilestoneItem::topicId).toList(), Set.of());
 
     LocalDate today = LocalDate.now(clock);
     Instant now = Instant.now(clock);
@@ -83,6 +89,7 @@ public class LearningPlanService {
           item.weight() != null ? item.weight() : 1,
           order++,
           item.criteria(),
+          Milestone.Planning.of(item.suggestedSessions(), item.topicId()),
           today,
           now
       ));
@@ -127,6 +134,10 @@ public class LearningPlanService {
     accessGuard.requireTutorOfClass(actor, cls);
     accessGuard.requireActiveClass(cls, "Chỉ có thể cập nhật kế hoạch học tập cho lớp học đang hoạt động");
     requireVersion(plan, req.version());
+    topicCatalog.requireAssignable(
+        cls,
+        req.milestones().stream().map(UpdatePlanCommand.UpdateMilestoneItem::topicId).toList(),
+        plan.getMilestones().stream().map(Milestone::getTopicId).filter(Objects::nonNull).collect(Collectors.toSet()));
 
     LocalDate today = LocalDate.now(clock);
     Instant now = Instant.now(clock);
@@ -157,6 +168,7 @@ public class LearningPlanService {
             incoming.weight() != null ? incoming.weight() : existing.getWeight(),
             req.milestones().indexOf(incoming),
             toDrafts(incoming.criteria()),
+            Milestone.Planning.of(incoming.suggestedSessions(), incoming.topicId()),
             today,
             now
         );
@@ -188,7 +200,8 @@ public class LearningPlanService {
             : List.of();
         Milestone newMilestone = Milestone.createNew(
             planId, item.title(), item.description(), item.targetDate(),
-            item.weight() != null ? item.weight() : 1, i, contents, today, now);
+            item.weight() != null ? item.weight() : 1, i, contents,
+            Milestone.Planning.of(item.suggestedSessions(), item.topicId()), today, now);
         nextList.add(newMilestone);
         historyRepository.save(PlanHistory.of(
             planId, newMilestone.getMilestoneId(), "MILESTONE_CREATED", actor.getUserId(), null, item.title(), now

@@ -67,6 +67,12 @@ public class MilestoneJpaEntity {
   @Column(name = "sort_order", nullable = false)
   private int sortOrder;
 
+  @Column(name = "suggested_sessions")
+  private Short suggestedSessions;
+
+  @Column(name = "topic_id")
+  private UUID topicId;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 

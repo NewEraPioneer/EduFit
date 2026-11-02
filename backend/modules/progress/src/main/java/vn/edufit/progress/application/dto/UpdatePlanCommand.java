@@ -15,7 +15,9 @@ public record UpdatePlanCommand(
       String description,
       LocalDate targetDate,
       Integer weight,
-      List<CriterionItem> criteria
+      List<CriterionItem> criteria,
+      Integer suggestedSessions,
+      UUID topicId
   ) {}
 
   /** {@code criterionId} null nghĩa là tiêu chí mới. */

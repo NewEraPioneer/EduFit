@@ -6,18 +6,22 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Ngăn "Việc cần làm" trên dashboard gia sư (mục 3.14). Báo cáo kỳ chờ gửi thuộc Giai đoạn 3.
+ * Ngăn "Việc cần làm" trên dashboard gia sư (mục 3.14).
  */
 public record TutorTodoView(
     List<MissingFeedbackItem> sessionsMissingFeedback,
     List<ClassItem> classesWithoutPlan,
     List<OverdueMilestoneItem> overdueMilestones,
-    List<ClassItem> plansMissingFinalDate
+    List<ClassItem> plansMissingFinalDate,
+    List<PendingReportItem> pendingReports
 ) {
   public int totalCount() {
     return sessionsMissingFeedback.size() + classesWithoutPlan.size()
-        + overdueMilestones.size() + plansMissingFinalDate.size();
+        + overdueMilestones.size() + plansMissingFinalDate.size() + pendingReports.size();
   }
+
+  /** Báo cáo kỳ đang là bản nháp: gia sư viết câu tổng kết và gửi trước {@code report.autoSendAt}. */
+  public record PendingReportItem(String studentName, String classTitle, PeriodReportView report) {}
 
   /** @param late đã quá 48 giờ: phản hồi bổ sung bây giờ sẽ được đánh dấu "bổ sung muộn". */
   public record MissingFeedbackItem(

@@ -19,7 +19,7 @@ class MilestoneTest {
   private static final LocalDate TODAY = LocalDate.parse("2026-10-20");
 
   private static Milestone newMilestone(List<String> criteria) {
-    return Milestone.createNew(UUID.randomUUID(), "Hệ phương trình", null, TODAY.plusDays(10), 2, 0, criteria, TODAY, T0);
+    return Milestone.createNew(UUID.randomUUID(), "Hệ phương trình", null, TODAY.plusDays(10), 2, 0, criteria, Milestone.Planning.NONE, TODAY, T0);
   }
 
   @Test
@@ -107,7 +107,7 @@ class MilestoneTest {
     boolean changed = m.updateDetails("Hệ phương trình", null, m.getTargetDate(), 2, 0,
         List.of(new Milestone.CriterionDraft(a, "a"), new Milestone.CriterionDraft(b, "b mới"),
             new Milestone.CriterionDraft(null, "c")),
-        TODAY, T1);
+        Milestone.Planning.NONE, TODAY, T1);
 
     assertThat(changed).isTrue();
     assertThat(m.getCriteria()).extracting(MilestoneCriterion::isChecked).containsExactly(true, false, false);

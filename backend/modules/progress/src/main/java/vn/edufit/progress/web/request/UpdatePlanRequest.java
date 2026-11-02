@@ -38,7 +38,13 @@ public record UpdatePlanRequest(
 
       @Size(max = 4, message = "Mỗi cột mốc có tối đa 4 tiêu chí đạt")
       @Valid
-      List<CriterionItem> criteria
+      List<CriterionItem> criteria,
+
+      /** Số buổi gợi ý 2–6 (tùy chọn), dùng cho dự báo "còn X buổi". */
+      Integer suggestedSessions,
+
+      /** Chủ đề chuẩn của môn × khối (tùy chọn), trục của radar năng lực. */
+      UUID topicId
   ) {}
 
   /** {@code criterionId} null nghĩa là tiêu chí mới. */
@@ -62,7 +68,9 @@ public record UpdatePlanRequest(
                         ? m.criteria().stream()
                             .map(c -> new UpdatePlanCommand.CriterionItem(c.criterionId(), c.content()))
                             .toList()
-                        : List.of()))
+                        : List.of(),
+                    m.suggestedSessions(),
+                    m.topicId()))
                 .toList()
             : List.of()
     );

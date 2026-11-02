@@ -35,6 +35,10 @@
       <groupId>vn.edufit</groupId>
       <artifactId>profile</artifactId>
     </dependency>
+    <dependency>
+      <groupId>vn.edufit</groupId>
+      <artifactId>ai</artifactId>
+    </dependency>
 
     <!-- Spring Starters -->
     <dependency>

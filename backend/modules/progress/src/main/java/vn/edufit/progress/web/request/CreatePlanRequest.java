@@ -37,7 +37,13 @@ public record CreatePlanRequest(
       @NotEmpty(message = "Mỗi cột mốc cần ít nhất 1 tiêu chí đạt")
       @Size(max = 4, message = "Mỗi cột mốc có tối đa 4 tiêu chí đạt")
       List<@NotBlank(message = "Nội dung tiêu chí đạt không được để trống")
-          @Size(max = 200, message = "Nội dung tiêu chí đạt tối đa 200 ký tự") String> criteria
+          @Size(max = 200, message = "Nội dung tiêu chí đạt tối đa 200 ký tự") String> criteria,
+
+      /** Số buổi gợi ý 2–6 (tùy chọn), dùng cho dự báo "còn X buổi". */
+      Integer suggestedSessions,
+
+      /** Chủ đề chuẩn của môn × khối (tùy chọn), trục của radar năng lực. */
+      UUID topicId
   ) {}
 
   public CreatePlanCommand toCommand() {
@@ -46,7 +52,8 @@ public record CreatePlanRequest(
         summary,
         milestones != null
             ? milestones.stream()
-                .map(m -> new CreatePlanCommand.CreateMilestoneItem(m.title(), m.description(), m.targetDate(), m.weight(), m.criteria()))
+                .map(m -> new CreatePlanCommand.CreateMilestoneItem(m.title(), m.description(), m.targetDate(), m.weight(),
+                    m.criteria(), m.suggestedSessions(), m.topicId()))
                 .toList()
             : List.of()
     );

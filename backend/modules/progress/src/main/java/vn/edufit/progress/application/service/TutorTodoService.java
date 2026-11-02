@@ -24,11 +24,14 @@ import vn.edufit.progress.application.dto.TutorTodoView;
 import vn.edufit.progress.application.dto.TutorTodoView.ClassItem;
 import vn.edufit.progress.application.dto.TutorTodoView.MissingFeedbackItem;
 import vn.edufit.progress.application.dto.TutorTodoView.OverdueMilestoneItem;
+import vn.edufit.progress.application.dto.PeriodReportView;
+import vn.edufit.progress.application.dto.TutorTodoView.PendingReportItem;
 import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.model.Milestone;
 import vn.edufit.progress.domain.model.MilestoneStatus;
 import vn.edufit.progress.domain.policy.FeedbackTimingPolicy;
 import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
+import vn.edufit.progress.domain.repository.PeriodReportDomainRepository;
 import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
 import vn.edufit.scheduling.api.dto.SessionSummaryView;
@@ -37,7 +40,7 @@ import vn.edufit.shared.exception.ForbiddenOperationException;
 
 /**
  * Ngăn "Việc cần làm" của gia sư (mục 3.14): buổi chưa phản hồi, lớp chưa có lộ trình, cột mốc quá hạn,
- * lộ trình thiếu ngày cuối. Chỉ xét lớp đang hoạt động.
+ * lộ trình thiếu ngày cuối, báo cáo kỳ chờ gửi. Chỉ xét lớp đang hoạt động.
  */
 @Service
 public class TutorTodoService {
@@ -50,6 +53,7 @@ public class TutorTodoService {
   private final SessionFacade sessionFacade;
   private final LearningPlanDomainRepository planRepository;
   private final SessionFeedbackDomainRepository feedbackRepository;
+  private final PeriodReportDomainRepository reportRepository;
   private final ProgressDisplayNames names;
   private final Clock clock;
 
@@ -59,6 +63,7 @@ public class TutorTodoService {
       SessionFacade sessionFacade,
       LearningPlanDomainRepository planRepository,
       SessionFeedbackDomainRepository feedbackRepository,
+      PeriodReportDomainRepository reportRepository,
       ProgressDisplayNames names,
       Clock clock
   ) {
@@ -67,6 +72,7 @@ public class TutorTodoService {
     this.sessionFacade = sessionFacade;
     this.planRepository = planRepository;
     this.feedbackRepository = feedbackRepository;
+    this.reportRepository = reportRepository;
     this.names = names;
     this.clock = Objects.requireNonNull(clock);
   }
@@ -79,7 +85,7 @@ public class TutorTodoService {
     UUID tutorId = profileFacade.getTutorIdByUserId(actor.getUserId());
     List<ConnectionFacade.ClassDetailView> classes = tutorId == null ? List.of()
         : connectionFacade.findClassesByTutor(tutorId).stream().filter(c -> "ACTIVE".equals(c.status())).toList();
-    if (classes.isEmpty()) return new TutorTodoView(List.of(), List.of(), List.of(), List.of());
+    if (classes.isEmpty()) return new TutorTodoView(List.of(), List.of(), List.of(), List.of(), List.of());
 
     Instant now = clock.instant();
     LocalDate today = LocalDate.now(clock);
@@ -94,11 +100,13 @@ public class TutorTodoService {
     List<ClassItem> withoutPlan = new ArrayList<>();
     List<ClassItem> missingFinalDate = new ArrayList<>();
     List<OverdueMilestoneItem> overdue = new ArrayList<>();
+    Map<UUID, ClassItem> classItems = new HashMap<>();
     for (ConnectionFacade.ClassDetailView c : classes) {
       String studentName = studentNames.get(c.studentId());
       ClassItem item = new ClassItem(
           c.classId(), studentName,
           ProgressDisplayNames.needTitle(c.needId() != null ? needs.get(c.needId()) : null, "Lớp học"));
+      classItems.put(c.classId(), item);
       LearningPlan plan = plans.get(c.classId());
       if (plan == null) {
         withoutPlan.add(item);
@@ -116,8 +124,15 @@ public class TutorTodoService {
     }
     overdue.sort(Comparator.comparingLong(OverdueMilestoneItem::daysLate).reversed());
 
+    List<PendingReportItem> pendingReports = reportRepository.findDraftsByClassIdIn(classIds).stream()
+        .map(r -> {
+          ClassItem item = classItems.get(r.getClassId());
+          return new PendingReportItem(item.studentName(), item.classTitle(), PeriodReportView.from(r));
+        })
+        .toList();
+
     return new TutorTodoView(
-        missingFeedback(classes, plans, studentNames, now), withoutPlan, overdue, missingFinalDate);
+        missingFeedback(classes, plans, studentNames, now), withoutPlan, overdue, missingFinalDate, pendingReports);
   }
 
   /** Buổi đã hoàn thành của lớp có lộ trình (mới phản hồi được) mà chưa có phản hồi, cũ nhất trước. */

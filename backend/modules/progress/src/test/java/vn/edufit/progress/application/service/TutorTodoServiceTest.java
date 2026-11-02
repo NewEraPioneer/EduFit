@@ -27,6 +27,7 @@ import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.model.Milestone;
 import vn.edufit.progress.domain.model.MilestoneStatus;
 import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
+import vn.edufit.progress.domain.repository.PeriodReportDomainRepository;
 import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
 import vn.edufit.scheduling.api.dto.SessionSummaryView;
@@ -44,6 +45,7 @@ class TutorTodoServiceTest {
 
   private SessionFacade sessionFacade;
   private SessionFeedbackDomainRepository feedbackRepository;
+  private PeriodReportDomainRepository reportRepository;
   private TutorTodoService service;
   private CurrentUser tutor;
 
@@ -54,8 +56,9 @@ class TutorTodoServiceTest {
     sessionFacade = mock(SessionFacade.class);
     LearningPlanDomainRepository planRepository = mock(LearningPlanDomainRepository.class);
     feedbackRepository = mock(SessionFeedbackDomainRepository.class);
+    reportRepository = mock(PeriodReportDomainRepository.class);
     service = new TutorTodoService(connectionFacade, profileFacade, sessionFacade, planRepository, feedbackRepository,
-        new ProgressDisplayNames(profileFacade, mock(IamFacade.class)), Clock.fixed(now, ZoneId.of("UTC")));
+        reportRepository, new ProgressDisplayNames(profileFacade, mock(IamFacade.class)), Clock.fixed(now, ZoneId.of("UTC")));
 
     tutor = mock(CurrentUser.class);
     when(tutor.hasRole("TUTOR")).thenReturn(true);

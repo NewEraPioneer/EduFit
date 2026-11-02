@@ -73,7 +73,7 @@ public class ProgressMapper {
 
   public Milestone toDomain(MilestoneJpaEntity entity) {
     if (entity == null) return null;
-    return new Milestone(
+    Milestone milestone = new Milestone(
         entity.getMilestoneId(),
         entity.getPlan() != null ? entity.getPlan().getPlanId() : null,
         entity.getTitle(),
@@ -90,6 +90,9 @@ public class ProgressMapper {
                 c.getCriterionId(), c.getContent(), c.getSortOrder(), c.isChecked(), c.getCheckedAt(), c.getCreatedAt()))
             .toList()
     );
+    milestone.assignPlanning(Milestone.Planning.of(
+        entity.getSuggestedSessions() != null ? entity.getSuggestedSessions().intValue() : null, entity.getTopicId()));
+    return milestone;
   }
 
   public MilestoneJpaEntity toJpaEntity(Milestone domain) {
@@ -104,6 +107,8 @@ public class ProgressMapper {
         .achievedDate(domain.getAchievedDate())
         .archived(domain.isArchived())
         .sortOrder(domain.getSortOrder())
+        .suggestedSessions(domain.getSuggestedSessions() != null ? domain.getSuggestedSessions().shortValue() : null)
+        .topicId(domain.getTopicId())
         .createdAt(domain.getCreatedAt())
         .build();
     for (MilestoneCriterion c : domain.getCriteria()) {

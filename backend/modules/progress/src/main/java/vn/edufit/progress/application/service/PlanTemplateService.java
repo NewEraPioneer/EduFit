@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +20,6 @@ import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.ForbiddenOperationException;
-import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.exception.ResourceConflictException;
 
 /**
@@ -34,17 +32,20 @@ public class PlanTemplateService {
   private final PlanTemplateDomainRepository templateRepository;
   private final ProgressAccessGuard accessGuard;
   private final ProfileFacade profileFacade;
+  private final ClassNeedResolver needResolver;
   private final Clock clock;
 
   public PlanTemplateService(
       PlanTemplateDomainRepository templateRepository,
       ProgressAccessGuard accessGuard,
       ProfileFacade profileFacade,
+      ClassNeedResolver needResolver,
       Clock clock
   ) {
     this.templateRepository = templateRepository;
     this.accessGuard = accessGuard;
     this.profileFacade = profileFacade;
+    this.needResolver = needResolver;
     this.clock = Objects.requireNonNull(clock);
   }
 
@@ -127,10 +128,7 @@ public class PlanTemplateService {
   private LearningNeedView requireClassNeed(CurrentUser actor, UUID classId) {
     ConnectionFacade.ClassDetailView cls = accessGuard.requireClass(classId);
     accessGuard.requireTutorOfClass(actor, cls);
-    return (cls.needId() != null ? profileFacade.findLearningNeed(cls.needId()) : Optional.<LearningNeedView>empty())
-        .filter(n -> n.subjectId() != null && n.educationLevelId() != null)
-        .orElseThrow(() -> new InvalidOperationException(
-            ErrorCode.INVALID_OPERATION, "Lớp học chưa có nhu cầu học đủ môn và khối để chọn mẫu lộ trình"));
+    return needResolver.requireSubjectAndLevel(cls, "để chọn mẫu lộ trình");
   }
 
   private UUID viewerTutorId(CurrentUser actor) {

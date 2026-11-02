@@ -25,8 +25,6 @@ import vn.edufit.progress.web.request.SelfRatingRequest;
 import vn.edufit.progress.web.request.SubmitSessionFeedbackRequest;
 import vn.edufit.progress.web.response.SelfRatingResponse;
 import vn.edufit.shared.auth.CurrentUser;
-import vn.edufit.shared.exception.ErrorCode;
-import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.response.ApiResponse;
 
 /**
@@ -84,10 +82,6 @@ public class ProgressSessionController {
   }
 
   private CurrentUser currentUser() {
-    CurrentUser user = currentUserProvider.getIfAvailable();
-    if (user == null || user.getUserId() == null) {
-      throw new InvalidOperationException(ErrorCode.UNAUTHORIZED, "Phiên làm việc chưa được xác thực hoặc đã hết hạn");
-    }
-    return user;
+    return ProgressWebSupport.currentUser(currentUserProvider);
   }
 }

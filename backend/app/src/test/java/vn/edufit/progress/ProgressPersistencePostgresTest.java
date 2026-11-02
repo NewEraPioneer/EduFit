@@ -39,30 +39,37 @@ import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.model.Milestone;
 import vn.edufit.progress.domain.model.MilestoneAssessment;
 import vn.edufit.progress.domain.model.MilestoneCriterion;
+import vn.edufit.progress.domain.model.PeriodReport;
 import vn.edufit.progress.domain.model.PlanTemplate;
 import vn.edufit.progress.domain.model.SelfRating;
 import vn.edufit.progress.domain.model.SessionFeedback;
 import vn.edufit.progress.domain.model.SessionMilestoneLink;
 import vn.edufit.progress.domain.model.SessionSelfRating;
+import vn.edufit.progress.domain.model.Topic;
 import vn.edufit.progress.domain.policy.FeedbackTimingPolicy.ReminderStage;
 import vn.edufit.progress.domain.repository.FeedbackReminderDomainRepository;
 import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
+import vn.edufit.progress.domain.repository.PeriodReportDomainRepository;
 import vn.edufit.progress.domain.repository.PlanTemplateDomainRepository;
 import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
 import vn.edufit.progress.domain.repository.SessionMilestoneLinkDomainRepository;
 import vn.edufit.progress.domain.repository.SessionSelfRatingDomainRepository;
+import vn.edufit.progress.domain.repository.TopicDomainRepository;
 import vn.edufit.progress.infra.persistence.adapter.FeedbackReminderRepositoryAdapter;
 import vn.edufit.progress.infra.persistence.adapter.LearningPlanRepositoryAdapter;
+import vn.edufit.progress.infra.persistence.adapter.PeriodReportRepositoryAdapter;
 import vn.edufit.progress.infra.persistence.adapter.PlanTemplateRepositoryAdapter;
 import vn.edufit.progress.infra.persistence.adapter.SessionFeedbackRepositoryAdapter;
 import vn.edufit.progress.infra.persistence.adapter.SessionMilestoneLinkRepositoryAdapter;
 import vn.edufit.progress.infra.persistence.adapter.SessionSelfRatingRepositoryAdapter;
+import vn.edufit.progress.infra.persistence.adapter.TopicRepositoryAdapter;
 import vn.edufit.progress.infra.persistence.mapper.ProgressMapper;
 
 /**
  * Kiểm chứng persistence thật của Progress trên PostgreSQL 17 (Flyway + Hibernate validate):
  * tiêu chí lồng trong cột mốc (merge/orphan), phản hồi buổi học (lời nhắn riêng, bổ sung muộn), điểm chấm ghi nối tiếp
- * kèm câu bằng chứng, liên kết ACTUAL, cảm nhận 1 chạm của học sinh và nhật ký nhắc phản hồi.
+ * kèm câu bằng chứng, liên kết ACTUAL, cảm nhận 1 chạm của học sinh, nhật ký nhắc phản hồi, danh mục chủ đề chuẩn
+ * gắn với cột mốc và báo cáo kỳ.
  */
 @Testcontainers
 @SpringJUnitConfig(ProgressPersistencePostgresTest.Config.class)
@@ -77,6 +84,8 @@ class ProgressPersistencePostgresTest {
   @Autowired FeedbackReminderDomainRepository reminders;
   @Autowired SessionMilestoneLinkDomainRepository links;
   @Autowired PlanTemplateDomainRepository templates;
+  @Autowired TopicDomainRepository topics;
+  @Autowired PeriodReportDomainRepository reports;
   @Autowired JdbcTemplate jdbc;
   @Autowired TransactionTemplate tx;
 
@@ -106,9 +115,9 @@ class ProgressPersistencePostgresTest {
 
   /** Lộ trình tối thiểu hợp lệ (3 cột mốc, cột mốc cuối có hạn); cột mốc đầu mang tiêu chí truyền vào. */
   private LearningPlan savePlan(List<String> criteria) {
-    Milestone first = Milestone.createNew(null, "Hệ phương trình", null, today.plusDays(14), 2, 0, criteria, today, now);
-    Milestone second = Milestone.createNew(null, "Hàm số bậc hai", null, null, 1, 1, List.of("Vẽ đồ thị"), today, now);
-    Milestone last = Milestone.createNew(null, "Đề thi thử", null, today.plusDays(42), 1, 2, List.of("Đạt 8 điểm"), today, now);
+    Milestone first = Milestone.createNew(null, "Hệ phương trình", null, today.plusDays(14), 2, 0, criteria, Milestone.Planning.NONE, today, now);
+    Milestone second = Milestone.createNew(null, "Hàm số bậc hai", null, null, 1, 1, List.of("Vẽ đồ thị"), Milestone.Planning.NONE, today, now);
+    Milestone last = Milestone.createNew(null, "Đề thi thử", null, today.plusDays(42), 1, 2, List.of("Đạt 8 điểm"), Milestone.Planning.NONE, today, now);
     return tx.execute(s -> plans.save(LearningPlan.createNew(classId, "Ôn thi vào 10", List.of(first, second, last), now)));
   }
 
@@ -126,7 +135,7 @@ class ProgressPersistencePostgresTest {
       pm.applyCriteriaChecks(List.of(keep), now);
       pm.updateDetails(pm.getTitle(), null, pm.getTargetDate(), 2, 0,
           List.of(new Milestone.CriterionDraft(keep, "Phương pháp thế"), new Milestone.CriterionDraft(null, "Bài toán lời văn")),
-          today, now);
+          Milestone.Planning.NONE, today, now);
       plans.save(plan);
     });
 
@@ -271,13 +280,77 @@ class ProgressPersistencePostgresTest {
     tx.executeWithoutResult(s -> templates.delete(saved.getTemplateId()));
     assertThat(jdbc.queryForObject("SELECT count(*) FROM plan_template_criterion", Integer.class)).isZero();
   }
+  @Test
+  @DisplayName("Chủ đề chuẩn: tên không trùng trong môn × khối; cột mốc lưu số buổi gợi ý và chủ đề, ràng buộc 2–6 buổi")
+  void topicAndMilestonePlanningRoundTrip() {
+    Integer subjectId = jdbc.queryForObject("SELECT min(subject_id) FROM subject", Integer.class);
+    Integer levelId = jdbc.queryForObject("SELECT min(level_id) FROM education_level", Integer.class);
+    Topic algebra = tx.execute(s -> topics.save(Topic.createNew(subjectId, levelId, "Đại số", 0, userId, now)));
+    assertThat((List<Topic>) tx.execute(s -> topics.findActiveBySubjectAndLevel(subjectId, levelId))).extracting(Topic::getName).contains("Đại số");
+    assertThatThrownBy(() -> tx.executeWithoutResult(s ->
+        topics.save(Topic.createNew(subjectId, levelId, " đại SỐ ", 1, userId, now))))
+        .isInstanceOf(RuntimeException.class);
+
+    Milestone tagged = Milestone.createNew(null, "Hệ phương trình", null, today.plusDays(14), 2, 0, List.of("Thế"),
+        new Milestone.Planning(3, algebra.getTopicId()), today, now);
+    Milestone second = Milestone.createNew(null, "Hàm số", null, null, 1, 1, List.of("Đồ thị"), Milestone.Planning.NONE, today, now);
+    Milestone last = Milestone.createNew(null, "Thi thử", null, today.plusDays(42), 1, 2, List.of("8 điểm"), Milestone.Planning.NONE, today, now);
+    tx.execute(s -> plans.save(LearningPlan.createNew(classId, null, List.of(tagged, second, last), now)));
+
+    Milestone reloaded = tx.execute(s -> plans.findByClassId(classId).orElseThrow()).orderedActiveMilestones().getFirst();
+    assertThat(reloaded.getSuggestedSessions()).isEqualTo(3);
+    assertThat(reloaded.getTopicId()).isEqualTo(algebra.getTopicId());
+    assertThatThrownBy(() -> jdbc.update("UPDATE milestone SET suggested_sessions = 7 WHERE milestone_id = ?",
+        reloaded.getMilestoneId())).isInstanceOf(DataIntegrityViolationException.class);
+
+    tx.executeWithoutResult(s -> {
+      Topic edit = topics.findById(algebra.getTopicId()).orElseThrow();
+      edit.revise("Đại số 9", 0, true, now.plusSeconds(60));
+      topics.save(edit);
+    });
+    Topic archived = tx.execute(s -> topics.findById(algebra.getTopicId()).orElseThrow());
+    assertThat(archived.isArchived()).isTrue();
+    assertThat(archived.getVersion()).isEqualTo(1);
+    assertThat((List<Topic>) tx.execute(s -> topics.findActiveBySubjectAndLevel(subjectId, levelId))).extracting(Topic::getTopicId)
+        .doesNotContain(algebra.getTopicId());
+  }
+
+  @Test
+  @DisplayName("Báo cáo kỳ: lưu ảnh chụp kèm cột mốc đạt có thứ tự; gửi đổi trạng thái; mỗi lớp một báo cáo mỗi kỳ")
+  void periodReportRoundTrip() {
+    LocalDate start = LocalDate.parse("2026-09-01");
+    LocalDate end = LocalDate.parse("2026-09-30");
+    PeriodReport.Snapshot snapshot = new PeriodReport.Snapshot("ON_TRACK", "Không có cột mốc nào quá hạn", 40, 20, 7, 8,
+        null, "Hình học", List.of("Phương trình bậc nhất", "Hệ phương trình"));
+    PeriodReport draft = tx.execute(s -> reports.save(PeriodReport.draft(classId, 1, start, end, snapshot, now, now)));
+
+    assertThat(reports.existsByClassIdAndPeriodIndex(classId, 1)).isTrue();
+    assertThat((List<PeriodReport>) tx.execute(s -> reports.findDraftsDueBy(now))).extracting(PeriodReport::getReportId).contains(draft.getReportId());
+    assertThatThrownBy(() -> tx.executeWithoutResult(s ->
+        reports.save(PeriodReport.draft(classId, 1, start, end, snapshot, now, now))))
+        .isInstanceOf(RuntimeException.class);
+
+    tx.executeWithoutResult(s -> {
+      PeriodReport edit = reports.findById(draft.getReportId()).orElseThrow();
+      edit.editSummary("Con tiến bộ rõ");
+      edit.send(now.plusSeconds(60));
+      reports.save(edit);
+    });
+    PeriodReport sent = tx.execute(s -> reports.findByClassId(classId).getFirst());
+    assertThat(sent.isSent()).isTrue();
+    assertThat(sent.getTutorSummary()).isEqualTo("Con tiến bộ rõ");
+    assertThat(sent.getSnapshot().achievedMilestones()).containsExactly("Phương trình bậc nhất", "Hệ phương trình");
+    assertThat((List<PeriodReport>) tx.execute(s -> reports.findDraftsDueBy(now.plusSeconds(120)))).extracting(PeriodReport::getReportId)
+        .doesNotContain(draft.getReportId());
+  }
 
   @Configuration
   @EnableTransactionManagement
   @EnableJpaRepositories("vn.edufit.progress.infra.persistence.repository")
   @Import({ProgressMapper.class, LearningPlanRepositoryAdapter.class, SessionFeedbackRepositoryAdapter.class,
       SessionSelfRatingRepositoryAdapter.class, FeedbackReminderRepositoryAdapter.class,
-      SessionMilestoneLinkRepositoryAdapter.class, PlanTemplateRepositoryAdapter.class})
+      SessionMilestoneLinkRepositoryAdapter.class, PlanTemplateRepositoryAdapter.class, TopicRepositoryAdapter.class,
+      PeriodReportRepositoryAdapter.class})
   static class Config {
     @Bean DataSource dataSource() {
       var source = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
