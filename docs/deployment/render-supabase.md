@@ -112,12 +112,12 @@ DB_URL=jdbc:postgresql://<HOST-SESSION-POOLER>:5432/postgres?sslmode=require
 DB_USERNAME=postgres.<PROJECT-REF>
 DB_PASSWORD=<DATABASE-PASSWORD>
 
-SPRING_PROFILES_ACTIVE=prod
-SPRING_FLYWAY_BASELINE_ON_MIGRATE=false
+# Dùng profile 'uat' cho môi trường nghiệm thu UAT (đã có application-uat.yml)
+# Profile 'uat' chỉ chạy migration thật, KHÔNG nạp seed demo.
+SPRING_PROFILES_ACTIVE=uat
 
-SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=5
-SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0
-SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=30000
+HIKARI_MAX_POOL_SIZE=8
+HIKARI_MIN_IDLE=2
 
 SERVER_FORWARD_HEADERS_STRATEGY=framework
 FRONTEND_BASE_URL=https://<FRONTEND-HOST>
@@ -130,12 +130,12 @@ MANAGEMENT_HEALTH_MAIL_ENABLED=false
 
 Giải thích:
 
-- `SERVER_PORT=10000` khớp cổng mặc định Render. Nếu bạn đổi biến `PORT` của Render, đặt `SERVER_PORT` cùng số; code hiện chưa đọc trực tiếp `${PORT}`.
-- `DB_URL` phải bắt đầu bằng `jdbc:postgresql://`, không dùng nguyên URL `postgresql://user:password@...`. Tách user/password sang hai biến riêng để tránh lỗi ký tự đặc biệt.
-- `sslmode=require` yêu cầu kết nối mã hóa. Khi vận hành thật, cân nhắc `verify-full` cùng chứng chỉ CA phù hợp thay vì chỉ kiểm tra có mã hóa.
-- `prod` là tên profile để phân biệt môi trường; repository hiện không có `application-prod.yml`, nên vẫn dùng cấu hình chung. Nó **không tự hoàn thiện cấu hình production**. Không bật `dev` trên DB thật vì profile đó nạp tài khoản demo.
-- Giảm pool từ mặc định 20 connection để tiết kiệm tài nguyên DB Free.
-- `BASELINE_ON_MIGRATE=false` khiến database có bảng không rõ lịch sử bị từ chối thay vì tự baseline. Hướng dẫn giả định schema ứng dụng mới, chưa có dữ liệu EduFit.
+- `SERVER_PORT=10000` khớp cổng mặc định Render (hoặc Render tự map qua `${PORT}`).
+- `DB_URL` phải bắt đầu bằng `jdbc:postgresql://`, không dùng nguyên URL `postgresql://user:password@...`. Tách user/password sang các biến riêng để tránh lỗi ký tự đặc biệt.
+- `sslmode=require` yêu cầu kết nối mã hóa TLS với Supabase.
+- `SPRING_PROFILES_ACTIVE=uat` kích hoạt cấu hình `application-uat.yml`: kiểm tra Flyway tự động, không nạp seed demo, cấu hình pool nhẹ cho Free tier.
+- Giảm pool xuống tối đa 8 connection để tiết kiệm tài nguyên DB Free.
+- `SERVER_FORWARD_HEADERS_STRATEGY=framework` đảm bảo Spring Boot nhận diện đúng HTTPS từ proxy của Render và Vercel để set cookie bảo mật `Secure` và `SameSite=Lax`.
 - `AI_PROVIDER=stub` giúp xác minh hạ tầng trước khi bật Gemini. Đây là giá trị trên Render, độc lập `.env` local đang dùng Gemini thật.
 - Heap Java chưa cố định theo cấu hình Compose local `-Xmx1024m`; cấu hình đó có thể vượt RAM instance Free. Nếu có OOM, đo RAM/tối ưu hoặc nâng compute, không chỉ tăng heap.
 
@@ -290,7 +290,60 @@ Bản Free phù hợp demo có kiểm soát. Trước khi dùng tiền thật, d
 
 Nguồn: [Render Free](https://render.com/docs/free), [Render billing FAQ](https://render.com/docs/faq), [Supabase pricing](https://supabase.com/pricing), [Supabase project pausing](https://supabase.com/docs/guides/platform/free-project-pausing).
 
-## 11. Checklist hoàn tất bản demo
+## 11. Runbook kiểm tra triển khai và Rollback (Deployment & Rollback Runbook)
+
+### 11.1. Checklist Trước triển khai (Pre-deployment)
+
+- [ ] **Nhánh & Commit:** Đảm bảo nhánh triển khai là `develop` (hoặc nhánh deploy đã kiểm tra cục bộ như `deploy/deploy-render-supabase`), đã qua type-check và unit test.
+- [ ] **Cơ sở dữ liệu:** Xác nhận project Supabase UAT riêng biệt, kết nối Session Pooler (port 5432). Đã tắt Data API cho các bảng ứng dụng.
+- [ ] **Sao lưu (Backup):** Nếu DB UAT đã có dữ liệu cần bảo toàn, thực hiện xuất backup trước khi deploy:
+  ```bash
+  pg_dump -h <POOLER_HOST> -p 5432 -U postgres.<PROJECT_REF> -d postgres -F c -b -v -f supabase_uat_backup_$(date +%Y%m%d_%H%M%S).dump
+  ```
+- [ ] **Biến môi trường:** Đã cấu hình đủ các biến trong Environment của Render (xem mục 5 và `.env.uat.example`), không chứa ký tự thừa hoặc nháy kép bao quanh.
+
+### 11.2. Checklist Trong khi triển khai (During-deployment)
+
+- [ ] **Docker Build:** Render build thành công từ root directory `backend`, không lỗi thiếu dependency Maven.
+- [ ] **Flyway Migration:** Log hiển thị `Successfully applied <N> migrations to schema "public"`, không có cảnh báo checksum mismatch.
+- [ ] **Hibernate Validation:** Log hiển thị Hibernate khởi tạo thành công không báo thiếu bảng hoặc kiểu dữ liệu xung đột.
+- [ ] **Health Endpoint:** Truy cập `GET https://<BACKEND-HOST>.onrender.com/actuator/health` trả về HTTP 200:
+  ```json
+  {"status":"UP"}
+  ```
+
+### 11.3. Checklist Sau triển khai (Post-deployment Smoke Test)
+
+- [ ] **CSRF Token:** Gọi `GET https://<BACKEND-HOST>.onrender.com/api/v1/auth/csrf` nhận về HTTP 200 và token hợp lệ.
+- [ ] **Xác thực phiên (Session Cookie):** Kiểm tra cookie `EDUFIT_SESSION` được gắn cờ `HttpOnly`, `SameSite=Lax`, và `Secure` qua giao thức HTTPS.
+- [ ] **Đăng ký / Đăng nhập:** Đăng ký tài khoản thử nghiệm UAT, đăng nhập và tải lại trang để xác nhận session được lưu trong bảng `spring_session` của Supabase.
+- [ ] **Quyền ghi dữ liệu:** Lưu cập nhật hồ sơ cá nhân hoặc gói dạy, tải lại trang xác nhận dữ liệu được lưu bền vững vào DB.
+- [ ] **Giám sát log:** Kiểm tra Render Log không có biệt lệ `ERROR`, không có rò rỉ token hoặc mật khẩu trong log.
+
+### 11.4. Quy trình xử lý sự cố và Rollback (Rollback Checks)
+
+Khi phát hiện lỗi nghiêm trọng trên bản phát hành UAT:
+
+1. **Rollback ứng dụng trên Render:**
+   - Truy cập **Dashboard Render** -> Web Service -> **Events / Deploys**.
+   - Chọn bản deploy thành công ổn định liền trước -> Bấm **Rollback to this deploy**.
+   - Chờ Render redeploy lại Docker image cũ.
+
+2. **Kiểm tra tính tương thích của Cơ sở dữ liệu (Database Schema Check):**
+   > [!CAUTION]
+   > Rollback trên Render **chỉ rollback code/image**, **KHÔNG tự động rollback các bảng/cột đã migrate bởi Flyway**!
+   - Kiểm tra log của bản cũ sau rollback: nếu Hibernate báo lỗi do schema mới có thay đổi không tương thích ngược (ví dụ cột bị đổi tên hoặc ràng buộc mới):
+     - **Lựa chọn 1 (Khuyến nghị):** Thực hiện "Forward-fix" (tạo commit sửa lỗi trên code và deploy tiếp) thay vì can thiệp thủ công vào DB.
+     - **Lựa chọn 2 (Khôi phục DB):** Nếu dữ liệu bị sai lệch, tạm dừng Web Service trên Render, khôi phục DB từ bản backup đã tạo ở bước 11.1:
+       ```bash
+       pg_restore -h <POOLER_HOST> -p 5432 -U postgres.<PROJECT_REF> -d postgres -v --clean --if-exists supabase_uat_backup_*.dump
+       ```
+     - Sau khi restore xong, khởi động lại Web Service tương ứng với commit cũ.
+   - **Tuyệt đối không:** Không xóa dòng trong bảng `flyway_schema_history` bằng tay mà không hiểu rõ nguyên nhân checksum.
+
+---
+
+## 12. Checklist hoàn tất bản demo
 
 - [ ] Render build đúng commit và Dockerfile backend.
 - [ ] Backend dùng DB cloud riêng; TLS kết nối thành công.
