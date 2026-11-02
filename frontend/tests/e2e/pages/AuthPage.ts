@@ -77,7 +77,7 @@ export class AuthPage extends BasePage {
 
   async getEmailInputValidationMessage(): Promise<string> {
     const element = await this.waitForVisible(this.emailInput);
-    return await element.getAttribute('validationMessage');
+    return (await element.getAttribute('validationMessage')) ?? '';
   }
 
   async isFieldValidationErrorVisible(): Promise<boolean> {
