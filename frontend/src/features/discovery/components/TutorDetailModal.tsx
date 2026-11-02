@@ -6,18 +6,16 @@ import {
   Star,
   ShieldCheck,
   MapPin,
-  Video,
-  Home,
-  BookOpen,
-  Calendar,
   Clock,
   Briefcase,
   GraduationCap,
-  Sparkles,
   MessageSquare,
   PenLine,
 } from "lucide-react";
+import { TUTOR_TYPE_LABELS } from "@/features/learning-needs/catalogRules";
 import type { TutorDetail } from "../types";
+import { OfferingList } from "./OfferingList";
+import { TEACHING_MODE_TEXT, formatRating, formatVnd, tutorAreaText } from "../utils/tutorDisplay";
 import {
   RatingSummaryCard,
   ReviewList,
@@ -92,9 +90,8 @@ export function TutorDetailModal({
 
   if (!isOpen) return null;
 
-  const formattedPrice = tutor
-    ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(tutor.pricePerSession)
-    : "0 đ";
+  const prices = tutor?.offerings.map((offering) => offering.pricePerSession) ?? [];
+  const minPrice = prices.length > 0 ? Math.min(...prices) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
@@ -112,6 +109,7 @@ export function TutorDetailModal({
           </div>
           <button
             type="button"
+            aria-label="Đóng"
             onClick={onClose}
             className="p-1.5 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-stone-200/60 transition-colors cursor-pointer"
           >
@@ -149,18 +147,25 @@ export function TutorDetailModal({
                   <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-neutral-600">
                     <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg">
                       <Star className="size-3.5 fill-amber-500 text-amber-500" />
-                      {tutor.ratingAvg ? tutor.ratingAvg.toFixed(1) : "5.0"} ({tutor.reviewCount} đánh giá)
+                      {formatRating(tutor.ratingAvg, tutor.reviewCount)}
                     </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Briefcase className="size-3.5 text-neutral-400" />
-                      {tutor.experienceYears} năm kinh nghiệm
-                    </span>
-                    {tutor.area && (
+                    {tutor.tutorType && (
                       <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-3.5 text-neutral-400" />
-                        {tutor.area}
+                        <GraduationCap className="size-3.5 text-neutral-400" />
+                        {TUTOR_TYPE_LABELS[tutor.tutorType]}
+                        {tutor.tutorTypeVerified && <ShieldCheck aria-label="Đã xác minh" className="size-3.5 text-emerald-600" />}
                       </span>
                     )}
+                    {tutor.experienceYears != null && (
+                      <span className="inline-flex items-center gap-1">
+                        <Briefcase className="size-3.5 text-neutral-400" />
+                        {tutor.experienceYears} năm kinh nghiệm
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 min-w-0">
+                      <MapPin className="size-3.5 text-neutral-400 shrink-0" />
+                      <span className="break-words">{TEACHING_MODE_TEXT[tutor.teachingMode]} · {tutorAreaText(tutor)}</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -183,21 +188,10 @@ export function TutorDetailModal({
                 </div>
               )}
 
-              {/* Danh sách môn dạy & Cấp lớp */}
+              {/* Gói dạy */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">Danh mục môn học nhận dạy</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {tutor.subjects.map((sub, idx) => (
-                    <div
-                      key={`${sub.subjectId}-${sub.educationLevelId}-${idx}`}
-                      className="flex items-center gap-2 p-3 rounded-xl bg-stone-50 border border-stone-200/80 text-xs font-semibold text-neutral-800"
-                    >
-                      <BookOpen className="size-4 text-amber-600 shrink-0" />
-                      <span>{sub.subjectName}</span>
-                      <span className="text-neutral-400 font-normal">· {sub.educationLevelName}</span>
-                    </div>
-                  ))}
-                </div>
+                <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">Gói dạy</h4>
+                <OfferingList offerings={tutor.offerings} />
               </div>
 
               {/* Ma trận khung giờ rảnh trong tuần */}
@@ -281,11 +275,13 @@ export function TutorDetailModal({
 
         {/* Footer */}
         {tutor && !isLoading && (
-          <div className="p-5 sm:p-6 bg-stone-50 border-t border-stone-200 flex items-center justify-between gap-4">
+          <div className="p-5 sm:p-6 bg-stone-50 border-t border-stone-200 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <span className="text-[10px] text-neutral-400 block font-medium">Mức học phí niêm yết</span>
-              <span className="text-base sm:text-lg font-black text-neutral-900">{formattedPrice}</span>
-              <span className="text-xs text-neutral-500"> /buổi</span>
+              <span className="text-[10px] text-neutral-400 block font-medium">
+                {prices.length > 1 ? "Học phí từ" : "Học phí"}
+              </span>
+              <span className="text-base sm:text-lg font-black text-neutral-900">{formatVnd(minPrice)}</span>
+              {minPrice != null && <span className="text-xs text-neutral-500"> /buổi</span>}
             </div>
 
             <div className="flex items-center gap-2">

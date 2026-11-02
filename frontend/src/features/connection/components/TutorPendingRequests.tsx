@@ -21,9 +21,12 @@ import type { TutorInboxItem } from "../types";
 import { RespondRequestModal } from "./RespondRequestModal";
 import {
   StudentPedagogicalProfileModal,
-  formatGoalType,
-  formatDeadline,
+  inboxNeedDetails,
+  inboxNeedPlace,
+  inboxNeedTitle,
 } from "./StudentPedagogicalProfileModal";
+import { FitChecks } from "@/features/discovery/components/FitChecks";
+import { formatMoney } from "@/features/learning-needs/catalogRules";
 
 export function TutorPendingRequests() {
   const [items, setItems] = useState<TutorInboxItem[]>([]);
@@ -260,13 +263,13 @@ export function TutorPendingRequests() {
                 <div>
                   {/* Top Header: Student Info & Status */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 font-bold text-sm">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 font-bold text-sm">
                         {item.studentDisplayName
                           ? item.studentDisplayName.charAt(0).toUpperCase()
                           : "HS"}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                           {item.studentDisplayName || "Học sinh ẩn danh"}
                           <span className="text-xs font-normal text-zinc-400">
@@ -275,30 +278,14 @@ export function TutorPendingRequests() {
                         </h4>
                         <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                           <GraduationCap className="h-3.5 w-3.5 text-zinc-400" />
-                          <span>
-                            {item.subjectName || "Môn học"} • {item.educationLevelName || "Cấp độ"}
-                          </span>
+                          <span className="break-words">{inboxNeedTitle(item.need)}</span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                          <span className="inline-flex items-center rounded-md bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 dark:bg-indigo-950/70 dark:border-indigo-800 dark:text-indigo-300">
-                            {formatGoalType(item.goalType)}
-                          </span>
-                          {(item.currentLevel != null || item.desiredLevel != null || item.currentGrade || item.targetScore) && (
-                            <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-300">
-                              Lộ trình:{" "}
-                              <span className="font-semibold text-zinc-800 dark:text-zinc-100">
-                                {item.currentLevel != null ? `Lv ${item.currentLevel}` : item.currentGrade || "Chưa rõ"}
-                                {" → "}
-                                {item.desiredLevel != null ? `Lv ${item.desiredLevel}` : item.targetScore || "Chưa rõ"}
-                              </span>
-                            </span>
-                          )}
-                          {item.deadline && (
-                            <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                              • Hạn chót: <span className="font-semibold text-zinc-700 dark:text-zinc-300">{formatDeadline(item.deadline)}</span>
-                            </span>
-                          )}
-                        </div>
+                        {inboxNeedDetails(item.need).length > 0 && (
+                          <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 break-words">
+                            {inboxNeedDetails(item.need).join(" · ")}
+                          </p>
+                        )}
+                        {item.fitChecks.length > 0 && <FitChecks checks={item.fitChecks} className="mt-2" />}
                       </div>
                     </div>
 
@@ -384,31 +371,18 @@ export function TutorPendingRequests() {
                     </div>
 
                     {/* Location & Budget */}
-                    {(item.area || item.budgetMax) && (
-                      <div className="flex flex-wrap items-center gap-4 text-zinc-500 dark:text-zinc-400 pt-1">
-                        {item.area && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-                            <span>
-                              {item.area}
-                              {item.district ? `, ${item.district}` : ""}
-                            </span>
-                          </div>
-                        )}
-                        {item.budgetMax && (
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="h-3.5 w-3.5 text-zinc-400" />
-                            <span>
-                              Ngân sách:{" "}
-                              {item.budgetMin
-                                ? `${item.budgetMin.toLocaleString("vi-VN")} - `
-                                : ""}
-                              {item.budgetMax.toLocaleString("vi-VN")} đ/buổi
-                            </span>
-                          </div>
-                        )}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-zinc-500 dark:text-zinc-400 pt-1">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <MapPin className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                        <span className="break-words">{inboxNeedPlace(item.need)}</span>
                       </div>
-                    )}
+                      {item.need.budgetMaxPerSession != null && (
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-3.5 w-3.5 text-zinc-400" />
+                          <span>Ngân sách tối đa: {formatMoney(item.need.budgetMaxPerSession)}/buổi</span>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Message */}
                     {item.message && (

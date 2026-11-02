@@ -20,7 +20,7 @@ describe("StudentDashboardView Component", () => {
       classId: "cls-1",
       studentId: "stu-1",
       tutorId: "tut-1",
-      goalId: "goal-1",
+      needId: "need-1",
       status: "ACTIVE",
       tutorDisplayName: "Thầy Hưng",
       subjectName: "Toán hình học",

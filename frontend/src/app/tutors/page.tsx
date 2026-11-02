@@ -21,7 +21,6 @@ import {
   type TutorDiscoveryCard,
 } from "@/features/discovery";
 import { ConnectionRequestDialog } from "@/features/connection";
-import { profileService, type LearningGoalData } from "@/services/profile";
 import { connectionService } from "@/services/connections";
 import { progressApi } from "@/features/progress";
 import { useAuth } from "@/context/AuthContext";
@@ -55,9 +54,6 @@ function TutorsDirectoryContent() {
 
   // Authenticated connect state
   const [connectTutor, setConnectTutor] = useState<TutorDiscoveryCard | null>(null);
-  const [studentGoals, setStudentGoals] = useState<LearningGoalData[]>([]);
-  const [selectedGoal, setSelectedGoal] = useState<LearningGoalData | null>(null);
-  const [loadingGoals, setLoadingGoals] = useState(false);
   const [linkedChildren, setLinkedChildren] = useState<Array<{ studentId: string; name: string }>>([]);
   const [selectedChildId, setSelectedChildId] = useState<string>("");
 
@@ -91,74 +87,6 @@ function TutorsDirectoryContent() {
       };
     }
   }, [user]);
-
-  // Load goals for STUDENT or for PARENT's selected child
-  useEffect(() => {
-    if (!user) {
-      setStudentGoals([]);
-      setSelectedGoal(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoadingGoals(true);
-
-    if (user.role === "STUDENT") {
-      profileService
-        .getMyLearningGoals()
-        .then((goals) => {
-          if (cancelled) return;
-          const active = goals.filter((g) => g.status === "ACTIVE");
-          const targetGoals = active.length > 0 ? active : goals;
-          setStudentGoals(targetGoals);
-          if (targetGoals.length > 0) {
-            setSelectedGoal((prev) =>
-              prev && targetGoals.some((g) => g.goalId === prev.goalId) ? prev : targetGoals[0]
-            );
-          } else {
-            setSelectedGoal(null);
-          }
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setStudentGoals([]);
-          setSelectedGoal(null);
-        })
-        .finally(() => {
-          if (!cancelled) setLoadingGoals(false);
-        });
-    } else if (user.role === "PARENT" && selectedChildId) {
-      profileService
-        .getLinkedStudentGoals(selectedChildId)
-        .then((goals) => {
-          if (cancelled) return;
-          const active = goals.filter((g) => g.status === "ACTIVE");
-          const targetGoals = active.length > 0 ? active : goals;
-          setStudentGoals(targetGoals);
-          if (targetGoals.length > 0) {
-            setSelectedGoal((prev) =>
-              prev && targetGoals.some((g) => g.goalId === prev.goalId) ? prev : targetGoals[0]
-            );
-          } else {
-            setSelectedGoal(null);
-          }
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setStudentGoals([]);
-          setSelectedGoal(null);
-        })
-        .finally(() => {
-          if (!cancelled) setLoadingGoals(false);
-        });
-    } else {
-      setLoadingGoals(false);
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, selectedChildId]);
 
   const handleViewDetail = (tutorId: string) => {
     router.push(`/tutors/${tutorId}`);
@@ -396,15 +324,7 @@ function TutorsDirectoryContent() {
         <ConnectionRequestDialog
           tutorId={connectTutor.tutorId}
           tutor={connectTutor}
-          goal={selectedGoal ?? undefined}
-          goals={studentGoals}
-          userRole={user?.role}
-          selectedChildName={linkedChildren.find((c) => c.studentId === selectedChildId)?.name}
-          onSelectGoal={setSelectedGoal}
-          onGoalCreated={(newGoal) => {
-            setStudentGoals((prev) => [newGoal, ...prev]);
-            setSelectedGoal(newGoal);
-          }}
+          studentId={user?.role === "PARENT" ? selectedChildId || undefined : undefined}
           onClose={() => setConnectTutor(null)}
           onSent={() => {
             setConnectTutor(null);

@@ -39,6 +39,7 @@ public record VerificationRequestDetailResponse(
       String institution,
       Short year,
       String note,
+      UUID offeringId,
       List<FileResponse> files
   ) {
 
@@ -49,6 +50,7 @@ public record VerificationRequestDetailResponse(
           credential.getInstitution(),
           credential.getYear(),
           credential.getNote(),
+          credential.getOfferingId(),
           credential.getFiles().stream()
               .map(FileResponse::from)
               .toList()

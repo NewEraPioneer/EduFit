@@ -41,6 +41,10 @@ class ConnectionQueryServiceTest {
 
   @BeforeEach void setup() {
     service = new ConnectionQueryService(invitations, links, requests, classes, profile, iam, facade, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.systemUTC());
+    lenient().when(profile.findTutorById(any())).thenAnswer(invocation ->
+        java.util.Optional.of(ConnectionTestFixtures.tutorSummary(invocation.getArgument(0))));
+    lenient().when(profile.findVerifiedTutorDetail(any())).thenAnswer(invocation ->
+        java.util.Optional.of(ConnectionTestFixtures.tutorProfile(invocation.getArgument(0))));
   }
 
   private CurrentUser actor(UUID id, String role) {
@@ -68,7 +72,7 @@ class ConnectionQueryServiceTest {
   @Test void studentListIgnoresForeignScopeAndReturnsOnlyOwnedStudent() {
     UUID user = UUID.randomUUID(), own = UUID.randomUUID(), foreign = UUID.randomUUID();
     when(profile.getStudentIdByUserId(user)).thenReturn(own);
-    when(profile.findStudentById(own)).thenReturn(Optional.of(new StudentSummaryDto(own, user, 4, null, true)));
+    when(profile.findStudentById(own)).thenReturn(Optional.of(new StudentSummaryDto(own, user, 4, null, null, true)));
     assertTrue(service.requests(actor(user, "STUDENT"), foreign).isEmpty());
     verify(requests).findByStudentIdOrderByCreatedAtDesc(own);
     verify(requests, never()).findByStudentIdOrderByCreatedAtDesc(foreign);
@@ -110,8 +114,8 @@ class ConnectionQueryServiceTest {
     var request = new ConnectionRequest(student, tutor, goal, sentBy, List.of("Tue 19:00"), "hello", Instant.now().minusSeconds(15 * 86400));
     when(profile.getTutorIdByUserId(user)).thenReturn(tutor);
     when(requests.findByTutorIdOrderByCreatedAtDesc(tutor)).thenReturn(List.of(request));
-    when(profile.findGoalsForConnection(List.of(goal))).thenReturn(Map.of(
-        goal, new ConnectionGoalDto(goal, student, UUID.randomUUID(), 1, 4, "EXAM", java.time.LocalDate.of(2027, 1, 1), "ACTIVE")));
+    when(profile.findLearningNeeds(List.of(goal))).thenReturn(Map.of(
+        goal, ConnectionTestFixtures.need(goal, student, UUID.randomUUID(), 1, 4, "ACTIVE")));
     when(iam.findUserSummariesByIds(List.of(sentBy))).thenReturn(Map.of(
         sentBy, new UserSummaryView(sentBy, "hidden@test.invalid", "Hidden name", AccountRole.valueOf(sender), AccountStatus.ACTIVE)));
 
@@ -120,13 +124,14 @@ class ConnectionQueryServiceTest {
     var item = result.getFirst();
     assertEquals("EXPIRED", item.status());
     assertEquals("EXPIRED", request.getStatus());
-    assertEquals("EXAM", item.goalType());
-    assertEquals(1, item.subjectId());
-    assertEquals(4, item.educationLevelId());
+    assertEquals("GRADE10_EXAM", item.need().goalTagCode());
+    assertEquals(1, item.need().subjectId());
+    assertEquals(4, item.need().educationLevelId());
     assertEquals(List.of("Tue 19:00"), item.desiredSlots());
     assertEquals("hello", item.message());
     assertEquals(sender, item.senderRole());
-    assertEquals(java.time.LocalDate.of(2027, 1, 1), item.deadline());
+    // Gói dạy của gia sư khớp lớp, mục tiêu, tỉnh luyện đề, ngân sách và lịch của nhu cầu
+    assertTrue(item.fitChecks().stream().allMatch(vn.edufit.profile.api.fit.FitCheck::matched), item.fitChecks().toString());
     verify(requests).findByTutorIdOrderByCreatedAtDesc(tutor);
     verify(requests, never()).findByStudentIdOrderByCreatedAtDesc(any());
   }
@@ -136,7 +141,7 @@ class ConnectionQueryServiceTest {
     var request = new ConnectionRequest(student, tutor, goal, sentBy, List.of("Tue 19:00"), "hello", Instant.now());
     when(profile.getTutorIdByUserId(user)).thenReturn(tutor);
     when(requests.findByTutorIdOrderByCreatedAtDesc(tutor)).thenReturn(List.of(request));
-    when(profile.findGoalsForConnection(List.of(goal))).thenReturn(Map.of());
+    when(profile.findLearningNeeds(List.of(goal))).thenReturn(Map.of());
     when(iam.findUserSummariesByIds(List.of(sentBy))).thenReturn(Map.of(
         sentBy, new UserSummaryView(sentBy, "h@t.i", "Name", AccountRole.STUDENT, AccountStatus.ACTIVE)));
 
@@ -149,8 +154,8 @@ class ConnectionQueryServiceTest {
     var request = new ConnectionRequest(student, tutor, goal, sentBy, List.of("Tue 19:00"), "hello", Instant.now());
     when(profile.getTutorIdByUserId(user)).thenReturn(tutor);
     when(requests.findByTutorIdOrderByCreatedAtDesc(tutor)).thenReturn(List.of(request));
-    when(profile.findGoalsForConnection(List.of(goal))).thenReturn(Map.of(
-        goal, new ConnectionGoalDto(goal, student, UUID.randomUUID(), 1, 4, "EXAM", null, "ACTIVE")));
+    when(profile.findLearningNeeds(List.of(goal))).thenReturn(Map.of(
+        goal, ConnectionTestFixtures.need(goal, student, UUID.randomUUID(), 1, 4, "ACTIVE")));
     when(iam.findUserSummariesByIds(List.of(sentBy))).thenReturn(Map.of());
 
     var ex = assertThrows(ResourceConflictException.class, () -> service.tutorInbox(actor(user, "TUTOR")));
@@ -167,16 +172,16 @@ class ConnectionQueryServiceTest {
 
     when(profile.getTutorIdByUserId(user)).thenReturn(tutor);
     when(requests.findByTutorIdOrderByCreatedAtDesc(tutor)).thenReturn(List.of(r1, r2, r3));
-    when(profile.findGoalsForConnection(anyList())).thenReturn(Map.of(
-        goal1, new ConnectionGoalDto(goal1, student, UUID.randomUUID(), 1, 4, "EXAM", null, "ACTIVE"),
-        goal2, new ConnectionGoalDto(goal2, student, UUID.randomUUID(), 2, 4, "COURSE", java.time.LocalDate.of(2027, 2, 1), "ACTIVE")));
+    when(profile.findLearningNeeds(anyList())).thenReturn(Map.of(
+        goal1, ConnectionTestFixtures.need(goal1, student, UUID.randomUUID(), 1, 4, "ACTIVE"),
+        goal2, ConnectionTestFixtures.need(goal2, student, UUID.randomUUID(), 2, 4, "ACTIVE")));
     when(iam.findUserSummariesByIds(anyList())).thenReturn(Map.of(
         sender1, new UserSummaryView(sender1, "s1@test.invalid", "Sender One", AccountRole.STUDENT, AccountStatus.ACTIVE),
         sender2, new UserSummaryView(sender2, "s2@test.invalid", "Sender Two", AccountRole.PARENT, AccountStatus.ACTIVE)));
 
     var result = service.tutorInbox(actor(user, "TUTOR"));
     assertEquals(3, result.size());
-    verify(profile, times(1)).findGoalsForConnection(argThat(list -> list.size() == 2 && list.contains(goal1) && list.contains(goal2)));
+    verify(profile, times(1)).findLearningNeeds(argThat(list -> list.size() == 2 && list.contains(goal1) && list.contains(goal2)));
     verify(iam, times(1)).findUserSummariesByIds(argThat(list -> list.size() == 2 && list.contains(sender1) && list.contains(sender2)));
   }
 
@@ -255,7 +260,7 @@ class ConnectionQueryServiceTest {
   @Test void requestsPageReturnsPagedRequestsForLearner() {
     UUID user = UUID.randomUUID(), student = UUID.randomUUID(), tutor = UUID.randomUUID(), goal = UUID.randomUUID();
     when(profile.getStudentIdByUserId(user)).thenReturn(student);
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, user, 4, null, true)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, user, 4, null, null, true)));
     var req = new ConnectionRequest(student, tutor, goal, user, List.of("Tue 19:00"), null, Instant.now().plusSeconds(3600));
     when(requests.findByStudentIdScoped(eq(student), any(org.springframework.data.domain.Pageable.class)))
         .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(req), org.springframework.data.domain.PageRequest.of(0, 10), 15));
@@ -274,8 +279,8 @@ class ConnectionQueryServiceTest {
     var req = new ConnectionRequest(student, tutor, goal, sentBy, List.of("Tue 19:00"), null, Instant.now().plusSeconds(3600));
     when(requests.findByTutorIdScoped(eq(tutor), any(org.springframework.data.domain.Pageable.class)))
         .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(req), org.springframework.data.domain.PageRequest.of(0, 20), 1));
-    when(profile.findGoalsForConnection(List.of(goal))).thenReturn(Map.of(
-        goal, new ConnectionGoalDto(goal, student, UUID.randomUUID(), 1, 4, "EXAM", java.time.LocalDate.of(2027, 1, 1), "ACTIVE")));
+    when(profile.findLearningNeeds(List.of(goal))).thenReturn(Map.of(
+        goal, ConnectionTestFixtures.need(goal, student, UUID.randomUUID(), 1, 4, "ACTIVE")));
     when(iam.findUserSummariesByIds(List.of(sentBy))).thenReturn(Map.of(
         sentBy, new UserSummaryView(sentBy, "p@t.i", "Parent", AccountRole.PARENT, AccountStatus.ACTIVE)));
 
@@ -286,7 +291,7 @@ class ConnectionQueryServiceTest {
     assertEquals(1, page.totalElements());
     assertEquals(1, page.totalPages());
     assertEquals("PARENT", page.items().getFirst().senderRole());
-    assertEquals(java.time.LocalDate.of(2027, 1, 1), page.items().getFirst().deadline());
+    assertEquals("ACTIVE", page.items().getFirst().need().status());
   }
 
   @ParameterizedTest @ValueSource(ints = {-1, -10})
@@ -358,7 +363,7 @@ class ConnectionQueryServiceTest {
             vn.edufit.iam.api.AccountRole.STUDENT, vn.edufit.iam.api.AccountStatus.ACTIVE)
     ));
     when(profile.findStudentByUserId(studentUserId)).thenReturn(Optional.of(
-        new StudentSummaryDto(studentId, studentUserId, 3, null, true)
+        new StudentSummaryDto(studentId, studentUserId, 3, null, null, true)
     ));
     var link = new ParentStudentLink(parentId, studentId, Instant.now());
     when(links.findByStudentIdAndStatusConfirmed(eq(studentId), any(org.springframework.data.domain.Pageable.class)))
@@ -394,15 +399,12 @@ class ConnectionQueryServiceTest {
     var activeReq = new ConnectionRequest(UUID.randomUUID(), tutor, UUID.randomUUID(), UUID.randomUUID(),
         List.of("TUESDAY 18:30-19:30"), null, Instant.now());
     org.springframework.test.util.ReflectionTestUtils.setField(activeReq, "id", activeReqId);
-    var activeClass = new TutoringClass(activeReq, Instant.now());
+    var activeClass = new TutoringClass(activeReq, 200000L, Instant.now());
     when(classes.findByTutorIdAndStatus(tutor, "ACTIVE")).thenReturn(List.of(activeClass));
     when(requests.findAllById(List.of(activeReqId))).thenReturn(List.of(activeReq));
 
-    var goalDto = new ConnectionGoalDto(
-        goal, student, sentBy, 1, 4, "EXAM", java.time.LocalDate.of(2027, 6, 1), "ACTIVE",
-        10, 12, 200000L, 500000L, "Quận Cầu Giấy, Hà Nội", "Toán học", "Lớp 12"
-    );
-    when(profile.findGoalsForConnection(List.of(goal))).thenReturn(Map.of(goal, goalDto));
+    var goalDto = ConnectionTestFixtures.needNamed(goal, student, sentBy, "Toán học", "Lớp 12");
+    when(profile.findLearningNeeds(List.of(goal))).thenReturn(Map.of(goal, goalDto));
     when(iam.findUserSummariesByIds(List.of(sentBy))).thenReturn(Map.of(
         sentBy, new UserSummaryView(sentBy, "student@edufit.vn", "Nguyễn Văn Minh", AccountRole.STUDENT, AccountStatus.ACTIVE)
     ));
@@ -411,20 +413,12 @@ class ConnectionQueryServiceTest {
     assertEquals(1, result.size());
     var item = result.getFirst();
 
-    // Verify pedagogical proposal enrichment
+    // Hộp thư hiển thị đủ nhu cầu học và gói dạy dùng để so
     assertEquals("Nguyễn Minh", item.studentDisplayName()); // BR-37: middle name masked
-    assertEquals("Toán học", item.subjectName());
-    assertEquals("Lớp 12", item.educationLevelName());
-    assertEquals("Lớp 12", item.gradeLevelName());
-    assertEquals("Lớp 12", item.currentGrade());
-    assertEquals("12", item.targetScore());
-    assertEquals(10, item.currentLevel());
-    assertEquals(12, item.desiredLevel());
-    assertEquals(200000L, item.budgetMin());
-    assertEquals(500000L, item.budgetMax());
-    assertEquals("Quận Cầu Giấy, Hà Nội", item.area());
-    assertEquals("Quận Cầu Giấy", item.district());
-    assertEquals("Hà Nội", item.city());
+    assertEquals("Toán học", item.need().subjectName());
+    assertEquals("Lớp 12", item.need().educationLevelName());
+    assertEquals("Cầu Giấy", item.need().districtName());
+    assertEquals("Toán", item.offeringName());
 
     // Verify slot conflict flags
     assertTrue(item.hasSlotConflict());
@@ -434,8 +428,8 @@ class ConnectionQueryServiceTest {
     var response = vn.edufit.connection.web.response.TutorInboxResponse.of(item);
     assertEquals("Nguyễn Minh", response.studentDisplayName());
     assertTrue(response.hasSlotConflict());
-    assertEquals("Quận Cầu Giấy", response.district());
-    assertEquals("Hà Nội", response.city());
+    assertEquals("Cầu Giấy", response.need().districtName());
+    assertEquals("Hà Nội", response.need().provinceName());
   }
 
   @Test
@@ -446,11 +440,8 @@ class ConnectionQueryServiceTest {
     when(requests.findByTutorIdOrderByCreatedAtDesc(tutor)).thenReturn(List.of(request));
     when(classes.findByTutorIdAndStatus(tutor, "ACTIVE")).thenReturn(List.of());
 
-    var goalDto = new ConnectionGoalDto(
-        goal, student, sentBy, 1, 4, "EXAM", java.time.LocalDate.of(2027, 6, 1), "ACTIVE",
-        8, 10, 150000L, 300000L, "Hà Nội", "Vật lý", "Lớp 10"
-    );
-    when(profile.findGoalsForConnection(List.of(goal))).thenReturn(Map.of(goal, goalDto));
+    var goalDto = ConnectionTestFixtures.needNamed(goal, student, sentBy, "Vật lý", "Lớp 10");
+    when(profile.findLearningNeeds(List.of(goal))).thenReturn(Map.of(goal, goalDto));
     when(iam.findUserSummariesByIds(List.of(sentBy))).thenReturn(Map.of(
         sentBy, new UserSummaryView(sentBy, "secret_email@edufit.vn", "Trần Thị Diệu Hoa", AccountRole.PARENT, AccountStatus.ACTIVE)
     ));
@@ -470,18 +461,15 @@ class ConnectionQueryServiceTest {
     UUID user = UUID.randomUUID(), tutor = UUID.randomUUID(), student = UUID.randomUUID(), goal = UUID.randomUUID();
     UUID classId = UUID.randomUUID();
     var req = new ConnectionRequest(student, tutor, goal, user, List.of("MON 18:00-19:00"), null, Instant.now().plusSeconds(86400));
-    var tutoringClass = new TutoringClass(req, Instant.now());
+    var tutoringClass = new TutoringClass(req, 200000L, Instant.now());
     // Use reflection to set ID on entity if protected
     org.springframework.test.util.ReflectionTestUtils.setField(tutoringClass, "id", classId);
 
     when(profile.getTutorIdByUserId(user)).thenReturn(tutor);
     when(classes.findByTutorId(tutor)).thenReturn(List.of(tutoringClass));
 
-    var goalDto = new ConnectionGoalDto(
-        goal, student, user, 1, 4, "EXAM", java.time.LocalDate.of(2027, 6, 1), "ACTIVE",
-        8, 10, 150000L, 300000L, "Hà Nội", "Toán học", "Lớp 12"
-    );
-    when(profile.findGoalsForConnection(List.of(goal))).thenReturn(Map.of(goal, goalDto));
+    var goalDto = ConnectionTestFixtures.needNamed(goal, student, user, "Toán học", "Lớp 12");
+    when(profile.findLearningNeeds(List.of(goal))).thenReturn(Map.of(goal, goalDto));
     when(profile.findStudentById(student)).thenReturn(Optional.empty());
     when(profile.findTutorById(tutor)).thenReturn(Optional.empty());
 
@@ -507,17 +495,14 @@ class ConnectionQueryServiceTest {
     UUID user = UUID.randomUUID(), tutor = UUID.randomUUID(), student = UUID.randomUUID(), goal = UUID.randomUUID();
     UUID classId = UUID.randomUUID();
     var req = new ConnectionRequest(student, tutor, goal, user, List.of("MON 18:00-19:00"), null, Instant.now().plusSeconds(86400));
-    var tutoringClass = new TutoringClass(req, Instant.now());
+    var tutoringClass = new TutoringClass(req, 200000L, Instant.now());
     org.springframework.test.util.ReflectionTestUtils.setField(tutoringClass, "id", classId);
 
     when(profile.getTutorIdByUserId(user)).thenReturn(tutor);
     when(classes.findByTutorId(tutor)).thenReturn(List.of(tutoringClass));
 
-    var goalDto = new ConnectionGoalDto(
-        goal, student, user, 1, 4, "EXAM", java.time.LocalDate.of(2027, 6, 1), "ACTIVE",
-        8, 10, 150000L, 300000L, "Hà Nội", "Toán học", "Lớp 12"
-    );
-    when(profile.findGoalsForConnection(List.of(goal))).thenReturn(Map.of(goal, goalDto));
+    var goalDto = ConnectionTestFixtures.needNamed(goal, student, user, "Toán học", "Lớp 12");
+    when(profile.findLearningNeeds(List.of(goal))).thenReturn(Map.of(goal, goalDto));
     when(profile.findStudentById(student)).thenReturn(Optional.empty());
     when(profile.findTutorById(tutor)).thenReturn(Optional.empty());
 

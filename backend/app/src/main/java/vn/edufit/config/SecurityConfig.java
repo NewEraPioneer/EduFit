@@ -101,6 +101,8 @@ public class SecurityConfig {
             .requestMatchers(
                 "/api/v1/profiles/students/me",
                 "/api/v1/profiles/students/me/**",
+                "/api/v1/learning-needs",
+                "/api/v1/learning-needs/**",
                 "/api/v1/reviews",
                 "/api/v1/reviews/**"
             ).hasAnyRole("STUDENT", "PARENT", "ADMIN")

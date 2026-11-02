@@ -230,7 +230,8 @@ describe("QA Usability Audit Suite - Phase 1: Hotfix P0 KYC & Upload (AC-01)", (
         expect(verificationService.reviewVerification).toHaveBeenCalledWith(
           "req-audit-777",
           "APPROVED",
-          undefined
+          undefined,
+          null
         );
         expect(onReviewed).toHaveBeenCalled();
         expect(onClose).toHaveBeenCalled();
@@ -285,7 +286,8 @@ describe("QA Usability Audit Suite - Phase 1: Hotfix P0 KYC & Upload (AC-01)", (
         expect(verificationService.reviewVerification).toHaveBeenCalledWith(
           "req-audit-777",
           "REJECTED",
-          "Ảnh CCCD bị cắt góc, vui lòng chụp lại toàn bộ 4 góc"
+          "Ảnh CCCD bị cắt góc, vui lòng chụp lại toàn bộ 4 góc",
+          null
         );
       });
     });

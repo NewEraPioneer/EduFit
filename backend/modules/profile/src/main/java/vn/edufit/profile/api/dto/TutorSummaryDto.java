@@ -6,6 +6,7 @@ import java.util.UUID;
 
 /**
  * Public DTO chứa tóm tắt thông tin hồ sơ gia sư chia sẻ giữa các module (ADR-002).
+ * Học phí nằm ở từng gói dạy ({@link TutorOfferingDto}), không nằm trên hồ sơ.
  */
 public record TutorSummaryDto(
     UUID tutorId,
@@ -14,8 +15,10 @@ public record TutorSummaryDto(
     String headline,
     String bio,
     String teachingMode,
-    String area,
-    Long pricePerSession,
+    String tutorType,
+    boolean tutorTypeVerified,
+    Integer provinceId,
+    String provinceName,
     Short experienceYears,
     String teachingMethod,
     String status,

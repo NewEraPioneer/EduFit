@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import vn.edufit.connection.application.service.LinkInvitationService;
 import vn.edufit.connection.application.service.ConnectionRequestService;
 import vn.edufit.connection.application.service.ConnectionQueryService;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
+import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import java.time.Instant;
@@ -110,7 +110,7 @@ class ConnectionTransactionPostgresTest {
     UUID student = UUID.randomUUID(), link = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id) values (?,?)", student, studentUser);
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at) values (?,?,?,now())", link, parent, student);
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, null, true)));
     doAnswer(call -> {
       assertTrue(TransactionSynchronizationManager.isActualTransactionActive());
       throw new IllegalStateException("injected audit failure");
@@ -134,26 +134,25 @@ class ConnectionTransactionPostgresTest {
     UUID studentUser = account("STUDENT"), tutorUser = account("TUTOR");
     UUID student = UUID.randomUUID(), tutor = UUID.randomUUID(), goal = UUID.randomUUID(), request = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')", tutor, tutorUser);
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000)", goal, student);
-    jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now() + interval '7 days')",
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')", tutor, tutorUser);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal, student);
+    jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now() + interval '7 days')",
         request, student, tutor, goal, studentUser, "[\"Tue 19:00\"]");
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
-    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor,
-        tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
-    when(profile.findGoalForConnection(goal)).thenAnswer(call -> {
+    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
+    when(profile.findLearningNeed(goal)).thenAnswer(call -> {
       assertTrue(TransactionSynchronizationManager.isActualTransactionActive());
-      return Optional.of(new ConnectionGoalDto(goal, student, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE"));
+      return Optional.of(ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ACTIVE"));
     });
-    when(profile.findGoalsForConnection(List.of(goal))).thenAnswer(call -> {
+    when(profile.findLearningNeeds(List.of(goal))).thenAnswer(call -> {
       assertTrue(TransactionSynchronizationManager.isActualTransactionActive());
-      return Map.of(goal, new ConnectionGoalDto(goal, student, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE"));
+      return Map.of(goal, ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ACTIVE"));
     });
     when(iam.findUserSummariesByIds(List.of(studentUser))).thenReturn(Map.of(
         studentUser, new vn.edufit.iam.api.dto.UserSummaryView(studentUser, "student@test.invalid", "Student", vn.edufit.iam.api.AccountRole.STUDENT, vn.edufit.iam.api.AccountStatus.ACTIVE)
     ));
-    when(profile.tutorTeaches(tutor, 1, 4)).thenReturn(true);
+    when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
     var actor = actor(tutorUser, "TUTOR");
     var inbox = queries.tutorInbox(actor);
     assertEquals(1, inbox.size());
@@ -185,19 +184,18 @@ class ConnectionTransactionPostgresTest {
     UUID studentUser = account("STUDENT"), tutorUser = account("TUTOR");
     UUID student = UUID.randomUUID(), tutor = UUID.randomUUID(), goal = UUID.randomUUID(), request = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')", tutor, tutorUser);
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000)", goal, student);
-    jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now() + interval '7 days')",
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')", tutor, tutorUser);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal, student);
+    jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now() + interval '7 days')",
         request, student, tutor, goal, studentUser, "[]");
     lenient().when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
-    lenient().when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor,
-        tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    lenient().when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(
-        new ConnectionGoalDto(goal, student, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")));
-    lenient().when(profile.tutorTeaches(tutor, 1, 4)).thenReturn(true);
+    lenient().when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    lenient().when(profile.findLearningNeed(goal)).thenReturn(Optional.of(
+        ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ACTIVE")));
+    lenient().when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
     lenient().when(iam.findUserSummaryById(tutorUser)).thenReturn(Optional.of(new vn.edufit.iam.api.dto.UserSummaryView(tutorUser,
         "tutor@test.invalid", "Tutor", vn.edufit.iam.api.AccountRole.TUTOR, vn.edufit.iam.api.AccountStatus.ACTIVE)));
-    lenient().when(profile.findStudentById(student)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student,studentUser,4,null,true)));
+    lenient().when(profile.findStudentById(student)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, null, true)));
     return new RequestFixture(request, student, tutor, goal, studentUser, tutorUser);
   }
 
@@ -205,8 +203,8 @@ class ConnectionTransactionPostgresTest {
     var fixture=pendingRequest();var destination=pendingRequest();var jdbc=new JdbcTemplate(source);
     for(int i=0;i<4;i++) {
       UUID tutorUser=account("TUTOR"),tutor=UUID.randomUUID();
-      jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')",tutor,tutorUser);
-      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,'[]'::jsonb,now()+interval '7 days')",UUID.randomUUID(),fixture.student(),tutor,fixture.goal(),fixture.studentUser());
+      jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')",tutor,tutorUser);
+      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,'[]'::jsonb,now()+interval '7 days')",UUID.randomUUID(),fixture.student(),tutor,fixture.goal(),fixture.studentUser());
     }
     var actor=actor(fixture.studentUser(),"STUDENT");
     assertInstanceOf(vn.edufit.connection.application.dto.TransitionResult.Conflict.class,
@@ -282,10 +280,9 @@ class ConnectionTransactionPostgresTest {
   @Test void createConflictCommitsOldRequestExpiry() {
     var expired = pendingRequest(); var other = pendingRequest(); var jdbc = new JdbcTemplate(source);
     jdbc.update("update connection_request set expires_at=now()-interval '1 day' where request_id=?", expired.request());
-    jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now()+interval '7 days')",
+    jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now()+interval '7 days')",
         UUID.randomUUID(), expired.student(), other.tutor(), expired.goal(), expired.studentUser(), "[]");
-    when(profile.findStudentById(expired.student())).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(
-        expired.student(), expired.studentUser(), 4, null, true)));
+    when(profile.findStudentById(expired.student())).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(expired.student(), expired.studentUser(), 4, null, null, true)));
     var result = requests.request(actor(expired.studentUser(), "STUDENT"), expired.goal(), other.tutor(), java.util.List.of("Tue 19:00"), null);
     assertInstanceOf(vn.edufit.connection.application.dto.TransitionResult.Conflict.class, result);
     assertEquals("EXPIRED", jdbc.queryForObject("select status from connection_request where request_id=?", String.class, expired.request()));
@@ -339,7 +336,7 @@ class ConnectionTransactionPostgresTest {
     UUID parent = account("PARENT"), studentUser = account("STUDENT"), student = UUID.randomUUID(), invitation = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id) values (?,?)", student, studentUser);
     jdbc.update("insert into link_invitation(invitation_id,inviter_user_id,invited_user_id,expires_at) values (?,?,?,now()+interval '14 days')", invitation, parent, studentUser);
-    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, null, true)));
     when(iam.findUserSummaryById(parent)).thenReturn(Optional.of(new vn.edufit.iam.api.dto.UserSummaryView(
         parent, "parent@test.invalid", "Parent", vn.edufit.iam.api.AccountRole.PARENT, vn.edufit.iam.api.AccountStatus.ACTIVE)));
     doThrow(new vn.edufit.shared.exception.ResourceConflictException("injected notification write conflict"))
@@ -423,7 +420,7 @@ class ConnectionTransactionPostgresTest {
     jdbc.update("insert into student_profile(student_id,user_id) values (?,?)", student, studentUser);
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at) values (?,?,?,now())", UUID.randomUUID(), parent, student);
     jdbc.update("insert into link_invitation(invitation_id,inviter_user_id,invited_user_id,expires_at) values (?,?,?,now()+interval '14 days')", invitation, parent, studentUser);
-    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, false)));
+    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, null, false)));
     when(iam.findUserSummaryById(parent)).thenReturn(Optional.of(new vn.edufit.iam.api.dto.UserSummaryView(parent, "parent@test.invalid", "Fixture", vn.edufit.iam.api.AccountRole.PARENT, vn.edufit.iam.api.AccountStatus.ACTIVE)));
     var recipient = actor(studentUser, "STUDENT");
     new TransactionTemplate(transactionManager).executeWithoutResult(tx -> {
@@ -477,17 +474,16 @@ class ConnectionTransactionPostgresTest {
     UUID parent = account("PARENT"), studentUser = account("STUDENT"), tutorUser = account("TUTOR");
     UUID student = UUID.randomUUID(), tutor = UUID.randomUUID(), goal = UUID.randomUUID(), link = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')", tutor, tutorUser);
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goal, student);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')", tutor, tutorUser);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal, student);
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at,status) values (?,?,?,now(),'CONFIRMED')", link, parent, student);
 
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
-    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor,
-        tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
     when(profile.getStudentIdByUserId(studentUser)).thenReturn(student);
-    when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(new ConnectionGoalDto(goal, student, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")));
-    when(profile.tutorTeaches(tutor, 1, 4)).thenReturn(true);
+    when(profile.findLearningNeed(goal)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ACTIVE")));
+    when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
     actor(tutorUser, "TUTOR");
 
     // 1. CONFIRMED state: Parent has full access
@@ -517,7 +513,7 @@ class ConnectionTransactionPostgresTest {
 
     // Student ownership: data is preserved, student can still query requests
     assertEquals(1, queries.requests(actor(studentUser, "STUDENT"), student).size());
-    assertEquals("ACTIVE", jdbc.queryForObject("select status from learning_goal where goal_id=?", String.class, goal));
+    assertEquals("ACTIVE", jdbc.queryForObject("select status from learning_need where need_id=?", String.class, goal));
 
     // Tutor accepts older request created by Parent before revocation
     reset(notifications);
@@ -530,8 +526,8 @@ class ConnectionTransactionPostgresTest {
 
     // 3. RELINKED state: New invitation creates a new confirmed link
     UUID newLink = UUID.randomUUID(), goal2 = UUID.randomUUID();
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goal2, student);
-    when(profile.findGoalForConnection(goal2)).thenReturn(Optional.of(new ConnectionGoalDto(goal2, student, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")));
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal2, student);
+    when(profile.findLearningNeed(goal2)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal2, student, studentUser, 1, 4, "ACTIVE")));
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at,status) values (?,?,?,now(),'CONFIRMED')", newLink, parent, student);
 
     // Parent access is immediately restored
@@ -539,10 +535,10 @@ class ConnectionTransactionPostgresTest {
     assertEquals(1, queries.links(actor(parent, "PARENT")).size());
     UUID tutor2User = account("TUTOR"), tutor2 = UUID.randomUUID();
     actor(tutor2User, "TUTOR");
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor2','ONLINE',100000,'VERIFIED')", tutor2, tutor2User);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor2', 'ONLINE', 'VERIFIED')", tutor2, tutor2User);
     when(profile.getTutorIdByUserId(tutor2User)).thenReturn(tutor2);
-    when(profile.findTutorById(tutor2)).thenReturn(Optional.of(new TutorSummaryDto(tutor2, tutor2User, "Tutor2", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.tutorTeaches(tutor2, 1, 4)).thenReturn(true);
+    when(profile.findTutorById(tutor2)).thenReturn(Optional.of(new TutorSummaryDto(tutor2, tutor2User, "Tutor2", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findTutorOfferings(tutor2)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
     var request2Result = requests.request(actor(parent, "PARENT"), goal2, tutor2, java.util.List.of("Tue 19:00"), null);
     assertInstanceOf(vn.edufit.connection.application.dto.TransitionResult.Success.class, request2Result);
   }
@@ -559,9 +555,9 @@ class ConnectionTransactionPostgresTest {
 
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student1, student1User);
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student2, student2User);
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')", tutor, tutorUser);
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goal1, student1);
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goal2, student2);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')", tutor, tutorUser);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal1, student1);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal2, student2);
 
     // Parent 1 linked to Student 1 and Student 2; Parent 2 also linked to Student 1
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at,status) values (?,?,?,now(),'CONFIRMED')", link1, parent1, student1);
@@ -569,12 +565,12 @@ class ConnectionTransactionPostgresTest {
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at,status) values (?,?,?,now(),'CONFIRMED')", link3, parent2, student1);
 
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
-    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.findStudentById(student1)).thenReturn(Optional.of(new StudentSummaryDto(student1, student1User, 4, null, true)));
-    when(profile.findStudentById(student2)).thenReturn(Optional.of(new StudentSummaryDto(student2, student2User, 4, null, true)));
-    when(profile.findGoalForConnection(goal1)).thenReturn(Optional.of(new ConnectionGoalDto(goal1, student1, student1User, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")));
-    when(profile.findGoalForConnection(goal2)).thenReturn(Optional.of(new ConnectionGoalDto(goal2, student2, student2User, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")));
-    when(profile.tutorTeaches(tutor, 1, 4)).thenReturn(true);
+    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findStudentById(student1)).thenReturn(Optional.of(new StudentSummaryDto(student1, student1User, 4, null, null, true)));
+    when(profile.findStudentById(student2)).thenReturn(Optional.of(new StudentSummaryDto(student2, student2User, 4, null, null, true)));
+    when(profile.findLearningNeed(goal1)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal1, student1, student1User, 1, 4, "ACTIVE")));
+    when(profile.findLearningNeed(goal2)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal2, student2, student2User, 1, 4, "ACTIVE")));
+    when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
 
     // Parent 1 creates request for Student 1 while link is CONFIRMED
     var p1s1Result = requests.request(actor(parent1, "PARENT"), goal1, tutor, java.util.List.of("Tue 19:00"), null);
@@ -635,8 +631,8 @@ class ConnectionTransactionPostgresTest {
     jdbc.update("update connection_request set expires_at = ? where request_id = ?",
         java.sql.Timestamp.from(now.minusSeconds(3600)), fixture.request());
 
-    when(profile.findStudentById(fixture.student())).thenReturn(Optional.of(new StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, true)));
-    when(profile.findTutorById(fixture.tutor())).thenReturn(Optional.of(new TutorSummaryDto(fixture.tutor(), fixture.tutorUser(), "Tutor", null, null, null, null, null, null, null, "VERIFIED", now, null, 0)));
+    when(profile.findStudentById(fixture.student())).thenReturn(Optional.of(new StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, null, true)));
+    when(profile.findTutorById(fixture.tutor())).thenReturn(Optional.of(new TutorSummaryDto(fixture.tutor(), fixture.tutorUser(), "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0)));
 
     // Outer rollback honors transaction boundary
     new TransactionTemplate(transactionManager).executeWithoutResult(tx -> {
@@ -666,29 +662,29 @@ class ConnectionTransactionPostgresTest {
     actor(tutorUser, "TUTOR");
 
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')", tutor, tutorUser);
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goal, student);
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goalNew, student);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')", tutor, tutorUser);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal, student);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goalNew, student);
 
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
-    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
     when(profile.getStudentIdByUserId(studentUser)).thenReturn(student);
-    when(profile.findGoalForConnection(goalNew)).thenReturn(Optional.of(new ConnectionGoalDto(goalNew, student, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")));
-    when(profile.tutorTeaches(tutor, 1, 4)).thenReturn(true);
+    when(profile.findLearningNeed(goalNew)).thenReturn(Optional.of(ConnectionTestFixtures.need(goalNew, student, studentUser, 1, 4, "ACTIVE")));
+    when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
 
     // Insert 4 pending requests that are fresh, and 1 that is overdue
     for (int i = 0; i < 4; i++) {
       UUID otherTutorUser = account("TUTOR"), otherTutor = UUID.randomUUID();
-      jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')", otherTutor, otherTutorUser);
-      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now() + interval '7 days')",
+      jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')", otherTutor, otherTutorUser);
+      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now() + interval '7 days')",
           UUID.randomUUID(), student, otherTutor, goal, studentUser, "[\"Tue 19:00\"]");
     }
     UUID overdueReq = UUID.randomUUID(), overdueTutorUser = account("TUTOR"), overdueTutor = UUID.randomUUID();
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')", overdueTutor, overdueTutorUser);
-    jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now() - interval '1 hour')",
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')", overdueTutor, overdueTutorUser);
+    jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now() - interval '1 hour')",
         overdueReq, student, overdueTutor, goal, studentUser, "[\"Tue 19:00\"]");
-    when(profile.findTutorById(overdueTutor)).thenReturn(Optional.of(new TutorSummaryDto(overdueTutor, overdueTutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findTutorById(overdueTutor)).thenReturn(Optional.of(new TutorSummaryDto(overdueTutor, overdueTutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
 
     assertEquals(5, jdbc.queryForObject("select count(*) from connection_request where student_id=? and status='PENDING'", Integer.class, student));
 
@@ -708,10 +704,10 @@ class ConnectionTransactionPostgresTest {
         java.sql.Timestamp.from(now.minusSeconds(1)), fixture.request());
 
     when(profile.getTutorIdByUserId(fixture.tutorUser())).thenReturn(fixture.tutor());
-    when(profile.findTutorById(fixture.tutor())).thenReturn(Optional.of(new TutorSummaryDto(fixture.tutor(), fixture.tutorUser(), "Tutor", null, null, null, null, null, null, null, "VERIFIED", now, null, 0)));
-    when(profile.findStudentById(fixture.student())).thenReturn(Optional.of(new StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, true)));
-    when(profile.findGoalForConnection(fixture.goal())).thenReturn(Optional.of(new ConnectionGoalDto(fixture.goal(), fixture.student(), fixture.studentUser(), 1, 4, "EXAM", null, "ACTIVE")));
-    when(profile.tutorTeaches(fixture.tutor(), 1, 4)).thenReturn(true);
+    when(profile.findTutorById(fixture.tutor())).thenReturn(Optional.of(new TutorSummaryDto(fixture.tutor(), fixture.tutorUser(), "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0)));
+    when(profile.findStudentById(fixture.student())).thenReturn(Optional.of(new StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, null, true)));
+    when(profile.findLearningNeed(fixture.goal())).thenReturn(Optional.of(ConnectionTestFixtures.need(fixture.goal(), fixture.student(), fixture.studentUser(), 1, 4, "ACTIVE")));
+    when(profile.findTutorOfferings(fixture.tutor())).thenReturn(ConnectionTestFixtures.offerings(1, 4));
     actor(fixture.tutorUser(), "TUTOR");
 
     var latch = new CountDownLatch(2);
@@ -769,8 +765,8 @@ class ConnectionTransactionPostgresTest {
     jdbc.update("update connection_request set expires_at = ? where request_id = ?",
         java.sql.Timestamp.from(now.minusSeconds(3600)), fixture.request());
 
-    when(profile.findStudentById(fixture.student())).thenReturn(Optional.of(new StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, true)));
-    when(profile.findTutorById(fixture.tutor())).thenReturn(Optional.of(new TutorSummaryDto(fixture.tutor(), fixture.tutorUser(), "Tutor", null, null, null, null, null, null, null, "VERIFIED", now, null, 0)));
+    when(profile.findStudentById(fixture.student())).thenReturn(Optional.of(new StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, null, true)));
+    when(profile.findTutorById(fixture.tutor())).thenReturn(Optional.of(new TutorSummaryDto(fixture.tutor(), fixture.tutorUser(), "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0)));
 
     var result = expiryJob.runExpiryCycle();
     assertTrue(result.expiredInvitations() >= 1);
@@ -790,18 +786,18 @@ class ConnectionTransactionPostgresTest {
     UUID studentUser = account("STUDENT"), student = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
     UUID goal = UUID.randomUUID();
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goal, student);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal, student);
 
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
 
     List<UUID> reqIds = new java.util.ArrayList<>();
     for (int i = 0; i < 4; i++) {
       UUID tutorUser = account("TUTOR"), tutor = UUID.randomUUID();
-      jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor','ONLINE',100000,'VERIFIED')", tutor, tutorUser);
-      when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", now, null, 0)));
+      jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor', 'ONLINE', 'VERIFIED')", tutor, tutorUser);
+      when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0)));
 
       UUID rId = UUID.randomUUID();
-      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),?)",
+      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),?)",
           rId, student, tutor, goal, studentUser, "[\"Tue 19:00\"]", java.sql.Timestamp.from(now.minusSeconds(100 + i * 10)));
       reqIds.add(rId);
     }
@@ -823,8 +819,8 @@ class ConnectionTransactionPostgresTest {
     jdbc.update("update connection_request set expires_at = ? where request_id = ?",
         java.sql.Timestamp.from(now.minusSeconds(3600)), fixture.request());
 
-    when(profile.findStudentById(fixture.student())).thenReturn(Optional.of(new StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, true)));
-    when(profile.findTutorById(fixture.tutor())).thenReturn(Optional.of(new TutorSummaryDto(fixture.tutor(), fixture.tutorUser(), "Tutor", null, null, null, null, null, null, null, "VERIFIED", now, null, 0)));
+    when(profile.findStudentById(fixture.student())).thenReturn(Optional.of(new StudentSummaryDto(fixture.student(), fixture.studentUser(), 4, null, null, true)));
+    when(profile.findTutorById(fixture.tutor())).thenReturn(Optional.of(new TutorSummaryDto(fixture.tutor(), fixture.tutorUser(), "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0)));
 
     int threads = 2;
     var latch = new CountDownLatch(threads);
@@ -856,13 +852,13 @@ class ConnectionTransactionPostgresTest {
   @Test void tutorInboxMetadataQueryCountIsConstantForBatchesOf1And20And100() {
     var jdbc = new JdbcTemplate(source);
     UUID tutorUser = account("TUTOR"), tutor = UUID.randomUUID();
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'TutorBatch','ONLINE',100000,'VERIFIED')", tutor, tutorUser);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'TutorBatch', 'ONLINE', 'VERIFIED')", tutor, tutorUser);
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
 
     // Create 5 goals and 5 sender users
     List<UUID> goals = new java.util.ArrayList<>();
     List<UUID> senders = new java.util.ArrayList<>();
-    Map<UUID, ConnectionGoalDto> goalDtoMap = new java.util.HashMap<>();
+    Map<UUID, LearningNeedView> goalDtoMap = new java.util.HashMap<>();
     Map<UUID, vn.edufit.iam.api.dto.UserSummaryView> userDtoMap = new java.util.HashMap<>();
 
     UUID baseStudent = UUID.randomUUID(), baseUser = account("STUDENT");
@@ -872,9 +868,9 @@ class ConnectionTransactionPostgresTest {
       UUID gId = UUID.randomUUID(), senderId = account("PARENT");
       goals.add(gId);
       senders.add(senderId);
-      jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", gId, baseStudent);
+      jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", gId, baseStudent);
 
-      goalDtoMap.put(gId, new ConnectionGoalDto(gId, baseStudent, baseUser, 1, 4, "EXAM_PREPARATION", java.time.LocalDate.of(2027, 1, 1), "ACTIVE"));
+      goalDtoMap.put(gId, ConnectionTestFixtures.need(gId, baseStudent, baseUser, 1, 4, "ACTIVE"));
       userDtoMap.put(senderId, new vn.edufit.iam.api.dto.UserSummaryView(senderId, "p" + i + "@test.invalid", "Parent " + i, vn.edufit.iam.api.AccountRole.PARENT, vn.edufit.iam.api.AccountStatus.ACTIVE));
     }
 
@@ -886,14 +882,14 @@ class ConnectionTransactionPostgresTest {
       UUID reqId = UUID.randomUUID();
       UUID gId = goals.get(i % goals.size());
       UUID senderId = senders.get(i % senders.size());
-      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),?)",
+      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),?)",
           reqId, sId, tutor, gId, senderId, "[\"Tue 19:00\"]", java.sql.Timestamp.from(now.plusSeconds(3600)));
     }
 
-    when(profile.findGoalsForConnection(anyList())).thenAnswer(invocation -> {
+    when(profile.findLearningNeeds(anyList())).thenAnswer(invocation -> {
       assertTrue(TransactionSynchronizationManager.isActualTransactionActive(), "Goal batch query must run within transaction");
       List<UUID> requestedGoalIds = invocation.getArgument(0);
-      Map<UUID, ConnectionGoalDto> subMap = new java.util.HashMap<>();
+      Map<UUID, LearningNeedView> subMap = new java.util.HashMap<>();
       for (UUID id : requestedGoalIds) {
         if (goalDtoMap.containsKey(id)) subMap.put(id, goalDtoMap.get(id));
       }
@@ -914,11 +910,11 @@ class ConnectionTransactionPostgresTest {
 
     // Verify 100 items returned with correct hydration
     assertEquals(100, inbox.size());
-    assertEquals(java.time.LocalDate.of(2027, 1, 1), inbox.getFirst().deadline());
+    assertEquals("ACTIVE", inbox.getFirst().need().status());
     assertEquals("PARENT", inbox.getFirst().senderRole());
 
     // Exactly 1 batch call to Profile and 1 batch call to IAM for all 100 requests (zero N+1)
-    verify(profile, times(1)).findGoalsForConnection(argThat(list -> list.size() == 5));
+    verify(profile, times(1)).findLearningNeeds(argThat(list -> list.size() == 5));
     verify(iam, times(1)).findUserSummariesByIds(argThat(list -> list.size() == 5));
   }
 
@@ -931,13 +927,13 @@ class ConnectionTransactionPostgresTest {
 
     UUID tutorUser = account("TUTOR");
     UUID tutorId = UUID.randomUUID();
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'TutorPaged','ONLINE',100000,'VERIFIED')", tutorId, tutorUser);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'TutorPaged', 'ONLINE', 'VERIFIED')", tutorId, tutorUser);
 
     UUID goalId = UUID.randomUUID();
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goalId, studentId);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goalId, studentId);
 
     when(profile.getStudentIdByUserId(studentUser)).thenReturn(studentId);
-    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, 3, null, true)));
+    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, 3, null, null, true)));
 
     // Seed 5 connection requests with sequential timestamps
     Instant baseTime = Instant.parse("2026-10-14T10:00:00Z");
@@ -945,12 +941,12 @@ class ConnectionTransactionPostgresTest {
     for (int i = 0; i < 5; i++) {
       UUID tid = UUID.randomUUID();
       UUID tUser = account("TUTOR");
-      jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'TutorPaged" + i + "','ONLINE',100000,'VERIFIED')", tid, tUser);
+      jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'TutorPaged" + i + "', 'ONLINE', 'VERIFIED')", tid, tUser);
       UUID reqId = UUID.randomUUID();
       requestIds[i] = reqId;
       Instant createdAt = baseTime.plusSeconds(i * 60);
       jdbc.update(
-          "insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,status,expires_at,created_at) " +
+          "insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,status,expires_at,created_at) " +
           "values (?,?,?,?,?,cast(? as jsonb),'PENDING',?,?)",
           reqId, studentId, tid, goalId, studentUser, "[\"Tue 19:00\"]",
           java.sql.Timestamp.from(createdAt.plusSeconds(86400)),
@@ -1033,7 +1029,7 @@ class ConnectionTransactionPostgresTest {
     ));
     when(iam.findUserSummaryByEmail("unknown@test.invalid")).thenReturn(Optional.empty());
     when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(
-        new StudentSummaryDto(studentId, studentUser, 4, null, true)
+        new StudentSummaryDto(studentId, studentUser, 4, null, null, true)
     ));
 
     var adminActor = actor(adminUser, "ADMIN");
@@ -1068,7 +1064,7 @@ class ConnectionTransactionPostgresTest {
     UUID parent = account("PARENT"), studentUser = account("STUDENT"), student = UUID.randomUUID(), invitation = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id) values (?,?)", student, studentUser);
     jdbc.update("insert into link_invitation(invitation_id,inviter_user_id,invited_user_id,expires_at) values (?,?,?,now()+interval '14 days')", invitation, parent, studentUser);
-    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, 4, null, null, true)));
     when(iam.findUserSummaryById(parent)).thenReturn(Optional.of(new vn.edufit.iam.api.dto.UserSummaryView(
         parent, "parent@test.invalid", "Parent", vn.edufit.iam.api.AccountRole.PARENT, vn.edufit.iam.api.AccountStatus.ACTIVE)));
 
@@ -1088,15 +1084,15 @@ class ConnectionTransactionPostgresTest {
     var fixture = pendingRequest();
     var jdbc = new JdbcTemplate(source);
     UUID goalNew = UUID.randomUUID();
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goalNew, fixture.student());
-    when(profile.findGoalForConnection(goalNew)).thenReturn(Optional.of(new ConnectionGoalDto(goalNew, fixture.student(), fixture.studentUser(), 1, 4, "EXAM_PREPARATION", null, "ACTIVE")));
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goalNew, fixture.student());
+    when(profile.findLearningNeed(goalNew)).thenReturn(Optional.of(ConnectionTestFixtures.need(goalNew, fixture.student(), fixture.studentUser(), 1, 4, "ACTIVE")));
 
     UUID tutor2User = account("TUTOR"), tutor2 = UUID.randomUUID();
     actor(tutor2User, "TUTOR");
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor2','ONLINE',100000,'VERIFIED')", tutor2, tutor2User);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor2', 'ONLINE', 'VERIFIED')", tutor2, tutor2User);
     when(profile.getTutorIdByUserId(tutor2User)).thenReturn(tutor2);
-    when(profile.findTutorById(tutor2)).thenReturn(Optional.of(new TutorSummaryDto(tutor2, tutor2User, "Tutor2", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.tutorTeaches(tutor2, 1, 4)).thenReturn(true);
+    when(profile.findTutorById(tutor2)).thenReturn(Optional.of(new TutorSummaryDto(tutor2, tutor2User, "Tutor2", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findTutorOfferings(tutor2)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
 
     int initialCount = jdbc.queryForObject("select count(*) from connection_request where student_id=?", Integer.class, fixture.student());
 
@@ -1147,7 +1143,7 @@ class ConnectionTransactionPostgresTest {
     jdbc.update("insert into student_profile(student_id,user_id) values (?,?)", student, studentUser);
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at,status) values (?,?,?,now(),'CONFIRMED')", link, parent, student);
 
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
 
     doThrow(new IllegalStateException("injected notification failure on student revoke"))
         .when(notifications).notify(eq(parent), isNull(), eq("LINK_REVOKED"), anyString(), anyString(), eq("PARENT_STUDENT_LINK"), eq(link));
@@ -1165,7 +1161,7 @@ class ConnectionTransactionPostgresTest {
     UUID parent = account("PARENT"), studentUser = account("STUDENT");
     UUID student = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
-    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
     when(iam.findUserSummaryByEmail(studentUser + "@test.invalid")).thenReturn(Optional.of(
         new vn.edufit.iam.api.dto.UserSummaryView(studentUser, studentUser + "@test.invalid", "Student", vn.edufit.iam.api.AccountRole.STUDENT, vn.edufit.iam.api.AccountStatus.ACTIVE)
     ));
@@ -1270,7 +1266,7 @@ class ConnectionTransactionPostgresTest {
     UUID parent = account("PARENT"), studentUser = account("STUDENT"), student = UUID.randomUUID(), invitation = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
     jdbc.update("insert into link_invitation(invitation_id,inviter_user_id,invited_user_id,expires_at) values (?,?,?,now()+interval '14 days')", invitation, parent, studentUser);
-    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
     when(iam.findUserSummaryById(parent)).thenReturn(Optional.of(new vn.edufit.iam.api.dto.UserSummaryView(
         parent, "parent@test.invalid", "Parent", vn.edufit.iam.api.AccountRole.PARENT, vn.edufit.iam.api.AccountStatus.ACTIVE)));
 
@@ -1313,7 +1309,7 @@ class ConnectionTransactionPostgresTest {
     UUID parent = account("PARENT"), studentUser = account("STUDENT"), student = UUID.randomUUID(), invitation = UUID.randomUUID();
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
     jdbc.update("insert into link_invitation(invitation_id,inviter_user_id,invited_user_id,expires_at) values (?,?,?,now()+interval '14 days')", invitation, parent, studentUser);
-    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
+    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
     when(iam.findUserSummaryById(parent)).thenReturn(Optional.of(new vn.edufit.iam.api.dto.UserSummaryView(
         parent, "parent@test.invalid", "Parent", vn.edufit.iam.api.AccountRole.PARENT, vn.edufit.iam.api.AccountStatus.ACTIVE)));
 
@@ -1366,8 +1362,8 @@ class ConnectionTransactionPostgresTest {
     // Add 3 more pending requests to other tutors so fixture student has 4 pending requests total
     for (int i = 0; i < 3; i++) {
       UUID otherTutorUser = account("TUTOR"), otherTutor = UUID.randomUUID();
-      jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'Tutor" + i + "','ONLINE',100000,'VERIFIED')", otherTutor, otherTutorUser);
-      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now()+interval '7 days')",
+      jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'Tutor" + i + "', 'ONLINE', 'VERIFIED')", otherTutor, otherTutorUser);
+      jdbc.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,desired_slots,expires_at) values (?,?,?,?,?,cast(? as jsonb),now()+interval '7 days')",
           UUID.randomUUID(), fixture.student(), otherTutor, fixture.goal(), fixture.studentUser(), "[]");
     }
     assertEquals(4, jdbc.queryForObject("select count(*) from connection_request where student_id=? and status='PENDING'", Integer.class, fixture.student()));
@@ -1375,17 +1371,17 @@ class ConnectionTransactionPostgresTest {
     // Create 2 candidate tutors for the 5th and 6th slots
     UUID tutorAUser = account("TUTOR"), tutorA = UUID.randomUUID();
     actor(tutorAUser, "TUTOR");
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'TutorA','ONLINE',100000,'VERIFIED')", tutorA, tutorAUser);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'TutorA', 'ONLINE', 'VERIFIED')", tutorA, tutorAUser);
     when(profile.getTutorIdByUserId(tutorAUser)).thenReturn(tutorA);
-    when(profile.findTutorById(tutorA)).thenReturn(Optional.of(new TutorSummaryDto(tutorA, tutorAUser, "TutorA", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.tutorTeaches(tutorA, 1, 4)).thenReturn(true);
+    when(profile.findTutorById(tutorA)).thenReturn(Optional.of(new TutorSummaryDto(tutorA, tutorAUser, "TutorA", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findTutorOfferings(tutorA)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
 
     UUID tutorBUser = account("TUTOR"), tutorB = UUID.randomUUID();
     actor(tutorBUser, "TUTOR");
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'TutorB','ONLINE',100000,'VERIFIED')", tutorB, tutorBUser);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'TutorB', 'ONLINE', 'VERIFIED')", tutorB, tutorBUser);
     when(profile.getTutorIdByUserId(tutorBUser)).thenReturn(tutorB);
-    when(profile.findTutorById(tutorB)).thenReturn(Optional.of(new TutorSummaryDto(tutorB, tutorBUser, "TutorB", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.tutorTeaches(tutorB, 1, 4)).thenReturn(true);
+    when(profile.findTutorById(tutorB)).thenReturn(Optional.of(new TutorSummaryDto(tutorB, tutorBUser, "TutorB", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findTutorOfferings(tutorB)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
 
     int threads = 2;
     var latch = new CountDownLatch(threads);
@@ -1523,14 +1519,14 @@ class ConnectionTransactionPostgresTest {
 
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values (?,?,4)", student, studentUser);
     jdbc.update("insert into parent_student_link(link_id,parent_user_id,student_id,confirmed_at,status) values (?,?,?,now(),'CONFIRMED')", link, parent, student);
-    jdbc.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode,price_per_session,status) values (?,?,'TutorRevoke','ONLINE',100000,'VERIFIED')", tutor, tutorUser);
-    jdbc.update("insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max,status) values (?,?,1,1,2,'EXAM_PREPARATION',current_date + 30,'ONLINE',100000,'ACTIVE')", goal, student);
+    jdbc.update("insert into tutor_profile(tutor_id, user_id, display_name, teaching_mode, status) values (?, ?, 'TutorRevoke', 'ONLINE', 'VERIFIED')", tutor, tutorUser);
+    jdbc.update("insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status) select ?, sp.student_id, sp.user_id, 1, 'ONLINE', 100000, 'ACTIVE' from student_profile sp where sp.student_id = ?", goal, student);
 
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
-    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "TutorRevoke", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
-    when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(new ConnectionGoalDto(goal, student, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")));
-    when(profile.tutorTeaches(tutor, 1, 4)).thenReturn(true);
+    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "TutorRevoke", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
+    when(profile.findLearningNeed(goal)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ACTIVE")));
+    when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
 
     int threads = 2;
     var latch = new CountDownLatch(threads);

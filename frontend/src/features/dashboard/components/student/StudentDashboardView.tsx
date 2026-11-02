@@ -8,28 +8,14 @@ import { StudentNextSessionCard } from "./StudentNextSessionCard";
 import { StudentActiveClasses } from "./StudentActiveClasses";
 import { StudentQuickActions } from "./StudentQuickActions";
 import { OnboardingGuideBanner } from "@/shared/ui/OnboardingGuideBanner";
-import { profileService, StudentProfileData, type LearningGoalData } from "@/services/profile";
+import { profileService, StudentProfileData } from "@/services/profile";
+import { learningNeedService, type LearningNeed } from "@/services/learningNeeds";
+import { MODE_LABELS } from "@/features/learning-needs/catalogRules";
+import { needTitle } from "@/features/learning-needs/components/LearningNeedSummary";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import { schedulingApi } from "@/features/scheduling";
 import type { TutoringClass } from "@/features/connection/types";
 import type { CalendarItem } from "@/features/scheduling/types";
-
-function formatGoalTypeDescription(type?: string): string {
-  switch (type) {
-    case "CONSOLIDATE":
-      return "Củng cố kiến thức nền tảng";
-    case "IMPROVE_GRADES":
-      return "Cải thiện điểm số";
-    case "ADVANCED_STUDY":
-      return "Bồi dưỡng nâng cao & ôn chuyên";
-    case "EXAM_PREPARATION":
-      return "Ôn thi chuyển cấp";
-    case "OTHER":
-      return "Mục tiêu trọng tâm";
-    default:
-      return type || "Mục tiêu học tập";
-  }
-}
 
 interface StudentDashboardViewProps {
   user: {
@@ -57,9 +43,9 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
         const from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).toISOString();
         const to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 23, 59, 59).toISOString();
 
-        const [studentProfRes, goalsRes, classesRes, calendarRes] = await Promise.allSettled([
+        const [studentProfRes, needsRes, classesRes, calendarRes] = await Promise.allSettled([
           profileService.getMyStudentProfile(),
-          profileService.getMyLearningGoals(),
+          learningNeedService.list(),
           connectionApi.getStudentClasses(),
           schedulingApi.getCalendar({ from, to }),
         ]);
@@ -69,30 +55,26 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
         const studentProf = studentProfRes.status === "fulfilled" ? studentProfRes.value : null;
         setProfile(studentProf);
 
-        const goalsList: LearningGoalData[] = goalsRes.status === "fulfilled" ? goalsRes.value || [] : [];
+        const needs: LearningNeed[] = needsRes.status === "fulfilled"
+          ? (needsRes.value || []).filter((need) => need.status !== "ARCHIVED")
+          : [];
         const classList: TutoringClass[] = classesRes.status === "fulfilled" ? classesRes.value || [] : [];
         setRawClasses(classList);
 
-        const totalCompletedSessions = classList.reduce(
-          (acc, c) => acc + (c.completedCount ?? 0),
-          0
-        );
-        const totalPlannedSessions = classList.reduce(
-          (acc, c) => acc + (c.totalCount ?? c.sessionCount ?? 0),
-          0
-        );
+        // Nhu cầu chính: ưu tiên nhu cầu đã đủ thông tin để ghép gia sư
+        const primaryNeed = needs.find((need) => need.status === "ACTIVE") || needs[0];
 
-        // Nạp mục tiêu thật từ cơ sở dữ liệu backend
-        const activeGoals = goalsList.filter((g) => g.status === "ACTIVE");
-        const primaryGoal = activeGoals[0] || goalsList[0];
+        if (primaryNeed) {
+          const needClasses = classList.filter((c) => c.needId === primaryNeed.needId);
+          const totalCompletedSessions = needClasses.reduce((acc, c) => acc + (c.completedCount ?? 0), 0);
+          const totalPlannedSessions = needClasses.reduce((acc, c) => acc + (c.totalCount ?? c.sessionCount ?? 0), 0);
+          const goalGrade = primaryNeed.educationLevelName || studentProf?.educationLevelName || "THCS";
+          const goalTitle = needTitle(primaryNeed);
+          const roadmapDesc = primaryNeed.mode
+            ? `Hình thức: ${MODE_LABELS[primaryNeed.mode]}`
+            : "Chưa chọn hình thức học, hãy bổ sung khi tìm gia sư";
 
-        if (primaryGoal) {
-          const goalGrade = primaryGoal.educationLevelName || studentProf?.educationLevelName || "THCS";
-          const goalTitle = `${primaryGoal.subjectName}: ${formatGoalTypeDescription(primaryGoal.goalType)}`;
-          const modeText = primaryGoal.mode === "ONLINE" ? "Trực tuyến" : primaryGoal.mode === "OFFLINE" ? "Tại nhà" : "Linh hoạt";
-          const roadmapDesc = `Lộ trình nâng cao năng lực môn ${primaryGoal.subjectName} · Hình thức ${modeText}`;
-
-          const hasClasses = classList.length > 0;
+          const hasClasses = needClasses.length > 0;
           let milestones: Array<{ label: string; completed: boolean }>;
           let completedMilestonesCount: number;
           let totalMilestonesCount: number;
@@ -116,7 +98,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
           } else {
             const hasCompleted = totalCompletedSessions > 0;
             milestones = [
-              { label: "Thiết lập mục tiêu", completed: true },
+              { label: "Thêm nhu cầu học", completed: true },
               { label: "Ghép nối gia sư", completed: hasClasses },
               { label: "Hoàn thành buổi học", completed: hasCompleted },
             ];
@@ -126,7 +108,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
           }
 
           setActiveGoal({
-            id: primaryGoal.goalId,
+            id: primaryNeed.needId,
             grade: goalGrade,
             title: goalTitle,
             roadmapDesc,

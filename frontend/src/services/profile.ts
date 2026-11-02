@@ -1,74 +1,64 @@
 import { apiClient } from "@/lib/api";
-import { catalogService } from "@/services/catalog";
 
 export interface StudentProfileData {
   studentId: string;
   userId: string;
   educationLevelId?: number;
   educationLevelName?: string;
-  area?: string;
+  /** Khu vực mặc định, dùng để điền sẵn khi tạo nhu cầu học có học trực tiếp. */
+  provinceId?: number;
+  provinceName?: string;
+  districtId?: number;
+  districtName?: string;
   profileComplete: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface UpdateStudentProfilePayload {
-  educationLevelId?: number;
-  area?: string;
+  educationLevelId?: number | null;
+  provinceId?: number | null;
+  districtId?: number | null;
 }
 
-export type LearningGoalType =
-  | "CONSOLIDATE"
-  | "IMPROVE_GRADES"
-  | "ADVANCED_STUDY"
-  | "EXAM_PREPARATION"
-  | "OTHER";
+export type TutorType = "UNIVERSITY_STUDENT" | "GRADUATE" | "IN_SERVICE_TEACHER" | "RETIRED_TEACHER";
 
-export interface LearningGoalAvailabilitySlot {
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
+export interface CatalogRef {
+  id: number;
+  name: string;
 }
 
-export interface LearningGoalData {
-  goalId: string;
+export interface OfferingGoal {
+  goalTagId: number;
+  code: string;
+  name: string;
+  premium: boolean;
+  /** Mục tiêu premium đã được admin duyệt bằng chứng chuyên môn. */
+  evidenceVerified: boolean;
+}
+
+/** Gói dạy: 1 môn (+ nhánh), các khối lớp, mục tiêu, bộ sách, tỉnh luyện đề và học phí riêng. */
+export interface TutorOffering {
+  offeringId: string;
   subjectId: number;
   subjectName: string;
-  educationLevelId: number;
-  educationLevelName: string;
-  currentLevel: number;
-  desiredLevel: number;
-  goalType: LearningGoalType;
-  deadline: string;
-  mode: "ONLINE" | "OFFLINE" | "BOTH";
-  area?: string;
-  budgetMin?: number;
-  budgetMax: number;
-  status: "ACTIVE" | "ARCHIVED";
-  availabilitySlots: LearningGoalAvailabilitySlot[];
-  readyForMatching?: boolean;
-  readinessReasons?: string[];
+  trackId: number | null;
+  trackName: string | null;
+  pricePerSession: number;
+  levels: CatalogRef[];
+  goals: OfferingGoal[];
+  textbooks: CatalogRef[];
+  examProvinces: CatalogRef[];
 }
 
-export interface CreateLearningGoalPayload {
+export interface SaveTutorOfferingPayload {
   subjectId: number;
-  currentLevel: number;
-  desiredLevel: number;
-  goalType: LearningGoalType;
-  deadline: string;
-  mode: "ONLINE" | "OFFLINE" | "BOTH";
-  area?: string;
-  budgetMin?: number;
-  budgetMax: number;
-  availabilitySlots: LearningGoalAvailabilitySlot[];
-}
-
-export interface TutorSubjectItem {
-  tutorSubjectId: string;
-  subjectId: number;
-  subjectName: string;
-  educationLevelId: number;
-  educationLevelName: string;
+  trackId: number | null;
+  levelIds: number[];
+  goalTagIds: number[];
+  textbookSeriesIds: number[];
+  examProvinceIds: number[];
+  pricePerSession: number;
 }
 
 export interface TutorAvailabilitySlot {
@@ -85,15 +75,18 @@ export interface TutorProfileData {
   headline?: string;
   bio?: string;
   teachingMode: "ONLINE" | "OFFLINE" | "BOTH";
-  area?: string;
-  pricePerSession: number;
+  tutorType: TutorType | null;
+  tutorTypeVerified: boolean;
+  provinceId: number | null;
+  provinceName: string | null;
+  districts: CatalogRef[];
   experienceYears?: number;
   teachingMethod?: string;
   status: string;
   verifiedAt?: string;
   ratingAvg?: number;
   reviewCount?: number;
-  subjects: TutorSubjectItem[];
+  offerings: TutorOffering[];
   availabilitySlots: TutorAvailabilitySlot[];
   createdAt?: string;
   updatedAt?: string;
@@ -104,8 +97,9 @@ export interface UpdateTutorProfilePayload {
   headline?: string;
   bio?: string;
   teachingMode: "ONLINE" | "OFFLINE" | "BOTH";
-  area?: string;
-  pricePerSession: number;
+  tutorType?: TutorType | null;
+  provinceId?: number | null;
+  districtIds?: number[];
   experienceYears?: number;
   teachingMethod?: string;
 }
@@ -160,60 +154,6 @@ export const profileService = {
     return res.data as StudentProfileData;
   },
 
-  async getMyLearningGoals(): Promise<LearningGoalData[]> {
-    const res = await apiClient.get<LearningGoalData[]>("/api/v1/profiles/students/me/goals");
-    return profileService.labelGoals(res.data || []);
-  },
-
-  async getLinkedStudentGoals(studentId: string): Promise<LearningGoalData[]> {
-    const res = await apiClient.get<LearningGoalData[]>(`/api/v1/discovery/students/${encodeURIComponent(studentId)}/goals`);
-    return profileService.labelGoals(res.data || []);
-  },
-
-  async labelGoals(goals: LearningGoalData[]): Promise<LearningGoalData[]> {
-    try {
-      const catalog = await catalogService.getCatalog();
-      return goals.map(goal => ({
-        ...goal,
-        subjectName: catalog.subjects.find(s => s.subjectId === goal.subjectId)?.name || `Môn ${goal.subjectId}`,
-        educationLevelName: catalog.educationLevels.find(l => l.levelId === goal.educationLevelId)?.name || "Chưa chọn khối lớp",
-      }));
-    } catch {
-      return goals;
-    }
-  },
-
-  async createLearningGoal(payload: CreateLearningGoalPayload): Promise<LearningGoalData> {
-    const { availabilitySlots, ...goal } = payload;
-    const res = await apiClient.post<LearningGoalData>("/api/v1/profiles/students/me/goals", goal);
-    const saved = res.data as LearningGoalData;
-    try {
-      const ready = await apiClient.put<LearningGoalData>(`/api/v1/profiles/students/me/goals/${saved.goalId}/availability`, { slots: availabilitySlots });
-      return ready.data as LearningGoalData;
-    } catch (error) {
-      await apiClient.post(`/api/v1/profiles/students/me/goals/${saved.goalId}/archive`).catch(() => undefined);
-      throw error;
-    }
-  },
-
-  async updateLearningGoal(goalId: string, payload: CreateLearningGoalPayload): Promise<LearningGoalData> {
-    const { availabilitySlots, ...goal } = payload;
-    const res = await apiClient.put<LearningGoalData>(`/api/v1/profiles/students/me/goals/${encodeURIComponent(goalId)}`, goal);
-    const saved = res.data as LearningGoalData;
-    if (availabilitySlots) {
-      const ready = await apiClient.put<LearningGoalData>(
-        `/api/v1/profiles/students/me/goals/${encodeURIComponent(goalId)}/availability`,
-        { slots: availabilitySlots }
-      );
-      return ready.data as LearningGoalData;
-    }
-    return saved;
-  },
-
-  async archiveLearningGoal(goalId: string): Promise<void> {
-    await apiClient.post(`/api/v1/profiles/students/me/goals/${encodeURIComponent(goalId)}/archive`);
-  },
-
   /**
    * Lấy hồ sơ gia sư
    */
@@ -230,23 +170,22 @@ export const profileService = {
     return res.data as TutorProfileData;
   },
 
-  /**
-   * Thêm môn học giảng dạy cho gia sư
-   */
-  async addTutorSubject(subjectId: number, educationLevelId: number): Promise<TutorProfileData> {
-    const res = await apiClient.post<TutorProfileData>("/api/v1/profiles/tutors/me/subjects", {
-      subjectId,
-      educationLevelId,
-    });
+  async createTutorOffering(payload: SaveTutorOfferingPayload): Promise<TutorProfileData> {
+    const res = await apiClient.post<TutorProfileData>("/api/v1/profiles/tutors/me/offerings", payload);
     return res.data as TutorProfileData;
   },
 
-  /**
-   * Xóa môn học giảng dạy của gia sư
-   */
-  async removeTutorSubject(subjectId: number, educationLevelId: number): Promise<TutorProfileData> {
+  async updateTutorOffering(offeringId: string, payload: SaveTutorOfferingPayload): Promise<TutorProfileData> {
+    const res = await apiClient.put<TutorProfileData>(
+      `/api/v1/profiles/tutors/me/offerings/${encodeURIComponent(offeringId)}`,
+      payload
+    );
+    return res.data as TutorProfileData;
+  },
+
+  async deleteTutorOffering(offeringId: string): Promise<TutorProfileData> {
     const res = await apiClient.delete<TutorProfileData>(
-      `/api/v1/profiles/tutors/me/subjects?subjectId=${subjectId}&educationLevelId=${educationLevelId}`
+      `/api/v1/profiles/tutors/me/offerings/${encodeURIComponent(offeringId)}`
     );
     return res.data as TutorProfileData;
   },

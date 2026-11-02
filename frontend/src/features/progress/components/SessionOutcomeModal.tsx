@@ -156,9 +156,9 @@ export function SessionOutcomeModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="outcome-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto"
     >
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4 bg-stone-50/50">
           <div className="flex items-center gap-3">
@@ -326,9 +326,8 @@ export function SessionOutcomeModal({
                     {pendingMilestones.map((m) => {
                       const isChecked = selectedMilestoneIds.includes(m.milestoneId);
                       return (
-                        <div
+                        <label
                           key={m.milestoneId}
-                          onClick={() => handleToggleMilestone(m.milestoneId)}
                           className={`p-3 rounded-xl border flex items-start gap-3 transition-colors cursor-pointer ${
                             isChecked
                               ? "bg-amber-50/50 border-amber-300 ring-1 ring-amber-400/20"
@@ -338,7 +337,7 @@ export function SessionOutcomeModal({
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={() => {}} // Controlled by outer div onClick
+                            onChange={() => handleToggleMilestone(m.milestoneId)}
                             className="mt-0.5 size-4 rounded-sm border-stone-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                           />
                           <div className="flex-1 min-w-0">
@@ -357,7 +356,7 @@ export function SessionOutcomeModal({
                               </p>
                             )}
                           </div>
-                        </div>
+                        </label>
                       );
                     })}
                   </div>

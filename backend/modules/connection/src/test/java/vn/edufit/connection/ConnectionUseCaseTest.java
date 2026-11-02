@@ -101,7 +101,7 @@ class ConnectionUseCaseTest {
     when(links.lockById(id)).thenReturn(Optional.of(link));
     CurrentUser admin = actor(UUID.randomUUID(), "ADMIN");
     assertThrows(InvalidOperationException.class, () -> linkService.revokeLink(admin, id, " "));
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, UUID.randomUUID(), 1, null, true)));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, UUID.randomUUID(), 1, null, null, true)));
     linkService.revokeLink(admin, id, "violation");
     assertEquals("REVOKED", link.getStatus());
     verify(audit).record(argThat((vn.edufit.shared.audit.AuditRecord record) -> record.actorUserId().equals(admin.getUserId()) && record.targetId().equals(id) && "violation".equals(record.reason())));
@@ -111,8 +111,7 @@ class ConnectionUseCaseTest {
 
   @Test void unlinkedParentCannotSendTutorRequest() {
     UUID parent = UUID.randomUUID(), student = UUID.randomUUID(), goal = UUID.randomUUID();
-    when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(new ConnectionGoalDto(
-        goal, student, UUID.randomUUID(), 1, 1, "EXAM", null, "ACTIVE")));
+    when(profile.findLearningNeed(goal)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal, student, UUID.randomUUID(), 1, 1, "ACTIVE")));
     assertThrows(ForbiddenOperationException.class, () -> service.request(actor(parent, "PARENT"),
         goal, UUID.randomUUID(), List.of("Mon 18:00"), null));
     verify(requests, never()).save(any());
@@ -140,20 +139,17 @@ class ConnectionUseCaseTest {
 
   @Test void tutorAcceptCreatesOneActiveClass() {
     UUID tutorUser = UUID.randomUUID(), tutorId = UUID.randomUUID(), studentId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID(), id = UUID.randomUUID();
-    ConnectionRequest request = new ConnectionRequest(studentId, tutorId, goalId,
+    UUID needId = UUID.randomUUID(), id = UUID.randomUUID();
+    ConnectionRequest request = new ConnectionRequest(studentId, tutorId, needId,
         UUID.randomUUID(), List.of("Tue 19:00"), null, Instant.now());
     when(requests.findById(id)).thenReturn(Optional.of(request));
     when(requests.lockById(id)).thenReturn(Optional.of(request));
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutorId);
-    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId,
-        tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED",
-        Instant.now(), null, 0)));
-    when(profile.findGoalForConnection(goalId)).thenReturn(Optional.of(new ConnectionGoalDto(
-        goalId, studentId, UUID.randomUUID(), 1, 2, "EXAM", null, "ACTIVE")));
-    when(profile.tutorTeaches(tutorId, 1, 2)).thenReturn(true);
+    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findLearningNeed(needId)).thenReturn(Optional.of(ConnectionTestFixtures.need(needId, studentId, UUID.randomUUID(), 1, 2, "ACTIVE")));
+    when(profile.findTutorOfferings(tutorId)).thenReturn(ConnectionTestFixtures.offerings(1, 2));
     UUID classId = UUID.randomUUID();
-    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, UUID.randomUUID(), 4, null, true)));
+    when(profile.findStudentById(studentId)).thenReturn(Optional.of(new StudentSummaryDto(studentId, UUID.randomUUID(), 4, null, null, true)));
     when(classes.save(any())).thenAnswer(i -> {
       var row = (TutoringClass) i.getArgument(0);
       org.springframework.test.util.ReflectionTestUtils.setField(row, "id", classId);
@@ -173,7 +169,7 @@ class ConnectionUseCaseTest {
     org.springframework.test.util.ReflectionTestUtils.setField(invitation, "id", id);
     when(invitations.findById(id)).thenReturn(Optional.of(invitation));
     when(invitations.lockById(id)).thenReturn(Optional.of(invitation));
-    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 1, null, true)));
+    when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 1, null, null, true)));
     when(iam.findUserSummaryById(parent)).thenReturn(Optional.of(new UserSummaryView(parent, "parent@example.test", "Parent", AccountRole.PARENT, AccountStatus.ACTIVE)));
     when(links.save(any())).thenAnswer(i -> { var row = (ParentStudentLink) i.getArgument(0); org.springframework.test.util.ReflectionTestUtils.setField(row, "id", UUID.randomUUID()); return row; });
     assertNotNull(invitationService.respondInvitation(actor(studentUser, "STUDENT"), id, true));
@@ -201,7 +197,7 @@ class ConnectionUseCaseTest {
     UUID classId = UUID.randomUUID(), actorId = UUID.randomUUID(), tutorId = UUID.randomUUID(), studentId = UUID.randomUUID();
     CurrentUser actor = actor(actorId, "TUTOR");
     ConnectionRequest request = new ConnectionRequest(studentId, tutorId, UUID.randomUUID(), UUID.randomUUID(), List.of("Mon 08:00"), null, Instant.now());
-    TutoringClass tutoringClass = new TutoringClass(request, Instant.now());
+    TutoringClass tutoringClass = new TutoringClass(request, 200000L, Instant.now());
     tutoringClass.endClass("Đã kết thúc trước đó", Instant.now());
     when(classes.findById(classId)).thenReturn(Optional.of(tutoringClass));
 
@@ -212,9 +208,9 @@ class ConnectionUseCaseTest {
     UUID classId = UUID.randomUUID(), actorId = UUID.randomUUID(), tutorId = UUID.randomUUID(), studentId = UUID.randomUUID();
     CurrentUser actor = actor(actorId, "TUTOR");
     ConnectionRequest request = new ConnectionRequest(studentId, tutorId, UUID.randomUUID(), UUID.randomUUID(), List.of("Mon 08:00"), null, Instant.now());
-    TutoringClass tutoringClass = new TutoringClass(request, Instant.now());
+    TutoringClass tutoringClass = new TutoringClass(request, 200000L, Instant.now());
     when(classes.findById(classId)).thenReturn(Optional.of(tutoringClass));
-    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, UUID.randomUUID(), "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, UUID.randomUUID(), "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
 
     assertThrows(ForbiddenOperationException.class, () -> service.endClass(actor, classId, "Kết thúc lớp"));
   }
@@ -223,10 +219,10 @@ class ConnectionUseCaseTest {
     UUID classId = UUID.randomUUID(), actorId = UUID.randomUUID(), tutorId = UUID.randomUUID(), studentId = UUID.randomUUID();
     CurrentUser actor = actor(actorId, "TUTOR");
     ConnectionRequest request = new ConnectionRequest(studentId, tutorId, UUID.randomUUID(), UUID.randomUUID(), List.of("Mon 08:00"), null, Instant.now());
-    TutoringClass tutoringClass = new TutoringClass(request, Instant.now());
+    TutoringClass tutoringClass = new TutoringClass(request, 200000L, Instant.now());
     org.springframework.test.util.ReflectionTestUtils.setField(tutoringClass, "id", classId);
     when(classes.findById(classId)).thenReturn(Optional.of(tutoringClass));
-    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, actorId, "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, actorId, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
 
     var result = service.endClass(actor, classId, "Học sinh đã hoàn thành khóa học");
     assertNotNull(result);
@@ -240,10 +236,10 @@ class ConnectionUseCaseTest {
     UUID classId = UUID.randomUUID(), actorId = UUID.randomUUID(), tutorId = UUID.randomUUID(), studentId = UUID.randomUUID();
     CurrentUser actor = actor(actorId, "TUTOR");
     ConnectionRequest request = new ConnectionRequest(studentId, tutorId, UUID.randomUUID(), UUID.randomUUID(), List.of("Mon 08:00"), null, Instant.now());
-    TutoringClass tutoringClass = new TutoringClass(request, Instant.now());
+    TutoringClass tutoringClass = new TutoringClass(request, 200000L, Instant.now());
     org.springframework.test.util.ReflectionTestUtils.setField(tutoringClass, "id", classId);
     when(classes.findById(classId)).thenReturn(Optional.of(tutoringClass));
-    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, actorId, "Tutor", null, null, null, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
+    when(profile.findTutorById(tutorId)).thenReturn(Optional.of(new TutorSummaryDto(tutorId, actorId, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
 
     vn.edufit.connection.api.ClassScheduleStatusProvider mockProvider = mock(vn.edufit.connection.api.ClassScheduleStatusProvider.class);
     when(mockProvider.getScheduleInfoBatch(List.of(classId))).thenReturn(

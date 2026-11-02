@@ -17,7 +17,7 @@ public interface ConnectionRequestRepository extends JpaRepository<ConnectionReq
   List<ConnectionRequest> findByStudentIdAndStatus(UUID studentId, String status);
   List<ConnectionRequest> findByTutorIdAndStatus(UUID tutorId, String status);
   boolean existsByStudentIdAndTutorIdAndStatus(UUID studentId, UUID tutorId, String status);
-  boolean existsByStudentIdAndTutorIdAndGoalIdAndStatus(UUID studentId, UUID tutorId, UUID goalId, String status);
+  boolean existsByStudentIdAndTutorIdAndNeedIdAndStatus(UUID studentId, UUID tutorId, UUID needId, String status);
   List<ConnectionRequest> findByStudentIdOrderByCreatedAtDesc(UUID studentId);
   List<ConnectionRequest> findByTutorIdOrderByCreatedAtDesc(UUID tutorId);
 

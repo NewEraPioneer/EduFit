@@ -24,7 +24,7 @@ import vn.edufit.profile.application.service.StudentProfileService;
 import vn.edufit.profile.application.service.TutorProfileService;
 import vn.edufit.profile.infra.persistence.entity.TeachingMode;
 import vn.edufit.profile.web.ProfileController;
-import vn.edufit.profile.web.request.AddTutorSubjectRequest;
+import vn.edufit.profile.web.request.SaveTutorOfferingRequest;
 import vn.edufit.profile.web.request.SetAvailabilitySlotsRequest;
 import vn.edufit.profile.web.request.UpdateStudentProfileRequest;
 import vn.edufit.profile.web.request.UpdateTutorProfileRequest;
@@ -93,11 +93,11 @@ class ProfileControllerTest {
     when(currentUserProvider.getIfAvailable()).thenReturn(testCurrentUser);
 
     StudentProfileResponse mockStudent = new StudentProfileResponse(
-        UUID.randomUUID(), testUserId, 1, "Lớp 12", "Hà Nội", true, Instant.now(), Instant.now()
+        UUID.randomUUID(), testUserId, 1, "Lớp 9", 1, "Hà Nội", 5, "Cầu Giấy", true, Instant.now(), Instant.now()
     );
     TutorProfileResponse mockTutor = new TutorProfileResponse(
-        UUID.randomUUID(), testUserId, "Thầy Hải", "Toán", "Bio", "ONLINE", "Hà Nội",
-        200_000L, (short) 5, "PP mới", "VERIFIED", Instant.now(), BigDecimal.valueOf(4.8), 10,
+        UUID.randomUUID(), testUserId, "Thầy Hải", "Toán", "Bio", "ONLINE", null, false, null, null, List.of(),
+        (short) 5, "PP mới", "VERIFIED", Instant.now(), BigDecimal.valueOf(4.8), 10,
         List.of(), List.of(), Instant.now(), Instant.now()
     );
 
@@ -115,15 +115,15 @@ class ProfileControllerTest {
   @DisplayName("Cập nhật hồ sơ học sinh qua controller")
   void shouldUpdateStudentProfile() {
     when(currentUserProvider.getIfAvailable()).thenReturn(testCurrentUser);
-    UpdateStudentProfileRequest req = new UpdateStudentProfileRequest(2, "Đà Nẵng");
+    UpdateStudentProfileRequest req = new UpdateStudentProfileRequest(2, 4, null);
     StudentProfileResponse mockStudent = new StudentProfileResponse(
-        UUID.randomUUID(), testUserId, 2, "Lớp 11", "Đà Nẵng", true, Instant.now(), Instant.now()
+        UUID.randomUUID(), testUserId, 2, "Lớp 7", 4, "Đà Nẵng", null, null, true, Instant.now(), Instant.now()
     );
     when(studentProfileService.updateProfile(testCurrentUser, req)).thenReturn(mockStudent);
 
     ResponseEntity<ApiResponse<StudentProfileResponse>> resp = profileController.updateMyStudentProfile(req);
     assertNotNull(resp.getBody());
-    assertEquals("Đà Nẵng", resp.getBody().data().area());
+    assertEquals("Đà Nẵng", resp.getBody().data().provinceName());
   }
 
   @Test
@@ -131,11 +131,11 @@ class ProfileControllerTest {
   void shouldUpdateTutorProfile() {
     when(currentUserProvider.getIfAvailable()).thenReturn(testCurrentUser);
     UpdateTutorProfileRequest req = new UpdateTutorProfileRequest(
-        "Cô Lan", "Toán 12", "Bio", TeachingMode.ONLINE, null, 250_000L, (short) 3, "PP tích cực"
+        "Cô Lan", "Toán 9", "Bio", TeachingMode.ONLINE, null, null, null, (short) 3, "PP tích cực"
     );
     TutorProfileResponse mockTutor = new TutorProfileResponse(
-        UUID.randomUUID(), testUserId, "Cô Lan", "Toán 12", "Bio", "ONLINE", null,
-        250_000L, (short) 3, "PP tích cực", "DRAFT", null, null, 0,
+        UUID.randomUUID(), testUserId, "Cô Lan", "Toán 9", "Bio", "ONLINE", null, false, null, null, List.of(),
+        (short) 5, "PP tích cực", "DRAFT", null, null, 0,
         List.of(), List.of(), Instant.now(), Instant.now()
     );
     when(tutorProfileService.updateProfile(testCurrentUser, req)).thenReturn(mockTutor);
@@ -146,24 +146,24 @@ class ProfileControllerTest {
   }
 
   @Test
-  @DisplayName("Thêm môn học và xóa môn học cho gia sư")
-  void shouldAddAndRemoveTutorSubject() {
+  @DisplayName("Thêm, sửa và xóa gói dạy của gia sư")
+  void shouldCreateUpdateAndDeleteOffering() {
     when(currentUserProvider.getIfAvailable()).thenReturn(testCurrentUser);
-    AddTutorSubjectRequest req = new AddTutorSubjectRequest(1, 2);
+    SaveTutorOfferingRequest req = new SaveTutorOfferingRequest(1, null, List.of(4), List.of(3), null, null, 300_000L);
+    UUID offeringId = UUID.randomUUID();
 
     TutorProfileResponse mockTutor = new TutorProfileResponse(
-        UUID.randomUUID(), testUserId, "Gia sư A", null, null, "ONLINE", null,
-        150_000L, (short) 1, null, "DRAFT", null, null, 0,
+        UUID.randomUUID(), testUserId, "Gia sư A", null, null, "ONLINE", null, false, null, null, List.of(),
+        (short) 5, null, "DRAFT", null, null, 0,
         List.of(), List.of(), Instant.now(), Instant.now()
     );
-    when(tutorProfileService.addSubject(testCurrentUser, req)).thenReturn(mockTutor);
-    when(tutorProfileService.removeSubject(testCurrentUser, 1, 2)).thenReturn(mockTutor);
+    when(tutorProfileService.createOffering(testCurrentUser, req)).thenReturn(mockTutor);
+    when(tutorProfileService.updateOffering(testCurrentUser, offeringId, req)).thenReturn(mockTutor);
+    when(tutorProfileService.deleteOffering(testCurrentUser, offeringId)).thenReturn(mockTutor);
 
-    ResponseEntity<ApiResponse<TutorProfileResponse>> addResp = profileController.addTutorSubject(req);
-    assertEquals(200, addResp.getStatusCode().value());
-
-    ResponseEntity<ApiResponse<TutorProfileResponse>> delResp = profileController.removeTutorSubject(1, 2);
-    assertEquals(200, delResp.getStatusCode().value());
+    assertEquals(200, profileController.createTutorOffering(req).getStatusCode().value());
+    assertEquals(200, profileController.updateTutorOffering(offeringId, req).getStatusCode().value());
+    assertEquals(200, profileController.deleteTutorOffering(offeringId).getStatusCode().value());
   }
 
   @Test
@@ -175,8 +175,8 @@ class ProfileControllerTest {
     ));
 
     TutorProfileResponse mockTutor = new TutorProfileResponse(
-        UUID.randomUUID(), testUserId, "Gia sư A", null, null, "ONLINE", null,
-        150_000L, (short) 1, null, "DRAFT", null, null, 0,
+        UUID.randomUUID(), testUserId, "Gia sư A", null, null, "ONLINE", null, false, null, null, List.of(),
+        (short) 5, null, "DRAFT", null, null, 0,
         List.of(), List.of(), Instant.now(), Instant.now()
     );
     when(tutorProfileService.setAvailabilitySlots(testCurrentUser, req)).thenReturn(mockTutor);

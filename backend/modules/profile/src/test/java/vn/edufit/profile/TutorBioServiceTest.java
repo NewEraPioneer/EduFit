@@ -29,15 +29,12 @@ import vn.edufit.ai.api.AiTimeoutException;
 import vn.edufit.ai.api.AiUnavailableException;
 import vn.edufit.ai.api.AiUsageQuery;
 import vn.edufit.profile.application.service.TutorBioService;
+import vn.edufit.profile.application.service.TutorProfileAssembler;
 import vn.edufit.profile.infra.persistence.entity.EducationLevel;
 import vn.edufit.profile.infra.persistence.entity.Subject;
 import vn.edufit.profile.infra.persistence.entity.TeachingMode;
 import vn.edufit.profile.infra.persistence.entity.TutorProfile;
-import vn.edufit.profile.infra.persistence.entity.TutorSubject;
-import vn.edufit.profile.infra.persistence.repository.EducationLevelRepository;
-import vn.edufit.profile.infra.persistence.repository.SubjectRepository;
 import vn.edufit.profile.infra.persistence.repository.TutorProfileRepository;
-import vn.edufit.profile.infra.persistence.repository.TutorSubjectRepository;
 import vn.edufit.profile.web.request.GenerateTutorBioRequest;
 import vn.edufit.profile.web.response.GenerateTutorBioResponse;
 import vn.edufit.shared.auth.CurrentUser;
@@ -55,13 +52,7 @@ class TutorBioServiceTest {
   private TutorProfileRepository tutorProfileRepository;
 
   @Mock
-  private TutorSubjectRepository tutorSubjectRepository;
-
-  @Mock
-  private SubjectRepository subjectRepository;
-
-  @Mock
-  private EducationLevelRepository educationLevelRepository;
+  private TutorProfileAssembler tutorProfileAssembler;
 
   private TutorBioService tutorBioService;
   private CurrentUser testCurrentUser;
@@ -73,9 +64,7 @@ class TutorBioServiceTest {
         aiGateway,
         aiUsageQuery,
         tutorProfileRepository,
-        tutorSubjectRepository,
-        subjectRepository,
-        educationLevelRepository
+        tutorProfileAssembler
     );
 
     testUserId = UUID.randomUUID();
@@ -176,7 +165,7 @@ class TutorBioServiceTest {
   @DisplayName("Tự động nạp thông tin từ database nếu request để trống")
   void shouldLoadTutorContextFromDatabaseWhenRequestFieldsAreNull() {
     UUID tutorId = UUID.randomUUID();
-    TutorProfile profile = new TutorProfile(testUserId, "Thầy Bách DB", TeachingMode.ONLINE, 250_000L);
+    TutorProfile profile = new TutorProfile(testUserId, "Thầy Bách DB", TeachingMode.ONLINE);
     profile.setExperienceYears((short) 6);
 
     when(aiUsageQuery.countRequestsSince(eq(testUserId), eq(AiFeature.TUTOR_BIO), any(Instant.class)))

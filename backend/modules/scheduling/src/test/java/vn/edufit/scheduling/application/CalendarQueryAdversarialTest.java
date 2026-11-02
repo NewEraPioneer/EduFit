@@ -145,9 +145,7 @@ class CalendarQueryAdversarialTest {
     @Test
     @DisplayName("Tutor without studentId -> resolves tutorProfileId and queries calendar")
     void tutorResolvesTutorProfileId() {
-      TutorSummaryDto tutorDto = new TutorSummaryDto(
-          tutorProfileId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", from, null, 0
-      );
+      TutorSummaryDto tutorDto = new TutorSummaryDto(tutorProfileId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", from, null, 0);
       when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
 
       TutoringSession session = createDummySession(tutorProfileId, studentProfileId);
@@ -162,7 +160,7 @@ class CalendarQueryAdversarialTest {
     @Test
     @DisplayName("Student without studentId -> resolves studentProfileId and queries calendar")
     void studentResolvesStudentProfileId() {
-      StudentSummaryDto studentDto = new StudentSummaryDto(studentProfileId, studentUserId, 1, "Hà Nội", true);
+      StudentSummaryDto studentDto = new StudentSummaryDto(studentProfileId, studentUserId, 1, null, null, true);
       when(profileFacade.findStudentByUserId(studentUserId)).thenReturn(Optional.of(studentDto));
 
       TutoringSession session = createDummySession(tutorProfileId, studentProfileId);
@@ -177,7 +175,7 @@ class CalendarQueryAdversarialTest {
     @Test
     @DisplayName("Student providing their own studentId -> success")
     void studentProvidingOwnStudentIdSucceeds() {
-      StudentSummaryDto studentDto = new StudentSummaryDto(studentProfileId, studentUserId, 1, "Hà Nội", true);
+      StudentSummaryDto studentDto = new StudentSummaryDto(studentProfileId, studentUserId, 1, null, null, true);
       when(profileFacade.findStudentByUserId(studentUserId)).thenReturn(Optional.of(studentDto));
 
       TutoringSession session = createDummySession(tutorProfileId, studentProfileId);
@@ -192,7 +190,7 @@ class CalendarQueryAdversarialTest {
     @Test
     @DisplayName("Student attempting to query another student's calendar -> Forbidden")
     void studentQueryingAnotherStudentThrowsForbidden() {
-      StudentSummaryDto studentDto = new StudentSummaryDto(studentProfileId, studentUserId, 1, "Hà Nội", true);
+      StudentSummaryDto studentDto = new StudentSummaryDto(studentProfileId, studentUserId, 1, null, null, true);
       when(profileFacade.findStudentByUserId(studentUserId)).thenReturn(Optional.of(studentDto));
       when(connectionFacade.hasConfirmedParentLink(studentUserId, otherStudentProfileId)).thenReturn(false);
 
@@ -262,7 +260,7 @@ class CalendarQueryAdversarialTest {
     @DisplayName("Actor without role claim but has Student profile -> gracefully resolves")
     void actorWithoutRoleClaimResolvesStudent() {
       CurrentUser unassignedActor = SimpleCurrentUser.of(studentUserId);
-      StudentSummaryDto studentDto = new StudentSummaryDto(studentProfileId, studentUserId, 1, "Hà Nội", true);
+      StudentSummaryDto studentDto = new StudentSummaryDto(studentProfileId, studentUserId, 1, null, null, true);
       when(profileFacade.findStudentByUserId(studentUserId)).thenReturn(Optional.of(studentDto));
 
       TutoringSession session = createDummySession(tutorProfileId, studentProfileId);
@@ -279,9 +277,7 @@ class CalendarQueryAdversarialTest {
     void actorWithoutRoleClaimResolvesTutor() {
       CurrentUser unassignedActor = SimpleCurrentUser.of(tutorUserId);
       when(profileFacade.findStudentByUserId(tutorUserId)).thenReturn(Optional.empty());
-      TutorSummaryDto tutorDto = new TutorSummaryDto(
-          tutorProfileId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", from, null, 0
-      );
+      TutorSummaryDto tutorDto = new TutorSummaryDto(tutorProfileId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", from, null, 0);
       when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
 
       TutoringSession session = createDummySession(tutorProfileId, studentProfileId);
@@ -318,9 +314,7 @@ class CalendarQueryAdversarialTest {
     @DisplayName("GET /calendar -> returns HTTP 200 with mapped CalendarItemResponse")
     void controllerGetCalendarSuccess() {
       when(currentUserProvider.getIfAvailable()).thenReturn(tutorActor);
-      TutorSummaryDto tutorDto = new TutorSummaryDto(
-          tutorProfileId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", from, null, 0
-      );
+      TutorSummaryDto tutorDto = new TutorSummaryDto(tutorProfileId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", from, null, 0);
       when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
 
       TutoringSession session = createDummySession(tutorProfileId, studentProfileId);

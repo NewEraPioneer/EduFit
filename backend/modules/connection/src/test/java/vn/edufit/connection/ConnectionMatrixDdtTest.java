@@ -39,7 +39,7 @@ import vn.edufit.iam.api.AccountStatus;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.iam.api.dto.UserSummaryView;
 import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
+import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.shared.audit.AuditSink;
@@ -74,7 +74,7 @@ class ConnectionMatrixDdtTest {
   private UUID studentId;
   private UUID tutorUser;
   private UUID tutorId;
-  private UUID goalId;
+  private UUID needId;
   private UUID invitationId;
   private UUID requestId;
 
@@ -85,7 +85,7 @@ class ConnectionMatrixDdtTest {
     studentId = UUID.randomUUID();
     tutorUser = UUID.randomUUID();
     tutorId = UUID.randomUUID();
-    goalId = UUID.randomUUID();
+    needId = UUID.randomUUID();
     invitationId = UUID.randomUUID();
     requestId = UUID.randomUUID();
 
@@ -100,21 +100,21 @@ class ConnectionMatrixDdtTest {
     ));
 
     when(profile.findStudentById(studentId)).thenReturn(Optional.of(
-        new StudentSummaryDto(studentId, studentUser, 4, null, true)
+        new StudentSummaryDto(studentId, studentUser, 4, null, null, true)
     ));
     when(profile.findStudentByUserId(studentUser)).thenReturn(Optional.of(
-        new StudentSummaryDto(studentId, studentUser, 4, null, true)
+        new StudentSummaryDto(studentId, studentUser, 4, null, null, true)
     ));
     when(profile.getStudentIdByUserId(studentUser)).thenReturn(studentId);
 
     when(profile.findTutorById(tutorId)).thenReturn(Optional.of(
-        new TutorSummaryDto(tutorId, tutorUser, "Tutor Name", null, null, null, null, null, null, null, "VERIFIED", T0, null, 0)
+        new TutorSummaryDto(tutorId, tutorUser, "Tutor Name", null, null, null, null, false, null, null, null, null, "VERIFIED", T0, null, 0)
     ));
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutorId);
-    when(profile.tutorTeaches(tutorId, 1, 4)).thenReturn(true);
+    when(profile.findTutorOfferings(tutorId)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
 
-    when(profile.findGoalForConnection(goalId)).thenReturn(Optional.of(
-        new ConnectionGoalDto(goalId, studentId, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")
+    when(profile.findLearningNeed(needId)).thenReturn(Optional.of(
+        ConnectionTestFixtures.need(needId, studentId, studentUser, 1, 4, "ACTIVE")
     ));
 
     when(quota.consume(any())).thenReturn(new InvitationQuotaService.Consumption(true, T0));
@@ -217,7 +217,7 @@ class ConnectionMatrixDdtTest {
     ConnectionRequestService service = new ConnectionRequestService(requests, classes, profile, iam, locks, notifications, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), fixedClock);
 
     ConnectionRequest request = new ConnectionRequest(
-        studentId, tutorId, goalId, studentUser, List.of("Tue 19:00"), null, T0
+        studentId, tutorId, needId, studentUser, List.of("Tue 19:00"), null, T0
     );
     ReflectionTestUtils.setField(request, "id", requestId);
 
@@ -281,8 +281,8 @@ class ConnectionMatrixDdtTest {
 
     // If goal had wrong student profile mapping, request creation is rejected
     UUID fakeGoal = UUID.randomUUID();
-    when(profile.findGoalForConnection(fakeGoal)).thenReturn(Optional.of(
-        new ConnectionGoalDto(fakeGoal, studentUser /* WRONG: account ID instead of studentId */, studentUser, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")
+    when(profile.findLearningNeed(fakeGoal)).thenReturn(Optional.of(
+        ConnectionTestFixtures.need(fakeGoal, studentUser /* WRONG: account ID instead of studentId */, studentUser, 1, 4, "ACTIVE")
     ));
 
     assertThrows(ForbiddenOperationException.class,
@@ -299,10 +299,10 @@ class ConnectionMatrixDdtTest {
         new UserSummaryView(student2User, "student2@test.invalid", "Student 2", AccountRole.STUDENT, AccountStatus.ACTIVE)
     ));
     when(profile.findStudentById(student2Id)).thenReturn(Optional.of(
-        new StudentSummaryDto(student2Id, student2User, 4, null, true)
+        new StudentSummaryDto(student2Id, student2User, 4, null, null, true)
     ));
-    when(profile.findGoalForConnection(goal2)).thenReturn(Optional.of(
-        new ConnectionGoalDto(goal2, student2Id, student2User, 1, 4, "EXAM_PREPARATION", null, "ACTIVE")
+    when(profile.findLearningNeed(goal2)).thenReturn(Optional.of(
+        ConnectionTestFixtures.need(goal2, student2Id, student2User, 1, 4, "ACTIVE")
     ));
 
     // Parent is linked to both Student 1 and Student 2
@@ -313,7 +313,7 @@ class ConnectionMatrixDdtTest {
     ConnectionRequestService reqService = new ConnectionRequestService(requests, classes, profile, iam, locks, notifications, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(T0, ZoneOffset.UTC));
 
     // 1. Parent can create request for Student 1
-    var res1 = reqService.request(parentActor, goalId, tutorId, List.of("Tue 19:00"), null);
+    var res1 = reqService.request(parentActor, needId, tutorId, List.of("Tue 19:00"), null);
     assertInstanceOf(TransitionResult.Success.class, res1);
 
     // 2. Parent can create request for Student 2
@@ -326,7 +326,7 @@ class ConnectionMatrixDdtTest {
 
     // Parent cannot create request for Student 1 anymore
     assertThrows(ForbiddenOperationException.class,
-        () -> reqService.request(parentActor, goalId, tutorId, List.of("Tue 19:00"), null));
+        () -> reqService.request(parentActor, needId, tutorId, List.of("Tue 19:00"), null));
 
     // But Parent can STILL create request for Student 2
     var res2After = reqService.request(parentActor, goal2, tutorId, List.of("Tue 19:00"), null);

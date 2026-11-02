@@ -4,39 +4,27 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TutorPendingRequests } from "@/features/connection/components/TutorPendingRequests";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import type { TutorInboxItem } from "@/features/connection/types";
+import { makeInboxItem } from "../../fixtures/learningNeeds";
 
 const mockPendingRequests: TutorInboxItem[] = [
-  {
+  makeInboxItem({
     requestId: "req-1",
-    goalType: "EXAM_PREPARATION",
-    subjectId: 1,
-    educationLevelId: 4,
     desiredSlots: ["Thứ 2 · 19:00-21:00"],
     message: "Em cần gia sư kèm môn Toán 9",
-    senderRole: "STUDENT",
-    status: "PENDING",
-    expiresAt: "2026-10-25T00:00:00Z",
     studentDisplayName: "Trần Minh",
-    subjectName: "Toán học",
-    educationLevelName: "Lớp 9",
-    hasSlotConflict: false,
-  },
-  {
+  }),
+  makeInboxItem({
     requestId: "req-2",
-    goalType: "FOUNDATION",
-    subjectId: 2,
-    educationLevelId: 5,
     desiredSlots: ["Thứ 3 · 18:00-20:00", "Thứ 5 · 18:00-20:00"],
     message: "Phụ huynh muốn tìm gia sư cho con",
     senderRole: "PARENT",
-    status: "PENDING",
-    expiresAt: "2026-10-25T00:00:00Z",
     studentDisplayName: "Lê Hoàng",
-    subjectName: "Vật lý",
-    educationLevelName: "Lớp 10",
+    need: { ...makeInboxItem().need, subjectName: "Ngữ Văn", goalTagName: "Lấy lại gốc", mode: "OFFLINE",
+      provinceName: "Hà Nội", districtName: "Cầu Giấy" },
+    fitChecks: [{ criterion: "LOCATION", matched: false, label: "Chưa dạy ở Cầu Giấy" }],
     hasSlotConflict: true,
     conflictingSlots: ["Thứ 3 · 18:00-20:00"],
-  },
+  }),
 ];
 
 describe("TutorPendingRequests Component", () => {
@@ -125,8 +113,8 @@ describe("TutorPendingRequests Component", () => {
     fireEvent.click(viewProfileButtons[0]);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Hồ sơ học tập chi tiết")).toBeInTheDocument();
-    expect(screen.getByText("Mục tiêu sư phạm")).toBeInTheDocument();
-    expect(screen.getByText("Lộ trình năng lực")).toBeInTheDocument();
+    expect(screen.getByText("Nhu cầu học của học sinh")).toBeInTheDocument();
+    expect(screen.getAllByText("Toán · Lớp 9 · Luyện thi vào 10").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Dạy Lớp 9").length).toBeGreaterThanOrEqual(2);
   });
 });

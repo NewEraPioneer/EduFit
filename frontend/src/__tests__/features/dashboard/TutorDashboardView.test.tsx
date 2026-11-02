@@ -8,6 +8,7 @@ import { verificationService } from "@/services/verification";
 import { profileService } from "@/services/profile";
 import type { TutoringClass, TutorInboxItem } from "@/features/connection/types";
 import type { CalendarItem } from "@/features/scheduling/types";
+import { makeInboxItem, makeOffering } from "../../fixtures/learningNeeds";
 
 describe("TutorDashboardView Component", () => {
   const mockUser = {
@@ -21,7 +22,7 @@ describe("TutorDashboardView Component", () => {
       classId: "cls-1",
       studentId: "stu-1",
       tutorId: "tut-1",
-      goalId: "goal-1",
+      needId: "need-1",
       status: "ACTIVE",
       studentDisplayName: "Nguyễn Văn Nam",
       subjectName: "Toán hình học",
@@ -37,7 +38,7 @@ describe("TutorDashboardView Component", () => {
       classId: "cls-2",
       studentId: "stu-2",
       tutorId: "tut-1",
-      goalId: "goal-2",
+      needId: "need-2",
       status: "ACTIVE",
       studentDisplayName: "Trần Mai Anh",
       subjectName: "Vật lý",
@@ -52,21 +53,14 @@ describe("TutorDashboardView Component", () => {
   ];
 
   const mockPendingRequests: TutorInboxItem[] = [
-    {
+    makeInboxItem({
       requestId: "req-1",
-      goalType: "FOUNDATION",
-      subjectId: 1,
-      educationLevelId: 4,
       studentDisplayName: "Lê Hoàng",
-      subjectName: "Toán học",
-      educationLevelName: "Lớp 9",
-      senderRole: "STUDENT",
-      status: "PENDING",
+      need: { ...makeInboxItem().need, subjectName: "Toán học", goalTagName: "Lấy lại gốc" },
       desiredSlots: ["Thứ 2 · 19:00-21:00"],
       expiresAt: "2026-10-25T00:00:00Z",
       message: "Em muốn học bổ trợ môn Toán",
-      hasSlotConflict: false,
-    },
+    }),
   ];
 
   beforeEach(() => {
@@ -77,9 +71,8 @@ describe("TutorDashboardView Component", () => {
     } as any);
 
     vi.spyOn(profileService, "getMyTutorProfile").mockResolvedValue({
-      subjects: [{ subjectId: 1, subjectName: "Toán", educationLevelId: 4, educationLevelName: "Lớp 9" }],
+      offerings: [makeOffering()],
       availabilitySlots: [{ slotId: "s1", dayOfWeek: 1, startTime: "08:00:00", endTime: "10:00:00" }],
-      pricePerSession: 250000,
       ratingAvg: 4.9,
       reviewCount: 15,
     } as any);
@@ -162,9 +155,8 @@ describe("TutorDashboardView Component", () => {
     vi.spyOn(profileService, "getMyTutorProfile").mockResolvedValue({
       status: "VERIFIED",
       verifiedAt: "2026-01-01T00:00:00Z",
-      subjects: [{ subjectId: 1, subjectName: "Toán", educationLevelId: 4, educationLevelName: "Lớp 9" }],
+      offerings: [makeOffering()],
       availabilitySlots: [{ slotId: "s1", dayOfWeek: 1, startTime: "08:00:00", endTime: "10:00:00" }],
-      pricePerSession: 250000,
       ratingAvg: 4.9,
       reviewCount: 15,
     } as any);

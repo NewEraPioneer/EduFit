@@ -3,48 +3,42 @@ package vn.edufit.profile.application.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.List;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.dto.EducationLevelOrderDto;
-import vn.edufit.profile.api.dto.TutorCandidateCriteria;
-import vn.edufit.profile.api.dto.LearningGoalDiscoveryDto;
-import vn.edufit.profile.api.dto.LearningGoalView;
+import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
+import vn.edufit.profile.api.dto.TutorOfferingDto;
 import vn.edufit.profile.api.dto.TutorSearchCriteria;
-import vn.edufit.profile.api.dto.TutorSubjectDto;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
-import vn.edufit.profile.api.dto.WeeklyAvailabilityDto;
 import vn.edufit.profile.infra.persistence.entity.EducationLevel;
-import vn.edufit.profile.infra.persistence.entity.LearningGoal;
+import vn.edufit.profile.infra.persistence.entity.LearningNeed;
 import vn.edufit.profile.infra.persistence.entity.StudentProfile;
 import vn.edufit.profile.infra.persistence.entity.TeachingMode;
+import vn.edufit.profile.infra.persistence.entity.TutorOffering;
 import vn.edufit.profile.infra.persistence.entity.TutorProfile;
 import vn.edufit.profile.infra.persistence.entity.TutorStatus;
-import vn.edufit.profile.infra.persistence.entity.Subject;
+import vn.edufit.profile.infra.persistence.entity.TutorType;
 import vn.edufit.profile.infra.persistence.repository.EducationLevelRepository;
-import vn.edufit.profile.infra.persistence.repository.GoalAvailabilitySlotRepository;
-import vn.edufit.profile.infra.persistence.repository.LearningGoalRepository;
+import vn.edufit.profile.infra.persistence.repository.LearningNeedRepository;
+import vn.edufit.profile.infra.persistence.repository.LearningNeedSlotRepository;
 import vn.edufit.profile.infra.persistence.repository.StudentProfileRepository;
-import vn.edufit.profile.infra.persistence.repository.SubjectRepository;
-import vn.edufit.profile.infra.persistence.repository.TutorAvailabilitySlotRepository;
+import vn.edufit.profile.infra.persistence.repository.TutorOfferingRepository;
 import vn.edufit.profile.infra.persistence.repository.TutorProfileRepository;
-import vn.edufit.profile.infra.persistence.repository.TutorSubjectRepository;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.InvalidOperationException;
@@ -54,33 +48,36 @@ public class ProfileFacadeImpl implements ProfileFacade {
 
   private final TutorProfileRepository tutorProfileRepository;
   private final StudentProfileRepository studentProfileRepository;
-  private final TutorSubjectRepository tutorSubjectRepository;
-  private final TutorAvailabilitySlotRepository tutorAvailabilitySlotRepository;
-  private final LearningGoalRepository learningGoalRepository;
-  private final GoalAvailabilitySlotRepository goalAvailabilitySlotRepository;
+  private final TutorOfferingRepository tutorOfferingRepository;
+  private final LearningNeedRepository learningNeedRepository;
+  private final LearningNeedSlotRepository learningNeedSlotRepository;
   private final EducationLevelRepository educationLevelRepository;
-  private final SubjectRepository subjectRepository;
+  private final LearningNeedService learningNeedService;
+  private final LearningCatalogLoader catalogLoader;
+  private final TutorProfileAssembler assembler;
   private final int candidateLimit;
 
   public ProfileFacadeImpl(
       TutorProfileRepository tutorProfileRepository,
       StudentProfileRepository studentProfileRepository,
-      TutorSubjectRepository tutorSubjectRepository,
-      TutorAvailabilitySlotRepository tutorAvailabilitySlotRepository,
-      LearningGoalRepository learningGoalRepository,
-      GoalAvailabilitySlotRepository goalAvailabilitySlotRepository,
+      TutorOfferingRepository tutorOfferingRepository,
+      LearningNeedRepository learningNeedRepository,
+      LearningNeedSlotRepository learningNeedSlotRepository,
       EducationLevelRepository educationLevelRepository,
-      SubjectRepository subjectRepository,
+      LearningNeedService learningNeedService,
+      LearningCatalogLoader catalogLoader,
+      TutorProfileAssembler assembler,
       @Value("${edufit.discovery.matching.candidate-limit:200}") int candidateLimit
   ) {
     this.tutorProfileRepository = tutorProfileRepository;
     this.studentProfileRepository = studentProfileRepository;
-    this.tutorSubjectRepository = tutorSubjectRepository;
-    this.tutorAvailabilitySlotRepository = tutorAvailabilitySlotRepository;
-    this.learningGoalRepository = learningGoalRepository;
-    this.goalAvailabilitySlotRepository = goalAvailabilitySlotRepository;
+    this.tutorOfferingRepository = tutorOfferingRepository;
+    this.learningNeedRepository = learningNeedRepository;
+    this.learningNeedSlotRepository = learningNeedSlotRepository;
     this.educationLevelRepository = java.util.Objects.requireNonNull(educationLevelRepository);
-    this.subjectRepository = java.util.Objects.requireNonNull(subjectRepository);
+    this.learningNeedService = learningNeedService;
+    this.catalogLoader = catalogLoader;
+    this.assembler = assembler;
     if (candidateLimit < 1) {
       throw new IllegalArgumentException("Matching candidate limit must be positive.");
     }
@@ -90,50 +87,49 @@ public class ProfileFacadeImpl implements ProfileFacade {
   @Override
   @Transactional(readOnly = true)
   public Optional<TutorSummaryDto> findTutorByUserId(UUID userId) {
-    return tutorProfileRepository.findByUserId(userId).map(this::toTutorDto);
+    return tutorProfileRepository.findByUserId(userId).map(assembler::summary);
   }
 
   @Override
   @Transactional(readOnly = true)
   public Optional<TutorSummaryDto> findTutorById(UUID tutorId) {
-    return tutorProfileRepository.findById(tutorId).map(this::toTutorDto);
+    return tutorProfileRepository.findById(tutorId).map(assembler::summary);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public Page<TutorSummaryDto> searchTutors(TutorSearchCriteria criteria, Pageable pageable) {
-    TutorSearchCriteria safeCriteria = criteria != null
-        ? criteria
-        : new TutorSearchCriteria(null, null, null, null, null, null, null);
-    TeachingMode mode = parseTeachingMode(safeCriteria.mode());
-    String area = normalizeBlank(safeCriteria.area());
-    boolean includeBothMode = mode == TeachingMode.ONLINE || mode == TeachingMode.OFFLINE;
-    // Offset pages need a total order when many tutors share price/rating/experience.
-    org.springframework.data.domain.Sort sort = pageable.getSort();
-    if (sort.getOrderFor("tutorId") == null) {
-      sort = sort.and(org.springframework.data.domain.Sort.by("tutorId"));
+  public List<TutorDiscoveryProfileDto> searchVerifiedTutors(TutorSearchCriteria criteria, int limit) {
+    if (limit < 1) {
+      throw new IllegalArgumentException("Search limit must be positive.");
     }
-    Pageable stablePageable = pageable.isPaged()
-        ? PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort)
-        : Pageable.unpaged(sort);
-
-    return tutorProfileRepository.searchVerifiedTutors(
+    TutorSearchCriteria safe = criteria != null ? criteria : TutorSearchCriteria.none();
+    TeachingMode mode = parseTeachingMode(safe.mode());
+    TutorType tutorType = parseTutorType(safe.tutorType());
+    boolean filterOffering = safe.levelId() != null || safe.subjectId() != null || safe.trackId() != null
+        || safe.goalTagId() != null || safe.textbookSeriesId() != null || safe.minPrice() != null
+        || safe.maxPrice() != null;
+    return assembler.discoveryProfiles(tutorProfileRepository.searchVerifiedTutors(
         TutorStatus.VERIFIED,
-        safeCriteria.subjectId(),
-        safeCriteria.levelId(),
-        area,
+        tutorType,
         mode,
-        includeBothMode,
+        mode == TeachingMode.ONLINE || mode == TeachingMode.OFFLINE,
         TeachingMode.BOTH,
-        safeCriteria.minPrice(),
-        safeCriteria.maxPrice(),
-        safeCriteria.minRating(),
-        normalizeBlank(safeCriteria.keyword()),
-        safeCriteria.dayOfWeek(),
-        safeCriteria.availableFrom(),
-        safeCriteria.availableTo(),
-        stablePageable
-    ).map(this::toTutorDto);
+        safe.provinceId(),
+        safe.districtId(),
+        safe.minRating(),
+        normalizeBlank(safe.keyword()),
+        filterOffering,
+        safe.subjectId(),
+        safe.trackId(),
+        safe.levelId(),
+        safe.textbookSeriesId(),
+        safe.minPrice(),
+        safe.maxPrice(),
+        safe.goalTagId(),
+        safe.dayOfWeek(),
+        safe.availableFrom(),
+        safe.availableTo(),
+        PageRequest.of(0, limit)));
   }
 
   @Override
@@ -141,7 +137,7 @@ public class ProfileFacadeImpl implements ProfileFacade {
   public Optional<TutorDiscoveryProfileDto> findVerifiedTutorDetail(UUID tutorId) {
     return tutorProfileRepository.findById(tutorId)
         .filter(tutor -> tutor.getStatus() == TutorStatus.VERIFIED)
-        .map(tutor -> toDiscoveryProfiles(List.of(tutor)).getFirst());
+        .map(tutor -> assembler.discoveryProfiles(List.of(tutor)).getFirst());
   }
 
   @Override
@@ -150,32 +146,18 @@ public class ProfileFacadeImpl implements ProfileFacade {
     if (tutorIds == null || tutorIds.isEmpty()) {
       return List.of();
     }
-    return toDiscoveryProfiles(
-        tutorProfileRepository.findByTutorIdInAndStatus(tutorIds, TutorStatus.VERIFIED)
-    );
+    return assembler.discoveryProfiles(
+        tutorProfileRepository.findByTutorIdInAndStatus(tutorIds, TutorStatus.VERIFIED));
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<TutorDiscoveryProfileDto> findVerifiedCandidatesBySubject(TutorCandidateCriteria criteria) {
-    if (criteria == null || criteria.subjectId() == null || criteria.subjectId() < 1) {
+  public List<TutorDiscoveryProfileDto> findVerifiedCandidatesBySubject(Integer subjectId) {
+    if (subjectId == null || subjectId < 1) {
       throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED, "Matching requires a valid subject ID.");
     }
-    TeachingMode mode = parseTeachingMode(criteria.mode());
-    if (mode == null) {
-      throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED, "Matching requires a teaching mode.");
-    }
-    String area = normalizeBlank(criteria.area());
-    area = area == null ? null : area.toLowerCase(Locale.ROOT);
-    boolean allowOnline = mode == TeachingMode.ONLINE || mode == TeachingMode.BOTH;
-    boolean allowOffline = mode == TeachingMode.OFFLINE || mode == TeachingMode.BOTH;
-    if (!allowOnline && area == null) {
-      return List.of();
-    }
-    return toDiscoveryProfiles(tutorProfileRepository.findVerifiedCandidatesBySubject(
-        TutorStatus.VERIFIED, criteria.subjectId(), allowOnline, allowOffline, area,
-        PageRequest.of(0, candidateLimit)
-    ));
+    return assembler.discoveryProfiles(tutorProfileRepository.findVerifiedCandidatesBySubject(
+        TutorStatus.VERIFIED, subjectId, PageRequest.of(0, candidateLimit)));
   }
 
   @Override
@@ -195,22 +177,46 @@ public class ProfileFacadeImpl implements ProfileFacade {
 
   @Override
   @Transactional(readOnly = true)
-  public Optional<LearningGoalDiscoveryDto> findLearningGoalForDiscovery(UUID goalId) {
-    return learningGoalRepository.findById(goalId).flatMap(goal ->
-        studentProfileRepository.findById(goal.getStudentId())
-            .map(student -> toLearningGoalDto(goal, student))
-    );
+  public Optional<LearningNeedView> findLearningNeed(UUID needId) {
+    if (needId == null) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(findLearningNeeds(List.of(needId)).get(needId));
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<LearningGoalView> findLearningGoalsForStudent(UUID studentId) {
-    StudentProfile student = studentProfileRepository.findById(studentId)
-        .orElseThrow(() -> EntityNotFoundException.of("StudentProfile", studentId));
-    var goals = learningGoalRepository.findByStudentIdOrderByCreatedAtAscGoalIdAsc(studentId);
-    if (goals.isEmpty()) return List.of();
-    return LearningGoalViews.fromAll(goals, student, goalAvailabilitySlotRepository
-        .findByGoalIdInOrderByDayOfWeekAscStartTimeAsc(goals.stream().map(LearningGoal::getGoalId).toList()));
+  public Map<UUID, LearningNeedView> findLearningNeeds(Collection<UUID> needIds) {
+    if (needIds == null || needIds.isEmpty()) {
+      return Map.of();
+    }
+    List<LearningNeed> needs = learningNeedRepository.findAllById(needIds);
+    if (needs.isEmpty()) {
+      return Map.of();
+    }
+    Set<UUID> studentIds = needs.stream().map(LearningNeed::getStudentId).collect(Collectors.toSet());
+    Map<UUID, UUID> studentUserIds = studentProfileRepository.findAllById(studentIds).stream()
+        .collect(Collectors.toMap(StudentProfile::getStudentId, StudentProfile::getUserId));
+    return LearningNeedViews.fromAll(
+            needs,
+            studentUserIds,
+            learningNeedSlotRepository.findByNeedIdInOrderByDayOfWeekAscStartTimeAsc(
+                needs.stream().map(LearningNeed::getNeedId).toList()),
+            catalogLoader.load())
+        .stream()
+        .collect(Collectors.toMap(LearningNeedView::needId, Function.identity()));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<LearningNeedView> findLearningNeedsForStudent(UUID studentId) {
+    return learningNeedService.viewsForStudent(studentId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<TutorOfferingDto> findTutorOfferings(UUID tutorId) {
+    return assembler.offeringsOf(tutorId);
   }
 
   @Override
@@ -224,8 +230,7 @@ public class ProfileFacadeImpl implements ProfileFacade {
   @Override
   @Transactional
   public void markTutorPendingVerification(UUID tutorId) {
-    TutorProfile tutor = tutorProfileRepository.findById(tutorId)
-        .orElseThrow(() -> EntityNotFoundException.of("TutorProfile", tutorId));
+    TutorProfile tutor = tutor(tutorId);
     tutor.markPendingVerification();
     tutorProfileRepository.save(tutor);
   }
@@ -233,8 +238,7 @@ public class ProfileFacadeImpl implements ProfileFacade {
   @Override
   @Transactional
   public void markTutorVerified(UUID tutorId, Instant verifiedAt) {
-    TutorProfile tutor = tutorProfileRepository.findById(tutorId)
-        .orElseThrow(() -> EntityNotFoundException.of("TutorProfile", tutorId));
+    TutorProfile tutor = tutor(tutorId);
     tutor.markVerified(verifiedAt);
     tutorProfileRepository.save(tutor);
   }
@@ -242,8 +246,7 @@ public class ProfileFacadeImpl implements ProfileFacade {
   @Override
   @Transactional
   public void markTutorRejected(UUID tutorId) {
-    TutorProfile tutor = tutorProfileRepository.findById(tutorId)
-        .orElseThrow(() -> EntityNotFoundException.of("TutorProfile", tutorId));
+    TutorProfile tutor = tutor(tutorId);
     tutor.markRejected();
     tutorProfileRepository.save(tutor);
   }
@@ -251,10 +254,34 @@ public class ProfileFacadeImpl implements ProfileFacade {
   @Override
   @Transactional
   public void markTutorUnverified(UUID tutorId) {
-    TutorProfile tutor = tutorProfileRepository.findById(tutorId)
-        .orElseThrow(() -> EntityNotFoundException.of("TutorProfile", tutorId));
+    TutorProfile tutor = tutor(tutorId);
     tutor.markUnverified();
     tutorProfileRepository.save(tutor);
+  }
+
+  @Override
+  @Transactional
+  public void applyVerificationApproval(
+      UUID tutorId, String confirmedTutorType, Collection<UUID> evidencedOfferingIds) {
+    TutorProfile tutor = tutor(tutorId);
+    TutorType type = parseTutorType(confirmedTutorType);
+    if (type != null) {
+      tutor.confirmTutorType(type);
+      tutorProfileRepository.save(tutor);
+    }
+    if (evidencedOfferingIds != null && !evidencedOfferingIds.isEmpty()) {
+      List<TutorOffering> offerings = tutorOfferingRepository.findByOfferingIdInAndTutorId(evidencedOfferingIds, tutorId);
+      offerings.forEach(TutorOffering::verifyGoalEvidence);
+      tutorOfferingRepository.saveAll(offerings);
+    }
+  }
+
+  @Override
+  @Transactional
+  public void revokeOfferingEvidence(UUID tutorId) {
+    List<TutorOffering> offerings = tutorOfferingRepository.findByTutorIdOrderByCreatedAtAsc(tutorId);
+    offerings.forEach(TutorOffering::revokeGoalEvidence);
+    tutorOfferingRepository.saveAll(offerings);
   }
 
   @Override
@@ -290,114 +317,20 @@ public class ProfileFacadeImpl implements ProfileFacade {
   }
 
   @Override
-  @Transactional(readOnly = true)
-  public Optional<ConnectionGoalDto> findGoalForConnection(UUID goalId) {
-    return learningGoalRepository.findById(goalId).flatMap(goal -> studentProfileRepository
-        .findById(goal.getStudentId()).map(student -> {
-          String subjectName = goal.getSubjectId() != null
-              ? subjectRepository.findById(goal.getSubjectId()).map(Subject::getName).orElse(null)
-              : null;
-          String levelName = student.getEducationLevelId() != null
-              ? educationLevelRepository.findById(student.getEducationLevelId()).map(EducationLevel::getName).orElse(null)
-              : null;
-          String area = (goal.getArea() != null && !goal.getArea().isBlank()) ? goal.getArea() : student.getArea();
-          return new ConnectionGoalDto(
-              goal.getGoalId(),
-              goal.getStudentId(),
-              student.getUserId(),
-              goal.getSubjectId(),
-              student.getEducationLevelId(),
-              goal.getGoalType() != null ? goal.getGoalType().name() : null,
-              goal.getDeadline(),
-              goal.getStatus() != null ? goal.getStatus().name() : null,
-              goal.getCurrentLevel() != null ? goal.getCurrentLevel().intValue() : null,
-              goal.getDesiredLevel() != null ? goal.getDesiredLevel().intValue() : null,
-              goal.getBudgetMin(),
-              goal.getBudgetMax(),
-              area,
-              subjectName,
-              levelName
-          );
-        }));
+  @Transactional
+  public void updateTutorRatingStats(UUID tutorId, double ratingAvg, int reviewCount) {
+    if (tutorId == null) {
+      return;
+    }
+    TutorProfile tutor = tutor(tutorId);
+    tutor.setRatingAvg(BigDecimal.valueOf(ratingAvg).setScale(2, RoundingMode.HALF_UP));
+    tutor.setReviewCount(Math.max(0, reviewCount));
+    tutorProfileRepository.save(tutor);
   }
 
-  @Override
-  @Transactional(readOnly = true)
-  public Map<UUID, ConnectionGoalDto> findGoalsForConnection(List<UUID> goalIds) {
-    if (goalIds == null || goalIds.isEmpty()) {
-      return Map.of();
-    }
-    List<LearningGoal> goals = learningGoalRepository.findAllById(goalIds);
-    if (goals.isEmpty()) {
-      return Map.of();
-    }
-    Set<UUID> studentIds = goals.stream().map(LearningGoal::getStudentId).collect(Collectors.toSet());
-    Map<UUID, StudentProfile> students = studentProfileRepository.findAllById(studentIds).stream()
-        .collect(Collectors.toMap(StudentProfile::getStudentId, s -> s));
-
-    Set<Integer> subjectIds = goals.stream().map(LearningGoal::getSubjectId).filter(java.util.Objects::nonNull).collect(Collectors.toSet());
-    Map<Integer, String> subjects = !subjectIds.isEmpty()
-        ? subjectRepository.findAllById(subjectIds).stream().collect(Collectors.toMap(Subject::getSubjectId, Subject::getName))
-        : Map.of();
-
-    Set<Integer> levelIds = students.values().stream().map(StudentProfile::getEducationLevelId).filter(java.util.Objects::nonNull).collect(Collectors.toSet());
-    Map<Integer, String> levels = (educationLevelRepository != null && !levelIds.isEmpty())
-        ? educationLevelRepository.findAllById(levelIds).stream().collect(Collectors.toMap(EducationLevel::getLevelId, EducationLevel::getName))
-        : Map.of();
-
-    Map<UUID, ConnectionGoalDto> result = new HashMap<>();
-    for (LearningGoal goal : goals) {
-      StudentProfile student = students.get(goal.getStudentId());
-      if (student != null) {
-        String subjectName = subjects.get(goal.getSubjectId());
-        String levelName = levels.get(student.getEducationLevelId());
-        String area = (goal.getArea() != null && !goal.getArea().isBlank()) ? goal.getArea() : student.getArea();
-        result.put(goal.getGoalId(), new ConnectionGoalDto(
-            goal.getGoalId(),
-            goal.getStudentId(),
-            student.getUserId(),
-            goal.getSubjectId(),
-            student.getEducationLevelId(),
-            goal.getGoalType() != null ? goal.getGoalType().name() : null,
-            goal.getDeadline(),
-            goal.getStatus() != null ? goal.getStatus().name() : null,
-            goal.getCurrentLevel() != null ? goal.getCurrentLevel().intValue() : null,
-            goal.getDesiredLevel() != null ? goal.getDesiredLevel().intValue() : null,
-            goal.getBudgetMin(),
-            goal.getBudgetMax(),
-            area,
-            subjectName,
-            levelName
-        ));
-      }
-    }
-    return result;
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public boolean tutorTeaches(UUID tutorId, Integer subjectId, Integer educationLevelId) {
-    return tutorSubjectRepository.existsByTutorIdAndSubjectIdAndEducationLevelId(
-        tutorId, subjectId, educationLevelId);
-  }
-
-  private TutorSummaryDto toTutorDto(TutorProfile profile) {
-    return new TutorSummaryDto(
-        profile.getTutorId(),
-        profile.getUserId(),
-        profile.getDisplayName(),
-        profile.getHeadline(),
-        profile.getBio(),
-        profile.getTeachingMode() != null ? profile.getTeachingMode().name() : null,
-        profile.getArea(),
-        profile.getPricePerSession(),
-        profile.getExperienceYears(),
-        profile.getTeachingMethod(),
-        profile.getStatus() != null ? profile.getStatus().name() : null,
-        profile.getVerifiedAt(),
-        profile.getRatingAvg(),
-        profile.getReviewCount()
-    );
+  private TutorProfile tutor(UUID tutorId) {
+    return tutorProfileRepository.findById(tutorId)
+        .orElseThrow(() -> EntityNotFoundException.of("TutorProfile", tutorId));
   }
 
   private StudentSummaryDto toStudentDto(StudentProfile profile) {
@@ -405,65 +338,9 @@ public class ProfileFacadeImpl implements ProfileFacade {
         profile.getStudentId(),
         profile.getUserId(),
         profile.getEducationLevelId(),
-        profile.getArea(),
+        profile.getProvinceId(),
+        profile.getDistrictId(),
         profile.isProfileComplete()
-    );
-  }
-
-  private List<TutorDiscoveryProfileDto> toDiscoveryProfiles(List<TutorProfile> profiles) {
-    if (profiles.isEmpty()) {
-      return List.of();
-    }
-    Set<UUID> tutorIds = profiles.stream().map(TutorProfile::getTutorId).collect(Collectors.toSet());
-    var tutorSubjects = tutorSubjectRepository.findDiscoverySubjectsByTutorIdIn(tutorIds);
-    Map<UUID, List<TutorSubjectDto>> subjectsByTutor = tutorSubjects.stream()
-        .collect(Collectors.groupingBy(
-            item -> item.getTutorId(),
-            Collectors.mapping(item -> new TutorSubjectDto(
-                item.getSubjectId(),
-                item.getSubjectName(),
-                item.getEducationLevelId(),
-                item.getEducationLevelName()
-            ), Collectors.toList())
-        ));
-    Map<UUID, List<WeeklyAvailabilityDto>> slotsByTutor = tutorAvailabilitySlotRepository
-        .findByTutorIdInOrderByDayOfWeekAscStartTimeAsc(tutorIds).stream()
-        .collect(Collectors.groupingBy(
-            slot -> slot.getTutorId(),
-            Collectors.mapping(
-                slot -> new WeeklyAvailabilityDto(slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime()),
-                Collectors.toList()
-            )
-        ));
-
-    return profiles.stream()
-        .map(profile -> new TutorDiscoveryProfileDto(
-            toTutorDto(profile),
-            subjectsByTutor.getOrDefault(profile.getTutorId(), List.of()),
-            slotsByTutor.getOrDefault(profile.getTutorId(), List.of()),
-            profile.getCreatedAt()
-        ))
-        .toList();
-  }
-
-  private LearningGoalDiscoveryDto toLearningGoalDto(LearningGoal goal, StudentProfile student) {
-    List<WeeklyAvailabilityDto> slots = goalAvailabilitySlotRepository
-        .findByGoalIdOrderByDayOfWeekAscStartTimeAsc(goal.getGoalId()).stream()
-        .map(slot -> new WeeklyAvailabilityDto(slot.getDayOfWeek(), slot.getStartTime(), slot.getEndTime()))
-        .toList();
-
-    return new LearningGoalDiscoveryDto(
-        goal.getGoalId(),
-        goal.getStudentId(),
-        student.getUserId(),
-        goal.getSubjectId(),
-        student.getEducationLevelId(),
-        goal.getMode().name(),
-        goal.getArea(),
-        goal.getBudgetMin(),
-        goal.getBudgetMax(),
-        goal.getStatus().name(),
-        slots, goal.getGoalType().name(), goal.getCurrentLevel(), goal.getDesiredLevel(), goal.getDeadline()
     );
   }
 
@@ -472,7 +349,6 @@ public class ProfileFacadeImpl implements ProfileFacade {
     if (normalized == null) {
       return null;
     }
-
     try {
       return TeachingMode.valueOf(normalized.toUpperCase(Locale.ROOT));
     } catch (IllegalArgumentException ex) {
@@ -483,23 +359,22 @@ public class ProfileFacadeImpl implements ProfileFacade {
     }
   }
 
+  private TutorType parseTutorType(String rawType) {
+    String normalized = normalizeBlank(rawType);
+    if (normalized == null) {
+      return null;
+    }
+    try {
+      return TutorType.valueOf(normalized.toUpperCase(Locale.ROOT));
+    } catch (IllegalArgumentException ex) {
+      throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED, "Loại gia sư không hợp lệ.");
+    }
+  }
+
   private String normalizeBlank(String value) {
     if (value == null || value.isBlank()) {
       return null;
     }
     return value.trim();
-  }
-
-  @Override
-  @Transactional
-  public void updateTutorRatingStats(UUID tutorId, double ratingAvg, int reviewCount) {
-    if (tutorId == null) {
-      return;
-    }
-    TutorProfile tutor = tutorProfileRepository.findById(tutorId)
-        .orElseThrow(() -> EntityNotFoundException.of("TutorProfile", tutorId));
-    tutor.setRatingAvg(BigDecimal.valueOf(ratingAvg).setScale(2, RoundingMode.HALF_UP));
-    tutor.setReviewCount(Math.max(0, reviewCount));
-    tutorProfileRepository.save(tutor);
   }
 }

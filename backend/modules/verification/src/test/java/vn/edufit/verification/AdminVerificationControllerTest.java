@@ -102,7 +102,7 @@ class AdminVerificationControllerTest {
         requestId, UUID.randomUUID(), "APPROVED", null, Instant.now(), adminUser.getUserId(), Instant.now(), List.of()
     );
     ReviewVerificationRequest request = new ReviewVerificationRequest(
-        ReviewVerificationRequest.Action.APPROVE, null
+        ReviewVerificationRequest.Action.APPROVE, null, null
     );
     when(adminVerificationService.review(adminUser, requestId, request)).thenReturn(detail);
 

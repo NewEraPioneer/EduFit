@@ -15,7 +15,7 @@ public class ConnectionRequest {
   @Column(name = "request_id") private UUID id;
   @Column(name = "student_id", nullable = false) private UUID studentId;
   @Column(name = "tutor_id", nullable = false) private UUID tutorId;
-  @Column(name = "goal_id", nullable = false) private UUID goalId;
+  @Column(name = "need_id", nullable = false) private UUID needId;
   @Column(name = "sent_by_user_id", nullable = false) private UUID sentByUserId;
   @JdbcTypeCode(SqlTypes.JSON) @Column(name = "desired_slots", columnDefinition = "jsonb") private List<String> desiredSlots;
   @Column(name = "message", length = 500) private String message;
@@ -27,11 +27,11 @@ public class ConnectionRequest {
   @Version @Column(name = "version", nullable = false) private Long version;
 
   protected ConnectionRequest() {}
-  public ConnectionRequest(UUID studentId, UUID tutorId, UUID goalId, UUID sender,
+  public ConnectionRequest(UUID studentId, UUID tutorId, UUID needId, UUID sender,
       List<String> desiredSlots, String message, Instant now) {
     this.studentId = studentId;
     this.tutorId = tutorId;
-    this.goalId = goalId;
+    this.needId = needId;
     sentByUserId = sender;
     this.desiredSlots = desiredSlots;
     this.message = message;
@@ -55,7 +55,7 @@ public class ConnectionRequest {
   public UUID getId() { return id; }
   public UUID getStudentId() { return studentId; }
   public UUID getTutorId() { return tutorId; }
-  public UUID getGoalId() { return goalId; }
+  public UUID getNeedId() { return needId; }
   public UUID getSentByUserId() { return sentByUserId; }
   public String getStatus() { return status; }
   public List<String> getDesiredSlots() { return desiredSlots; }

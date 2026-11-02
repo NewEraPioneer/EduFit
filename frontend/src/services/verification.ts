@@ -1,4 +1,5 @@
 import { apiClient, ApiError } from "@/lib/api";
+import type { TutorType } from "@/services/profile";
 
 export type VerificationStatus = "DRAFT" | "PENDING" | "APPROVED" | "VERIFIED" | "REJECTED";
 
@@ -25,6 +26,8 @@ export interface CredentialResponse {
   institution: string;
   year?: number | null;
   note?: string;
+  /** Gói dạy mà giấy tờ này chứng minh (mục tiêu cần duyệt minh chứng). */
+  offeringId?: string | null;
   files: CredentialFileResponse[];
 }
 
@@ -73,6 +76,8 @@ export interface SubmitVerificationPayload {
     year?: number | null;
     note?: string;
     fileIndexes: number[];
+    /** Gói dạy mà giấy tờ này chứng minh (cho mục tiêu cần duyệt minh chứng như HSG, IELTS). */
+    offeringId?: string | null;
   }>;
 }
 
@@ -155,12 +160,14 @@ export const verificationService = {
 
   /**
    * Duyệt hoặc từ chối hồ sơ xác minh của gia sư (ADMIN)
-   * Gửi { action: "APPROVE" | "REJECT", reason?: string } khớp ReviewVerificationRequest backend
+   * Gửi { action, reason?, confirmedTutorType? } khớp ReviewVerificationRequest backend.
+   * confirmedTutorType: loại gia sư admin xác nhận theo giấy tờ khi duyệt.
    */
   async reviewVerification(
     requestId: string,
     actionOrDecision: "APPROVE" | "REJECT" | "APPROVED" | "REJECTED",
-    reasonOrRejectionReason?: string
+    reasonOrRejectionReason?: string,
+    confirmedTutorType?: TutorType | null
   ): Promise<VerificationRequestDetail> {
     const action: "APPROVE" | "REJECT" =
       actionOrDecision === "APPROVE" || actionOrDecision === "APPROVED"
@@ -173,6 +180,7 @@ export const verificationService = {
       {
         action,
         reason,
+        confirmedTutorType: action === "APPROVE" ? confirmedTutorType || undefined : undefined,
       }
     );
     return res.data as VerificationRequestDetail;

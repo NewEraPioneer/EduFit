@@ -34,5 +34,5 @@ public interface ConnectionValidationPort {
    */
   java.util.Optional<ActiveClassInfo> findActiveClassById(UUID classId);
 
-  record ActiveClassInfo(UUID classId, UUID studentId, UUID tutorId, UUID goalId) {}
+  record ActiveClassInfo(UUID classId, UUID studentId, UUID tutorId, UUID needId) {}
 }

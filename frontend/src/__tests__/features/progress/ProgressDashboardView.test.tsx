@@ -28,7 +28,7 @@ describe("ProgressDashboardView Component", () => {
     selectedClassId: "class-1",
     tutorId: "tutor-1",
     tutorName: "Thầy Hưng",
-    goalId: "goal-1",
+    needId: "need-1",
     goalTitle: "Mục tiêu đạt 9 điểm",
     progressPercentage: 65,
     sessionStats: {

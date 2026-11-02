@@ -16,7 +16,7 @@ describe("EndClassModal Component", () => {
     classId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
     studentId: "stu-123",
     tutorId: "tut-456",
-    goalId: "goal-789",
+    needId: "need-789",
     status: "ACTIVE",
     subjectName: "Toán hình học",
     educationLevelName: "Lớp 11",

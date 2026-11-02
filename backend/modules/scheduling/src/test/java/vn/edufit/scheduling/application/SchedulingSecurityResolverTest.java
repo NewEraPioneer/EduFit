@@ -87,9 +87,7 @@ class SchedulingSecurityResolverTest {
   @Test
   @DisplayName("resolveTutorId -> Thành công khi có hồ sơ gia sư")
   void shouldResolveTutorIdSuccessfully() {
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", now, null, 0
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0);
     when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
 
     UUID resolved = resolver.resolveTutorId(tutorActor);
@@ -107,7 +105,7 @@ class SchedulingSecurityResolverTest {
   @Test
   @DisplayName("resolveStudentId -> Thành công khi có hồ sơ học sinh")
   void shouldResolveStudentIdSuccessfully() {
-    StudentSummaryDto studentDto = new StudentSummaryDto(studentId, studentUserId, 1, "Hà Nội", true);
+    StudentSummaryDto studentDto = new StudentSummaryDto(studentId, studentUserId, 1, null, null, true);
     when(profileFacade.findStudentByUserId(studentUserId)).thenReturn(Optional.of(studentDto));
 
     UUID resolved = resolver.resolveStudentId(studentActor);
@@ -125,7 +123,7 @@ class SchedulingSecurityResolverTest {
   @Test
   @DisplayName("requireStudentOrParentAccess -> Cho phép chính học sinh truy cập")
   void shouldAllowStudentAccessOwnStudentId() {
-    StudentSummaryDto studentDto = new StudentSummaryDto(studentId, studentUserId, 1, "Hà Nội", true);
+    StudentSummaryDto studentDto = new StudentSummaryDto(studentId, studentUserId, 1, null, null, true);
     when(profileFacade.findStudentByUserId(studentUserId)).thenReturn(Optional.of(studentDto));
 
     assertDoesNotThrow(() -> resolver.requireStudentOrParentAccess(studentActor, studentId));
@@ -158,9 +156,7 @@ class SchedulingSecurityResolverTest {
   @DisplayName("requireSessionAccess -> Cho phép Gia sư của buổi học xem chi tiết")
   void shouldAllowTutorToAccessSession() {
     TutoringSession session = createSession(studentUserId);
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", now, null, 0
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0);
     when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
 
     assertDoesNotThrow(() -> resolver.requireSessionAccess(tutorActor, session));
@@ -196,14 +192,12 @@ class SchedulingSecurityResolverTest {
   @DisplayName("requireCounterpartyResponseAccess -> Gia sư đề xuất -> Học sinh phản hồi thành công")
   void shouldAllowStudentToRespondToTutorProposal() {
     TutoringSession session = createSession(tutorUserId);
-    StudentSummaryDto studentDto = new StudentSummaryDto(studentId, studentUserId, 1, "Hà Nội", true);
+    StudentSummaryDto studentDto = new StudentSummaryDto(studentId, studentUserId, 1, null, null, true);
     when(profileFacade.findTutorByUserId(studentUserId)).thenReturn(Optional.empty());
     when(profileFacade.findStudentByUserId(studentUserId)).thenReturn(Optional.of(studentDto));
 
     // Proposer is tutor
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", now, null, 0
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0);
     when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
 
     assertDoesNotThrow(() -> resolver.requireCounterpartyResponseAccess(studentActor, session));
@@ -217,9 +211,7 @@ class SchedulingSecurityResolverTest {
     when(profileFacade.findStudentByUserId(parentUserId)).thenReturn(Optional.empty());
     when(connectionFacade.hasConfirmedParentLink(parentUserId, studentId)).thenReturn(true);
 
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", now, null, 0
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0);
     when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
 
     assertDoesNotThrow(() -> resolver.requireCounterpartyResponseAccess(parentActor, session));
@@ -229,9 +221,7 @@ class SchedulingSecurityResolverTest {
   @DisplayName("requireCounterpartyResponseAccess -> Học sinh đề xuất -> Gia sư phản hồi thành công")
   void shouldAllowTutorToRespondToStudentProposal() {
     TutoringSession session = createSession(studentUserId);
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", now, null, 0
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0);
     when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
     // studentUserId is not a tutor
     when(profileFacade.findTutorByUserId(studentUserId)).thenReturn(Optional.empty());
@@ -267,9 +257,7 @@ class SchedulingSecurityResolverTest {
   @Test
   @DisplayName("requireTutorAccess -> Chỉ Gia sư của buổi học mới được phép ghi nhận kết quả")
   void shouldEnforceTutorAccessForOutcome() {
-    TutorSummaryDto tutorDto = new TutorSummaryDto(
-        tutorId, tutorUserId, "Thầy Nam", null, null, null, null, null, null, null, "VERIFIED", now, null, 0
-    );
+    TutorSummaryDto tutorDto = new TutorSummaryDto(tutorId, tutorUserId, "Thầy Nam", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0);
     when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(Optional.of(tutorDto));
 
     assertDoesNotThrow(() -> resolver.requireTutorAccess(tutorActor, tutorId));

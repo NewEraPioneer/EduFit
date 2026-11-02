@@ -84,7 +84,7 @@ class ConnectionExpiryServiceTest {
     } else {
       when(invitations.lockById(id)).thenReturn(Optional.of(invitation));
       when(profile.findStudentByUserId(inviter)).thenReturn(Optional.empty());
-      when(profile.findStudentByUserId(invited)).thenReturn(Optional.of(new StudentSummaryDto(student, invited, 4, null, true)));
+      when(profile.findStudentByUserId(invited)).thenReturn(Optional.of(new StudentSummaryDto(student, invited, 4, null, null, true)));
 
       assertTrue(expiryService.expireInvitation(id));
       assertEquals("EXPIRED", invitation.getStatus());
@@ -142,8 +142,8 @@ class ConnectionExpiryServiceTest {
       verifyNoInteractions(lock, events);
     } else {
       when(requests.lockById(id)).thenReturn(Optional.of(request));
-      when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, true)));
-      when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, null, null, null, "VERIFIED", createdAt, null, 0)));
+      when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
+      when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", createdAt, null, 0)));
 
       assertTrue(expiryService.expireRequest(id));
       assertEquals("EXPIRED", request.getStatus());

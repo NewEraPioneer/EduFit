@@ -600,7 +600,7 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
       vi.spyOn(connectionApi, "getStudentClasses").mockResolvedValue([
         {
           classId: "class-1",
-          goalId: "goal-1",
+          needId: "need-1",
           tutorId: "tutor-1",
           studentId: "child-student-1",
           studentDisplayName: "Học sinh Con Cả",
@@ -611,7 +611,7 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
         },
         {
           classId: "class-2",
-          goalId: "goal-2",
+          needId: "need-2",
           tutorId: "tutor-2",
           studentId: "child-student-2",
           studentDisplayName: "Học sinh Con Thứ",

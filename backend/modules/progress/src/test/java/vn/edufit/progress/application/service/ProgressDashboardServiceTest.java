@@ -22,7 +22,7 @@ import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.iam.api.dto.UserSummaryView;
 import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.ConnectionGoalDto;
+import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.progress.application.dto.ProgressViews.ParentDashboardView;
@@ -75,7 +75,7 @@ class ProgressDashboardServiceTest {
     UUID classId = UUID.randomUUID();
     UUID tutorId = UUID.randomUUID();
     UUID tutorUserId = UUID.randomUUID();
-    UUID goalId = UUID.randomUUID();
+    UUID needId = UUID.randomUUID();
 
     CurrentUser actor = mock(CurrentUser.class);
     when(actor.hasRole("STUDENT")).thenReturn(true);
@@ -90,9 +90,7 @@ class ProgressDashboardServiceTest {
     when(studentUserSummary.fullName()).thenReturn("Nguyen Van B");
     when(iamFacade.findUserSummaryById(studentUserId)).thenReturn(Optional.of(studentUserSummary));
 
-    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(
-        classId, studentId, tutorId, goalId, "ACTIVE", fixedInstant, null
-    );
+    ConnectionFacade.ClassDetailView cls = new ConnectionFacade.ClassDetailView(classId, studentId, tutorId, needId, "ACTIVE", fixedInstant, null, 200000L);
     when(connectionFacade.findClassesByStudent(studentId)).thenReturn(List.of(cls));
 
     Milestone m1 = new Milestone(
@@ -109,9 +107,11 @@ class ProgressDashboardServiceTest {
     when(planRepository.findByClassIdIn(eq(List.of(classId)))).thenReturn(List.of(plan));
     when(planRepository.findByClassId(classId)).thenReturn(Optional.of(plan));
 
-    ConnectionGoalDto goalDto = mock(ConnectionGoalDto.class);
-    when(goalDto.goalType()).thenReturn("TOEIC 650");
-    when(profileFacade.findGoalsForConnection(List.of(goalId))).thenReturn(Map.of(goalId, goalDto));
+    LearningNeedView needView = mock(LearningNeedView.class);
+    when(needView.goalTagName()).thenReturn("Chứng chỉ IELTS 5.0–6.5");
+    when(needView.subjectName()).thenReturn("Tiếng Anh");
+    when(needView.educationLevelName()).thenReturn("Lớp 9");
+    when(profileFacade.findLearningNeeds(List.of(needId))).thenReturn(Map.of(needId, needView));
 
     TutorSummaryDto tutorDto = mock(TutorSummaryDto.class);
     when(tutorDto.userId()).thenReturn(tutorUserId);
@@ -158,8 +158,8 @@ class ProgressDashboardServiceTest {
 
     UUID class1 = UUID.randomUUID();
     UUID class2 = UUID.randomUUID();
-    ConnectionFacade.ClassDetailView c1 = new ConnectionFacade.ClassDetailView(class1, studentId, tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null);
-    ConnectionFacade.ClassDetailView c2 = new ConnectionFacade.ClassDetailView(class2, studentId, tutorId, UUID.randomUUID(), "COMPLETED", fixedInstant, null);
+    ConnectionFacade.ClassDetailView c1 = new ConnectionFacade.ClassDetailView(class1, studentId, tutorId, UUID.randomUUID(), "ACTIVE", fixedInstant, null, 200000L);
+    ConnectionFacade.ClassDetailView c2 = new ConnectionFacade.ClassDetailView(class2, studentId, tutorId, UUID.randomUUID(), "COMPLETED", fixedInstant, null, 200000L);
 
     when(connectionFacade.findClassesByTutor(tutorId)).thenReturn(List.of(c1, c2));
 
@@ -173,7 +173,7 @@ class ProgressDashboardServiceTest {
 
     when(sessionFacade.getSessionStatsByClassIds(any(), any(), any())).thenReturn(Map.of());
     when(planRepository.findByClassIdIn(any())).thenReturn(List.of());
-    when(profileFacade.findGoalsForConnection(any())).thenReturn(Map.of());
+    when(profileFacade.findLearningNeeds(any())).thenReturn(Map.of());
 
     // Yeu cau trang 0 voi size 1
     Page<TeachingHistoryItemView> page = dashboardService.getTeachingHistory(actor, 0, 1, null, null, null, null);

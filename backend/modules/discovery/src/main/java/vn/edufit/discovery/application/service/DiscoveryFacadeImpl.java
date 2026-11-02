@@ -17,8 +17,8 @@ public class DiscoveryFacadeImpl implements DiscoveryFacade {
   }
 
   @Override
-  public List<TutorMatchSummaryDto> findTopMatchesForGoal(CurrentUser actor, UUID goalId, int topN) {
-    return matchingService.match(actor, goalId, topN).stream()
+  public List<TutorMatchSummaryDto> findTopMatchesForNeed(CurrentUser actor, UUID needId, int topN) {
+    return matchingService.match(actor, needId, topN).stream()
         .map(result -> new TutorMatchSummaryDto(result.score().tutorId(),
             result.profile().tutor().displayName(), result.score().total(),
             result.explanation(), result.aiGenerated()))

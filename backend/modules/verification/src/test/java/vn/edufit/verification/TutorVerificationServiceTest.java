@@ -119,7 +119,7 @@ class TutorVerificationServiceTest {
             "Đại học Bách Khoa",
             (short) 2024,
             "Bằng cử nhân xuất sắc",
-            List.of(0)
+            List.of(0), null
         )
     ));
 
@@ -142,7 +142,7 @@ class TutorVerificationServiceTest {
 
     SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2024, "Ghi chú", List.of(0)
+            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2024, "Ghi chú", List.of(0), null
         )
     ));
 
@@ -162,7 +162,7 @@ class TutorVerificationServiceTest {
 
     SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2024, "Ghi chú", List.of(0)
+            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2024, "Ghi chú", List.of(0), null
         )
     ));
 
@@ -191,7 +191,7 @@ class TutorVerificationServiceTest {
 
     SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.CERTIFICATE, "IELTS 8.0", (short) 2023, "IELTS IDP", List.of(0)
+            Credential.Type.CERTIFICATE, "IELTS 8.0", (short) 2023, "IELTS IDP", List.of(0), null
         )
     ));
 
@@ -237,7 +237,7 @@ class TutorVerificationServiceTest {
   void shouldGetCredentialFileForOwnerTutor() {
     UUID fileId = UUID.randomUUID();
     VerificationRequest request = VerificationRequest.pending(tutorId, Instant.now());
-    Credential cred = Credential.create(Credential.Type.DEGREE, "ĐHBK", (short) 2023, null);
+    Credential cred = Credential.create(Credential.Type.DEGREE, "ĐHBK", (short) 2023, null, null);
     request.addCredential(cred);
     CredentialFile credFile = CredentialFile.create("degree.pdf", "key-xyz", "application/pdf", 100L, Instant.now());
     cred.addFile(credFile);
@@ -259,7 +259,7 @@ class TutorVerificationServiceTest {
     UUID fileId = UUID.randomUUID();
     UUID otherTutorId = UUID.randomUUID();
     VerificationRequest request = VerificationRequest.pending(otherTutorId, Instant.now());
-    Credential cred = Credential.create(Credential.Type.DEGREE, "ĐHBK", (short) 2023, null);
+    Credential cred = Credential.create(Credential.Type.DEGREE, "ĐHBK", (short) 2023, null, null);
     request.addCredential(cred);
     CredentialFile credFile = CredentialFile.create("degree.pdf", "key-xyz", "application/pdf", 100L, Instant.now());
     cred.addFile(credFile);
@@ -300,7 +300,7 @@ class TutorVerificationServiceTest {
             "Cục Cảnh sát QLHC về TTXH",
             null,
             "Căn cước công dân gắn chip",
-            List.of(0)
+            List.of(0), null
         )
     ));
 
@@ -323,10 +323,7 @@ class TutorVerificationServiceTest {
     when(verificationRequestRepository.existsByTutorIdAndStatus(tutorId, VerificationRequest.Status.PENDING))
         .thenReturn(false);
 
-    TutorSummaryDto verifiedTutor = new TutorSummaryDto(
-        tutorId, userId, "Gia sư Bách Khoa", "Thạc sĩ CNTT", null, "ONLINE", "Hà Nội",
-        300_000L, (short) 5, null, "VERIFIED", Instant.now(), null, 10
-    );
+    TutorSummaryDto verifiedTutor = new TutorSummaryDto(tutorId, userId, "Gia sư Bách Khoa", "Thạc sĩ CNTT", null, "ONLINE", null, false, null, "Hà Nội", (short) 5, null, "VERIFIED", Instant.now(), null, 10);
     when(profileFacade.findTutorById(tutorId)).thenReturn(Optional.of(verifiedTutor));
 
     MockMultipartFile file = new MockMultipartFile(
@@ -348,7 +345,7 @@ class TutorVerificationServiceTest {
             "IDP Education",
             (short) 2024,
             "IELTS 8.5 Certificate",
-            List.of(0)
+            List.of(0), null
         )
     ));
 
@@ -369,10 +366,7 @@ class TutorVerificationServiceTest {
     when(verificationRequestRepository.existsByTutorIdAndStatus(tutorId, VerificationRequest.Status.PENDING))
         .thenReturn(false);
 
-    TutorSummaryDto unverifiedTutor = new TutorSummaryDto(
-        tutorId, userId, "Gia sư mới", null, null, "ONLINE", "Hà Nội",
-        200_000L, (short) 1, null, "UNVERIFIED", null, null, 0
-    );
+    TutorSummaryDto unverifiedTutor = new TutorSummaryDto(tutorId, userId, "Gia sư mới", null, null, "ONLINE", null, false, null, "Hà Nội", (short) 1, null, "UNVERIFIED", null, null, 0);
     when(profileFacade.findTutorById(tutorId)).thenReturn(Optional.of(unverifiedTutor));
 
     MockMultipartFile file = new MockMultipartFile(
@@ -394,7 +388,7 @@ class TutorVerificationServiceTest {
             "Đại học Quốc Gia Hà Nội",
             (short) 2023,
             "Cử nhân Sư phạm",
-            List.of(0)
+            List.of(0), null
         )
     ));
 
@@ -416,14 +410,14 @@ class TutorVerificationServiceTest {
     VerificationRequest req1 = VerificationRequest.pending(tutorId, Instant.now().minusSeconds(86400));
     req1.approve(UUID.randomUUID(), Instant.now().minusSeconds(43200));
     org.springframework.test.util.ReflectionTestUtils.setField(req1, "requestId", UUID.randomUUID());
-    Credential cred1 = Credential.create(Credential.Type.DEGREE, "Đại học Bách Khoa Hà Nội", (short) 2022, "Cử nhân");
+    Credential cred1 = Credential.create(Credential.Type.DEGREE, "Đại học Bách Khoa Hà Nội", (short) 2022, "Cử nhân", null);
     req1.addCredential(cred1);
 
     // Hồ sơ 2 bổ sung đang chờ duyệt (PENDING) với chứng chỉ IELTS
     VerificationRequest req2 = VerificationRequest.pending(tutorId, Instant.now());
     UUID req2Id = UUID.randomUUID();
     org.springframework.test.util.ReflectionTestUtils.setField(req2, "requestId", req2Id);
-    Credential cred2 = Credential.create(Credential.Type.CERTIFICATE, "British Council", (short) 2024, "IELTS 8.0");
+    Credential cred2 = Credential.create(Credential.Type.CERTIFICATE, "British Council", (short) 2024, "IELTS 8.0", null);
     req2.addCredential(cred2);
 
     when(verificationRequestRepository.findFirstByTutorIdOrderBySubmittedAtDesc(tutorId))

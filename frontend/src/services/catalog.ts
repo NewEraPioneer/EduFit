@@ -16,59 +16,98 @@ export interface CatalogResponse {
   subjects: SubjectItem[];
 }
 
-export const DEFAULT_EDUCATION_LEVELS: EducationLevel[] = [
-  { levelId: 1, name: "Lớp 6", sortOrder: 1 },
-  { levelId: 2, name: "Lớp 7", sortOrder: 2 },
-  { levelId: 3, name: "Lớp 8", sortOrder: 3 },
-  { levelId: 4, name: "Lớp 9", sortOrder: 4 },
-];
+export interface SubjectTrack {
+  trackId: number;
+  subjectId: number;
+  code: string;
+  name: string;
+  levelIds: number[];
+}
 
-export const DEFAULT_SUBJECTS: SubjectItem[] = [
-  { subjectId: 1, name: "Toán" },
-  { subjectId: 2, name: "Ngữ Văn" },
-  { subjectId: 3, name: "Tiếng Anh" },
-  { subjectId: 4, name: "Vật Lý" },
-  { subjectId: 5, name: "Hóa Học" },
-  { subjectId: 6, name: "Sinh Học" },
-];
+export interface GoalTag {
+  goalTagId: number;
+  code: string;
+  name: string;
+  description?: string;
+  requiresTextbook: boolean;
+  requiresExamProvince: boolean;
+  premium: boolean;
+}
+
+export interface GoalTagRule {
+  goalTagId: number;
+  subjectId: number;
+  trackId: number | null;
+  levelId: number;
+}
+
+export interface TextbookSeries {
+  seriesId: number;
+  code: string;
+  name: string;
+  subjectIds: number[];
+}
+
+export interface Province {
+  provinceId: number;
+  name: string;
+}
+
+export interface District {
+  districtId: number;
+  provinceId: number;
+  name: string;
+}
+
+export interface SpecializedSchool {
+  schoolId: number;
+  provinceId: number;
+  name: string;
+}
+
+/** Danh mục nhu cầu học: bộ chọn Lớp → Môn → (Nhánh) → Mục tiêu dựng từ goalTagRules. */
+export interface LearningCatalog {
+  educationLevels: EducationLevel[];
+  subjects: SubjectItem[];
+  tracks: SubjectTrack[];
+  goalTags: GoalTag[];
+  goalTagRules: GoalTagRule[];
+  textbooks: TextbookSeries[];
+  provinces: Province[];
+  districts: District[];
+  specializedSchools: SpecializedSchool[];
+}
+
+let learningCatalogRequest: Promise<LearningCatalog> | null = null;
 
 export const catalogService = {
   /**
-   * Lấy toàn bộ danh mục dùng chung (Cấp học và Môn học)
+   * Lấy danh mục dùng chung (Cấp học và Môn học đang hoạt động)
    */
   async getCatalog(): Promise<CatalogResponse> {
-    try {
-      const res = await apiClient.get<CatalogResponse>("/api/v1/catalogs");
-      return res.data as CatalogResponse;
-    } catch {
-      return {
-        educationLevels: DEFAULT_EDUCATION_LEVELS,
-        subjects: DEFAULT_SUBJECTS,
-      };
-    }
+    const res = await apiClient.get<CatalogResponse>("/api/v1/catalogs");
+    return res.data as CatalogResponse;
   },
 
   /**
-   * Lấy danh sách cấp học
+   * Danh mục nhu cầu học (lớp, môn, nhánh, mục tiêu và luật, bộ sách, địa giới).
+   * Dữ liệu ít thay đổi nên dùng chung một lần tải cho cả phiên; lỗi thì cho phép tải lại.
    */
-  async getEducationLevels(): Promise<EducationLevel[]> {
-    try {
-      const res = await apiClient.get<EducationLevel[]>("/api/v1/catalogs/education-levels");
-      return (res.data || []) as EducationLevel[];
-    } catch {
-      return DEFAULT_EDUCATION_LEVELS;
+  async getLearningCatalog(): Promise<LearningCatalog> {
+    if (!learningCatalogRequest) {
+      learningCatalogRequest = apiClient
+        .get<LearningCatalog>("/api/v1/catalogs/learning")
+        .then((res) => res.data as LearningCatalog)
+        .catch((error) => {
+          learningCatalogRequest = null;
+          throw error;
+        });
     }
+    return learningCatalogRequest;
   },
 
-  /**
-   * Lấy danh sách môn học
-   */
-  async getSubjects(): Promise<SubjectItem[]> {
-    try {
-      const res = await apiClient.get<SubjectItem[]>("/api/v1/catalogs/subjects");
-      return (res.data || []) as SubjectItem[];
-    } catch {
-      return DEFAULT_SUBJECTS;
-    }
+  /** Chỉ dùng trong test: xóa bộ nhớ đệm danh mục. */
+  resetLearningCatalogCache(): void {
+    learningCatalogRequest = null;
   },
 };

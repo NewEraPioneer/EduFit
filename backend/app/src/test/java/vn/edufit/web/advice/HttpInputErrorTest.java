@@ -100,7 +100,7 @@ class HttpInputErrorTest {
     assertSafe(
         post("/api/v1/discovery/match")
             .contentType("application/json")
-            .content("{\"goalId\":\"" + SECRET + "\"}"));
+            .content("{\"needId\":\"" + SECRET + "\"}"));
     assertSafe(
         post("/test/enum")
             .contentType("application/json")

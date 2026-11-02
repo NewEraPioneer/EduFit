@@ -21,15 +21,16 @@ public interface ConnectionFacade {
   List<UUID> findConfirmedStudentIds(UUID parentUserId);
   long countActiveClasses();
 
-  record ActiveClassView(UUID classId, UUID studentId, UUID tutorId, UUID goalId) {}
+  record ActiveClassView(UUID classId, UUID studentId, UUID tutorId, UUID needId) {}
 
   record ClassDetailView(
       UUID classId,
       UUID studentId,
       UUID tutorId,
-      UUID goalId,
+      UUID needId,
       String status,
       Instant startedAt,
-      Instant endedAt
+      Instant endedAt,
+      long pricePerSession
   ) {}
 }

@@ -154,7 +154,7 @@ class VerificationDecisionMatrixCsvTest {
         .thenReturn(Optional.of(request));
 
     ReviewVerificationRequest.Action action = ReviewVerificationRequest.Action.valueOf(adminAction);
-    ReviewVerificationRequest reviewRequest = new ReviewVerificationRequest(action, rejectionReason);
+    ReviewVerificationRequest reviewRequest = new ReviewVerificationRequest(action, rejectionReason, null);
 
     if ("NONE".equals(expectedErrorCode)) {
       when(verificationRequestRepository.save(any(VerificationRequest.class)))
@@ -204,7 +204,7 @@ class VerificationDecisionMatrixCsvTest {
             institution,
             (short) gradYear,
             "Ghi chú",
-            List.of(0)
+            List.of(0), null
         )
     ));
 

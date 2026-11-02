@@ -35,10 +35,10 @@ class ConnectionRequestRulesTest {
   final org.springframework.context.ApplicationEventPublisher events=mock(org.springframework.context.ApplicationEventPublisher.class);
   ConnectionRequestService service;
   @BeforeEach void setup() {
-    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student,studentUser,4,null,true)));
-    when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(new ConnectionGoalDto(goal,student,studentUser,1,4,"EXAM",null,"ACTIVE")));
+    when(profile.findStudentById(student)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, 4, null, null, true)));
+    when(profile.findLearningNeed(goal)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ACTIVE")));
     tutorStatus("VERIFIED");account(tutorUser,"TUTOR",AccountStatus.ACTIVE);
-    when(profile.tutorTeaches(tutor,1,4)).thenReturn(true);
+    when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
     when(rows.save(any())).thenAnswer(call -> {var row=(ConnectionRequest)call.getArgument(0);org.springframework.test.util.ReflectionTestUtils.setField(row,"id",id);return row;});
     service=new ConnectionRequestService(rows, classes, profile, iam, lock, sink, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now,ZoneOffset.UTC));
@@ -52,7 +52,7 @@ class ConnectionRequestRulesTest {
     account(user,role,AccountStatus.ACTIVE);return actor;
   }
   private void tutorStatus(String status) {
-    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor,tutorUser,"Tutor",null,null,null,null,null,null,null,status,now,null,0)));
+    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, status, now, null, 0)));
   }
   private TransitionResult<?> create(CurrentUser actor) { return service.request(actor,goal,tutor,List.of("Tue 19:00"),null); }
   private ConnectionRequest pending(UUID sender) {
@@ -87,22 +87,22 @@ class ConnectionRequestRulesTest {
     verifyNoInteractions(events);
   }
   @Test void changedGoalOwnerCannotCreateForDifferentAccount() {
-    when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(new ConnectionGoalDto(goal,student,UUID.randomUUID(),1,4,"EXAM",null,"ACTIVE")));
+    when(profile.findLearningNeed(goal)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal, student, UUID.randomUUID(), 1, 4, "ACTIVE")));
     assertThrows(InvalidOperationException.class,()->create(actor(studentUser,"STUDENT")));verify(rows,never()).save(any());
     verifyNoInteractions(events);
   }
   @Test void inactiveGoalCannotCreate() {
-    when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(new ConnectionGoalDto(goal,student,studentUser,1,4,"EXAM",null,"ARCHIVED")));
+    when(profile.findLearningNeed(goal)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ARCHIVED")));
     assertThrows(InvalidOperationException.class,()->create(actor(studentUser,"STUDENT")));
     verifyNoInteractions(events);
   }
   @Test void expertiseMustMatchCurrentGoal() {
-    when(profile.tutorTeaches(tutor,1,4)).thenReturn(false);assertThrows(InvalidOperationException.class,()->create(actor(studentUser,"STUDENT")));
+    when(profile.findTutorOfferings(tutor)).thenReturn(java.util.List.of());assertThrows(InvalidOperationException.class,()->create(actor(studentUser,"STUDENT")));
     verifyNoInteractions(events);
   }
   @ParameterizedTest @ValueSource(strings={"duplicate","limit","class"}) void conflictsDoNotWriteRequest(String kind) {
-    if(kind.equals("duplicate")) when(rows.existsByStudentIdAndTutorIdAndGoalIdAndStatus(student,tutor,goal,"PENDING")).thenReturn(true);
-    if(kind.equals("class")) when(classes.existsByStudentIdAndTutorIdAndGoalIdAndStatus(student,tutor,goal,"ACTIVE")).thenReturn(true);
+    if(kind.equals("duplicate")) when(rows.existsByStudentIdAndTutorIdAndNeedIdAndStatus(student,tutor,goal,"PENDING")).thenReturn(true);
+    if(kind.equals("class")) when(classes.existsByStudentIdAndTutorIdAndNeedIdAndStatus(student,tutor,goal,"ACTIVE")).thenReturn(true);
     if(kind.equals("limit")) {
       when(rows.countByStudentIdAndStatus(student,"PENDING")).thenReturn(5L);
       when(rows.findByStudentIdAndStatus(student,"PENDING")).thenReturn(Collections.nCopies(5,new ConnectionRequest(student,tutor,goal,studentUser,List.of("Tue 19:00"),null,now)));
@@ -117,7 +117,7 @@ class ConnectionRequestRulesTest {
   }
   @Test void studentCanCancelAnOlderParentRequest() {
     var row=pending(UUID.randomUUID());
-    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor,tutorUser,"Tutor",null,null,null,null,null,null,null,"VERIFIED",now,null,0)));
+    when(profile.findTutorById(tutor)).thenReturn(Optional.of(new TutorSummaryDto(tutor, tutorUser, "Tutor", null, null, null, null, false, null, null, null, null, "VERIFIED", now, null, 0)));
     assertInstanceOf(TransitionResult.Success.class,service.cancelRequest(actor(studentUser,"STUDENT"),id));
     assertEquals("CANCELLED",row.getStatus());
     verify(events).publishEvent(argThat((vn.edufit.connection.api.event.ConnectionRequestChangedEvent e) ->
@@ -141,19 +141,19 @@ class ConnectionRequestRulesTest {
   }
   @Test void changedGoalOwnerCannotBeAccepted() {
     pending(studentUser);
-    when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(new ConnectionGoalDto(goal, UUID.randomUUID(), studentUser, 1, 4, "EXAM", null, "ACTIVE")));
+    when(profile.findLearningNeed(goal)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal, UUID.randomUUID(), studentUser, 1, 4, "ACTIVE")));
     assertThrows(InvalidOperationException.class, () -> service.respondRequest(actor(tutorUser, "TUTOR"), id, true, null));
     verify(classes, never()).save(any());
   }
   @Test void inactiveGoalCannotBeAccepted() {
     pending(studentUser);
-    when(profile.findGoalForConnection(goal)).thenReturn(Optional.of(new ConnectionGoalDto(goal, student, studentUser, 1, 4, "EXAM", null, "ARCHIVED")));
+    when(profile.findLearningNeed(goal)).thenReturn(Optional.of(ConnectionTestFixtures.need(goal, student, studentUser, 1, 4, "ARCHIVED")));
     assertThrows(InvalidOperationException.class, () -> service.respondRequest(actor(tutorUser, "TUTOR"), id, true, null));
     verify(classes, never()).save(any());
   }
   @Test void mismatchedExpertiseCannotBeAccepted() {
     pending(studentUser);
-    when(profile.tutorTeaches(tutor, 1, 4)).thenReturn(false);
+    when(profile.findTutorOfferings(tutor)).thenReturn(java.util.List.of());
     assertThrows(InvalidOperationException.class, () -> service.respondRequest(actor(tutorUser, "TUTOR"), id, true, null));
     verify(classes, never()).save(any());
   }
@@ -197,7 +197,7 @@ class ConnectionRequestRulesTest {
         && "PENDING".equals(e.oldStatus()) && "ACCEPTED".equals(e.newStatus()) && classId.equals(e.classId())));
     verify(events).publishEvent(argThat((Object obj) -> obj instanceof vn.edufit.connection.api.event.TutoringClassCreatedEvent e
         && e.aggregateId().equals(classId) && e.actorUserId().equals(tutorUser) && e.studentId().equals(student)
-        && "ACTIVE".equals(e.newStatus()) && id.equals(e.requestId()) && tutor.equals(e.tutorId()) && goal.equals(e.goalId())));
+        && "ACTIVE".equals(e.newStatus()) && id.equals(e.requestId()) && tutor.equals(e.tutorId()) && goal.equals(e.needId())));
     verifyNoInteractions(sink);
   }
 
@@ -209,7 +209,7 @@ class ConnectionRequestRulesTest {
         List.of("TUESDAY 18:30-19:30"), null, now);
     org.springframework.test.util.ReflectionTestUtils.setField(activeReq, "id", activeReqId);
 
-    var activeClass = new TutoringClass(activeReq, now);
+    var activeClass = new TutoringClass(activeReq, 200000L, now);
     when(classes.findByTutorIdAndStatus(tutor, "ACTIVE")).thenReturn(List.of(activeClass));
     when(rows.findAllById(List.of(activeReqId))).thenReturn(List.of(activeReq));
 
@@ -243,7 +243,7 @@ class ConnectionRequestRulesTest {
         List.of("Tue 19:00"), null, now);
     org.springframework.test.util.ReflectionTestUtils.setField(activeReq, "id", activeReqId);
 
-    var activeClass = new TutoringClass(activeReq, now);
+    var activeClass = new TutoringClass(activeReq, 200000L, now);
     when(classes.findByTutorIdAndStatus(tutor, "ACTIVE")).thenReturn(List.of(activeClass));
     when(rows.findAllById(List.of(activeReqId))).thenReturn(List.of(activeReq));
 
@@ -258,14 +258,15 @@ class ConnectionRequestRulesTest {
     UUID goal2 = UUID.randomUUID();
 
     // 1. Student already has ACTIVE class for goal 1 with tutor
-    when(classes.existsByStudentIdAndTutorIdAndGoalIdAndStatus(student, tutor, goal1, "ACTIVE")).thenReturn(true);
+    when(classes.existsByStudentIdAndTutorIdAndNeedIdAndStatus(student, tutor, goal1, "ACTIVE")).thenReturn(true);
     // But does NOT have active class or pending request for goal 2 with tutor
-    when(classes.existsByStudentIdAndTutorIdAndGoalIdAndStatus(student, tutor, goal2, "ACTIVE")).thenReturn(false);
-    when(rows.existsByStudentIdAndTutorIdAndGoalIdAndStatus(student, tutor, goal2, "PENDING")).thenReturn(false);
+    when(classes.existsByStudentIdAndTutorIdAndNeedIdAndStatus(student, tutor, goal2, "ACTIVE")).thenReturn(false);
+    when(rows.existsByStudentIdAndTutorIdAndNeedIdAndStatus(student, tutor, goal2, "PENDING")).thenReturn(false);
 
-    when(profile.findGoalForConnection(goal2))
-        .thenReturn(Optional.of(new ConnectionGoalDto(goal2, student, studentUser, 2, 4, "IMPROVE_GRADES", null, "ACTIVE")));
-    when(profile.tutorTeaches(tutor, 2, 4)).thenReturn(true);
+    when(profile.findLearningNeed(goal2))
+        .thenReturn(Optional.of(ConnectionTestFixtures.need(goal2, student, studentUser, 2, 4, "ACTIVE")));
+    when(profile.findTutorOfferings(tutor)).thenReturn(List.of(
+        ConnectionTestFixtures.offerings(1, 4).getFirst(), ConnectionTestFixtures.offerings(2, 4).getFirst()));
 
     // Act: Student sends request for goal 2
     var result = service.request(actor(studentUser, "STUDENT"), goal2, tutor, List.of("Thu 19:00"), "Muốn học thêm môn Lý");

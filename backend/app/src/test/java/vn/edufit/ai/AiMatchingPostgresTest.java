@@ -74,7 +74,7 @@ class AiMatchingPostgresTest {
   @BeforeEach
   void setup() throws Exception {
     jdbc = new JdbcTemplate(source);
-    jdbc.execute("truncate account,subject,education_level cascade");
+    jdbc.execute("truncate account cascade");
     actor = UUID.randomUUID();
     student = UUID.randomUUID();
     goal = UUID.randomUUID();
@@ -83,26 +83,21 @@ class AiMatchingPostgresTest {
             + " values(?,?,'test','Student','STUDENT')",
         actor,
         actor + "@example.test");
-    jdbc.update("insert into subject(subject_id,name) values(1,'Math')");
-    jdbc.update("insert into education_level(level_id,name,sort_order) values(2,'Middle',1)");
     jdbc.update(
         "insert into student_profile(student_id,user_id,education_level_id) values(?,?,2)",
         student,
         actor);
     jdbc.update(
-        "insert into"
-            + " learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max)"
-            + " values(?,?,1,1,2,'OTHER','2027-01-01','ONLINE',300000)",
+        "insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status)"
+            + " values(?,?,?,1,'ONLINE',300000,'ACTIVE')",
         goal,
-        student);
+        student,
+        actor);
     profile = mock(ProfileFacade.class);
     var slots =
         List.of(new WeeklyAvailabilityDto((short) 1, LocalTime.of(18, 0), LocalTime.of(20, 0)));
-    when(profile.findLearningGoalForDiscovery(goal))
-        .thenReturn(
-            Optional.of(
-                new LearningGoalDiscoveryDto(
-                    goal, student, actor, 1, 2, "ONLINE", "Hanoi", 0L, 300000L, "ACTIVE", slots)));
+    when(profile.findLearningNeed(goal))
+        .thenReturn(Optional.of(vn.edufit.connection.ConnectionTestFixtures.need(goal, student, actor, 1, 4, "ACTIVE")));
     when(profile.findEducationLevelsForMatching())
         .thenReturn(List.of(new EducationLevelOrderDto(2, 1)));
     when(profile.findVerifiedCandidatesBySubject(any()))
@@ -300,30 +295,18 @@ class AiMatchingPostgresTest {
             profile,
             matchingLogs,
             explanations,
-            new DiscoveryQueryService(profile),
-            mock(ConnectionFacade.class),
-            event -> {}, manager);
+            new vn.edufit.discovery.application.service.NeedAccessService(profile, mock(ConnectionFacade.class)),
+            event -> {},
+            vn.edufit.discovery.application.matching.MatchWeights.standard(),
+            manager);
   }
 
   TutorDiscoveryProfileDto tutor(String rating, List<WeeklyAvailabilityDto> slots) {
     Instant registered = Instant.parse("2026-01-01T00:00:00Z");
     return new TutorDiscoveryProfileDto(
-        new TutorSummaryDto(
-            UUID.randomUUID(),
-            UUID.randomUUID(),
-            "Tutor",
-            "Math",
-            "",
-            "ONLINE",
-            "Hanoi",
-            200000L,
-            (short) 5,
-            "",
-            "VERIFIED",
-            registered,
-            new BigDecimal(rating),
-            8),
-        List.of(new TutorSubjectDto(1, "Math", 2, "Middle")),
+        new TutorSummaryDto(UUID.randomUUID(), UUID.randomUUID(), "Tutor", "Math", "", "ONLINE", null, false, null, "Hanoi", (short) 5, "", "VERIFIED", registered, new BigDecimal(rating), 8),
+        vn.edufit.connection.ConnectionTestFixtures.offerings(1, 4),
+        List.of(),
         slots,
         registered);
   }

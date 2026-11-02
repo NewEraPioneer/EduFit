@@ -12,10 +12,8 @@ import {
   useTutorDetail,
   useTutorMatching,
 } from "@/features/discovery";
-import type { TutorDiscoveryCard, TutorDetail } from "@/features/discovery/types";
 import { useToast } from "@/shared/ui/Toast";
-import { GoalSelector } from "@/features/discovery/components/GoalSelector";
-import { ConnectionRequestDialog, SentRequests } from "@/features/connection";
+import { ConnectionRequestDialog, SentRequests, type ConnectionTutorInfo } from "@/features/connection";
 
 export function StudentDiscoveryView() {
   const searchParams = useSearchParams();
@@ -64,28 +62,17 @@ export function StudentDiscoveryView() {
 
   // 3. AI Matching Hook (Tab 2: Gợi ý thông minh)
   const matching = useTutorMatching({ enabled: activeTab === "matches" });
-  const {
-    matches,
-    isMatching,
-    error: matchError,
-    need,
-    updateNeed,
-  } = matching;
+  const { matches } = matching;
 
   // 4. Request connection state
-  const [connectTutor, setConnectTutor] = useState<TutorDiscoveryCard | TutorDetail | { tutorId: string; displayName: string; subjects: any[] } | null>(null);
-  const activeGoal = matching.goal || matching.goals[0];
+  const [connectTutor, setConnectTutor] = useState<ConnectionTutorInfo | null>(null);
 
   const handleRequestConnect = (tutorId: string) => {
     const match = matching.matches.find((m) => m.tutorId === tutorId);
     const found =
       tutors.find((t) => t.tutorId === tutorId) ||
       (selectedTutor?.tutorId === tutorId ? selectedTutor : null) ||
-      match?.tutorInfo || {
-        tutorId,
-        displayName: "Gia sư",
-        subjects: [],
-      };
+      match?.tutorInfo || { tutorId, displayName: "Gia sư" };
     setConnectTutor(found);
   };
 
@@ -260,13 +247,8 @@ export function StudentDiscoveryView() {
       {/* 4. TAB 2: GỢI Ý PHÙ HỢP (AI MATCH VIEW) */}
       {activeTab === "matches" && (
         <div className="space-y-4">
-          <GoalSelector matching={matching} />
           <AiMatchView
-            matches={matches}
-            isMatching={isMatching}
-            error={matchError}
-            need={need}
-            onUpdateNeed={updateNeed}
+            matching={matching}
             onViewDetail={openTutor}
             onRequestConnect={handleRequestConnect}
           />
@@ -281,14 +263,8 @@ export function StudentDiscoveryView() {
         <ConnectionRequestDialog
           tutorId={connectTutor.tutorId}
           tutor={connectTutor}
-          goal={activeGoal}
-          goals={matching.goals}
-          userRole="STUDENT"
-          onSelectGoal={(selected) => matching.setGoalId(selected.goalId)}
-          onGoalCreated={async (newGoal) => {
-            await matching.refreshGoals?.();
-            matching.setGoalId(newGoal.goalId);
-          }}
+          initialNeedId={matching.needId || undefined}
+          onNeedSaved={(saved) => matching.refreshNeeds(saved.needId)}
           onClose={() => setConnectTutor(null)}
           onSent={() => {
             setConnectTutor(null);

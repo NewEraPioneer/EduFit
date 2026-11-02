@@ -94,7 +94,7 @@ class FlywayMigrationIT {
             .validateOnMigrate(true)
             .baselineOnMigrate(false)
             .load();
-    assertEquals(14, upgraded.migrate().migrationsExecuted);
+    assertEquals(18, upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted, "Rerun không thực thi lại migration");
     try (Connection connection =
@@ -146,7 +146,7 @@ class FlywayMigrationIT {
             .validateOnMigrate(true)
             .load();
 
-    assertEquals(20, flyway.migrate().migrationsExecuted, "22 migration cũ - 3 seed demo + V1.23 danh mục");
+    assertEquals(23, flyway.migrate().migrationsExecuted, "22 migration cũ - 3 seed demo + V1.23 danh mục + V1.24–V1.26 nhu cầu học");
 
     try (Connection connection =
             DriverManager.getConnection(
@@ -165,13 +165,13 @@ class FlywayMigrationIT {
           "SELECT (SELECT COUNT(*) FROM education_level), (SELECT COUNT(*) FROM subject)")) {
         assertTrue(rs.next());
         assertEquals(4, rs.getInt(1));
-        assertEquals(6, rs.getInt(2));
+        assertEquals(7, rs.getInt(2), "6 môn cũ + KHTN (V1.24); Lý/Hóa/Sinh giữ lại ở trạng thái ngừng dùng");
       }
       // Identity sequence phải vượt các ID chèn tường minh để Admin thêm danh mục mới không trùng khóa
       statement.executeUpdate("INSERT INTO subject (name) VALUES ('Lịch Sử')");
       try (ResultSet rs = statement.executeQuery("SELECT subject_id FROM subject WHERE name = 'Lịch Sử'")) {
         assertTrue(rs.next());
-        assertEquals(7, rs.getInt(1));
+        assertEquals(8, rs.getInt(1), "KHTN (V1.24) đã nhận id 7 từ sequence");
       }
     }
   }
@@ -199,7 +199,7 @@ class FlywayMigrationIT {
     // 3. Kiểm chứng kết quả thực thi của Flyway
     assertTrue(result.success, "Quá trình migrate của Flyway phải thành công 100%");
     assertEquals(
-        23, result.migrationsExecuted, "Phải thực thi đúng 23 file migration V1.01 -> V1.23 (kể cả seed dev)");
+        27, result.migrationsExecuted, "Phải thực thi đúng 27 file migration V1.01 -> V1.27 (kể cả seed dev)");
 
     // 4. Kiểm tra trực tiếp các bảng và ràng buộc đã được tạo trong PostgreSQL
     try (Connection connection =
@@ -235,7 +235,7 @@ class FlywayMigrationIT {
               "SELECT COUNT(*) FROM flyway_schema_history WHERE success = true")) {
         assertTrue(rs.next());
         assertEquals(
-            23, rs.getInt(1), "Lịch sử migration phải ghi nhận đúng 23 bản ghi thành công");
+            27, rs.getInt(1), "Lịch sử migration phải ghi nhận đúng 27 bản ghi thành công");
       }
     }
   }
@@ -270,7 +270,7 @@ class FlywayMigrationIT {
             .outOfOrder(false)
             .validateOnMigrate(true)
             .load();
-    assertEquals(2, upgraded.migrate().migrationsExecuted);
+    assertEquals(6, upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
 
@@ -302,9 +302,9 @@ class FlywayMigrationIT {
                   + " AND indexname IN ('uq_connection_request_pending',"
                   + " 'uq_class_student_tutor_active')")) {
         assertTrue(rows.next());
-        assertTrue(rows.getString(1).contains("goal_id"));
+        assertTrue(rows.getString(1).contains("need_id"), "V1.25 đổi goal_id -> need_id, index giữ nguyên");
         assertTrue(rows.next());
-        assertTrue(rows.getString(1).contains("goal_id"));
+        assertTrue(rows.getString(1).contains("need_id"), "V1.25 đổi goal_id -> need_id, index giữ nguyên");
       }
     }
   }
@@ -322,7 +322,7 @@ class FlywayMigrationIT {
     }
     var upgraded = Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
         .locations(DEV_LOCATIONS).schemas(schema).load();
-    assertEquals(10, upgraded.migrate().migrationsExecuted);
+    assertEquals(14, upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
     try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -367,7 +367,7 @@ class FlywayMigrationIT {
             .locations(DEV_LOCATIONS)
             .schemas(schema)
             .load();
-    assertEquals(12, upgraded.migrate().migrationsExecuted);
+    assertEquals(16, upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
     try (var connection =
@@ -477,7 +477,7 @@ class FlywayMigrationIT {
             .validateOnMigrate(true)
             .baselineOnMigrate(false)
             .load();
-    assertEquals(13, upgraded.migrate().migrationsExecuted, "Phải thực thi đúng 13 migrations: V1.11 -> V1.23");
+    assertEquals(17, upgraded.migrate().migrationsExecuted, "Phải thực thi đúng 17 migrations: V1.11 -> V1.27");
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted, "Rerun phải là no-op");
 
@@ -514,14 +514,20 @@ class FlywayMigrationIT {
         assertEquals("Học sinh chủ động hủy liên kết", rs.getString(3));
       }
 
-      // 4.3. Lịch sử connection_request bảo tồn version = 0 và JSONB desired_slots
+      // 4.3. Lịch sử connection_request bảo tồn version = 0, JSONB desired_slots và trỏ tới nhu cầu cùng ID mục tiêu cũ
       try (ResultSet rs =
           statement.executeQuery(
-              "SELECT status, version, desired_slots::text FROM connection_request WHERE request_id = '" + req1Id + "'")) {
+              "SELECT status, version, desired_slots::text, need_id FROM connection_request WHERE request_id = '" + req1Id + "'")) {
         assertTrue(rs.next());
         assertEquals("PENDING", rs.getString(1));
         assertEquals(0L, rs.getLong(2));
         assertTrue(rs.getString(3).contains("18:00"), "JSONB desired_slots phải được bảo toàn nguyên vẹn");
+        assertEquals(goalId.toString(), rs.getString(4), "V1.25 giữ nguyên ID khi đổi mục tiêu thành nhu cầu học");
+      }
+      try (ResultSet rs = statement.executeQuery(
+          "SELECT COUNT(*) FROM learning_need WHERE need_id = '" + goalId + "'")) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1), "Mục tiêu cũ phải được chuyển thành nhu cầu học");
       }
 
       // 4.4. Relink sau khi revoke: Bây giờ được phép INSERT CONFIRMED mới cho cùng cặp
@@ -553,7 +559,7 @@ class FlywayMigrationIT {
           () -> {
             try (Statement s = connection.createStatement()) {
               s.executeUpdate(
-                  "INSERT INTO connection_request(request_id, student_id, tutor_id, goal_id, sent_by_user_id, status, expires_at) "
+                  "INSERT INTO connection_request(request_id, student_id, tutor_id, need_id, sent_by_user_id, status, expires_at) "
                       + "VALUES (gen_random_uuid(), '" + studentProfileId + "', '" + tutorProfileId + "', '" + goalId + "', '" + studentUserId + "', 'PENDING', now() + interval '7 days')");
             }
           },
@@ -574,15 +580,15 @@ class FlywayMigrationIT {
       // 4.7. Partial unique index uq_class_student_tutor_active: Cấm 2 class ACTIVE đồng thời
       UUID class1Id = UUID.randomUUID();
       statement.executeUpdate(
-          "INSERT INTO class(class_id, connection_request_id, student_id, tutor_id, goal_id, status) "
-              + "VALUES ('" + class1Id + "', '" + req1Id + "', '" + studentProfileId + "', '" + tutorProfileId + "', '" + goalId + "', 'ACTIVE')");
+          "INSERT INTO class(class_id, connection_request_id, student_id, tutor_id, need_id, price_per_session, status) "
+              + "VALUES ('" + class1Id + "', '" + req1Id + "', '" + studentProfileId + "', '" + tutorProfileId + "', '" + goalId + "', 200000, 'ACTIVE')");
       assertThrows(
           SQLException.class,
           () -> {
             try (Statement s = connection.createStatement()) {
               s.executeUpdate(
-                  "INSERT INTO class(class_id, connection_request_id, student_id, tutor_id, goal_id, status) "
-                      + "VALUES (gen_random_uuid(), '" + req2Id + "', '" + studentProfileId + "', '" + tutorProfileId + "', '" + goalId + "', 'ACTIVE')");
+                  "INSERT INTO class(class_id, connection_request_id, student_id, tutor_id, need_id, price_per_session, status) "
+                      + "VALUES (gen_random_uuid(), '" + req2Id + "', '" + studentProfileId + "', '" + tutorProfileId + "', '" + goalId + "', 200000, 'ACTIVE')");
             }
           },
           "Partial index uq_class_student_tutor_active cấm 2 class ACTIVE đồng thời cho cùng cặp");
