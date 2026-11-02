@@ -51,6 +51,7 @@ describe('Luồng 02 — KYC gia sư và duyệt hồ sơ Admin', () => {
   let driver: WebDriver;
   let kycPage: KycPage;
   const tutor = testData.validAccounts.find((account) => account.role === 'tutor');
+  const admin = testData.validAccounts.find((account) => account.role === 'admin');
   const runId = randomUUID().slice(0, 8);
   const tutorEmail = `e2e-kyc-${runId}@example.test`;
   const tutorName = `Gia sư KYC ${runId}`;
@@ -105,5 +106,49 @@ describe('Luồng 02 — KYC gia sư và duyệt hồ sơ Admin', () => {
     await kycPage.waitForPendingStatus();
     await kycPage.waitForCredential(institution);
     expect(await kycPage.takeScreenshot('TC_UI_16_submit_certificate')).not.toBe('');
+  });
+
+  it('TC_UI_17: Admin thấy đúng hồ sơ gia sư vừa nộp', async () => {
+    if (!admin) throw new Error('Thiếu tài khoản admin trong login-data.json');
+    await kycPage.clearSession();
+    await driver.get(seleniumConfig.baseUrl);
+    await requestFromBrowser(driver, 'POST', '/api/v1/auth/login', {
+      email: admin.email,
+      password: admin.password,
+    });
+    await kycPage.navigateAdminQueue();
+    await kycPage.showPendingRequests();
+    expect(await kycPage.getRequestRowText(institution)).toContain(tutorName);
+    expect(await kycPage.takeScreenshot('TC_UI_17_queue_has_request')).not.toBe('');
+  });
+
+  it('TC_UI_19: không thể từ chối hồ sơ nếu thiếu lý do', async () => {
+    await kycPage.openReview(institution);
+    await kycPage.selectReject();
+    await kycPage.submitReview();
+    expect(await kycPage.isRejectionReasonMissing()).toBe(true);
+    expect(await kycPage.isReviewOpen()).toBe(true);
+    expect(await kycPage.getRequestRowText(institution)).toContain(tutorName);
+    expect(await kycPage.takeScreenshot('TC_UI_19_reject_requires_reason')).not.toBe('');
+  });
+
+  it('TC_UI_18: Admin duyệt hồ sơ và gia sư thấy đã xác minh', async () => {
+    if (!tutor) throw new Error('Thiếu tài khoản tutor trong login-data.json');
+    if (!(await kycPage.isReviewOpen())) await kycPage.openReview(institution);
+    await kycPage.selectApprove();
+    await kycPage.submitReview();
+    await kycPage.waitForRequestToLeaveQueue(institution);
+    await kycPage.showApprovedRequests();
+    expect(await kycPage.getRequestRowText(institution)).toContain(tutorName);
+    expect(await kycPage.takeScreenshot('TC_UI_18_admin_approve')).not.toBe('');
+
+    await kycPage.clearSession();
+    await driver.get(seleniumConfig.baseUrl);
+    await requestFromBrowser(driver, 'POST', '/api/v1/auth/login', {
+      email: tutorEmail,
+      password: tutor.password,
+    });
+    await kycPage.navigateTutorKyc();
+    await kycPage.waitForVerifiedStatus();
   });
 });
