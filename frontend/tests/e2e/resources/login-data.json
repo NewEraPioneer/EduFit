@@ -1,0 +1,50 @@
+{
+  "validAccounts": [
+    {
+      "role": "admin",
+      "email": "admin.demo@edufit.vn",
+      "password": "Password123@",
+      "description": "Quản trị viên hệ thống"
+    },
+    {
+      "role": "tutor",
+      "email": "tutor.demo@edufit.vn",
+      "password": "Password123@",
+      "description": "Gia sư đã xác minh"
+    },
+    {
+      "role": "student",
+      "email": "student.demo@edufit.vn",
+      "password": "Password123@",
+      "description": "Học sinh thành viên"
+    },
+    {
+      "role": "parent",
+      "email": "parent.demo@edufit.vn",
+      "password": "Password123@",
+      "description": "Phụ huynh thành viên"
+    }
+  ],
+  "invalidCredentials": [
+    {
+      "testCase": "TC_AUTH_INV_01",
+      "email": "wronguser@edufit.vn",
+      "password": "WrongPassword@123",
+      "expectedError": "Thông tin đăng nhập không chính xác"
+    },
+    {
+      "testCase": "TC_AUTH_INV_02",
+      "email": "admin.demo@edufit.vn",
+      "password": "IncorrectPassword999",
+      "expectedError": "Thông tin đăng nhập không chính xác"
+    }
+  ],
+  "validationCases": [
+    {
+      "testCase": "TC_AUTH_VAL_01",
+      "email": "invalid-email-format",
+      "password": "Password123@",
+      "expected": "Email không hợp lệ"
+    }
+  ]
+}
