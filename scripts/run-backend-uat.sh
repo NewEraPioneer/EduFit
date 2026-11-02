@@ -63,5 +63,5 @@ echo "  Flyway:      chỉ chạy db/migration (KHÔNG nạp seed demo)"
 echo "-------------------------------------------------"
 
 # 5. Khởi chạy Backend qua Maven Wrapper
-cd "${REPO_ROOT}/backend"
-exec ./mvnw spring-boot:run -Dspring-boot.run.profiles=uat
+cd "${REPO_ROOT}/backend/app"
+exec ../mvnw spring-boot:run -Dspring-boot.run.profiles=uat

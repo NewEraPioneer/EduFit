@@ -122,7 +122,7 @@ if ($CheckOnly) {
 }
 
 # 5. Khoi chay Backend voi profile uat
-Set-Location "$RepoRoot\backend"
+Set-Location "$RepoRoot\backend\app"
 Write-Host "Dang khoi dong backend Spring Boot qua Maven Wrapper..." -ForegroundColor Cyan
 
-& ".\mvnw.cmd" spring-boot:run -Dspring-boot.run.profiles=uat
+& "..\mvnw.cmd" spring-boot:run '-Dspring-boot.run.profiles=uat'
