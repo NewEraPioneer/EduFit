@@ -17,11 +17,13 @@ export const RatingSummaryCard: React.FC<RatingSummaryCardProps> = ({
 
   return (
     <div
+      role="region"
+      aria-label="Tóm tắt đánh giá"
       className={`p-6 rounded-2xl bg-white border border-stone-200 shadow-sm flex flex-col sm:flex-row gap-6 items-center ${className}`}
     >
       {/* Cột trái: Điểm tổng quan */}
       <div className="flex flex-col items-center justify-center text-center sm:border-r sm:border-stone-100 sm:pr-8 min-w-[140px]">
-        <span className="text-4xl font-extrabold text-neutral-900 tracking-tight">
+        <span data-testid="rating-average" className="text-4xl font-extrabold text-neutral-900 tracking-tight">
           {averageRating > 0 ? averageRating.toFixed(1) : "0.0"}
         </span>
         <div className="flex items-center gap-1 mt-2 text-amber-500">
@@ -36,7 +38,7 @@ export const RatingSummaryCard: React.FC<RatingSummaryCardProps> = ({
             />
           ))}
         </div>
-        <span className="text-xs text-neutral-500 font-medium mt-1">
+        <span data-testid="rating-total" className="text-xs text-neutral-500 font-medium mt-1">
           {totalReviews} đánh giá
         </span>
       </div>
@@ -49,7 +51,7 @@ export const RatingSummaryCard: React.FC<RatingSummaryCardProps> = ({
             totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
 
           return (
-            <div key={star} className="flex items-center gap-3 text-xs">
+            <div key={star} data-testid="rating-distribution-row" data-rating={star} className="flex items-center gap-3 text-xs">
               <span className="w-8 font-medium text-neutral-700 flex items-center gap-0.5 justify-end">
                 {star}
                 <Star className="size-3 fill-amber-400 text-amber-400 inline" />
@@ -60,7 +62,7 @@ export const RatingSummaryCard: React.FC<RatingSummaryCardProps> = ({
                   style={{ width: `${percentage}%` }}
                 />
               </div>
-              <span className="w-10 text-neutral-400 text-right">{count}</span>
+              <span data-testid="rating-distribution-count" className="w-10 text-neutral-400 text-right">{count}</span>
             </div>
           );
         })}
