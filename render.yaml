@@ -14,7 +14,7 @@ services:
     dockerContext: .
     region: singapore
     plan: free
-    branch: develop
+    branch: deploy/deploy-render-supabase
     healthCheckPath: /actuator/health
     autoDeployTrigger: off # Deploy có kiểm soát sau khi nghiệm thu CI / QA
     envVars:
