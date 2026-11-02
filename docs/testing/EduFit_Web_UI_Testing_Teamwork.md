@@ -175,18 +175,18 @@ Sprint 0 (Leader A): Hoàn thiện Foundation (BasePage, DriverFactory, vitest c
 
 | Thành viên | Thứ tự | Tên nhánh cần tạo & push | Tệp POM cần viết | Tệp Test Spec & TCs | Trạng thái phụ thuộc |
 |:---:|:---:|---|---|---|---|
-| **A (Leader)** | **Đợt 1** | `chore/1-e2e-framework-setup` | `BasePage.ts`<br>`driver-factory.ts` | Cấu hình runner, login data | **Làm đầu tiên & Push trước** để nhóm có framework |
-| | **Đợt 2** | `test/2-auth-flow-specs` | `AuthPage.ts` | `01-auth-flow.e2e.test.ts`<br>(TC_UI_01 → 11) | Kéo `develop` về, làm và push đợt 2 |
-| | **Đợt 3** | `docs/12-testing-final-report` | — | Tổng hợp báo cáo nghiệm thu | Làm cuối cùng sau khi cả 4 bạn đã merge |
-| **B** | **Đợt 1** | `test/3-kyc-verification-flow` | `KycPage.ts` | `02-kyc-flow.e2e.test.ts`<br>(TC_UI_15 → 19) | **Làm trước, kiểm chứng máy & PUSH TRƯỚC** |
-| | **Đợt 2** | `test/4-catalog-profile-flow` | `CatalogPage.ts`<br>`ProfilePage.ts` | `03-catalog-profile-flow.e2e.test.ts`<br>(TC_UI_21, 22, 24) | Nhánh 3 merge xong -> Pull develop -> Làm nhánh 4 |
-| **C** | **Đợt 1** | `test/5-tutors-discovery-flow` | `TutorsPage.ts` | `04-tutors-discovery-flow.e2e.test.ts`<br>(TC_UI_26, 28) | **Làm trước, kiểm chứng máy & PUSH TRƯỚC** |
-| | **Đợt 2** | `test/6-family-link-flow` | `FamilyPage.ts` | `05-family-link-flow.e2e.test.ts`<br>(TC_UI_30, 31) | Nhánh 5 merge xong -> Pull develop -> Làm nhánh 6 |
-| **D** | **Đợt 1** | `test/7-connection-classes-flow` | `ClassConnectionPage.ts` | `06-connection-classes-flow.e2e.test.ts`<br>(TC_UI_34, 35) | **Làm trước, kiểm chứng máy & PUSH TRƯỚC** |
-| | **Đợt 2** | `test/8-schedule-attendance-flow` | `SchedulePage.ts` | `07-schedule-attendance-flow.e2e.test.ts`<br>(TC_UI_36, 37) | Nhánh 7 merge xong -> Pull develop -> Làm nhánh 8 |
-| **E** | **Đợt 1** | `test/9-billing-payout-flow` | `PaymentPage.ts` | `08-billing-payout-flow.e2e.test.ts`<br>(TC_UI_43, 45) | **Làm trước, kiểm chứng máy & PUSH TRƯỚC** |
-| | **Đợt 2** | `test/10-review-flow` | POM tương ứng | `09-review-flow.e2e.test.ts`<br>(TC_UI_50) | Nhánh 9 merge xong -> Pull develop -> Làm nhánh 10 |
-| | **Đợt 3** | `test/11-admin-management-flow` | `AdminManagementPage.ts` | `10-admin-management-flow.e2e.test.ts`<br>(TC_UI_51, 52, 54) | Nhánh 10 merge xong -> Pull develop -> Làm nhánh 11 |
+| **A (Leader)** | **Đợt 1** | `chore/38-e2e-framework-setup` | `BasePage.ts`<br>`driver-factory.ts` | Cấu hình runner, login data | **Làm đầu tiên & Push trước** để nhóm có framework |
+| | **Đợt 2** | `test/39-auth-flow-specs` | `AuthPage.ts` | `01-auth-flow.e2e.test.ts`<br>(TC_UI_01 → 11) | Kéo `develop` về, làm và push đợt 2 |
+| | **Đợt 3** | `docs/49-testing-final-report` | — | Tổng hợp báo cáo nghiệm thu | Làm cuối cùng sau khi cả 4 bạn đã merge |
+| **B** | **Đợt 1** | `test/40-kyc-verification-flow` | `KycPage.ts` | `02-kyc-flow.e2e.test.ts`<br>(TC_UI_15 → 19) | **Làm trước, kiểm chứng máy & PUSH TRƯỚC** |
+| | **Đợt 2** | `test/41-catalog-profile-flow` | `CatalogPage.ts`<br>`ProfilePage.ts` | `03-catalog-profile-flow.e2e.test.ts`<br>(TC_UI_21, 22, 24) | Nhánh 40 merge xong -> Pull develop -> Làm nhánh 41 |
+| **C** | **Đợt 1** | `test/42-tutors-discovery-flow` | `TutorsPage.ts` | `04-tutors-discovery-flow.e2e.test.ts`<br>(TC_UI_26, 28) | **Làm trước, kiểm chứng máy & PUSH TRƯỚC** |
+| | **Đợt 2** | `test/43-family-link-flow` | `FamilyPage.ts` | `05-family-link-flow.e2e.test.ts`<br>(TC_UI_30, 31) | Nhánh 42 merge xong -> Pull develop -> Làm nhánh 43 |
+| **D** | **Đợt 1** | `test/44-connection-classes-flow` | `ClassConnectionPage.ts` | `06-connection-classes-flow.e2e.test.ts`<br>(TC_UI_34, 35) | **Làm trước, kiểm chứng máy & PUSH TRƯỚC** |
+| | **Đợt 2** | `test/45-schedule-attendance-flow` | `SchedulePage.ts` | `07-schedule-attendance-flow.e2e.test.ts`<br>(TC_UI_36, 37) | Nhánh 44 merge xong -> Pull develop -> Làm nhánh 45 |
+| **E** | **Đợt 1** | `test/46-billing-payout-flow` | `PaymentPage.ts` | `08-billing-payout-flow.e2e.test.ts`<br>(TC_UI_43, 45) | **Làm trước, kiểm chứng máy & PUSH TRƯỚC** |
+| | **Đợt 2** | `test/47-review-flow` | POM tương ứng | `09-review-flow.e2e.test.ts`<br>(TC_UI_50) | Nhánh 46 merge xong -> Pull develop -> Làm nhánh 47 |
+| | **Đợt 3** | `test/48-admin-management-flow` | `AdminManagementPage.ts` | `10-admin-management-flow.e2e.test.ts`<br>(TC_UI_51, 52, 54) | Nhánh 47 merge xong -> Pull develop -> Làm nhánh 48 |
 
 ---
 
@@ -358,143 +358,143 @@ Sau khi được Reviewer approve, thực hiện **Squash and Merge** trên GitH
 Mỗi thành viên làm theo đúng trình tự từng đợt: **tạo nhánh cá nhân từ `develop` -> viết mã -> chạy máy đạt Exit Code 0 -> push nhánh lên `origin` -> mở PR -> sau khi merge mới pull `develop` về làm nhánh tiếp theo**.
 
 ### 7.1 Thành viên A (Team Leader)
-- **Đợt 1 (Sprint 0 - Làm trước & Push trước):** Nhánh `chore/1-e2e-framework-setup`
+- **Đợt 1 (Sprint 0 - Làm trước & Push trước):** Nhánh `chore/38-e2e-framework-setup`
   ```powershell
   git switch develop && git pull origin develop
-  git switch -c chore/1-e2e-framework-setup
+  git switch -c chore/38-e2e-framework-setup
   # Cài đặt dependency, BasePage.ts, driver-factory.ts, vitest config, login-data.json
   npm run test:e2e
-  git commit -m "chore(framework): setup selenium webdriver e2e foundation"
-  git push -u origin chore/1-e2e-framework-setup
+  git commit -m "chore(framework): setup selenium webdriver e2e foundation (Refs #38)"
+  git push -u origin chore/38-e2e-framework-setup
   # Mở PR vào develop và merge
   ```
-- **Đợt 2 (Sprint 1 - Làm tiếp & Push tiếp):** Nhánh `test/2-auth-flow-specs`
+- **Đợt 2 (Sprint 1 - Làm tiếp & Push tiếp):** Nhánh `test/39-auth-flow-specs`
   ```powershell
   git switch develop && git pull origin develop
-  git switch -c test/2-auth-flow-specs
+  git switch -c test/39-auth-flow-specs
   # Viết AuthPage.ts và specs/01-auth-flow.e2e.test.ts (TC_UI_01 -> TC_UI_11)
   npx vitest run tests/e2e/specs/01-auth-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(auth): add automated specs for login and rbac guards"
-  git push -u origin test/2-auth-flow-specs
+  git commit -m "test(auth): add automated specs for login and rbac guards (Refs #39)"
+  git push -u origin test/39-auth-flow-specs
   # Mở PR vào develop và merge
   ```
-- **Đợt 3 (Sprint 3 - Tổng hợp cuối cùng):** Nhánh `docs/12-testing-final-report`
+- **Đợt 3 (Sprint 3 - Tổng hợp cuối cùng):** Nhánh `docs/49-testing-final-report`
   ```powershell
   git switch develop && git pull origin develop
-  git switch -c docs/12-testing-final-report
+  git switch -c docs/49-testing-final-report
   # Tổng hợp số liệu, ảnh chụp màn hình, báo cáo nghiệm thu học phần
-  git commit -m "docs(report): finalize e2e testing report and screenshots"
-  git push -u origin docs/12-testing-final-report
+  git commit -m "docs(report): finalize e2e testing report and screenshots (Refs #49)"
+  git push -u origin docs/49-testing-final-report
   ```
 
 ---
 
 ### 7.2 Thành viên B
-- **Đợt 1 (Làm trước & Push trước):** Nhánh `test/3-kyc-verification-flow`
+- **Đợt 1 (Làm trước & Push trước):** Nhánh `test/40-kyc-verification-flow`
   ```powershell
   git switch develop && git pull origin develop
-  git switch -c test/3-kyc-verification-flow
+  git switch -c test/40-kyc-verification-flow
   # Viết KycPage.ts và specs/02-kyc-flow.e2e.test.ts (TC_UI_15 -> TC_UI_19)
   npx vitest run tests/e2e/specs/02-kyc-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(kyc): add automated test cases for tutor verification queue"
-  git push -u origin test/3-kyc-verification-flow
+  git commit -m "test(kyc): add automated test cases for tutor verification queue (Refs #40)"
+  git push -u origin test/40-kyc-verification-flow
   # Mở PR vào develop -> Chờ Reviewer approve và merge
   ```
-- **Đợt 2 (Làm sau & Push sau):** Nhánh `test/4-catalog-profile-flow`
+- **Đợt 2 (Làm sau & Push sau):** Nhánh `test/41-catalog-profile-flow`
   ```powershell
   # CHỈ BẮT ĐẦU KHI ĐỢT 1 ĐÃ ĐƯỢC MERGE VÀO DEVELOP:
   git switch develop && git pull origin develop
-  git switch -c test/4-catalog-profile-flow
+  git switch -c test/41-catalog-profile-flow
   # Viết CatalogPage.ts, ProfilePage.ts và specs/03-catalog-profile-flow.e2e.test.ts (TC_UI_21, 22, 24)
   npx vitest run tests/e2e/specs/03-catalog-profile-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(profile): add automated tests for catalog and user profile"
-  git push -u origin test/4-catalog-profile-flow
+  git commit -m "test(profile): add automated tests for catalog and user profile (Refs #41)"
+  git push -u origin test/41-catalog-profile-flow
   # Mở PR vào develop và merge
   ```
 
 ---
 
 ### 7.3 Thành viên C
-- **Đợt 1 (Làm trước & Push trước):** Nhánh `test/5-tutors-discovery-flow`
+- **Đợt 1 (Làm trước & Push trước):** Nhánh `test/42-tutors-discovery-flow`
   ```powershell
   git switch develop && git pull origin develop
-  git switch -c test/5-tutors-discovery-flow
+  git switch -c test/42-tutors-discovery-flow
   # Viết TutorsPage.ts và specs/04-tutors-discovery-flow.e2e.test.ts (TC_UI_26, 28)
   npx vitest run tests/e2e/specs/04-tutors-discovery-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(discovery): add automated tests for tutor search and ai match"
-  git push -u origin test/5-tutors-discovery-flow
+  git commit -m "test(discovery): add automated tests for tutor search and ai match (Refs #42)"
+  git push -u origin test/42-tutors-discovery-flow
   # Mở PR vào develop -> Chờ Reviewer approve và merge
   ```
-- **Đợt 2 (Làm sau & Push sau):** Nhánh `test/6-family-link-flow`
+- **Đợt 2 (Làm sau & Push sau):** Nhánh `test/43-family-link-flow`
   ```powershell
   # CHỈ BẮT ĐẦU KHI ĐỢT 1 ĐÃ ĐƯỢC MERGE VÀO DEVELOP:
   git switch develop && git pull origin develop
-  git switch -c test/6-family-link-flow
+  git switch -c test/43-family-link-flow
   # Viết FamilyPage.ts và specs/05-family-link-flow.e2e.test.ts (TC_UI_30, 31)
   npx vitest run tests/e2e/specs/05-family-link-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(family): add automated tests for parent student connection"
-  git push -u origin test/6-family-link-flow
+  git commit -m "test(family): add automated tests for parent student connection (Refs #43)"
+  git push -u origin test/43-family-link-flow
   # Mở PR vào develop và merge
   ```
 
 ---
 
 ### 7.4 Thành viên D
-- **Đợt 1 (Làm trước & Push trước):** Nhánh `test/7-connection-classes-flow`
+- **Đợt 1 (Làm trước & Push trước):** Nhánh `test/44-connection-classes-flow`
   ```powershell
   git switch develop && git pull origin develop
-  git switch -c test/7-connection-classes-flow
+  git switch -c test/44-connection-classes-flow
   # Viết ClassConnectionPage.ts và specs/06-connection-classes-flow.e2e.test.ts (TC_UI_34, 35)
   npx vitest run tests/e2e/specs/06-connection-classes-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(classes): add automated tests for tutoring requests and class sync"
-  git push -u origin test/7-connection-classes-flow
+  git commit -m "test(classes): add automated tests for tutoring requests and class sync (Refs #44)"
+  git push -u origin test/44-connection-classes-flow
   # Mở PR vào develop -> Chờ Reviewer approve và merge
   ```
-- **Đợt 2 (Làm sau & Push sau):** Nhánh `test/8-schedule-attendance-flow`
+- **Đợt 2 (Làm sau & Push sau):** Nhánh `test/45-schedule-attendance-flow`
   ```powershell
   # CHỈ BẮT ĐẦU KHI ĐỢT 1 ĐÃ ĐƯỢC MERGE VÀO DEVELOP:
   git switch develop && git pull origin develop
-  git switch -c test/8-schedule-attendance-flow
+  git switch -c test/45-schedule-attendance-flow
   # Viết SchedulePage.ts và specs/07-schedule-attendance-flow.e2e.test.ts (TC_UI_36, 37)
   npx vitest run tests/e2e/specs/07-schedule-attendance-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(schedule): add automated tests for schedule calendar and timetable"
-  git push -u origin test/8-schedule-attendance-flow
+  git commit -m "test(schedule): add automated tests for schedule calendar and timetable (Refs #45)"
+  git push -u origin test/45-schedule-attendance-flow
   # Mở PR vào develop và merge
   ```
 
 ---
 
 ### 7.5 Thành viên E
-- **Đợt 1 (Làm trước & Push trước):** Nhánh `test/9-billing-payout-flow`
+- **Đợt 1 (Làm trước & Push trước):** Nhánh `test/46-billing-payout-flow`
   ```powershell
   git switch develop && git pull origin develop
-  git switch -c test/9-billing-payout-flow
+  git switch -c test/46-billing-payout-flow
   # Viết PaymentPage.ts và specs/08-billing-payout-flow.e2e.test.ts (TC_UI_43, 45)
   npx vitest run tests/e2e/specs/08-billing-payout-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(billing): add automated tests for qr topup and tutor earnings"
-  git push -u origin test/9-billing-payout-flow
+  git commit -m "test(billing): add automated tests for qr topup and tutor earnings (Refs #46)"
+  git push -u origin test/46-billing-payout-flow
   # Mở PR vào develop -> Chờ Reviewer approve và merge
   ```
-- **Đợt 2 (Làm tiếp & Push tiếp):** Nhánh `test/10-review-flow`
+- **Đợt 2 (Làm tiếp & Push tiếp):** Nhánh `test/47-review-flow`
   ```powershell
   # CHỈ BẮT ĐẦU KHI ĐỢT 1 ĐÃ ĐƯỢC MERGE VÀO DEVELOP:
   git switch develop && git pull origin develop
-  git switch -c test/10-review-flow
+  git switch -c test/47-review-flow
   # Viết specs/09-review-flow.e2e.test.ts (TC_UI_50)
   npx vitest run tests/e2e/specs/09-review-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(review): add automated tests for tutor reviews"
-  git push -u origin test/10-review-flow
+  git commit -m "test(review): add automated tests for tutor reviews (Refs #47)"
+  git push -u origin test/47-review-flow
   # Mở PR vào develop và merge
   ```
-- **Đợt 3 (Làm sau & Push sau):** Nhánh `test/11-admin-management-flow`
+- **Đợt 3 (Làm sau & Push sau):** Nhánh `test/48-admin-management-flow`
   ```powershell
   # CHỈ BẮT ĐẦU KHI ĐỢT 2 ĐÃ ĐƯỢC MERGE VÀO DEVELOP:
   git switch develop && git pull origin develop
-  git switch -c test/11-admin-management-flow
+  git switch -c test/48-admin-management-flow
   # Viết AdminManagementPage.ts và specs/10-admin-management-flow.e2e.test.ts (TC_UI_51, 52, 54)
   npx vitest run tests/e2e/specs/10-admin-management-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts
-  git commit -m "test(admin): add automated tests for admin dashboard and audit logs"
-  git push -u origin test/11-admin-management-flow
+  git commit -m "test(admin): add automated tests for admin dashboard and audit logs (Refs #48)"
+  git push -u origin test/48-admin-management-flow
   # Mở PR vào develop và merge
   ```
 

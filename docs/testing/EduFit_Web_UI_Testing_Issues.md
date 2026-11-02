@@ -7,22 +7,22 @@
 
 ---
 
-## Bảng tổng hợp danh mục Issues trên GitHub Board
+## Bảng tổng hợp danh mục Issues trên GitHub Board (Đã tạo thành công)
 
-| Issue | Tiêu đề Issue | Assignee | Nhánh phát triển | Labels | Milestone |
-|:---:|---|:---:|---|---|---|
-| **#1** | `[CHORE] Thiết lập Framework Selenium E2E & Vitest Runner` | **A (Leader)** | `chore/1-e2e-framework-setup` | `type: chore`, `module: ui-e2e` | Sprint 0 — Foundation |
-| **#2** | `[TEST] Luồng 01: Xác thực, Đăng nhập đa vai trò & Phân quyền RBAC` | **A (Leader)** | `test/2-auth-flow-specs` | `type: test`, `module: auth` | Sprint 1 — Core Flows |
-| **#3** | `[TEST] Luồng 02: Xác minh bằng cấp KYC Gia sư & Phê duyệt Admin` | **B** | `test/3-kyc-verification-flow` | `type: test`, `module: kyc` | Sprint 1 — Core Flows |
-| **#4** | `[TEST] Luồng 03: Quản lý danh mục môn học & Thiết lập hồ sơ chuyên môn` | **B** | `test/4-catalog-profile-flow` | `type: test`, `module: profile` | Sprint 1 — Core Flows |
-| **#5** | `[TEST] Luồng 04: Khám phá gia sư công khai & Gợi ý AI Match` | **C** | `test/5-tutors-discovery-flow` | `type: test`, `module: discovery` | Sprint 1 — Core Flows |
-| **#6** | `[TEST] Luồng 05: Quản lý liên kết gia đình Phụ huynh - Học sinh` | **C** | `test/6-family-link-flow` | `type: test`, `module: family` | Sprint 1 — Core Flows |
-| **#7** | `[TEST] Luồng 06: Đề nghị kèm cặp & Đồng bộ lớp học hai phía` | **D** | `test/7-connection-classes-flow`| `type: test`, `module: classes` | Sprint 2 — Interaction |
-| **#8** | `[TEST] Luồng 07: Lập lịch giảng dạy & Thời khóa biểu buổi học` | **D** | `test/8-schedule-attendance-flow`| `type: test`, `module: schedule` | Sprint 2 — Interaction |
-| **#9** | `[TEST] Luồng 08: Cổng thanh toán nạp tiền VietQR & Rút thu nhập gia sư` | **E** | `test/9-billing-payout-flow` | `type: test`, `module: payment` | Sprint 2 — Interaction |
-| **#10** | `[TEST] Luồng 09: Đánh giá gia sư & Quản lý phản hồi học viên` | **E** | `test/10-review-flow` | `type: test`, `module: review` | Sprint 2 — Interaction |
-| **#11** | `[TEST] Luồng 10: Quản trị hệ thống, Quản lý người học & Nhật ký kiểm toán` | **E** | `test/11-admin-management-flow` | `type: test`, `module: admin` | Sprint 2 — Interaction |
-| **#12** | `[DOCS] Hoàn thiện Báo cáo tổng kết nghiệm thu & Release v1.0.0` | **A (Leader)** | `docs/12-testing-final-report` | `type: docs`, `module: report` | Sprint 3 — Finalization |
+| Issue | Tiêu đề Issue | Người phụ trách | Nhánh phát triển tương ứng | Labels | Milestone | Link trực tiếp |
+|:---:|---|:---:|---|---|---|:---:|
+| **#38** | `[CHORE] Thiết lập Framework Selenium E2E & Vitest Runner` | **A (Leader)** | `chore/38-e2e-framework-setup` | `type: chore`, `module: ui-e2e` | Sprint 0 — Foundation | [#38](https://github.com/dvtrug/EduFit/issues/38) |
+| **#39** | `[TEST] Luồng 01: Xác thực, Đăng nhập đa vai trò & Phân quyền RBAC` | **A (Leader)** | `test/39-auth-flow-specs` | `type: test`, `module: auth` | Sprint 1 — Core Flows | [#39](https://github.com/dvtrug/EduFit/issues/39) |
+| **#40** | `[TEST] Luồng 02: Xác minh bằng cấp KYC Gia sư & Phê duyệt Admin` | **B** | `test/40-kyc-verification-flow` | `type: test`, `module: kyc` | Sprint 1 — Core Flows | [#40](https://github.com/dvtrug/EduFit/issues/40) |
+| **#41** | `[TEST] Luồng 03: Quản lý danh mục môn học & Thiết lập hồ sơ chuyên môn` | **B** | `test/41-catalog-profile-flow` | `type: test`, `module: profile` | Sprint 1 — Core Flows | [#41](https://github.com/dvtrug/EduFit/issues/41) |
+| **#42** | `[TEST] Luồng 04: Khám phá gia sư công khai & Gợi ý AI Match` | **C** | `test/42-tutors-discovery-flow` | `type: test`, `module: discovery` | Sprint 1 — Core Flows | [#42](https://github.com/dvtrug/EduFit/issues/42) |
+| **#43** | `[TEST] Luồng 05: Quản lý liên kết gia đình Phụ huynh - Học sinh` | **C** | `test/43-family-link-flow` | `type: test`, `module: family` | Sprint 1 — Core Flows | [#43](https://github.com/dvtrug/EduFit/issues/43) |
+| **#44** | `[TEST] Luồng 06: Đề nghị kèm cặp & Đồng bộ lớp học hai phía` | **D** | `test/44-connection-classes-flow`| `type: test`, `module: classes` | Sprint 2 — Interaction | [#44](https://github.com/dvtrug/EduFit/issues/44) |
+| **#45** | `[TEST] Luồng 07: Lập lịch giảng dạy & Thời khóa biểu buổi học` | **D** | `test/45-schedule-attendance-flow`| `type: test`, `module: schedule` | Sprint 2 — Interaction | [#45](https://github.com/dvtrug/EduFit/issues/45) |
+| **#46** | `[TEST] Luồng 08: Cổng thanh toán nạp tiền VietQR & Rút thu nhập gia sư` | **E** | `test/46-billing-payout-flow` | `type: test`, `module: payment` | Sprint 2 — Interaction | [#46](https://github.com/dvtrug/EduFit/issues/46) |
+| **#47** | `[TEST] Luồng 09: Đánh giá gia sư & Quản lý phản hồi học viên` | **E** | `test/47-review-flow` | `type: test`, `module: review` | Sprint 2 — Interaction | [#47](https://github.com/dvtrug/EduFit/issues/47) |
+| **#48** | `[TEST] Luồng 10: Quản trị hệ thống, Quản lý người học & Nhật ký kiểm toán` | **E** | `test/48-admin-management-flow` | `type: test`, `module: admin` | Sprint 2 — Interaction | [#48](https://github.com/dvtrug/EduFit/issues/48) |
+| **#49** | `[DOCS] Hoàn thiện Báo cáo tổng kết nghiệm thu & Release v1.0.0` | **A (Leader)** | `docs/49-testing-final-report` | `type: docs`, `module: report` | Sprint 3 — Finalization | [#49](https://github.com/dvtrug/EduFit/issues/49) |
 
 ---
 

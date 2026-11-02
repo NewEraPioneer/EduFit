@@ -276,18 +276,18 @@ Mô hình phân công đảm bảo **không giẫm chân nhau**: mỗi thành vi
 
 | Thành viên | Thứ tự | Tên nhánh thực hiện | Page Objects phụ trách | Kịch bản Spec & Mã TC phụ trách | Ghi chú quy trình |
 |:---:|:---:|---|---|---|---|
-| **A (Leader)** | **1** *(làm trước)* | `chore/1-e2e-framework-setup` | `BasePage.ts`<br>`driver-factory.ts` | Cấu hình runner Vitest, `login-data.json`, file PDF mẫu | **Push & Merge đầu tiên** để cả nhóm có nền tảng chung |
-| | **2** | `test/2-auth-flow-specs` | `AuthPage.ts` | **Luồng 01:** `01-auth-flow.e2e.test.ts`<br>(TC_UI_01 → TC_UI_11) | Test xác thực, đa vai trò & chặn RBAC |
-| | **3** *(cuối)* | `docs/12-testing-final-report` | — | Tổng hợp báo cáo kết quả nghiệm thu toàn nhóm | Sau khi các thành viên đã merge xong |
-| **B** | **1** *(làm trước)* | `test/3-kyc-verification-flow` | `KycPage.ts` | **Luồng 02:** `02-kyc-flow.e2e.test.ts`<br>(TC_UI_15 → TC_UI_19) | Hoàn thành, test pass, **push & mở PR trước** |
-| | **2** *(làm sau)* | `test/4-catalog-profile-flow` | `CatalogPage.ts`<br>`ProfilePage.ts` | **Luồng 03:** `03-catalog-profile-flow.e2e.test.ts`<br>(TC_UI_21, 22, 24) | Pull `develop` về rồi mới làm nhánh này |
-| **C** | **1** *(làm trước)* | `test/5-tutors-discovery-flow` | `TutorsPage.ts` | **Luồng 04:** `04-tutors-discovery-flow.e2e.test.ts`<br>(TC_UI_26, 28) | Hoàn thành, test pass, **push & mở PR trước** |
-| | **2** *(làm sau)* | `test/6-family-link-flow` | `FamilyPage.ts` | **Luồng 05:** `05-family-link-flow.e2e.test.ts`<br>(TC_UI_30, 31) | Pull `develop` về rồi mới làm nhánh này |
-| **D** | **1** *(làm trước)* | `test/7-connection-classes-flow` | `ClassConnectionPage.ts` | **Luồng 06:** `06-connection-classes-flow.e2e.test.ts`<br>(TC_UI_34, 35) | Hoàn thành, test pass, **push & mở PR trước** |
-| | **2** *(làm sau)* | `test/8-schedule-attendance-flow` | `SchedulePage.ts` | **Luồng 07:** `07-schedule-attendance-flow.e2e.test.ts`<br>(TC_UI_36, 37) | Pull `develop` về rồi mới làm nhánh này |
-| **E** | **1** *(làm trước)* | `test/9-billing-payout-flow` | `PaymentPage.ts` | **Luồng 08:** `08-billing-payout-flow.e2e.test.ts`<br>(TC_UI_43, 45) | Hoàn thành, test pass, **push & mở PR trước** |
-| | **2** *(tiếp theo)* | `test/10-review-flow` | `SchedulePage.ts` / POM | **Luồng 09:** `09-review-flow.e2e.test.ts`<br>(TC_UI_50) | Pull `develop` về rồi mới làm nhánh này |
-| | **3** *(làm sau)* | `test/11-admin-management-flow` | `AdminManagementPage.ts` | **Luồng 10:** `10-admin-management-flow.e2e.test.ts`<br>(TC_UI_51, 52, 54) | Pull `develop` về rồi mới làm nhánh này |
+| **A (Leader)** | **1** *(làm trước)* | `chore/38-e2e-framework-setup` | `BasePage.ts`<br>`driver-factory.ts` | Cấu hình runner Vitest, `login-data.json`, file PDF mẫu | **Push & Merge đầu tiên** để cả nhóm có nền tảng chung |
+| | **2** | `test/39-auth-flow-specs` | `AuthPage.ts` | **Luồng 01:** `01-auth-flow.e2e.test.ts`<br>(TC_UI_01 → TC_UI_11) | Test xác thực, đa vai trò & chặn RBAC |
+| | **3** *(cuối)* | `docs/49-testing-final-report` | — | Tổng hợp báo cáo kết quả nghiệm thu toàn nhóm | Sau khi các thành viên đã merge xong |
+| **B** | **1** *(làm trước)* | `test/40-kyc-verification-flow` | `KycPage.ts` | **Luồng 02:** `02-kyc-flow.e2e.test.ts`<br>(TC_UI_15 → TC_UI_19) | Hoàn thành, test pass, **push & mở PR trước** |
+| | **2** *(làm sau)* | `test/41-catalog-profile-flow` | `CatalogPage.ts`<br>`ProfilePage.ts` | **Luồng 03:** `03-catalog-profile-flow.e2e.test.ts`<br>(TC_UI_21, 22, 24) | Pull `develop` về rồi mới làm nhánh này |
+| **C** | **1** *(làm trước)* | `test/42-tutors-discovery-flow` | `TutorsPage.ts` | **Luồng 04:** `04-tutors-discovery-flow.e2e.test.ts`<br>(TC_UI_26, 28) | Hoàn thành, test pass, **push & mở PR trước** |
+| | **2** *(làm sau)* | `test/43-family-link-flow` | `FamilyPage.ts` | **Luồng 05:** `05-family-link-flow.e2e.test.ts`<br>(TC_UI_30, 31) | Pull `develop` về rồi mới làm nhánh này |
+| **D** | **1** *(làm trước)* | `test/44-connection-classes-flow` | `ClassConnectionPage.ts` | **Luồng 06:** `06-connection-classes-flow.e2e.test.ts`<br>(TC_UI_34, 35) | Hoàn thành, test pass, **push & mở PR trước** |
+| | **2** *(làm sau)* | `test/45-schedule-attendance-flow` | `SchedulePage.ts` | **Luồng 07:** `07-schedule-attendance-flow.e2e.test.ts`<br>(TC_UI_36, 37) | Pull `develop` về rồi mới làm nhánh này |
+| **E** | **1** *(làm trước)* | `test/46-billing-payout-flow` | `PaymentPage.ts` | **Luồng 08:** `08-billing-payout-flow.e2e.test.ts`<br>(TC_UI_43, 45) | Hoàn thành, test pass, **push & mở PR trước** |
+| | **2** *(tiếp theo)* | `test/47-review-flow` | `SchedulePage.ts` / POM | **Luồng 09:** `09-review-flow.e2e.test.ts`<br>(TC_UI_50) | Pull `develop` về rồi mới làm nhánh này |
+| | **3** *(làm sau)* | `test/48-admin-management-flow` | `AdminManagementPage.ts` | **Luồng 10:** `10-admin-management-flow.e2e.test.ts`<br>(TC_UI_51, 52, 54) | Pull `develop` về rồi mới làm nhánh này |
 
 ---
 
