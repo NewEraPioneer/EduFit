@@ -77,6 +77,8 @@ edufit:
     from: ${MAIL_FROM:no-reply@edufit.local}
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:3000} # Dùng để dựng liên kết trong email (reset mật khẩu)
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:3000,http://127.0.0.1:3000,https://*.vercel.app}
   oauth:
     google:
       client-id: ${GOOGLE_CLIENT_ID:}
