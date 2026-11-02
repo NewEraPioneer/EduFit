@@ -1,6 +1,6 @@
 # Thiết kế lại Dashboard & Progress — Các quyết định đã chốt
 
-> Trạng thái: **đã chốt thiết kế; Giai đoạn 1 (migration V1.28) và Giai đoạn 2 (V1.29–V1.30) đã triển khai, Giai đoạn 3 chưa triển khai**. Tài liệu ghi lại kết quả buổi "grill" về dashboard tiến độ cho phụ huynh học sinh cấp 2, gắn với goal, milestone và lộ trình do gia sư lập.
+> Trạng thái: **đã chốt thiết kế; Giai đoạn 1 (migration V1.28) và Giai đoạn 2 (V1.29–V1.30) và Giai đoạn 3 (V1.31–V1.32) đã triển khai; E2E Playwright cho Giai đoạn 3 chưa có**. Tài liệu ghi lại kết quả buổi "grill" về dashboard tiến độ cho phụ huynh học sinh cấp 2, gắn với goal, milestone và lộ trình do gia sư lập.
 
 ## 1. Nguyên tắc cốt lõi
 
@@ -158,11 +158,17 @@ Mỗi giai đoạn phải qua các cổng kiểm tra tự động của dự án
 ## 5. Ngoài phạm vi hiện tại
 
 - Điểm số bài kiểm tra do gia sư nhập (trước/sau).
-- Biểu đồ mạng nhện (cần danh mục chủ đề chuẩn theo môn và khối).
 - Khóa tiền rút của gia sư khi thiếu phản hồi.
 - Khóa học định sẵn.
 
-## 6. Việc tồn đọng từ đợt dọn dữ liệu giả
+## 6. Ghi chú triển khai Giai đoạn 3
+
+- **Dự báo** (`ForecastPolicy`): khi đã đạt ít nhất một cột mốc thì dùng nhịp thực tế (số buổi trung bình đã dùng cho một cột mốc đạt, làm tròn lên); chưa đạt cột mốc nào thì dùng số buổi gợi ý 2–6 của gia sư, thiếu gợi ý ở bất kỳ cột mốc còn lại nào thì hiện "—" kèm lý do. Mỗi cột mốc còn lại trừ số buổi đã học cho nó (tối thiểu 1). Ngày dự kiến xong chỉ hiện khi lớp học đều trong 28 ngày gần nhất.
+- **Danh mục chủ đề** (`topic_catalog`): admin quản lý tại `/admin/topics`; hệ thống không tự có chủ đề nào. Chủ đề đã dùng chỉ được ngừng sử dụng, không xóa. Radar cần điểm chấm ở ít nhất 3 chủ đề, ít hơn thì hiện lý do.
+- **Bản nháp AI** (`POST /api/v1/progress/plans/draft`): chỉ gửi môn, khối, mục tiêu, chương trình, bộ sách và tên chủ đề — không gửi dữ liệu cá nhân. 10 lượt/giờ/gia sư. AI lỗi, hết lượt hoặc trả sai hình dạng thì báo lý do và gợi ý dùng mẫu. Bản nháp không có ngày; gia sư phải đặt hạn cột mốc cuối.
+- **Báo cáo kỳ** (`period_report`): job tạo bản nháp khi kỳ 30 ngày kết thúc, gia sư viết câu tổng kết trong ngăn "Việc cần làm" và gửi ngay, không thì tự gửi sau 48 giờ cho phụ huynh và học sinh. Học sinh/phụ huynh chỉ thấy bản đã gửi.
+
+## 7. Việc tồn đọng từ đợt dọn dữ liệu giả
 
 - Backend `ProgressDashboardService` vẫn dựng tiêu đề kiểu `"Mục tiêu " + goalType`; nên sửa tại nguồn.
 - `ConnectionRequestDialog` còn hardcode `currentLevel = 1`, `desiredLevel = 3`; cần ô nhập thật.
