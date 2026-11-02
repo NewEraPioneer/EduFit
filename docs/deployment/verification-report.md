@@ -1,7 +1,7 @@
 # Báo cáo xác minh cấu hình triển khai UAT (Verification Report)
 
-**Thời điểm lập:** 02/11/2026  
-**Nhánh thực hiện:** `deploy/deploy-render-supabase`  
+**Thời điểm lập:** 02/11/2026
+**Nhánh thực hiện:** `deploy/deploy-render-supabase`
 **Mục tiêu:** Kiểm tra và nghiệm thu các thành phần triển khai UAT (Render + Supabase PostgreSQL).
 
 ---

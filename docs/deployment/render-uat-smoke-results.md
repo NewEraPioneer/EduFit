@@ -1,7 +1,7 @@
 # Kết quả chuẩn bị và kiểm thử Smoke UAT (Render UAT Smoke Results)
 
-**Thời điểm:** 02/11/2026  
-**Nhánh nguồn:** `deploy/deploy-render-supabase`  
+**Thời điểm:** 02/11/2026
+**Nhánh nguồn:** `deploy/deploy-render-supabase`
 **Mục tiêu:** Ghi nhận kết quả kiểm tra cục bộ và danh mục kiểm thử khói (Smoke Test) khi deploy lên Render Cloud.
 
 ---
