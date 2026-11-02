@@ -66,14 +66,10 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
         const childClasses = classList.filter((c) => c.studentId === studentId);
         const summary = summaryById.get(studentId);
         const dashboard = summary?.activeClassDashboard;
-        const stats = dashboard?.sessionStats;
+        const attendance = dashboard?.overview?.attendance;
 
         const completed = childClasses.reduce((acc, c) => acc + (c.completedCount ?? 0), 0);
         const total = childClasses.reduce((acc, c) => acc + (c.totalCount ?? c.sessionCount), 0);
-
-        const statsCompleted = stats?.completedCount ?? stats?.completedSessions ?? 0;
-        const statsAbsent = stats?.absentCount ?? stats?.absentSessions ?? 0;
-        const finishedSessions = statsCompleted + statsAbsent;
 
         return {
           id: idx + 1,
@@ -85,11 +81,10 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
           grade: childClasses.find((c) => c.educationLevelName)?.educationLevelName ?? null,
           tutorsCount: childClasses.filter((c) => c.status === "ACTIVE").length,
           completedLessons: `${completed}/${total}`,
-          attendanceRate:
-            finishedSessions > 0 ? Math.round((statsCompleted / finishedSessions) * 100) : null,
+          attendanceRate: attendance?.attendanceRate ?? null,
           progressPercent: dashboard?.progressPercentage ?? null,
           goalTitle: formatGoalTitle(dashboard?.goalTitle),
-          nextSessionStart: stats?.nextSessionStart ?? null,
+          nextSessionStart: attendance?.nextSessionStart ?? null,
         };
       });
 

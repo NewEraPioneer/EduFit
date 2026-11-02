@@ -7,7 +7,7 @@ describe("Progress API Client", () => {
     vi.restoreAllMocks();
   });
 
-  it("gọi GET /api/v1/progress/dashboard/student/{id} với các query params", async () => {
+  it("gọi GET /api/v1/progress/dashboard/student/{id} kèm classId", async () => {
     const fetchSpy = vi.spyOn(apiModule, "fetchApi").mockResolvedValue({
       success: true,
       data: {
@@ -17,10 +17,10 @@ describe("Progress API Client", () => {
       },
     });
 
-    const res = await progressApi.getStudentDashboard("student-1", "class-1", "60D");
+    const res = await progressApi.getStudentDashboard("student-1", "class-1");
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "/api/v1/progress/dashboard/student/student-1?range=60D&classId=class-1",
+      "/api/v1/progress/dashboard/student/student-1?classId=class-1",
       { method: "GET" }
     );
     expect(res.data?.studentName).toBe("Học sinh A");
@@ -83,7 +83,7 @@ describe("Progress API Client", () => {
     const payload = {
       classId: "class-1",
       summary: "Kế hoạch mới",
-      milestones: [{ title: "Mốc 1", weight: 3 }],
+      milestones: [{ title: "Mốc 1", weight: 3, criteria: ["Tự giải đúng dạng cơ bản"] }],
     };
 
     const res = await progressApi.createPlan(payload);
@@ -112,7 +112,7 @@ describe("Progress API Client", () => {
     const payload = {
       version: 1,
       summary: "Kế hoạch sửa",
-      milestones: [{ title: "Mốc 1", weight: 3 }],
+      milestones: [{ title: "Mốc 1", weight: 3, criteria: [{ content: "Tự giải đúng dạng cơ bản" }] }],
     };
 
     const res = await progressApi.updatePlan("plan-1", payload);
@@ -219,5 +219,23 @@ describe("Progress API Client", () => {
       }
     );
     expect(res.success).toBe(true);
+  });
+
+  it("gọi POST /api/v1/progress/sessions/{id}/feedback để ghi phản hồi 10 giây", async () => {
+    const fetchSpy = vi.spyOn(apiModule, "fetchApi").mockResolvedValue({ success: true });
+    const payload = {
+      homeworkStatus: "ASSIGNED" as const,
+      attitudeChips: ["FOCUSED" as const],
+      milestones: [
+        { milestoneId: "m-1", level: 3 as const, checkedCriterionIds: [], markAchieved: false },
+      ],
+    };
+
+    await progressApi.submitSessionFeedback("session-1", payload);
+
+    expect(fetchSpy).toHaveBeenCalledWith("/api/v1/progress/sessions/session-1/feedback", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   });
 });

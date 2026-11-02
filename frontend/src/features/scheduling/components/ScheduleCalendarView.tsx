@@ -19,6 +19,7 @@ import { ProposeSessionModal } from "./ProposeSessionModal";
 import { SessionDetailModal } from "./SessionDetailModal";
 import { ScheduleTimelineView } from "./ScheduleTimelineView";
 import { useAuth } from "@/context/AuthContext";
+import { progressApi, type SessionMilestones } from "@/features/progress";
 import { formatLocalDateToIso, formatSessionTime, formatLocalTime } from "@/shared/utils/dateTime";
 import {
   type CalendarItem,
@@ -198,6 +199,8 @@ export function ScheduleCalendarView({
 
   // Calendar sessions data state
   const [sessions, setSessions] = useState<CalendarItem[]>([]);
+  // Cột mốc hiệu lực của từng buổi (thực tế thắng dự kiến), do module Progress quản lý
+  const [sessionMilestones, setSessionMilestones] = useState<Record<string, SessionMilestones>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -223,6 +226,22 @@ export function ScheduleCalendarView({
     return end;
   }, [weekDays]);
 
+  /** Tên cột mốc chỉ là thông tin bổ sung: lỗi tải không chặn lịch học. */
+  const loadSessionMilestones = useCallback(async (sessionIds: string[]) => {
+    if (sessionIds.length === 0) {
+      setSessionMilestones({});
+      return;
+    }
+    try {
+      const res = await progressApi.getSessionMilestones(sessionIds);
+      setSessionMilestones(
+        res.success && res.data ? Object.fromEntries(res.data.map((m) => [m.sessionId, m])) : {}
+      );
+    } catch {
+      setSessionMilestones({});
+    }
+  }, []);
+
   // Fetch sessions from API
   const fetchSessions = useCallback(async () => {
     try {
@@ -235,8 +254,10 @@ export function ScheduleCalendarView({
       });
       if (res.success && res.data) {
         setSessions(res.data);
+        void loadSessionMilestones(res.data.map((s) => s.sessionId));
       } else {
         setSessions([]);
+        setSessionMilestones({});
       }
     } catch (err: unknown) {
       setError(
@@ -247,7 +268,7 @@ export function ScheduleCalendarView({
     } finally {
       setLoading(false);
     }
-  }, [weekStart, weekEndDateTime, initialStudentId]);
+  }, [weekStart, weekEndDateTime, initialStudentId, loadSessionMilestones]);
 
   useEffect(() => {
     fetchSessions();
@@ -605,6 +626,16 @@ export function ScheduleCalendarView({
                                 <div className="truncate text-[10px] font-bold text-neutral-800 dark:text-zinc-100 mt-0.5" title={getClassName(s.classId)}>
                                   {getClassName(s.classId)}
                                 </div>
+                                {sessionMilestones[s.sessionId] && (
+                                  <div
+                                    className="truncate text-[9px] font-semibold text-amber-800 mt-0.5"
+                                    data-testid={`session-milestones-${s.sessionId}`}
+                                    title={sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
+                                  >
+                                    {sessionMilestones[s.sessionId].linkType === "ACTUAL" ? "Đã học: " : "Dự kiến: "}
+                                    {sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
+                                  </div>
+                                )}
                                 <div className="truncate text-[9px] font-semibold mt-0.5">
                                   {isProposed && "⚠️ Chờ xác nhận"}
                                   {isScheduled && "✓ Đã xếp lịch"}

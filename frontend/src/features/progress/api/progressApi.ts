@@ -10,6 +10,13 @@ import type {
   UpdatePlanPayload,
   UpdateMilestoneStatusPayload,
   RecordSessionOutcomePayload,
+  SubmitSessionFeedbackPayload,
+  SessionFeedbackView,
+  SelfRatingValue,
+  SessionMilestones,
+  TutorTodos,
+  PlanTemplate,
+  SavePlanTemplatePayload,
 } from "../types";
 
 export interface GetClassNotesParams {
@@ -35,15 +42,11 @@ export const progressApi = {
    */
   async getStudentDashboard(
     studentId: string,
-    classId?: string,
-    range = "30D"
+    classId?: string
   ): Promise<ApiResponse<StudentDashboardResponse>> {
-    const params = new URLSearchParams({ range });
-    if (classId) {
-      params.set("classId", classId);
-    }
+    const query = classId ? `?${new URLSearchParams({ classId }).toString()}` : "";
     return fetchApi<StudentDashboardResponse>(
-      `/api/v1/progress/dashboard/student/${encodeURIComponent(studentId)}?${params.toString()}`,
+      `/api/v1/progress/dashboard/student/${encodeURIComponent(studentId)}${query}`,
       { method: "GET" }
     );
   },
@@ -163,6 +166,92 @@ export const progressApi = {
   ): Promise<ApiResponse<unknown>> {
     return fetchApi<unknown>(
       `/api/v1/scheduling/sessions/${encodeURIComponent(sessionId)}/outcome`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  /**
+   * Phản hồi 10 giây sau buổi học (mức tự lập theo cột mốc được dạy, việc về nhà, thái độ)
+   * POST /api/v1/progress/sessions/{sessionId}/feedback
+   */
+  /**
+   * Gắn cột mốc dự kiến (tối đa 3) cho buổi học chưa diễn ra; mảng rỗng = bỏ dự kiến
+   * PUT /api/v1/progress/sessions/{sessionId}/planned-milestones
+   */
+  async planSessionMilestones(sessionId: string, milestoneIds: string[]): Promise<ApiResponse<SessionMilestones>> {
+    return fetchApi<SessionMilestones>(
+      `/api/v1/progress/sessions/${encodeURIComponent(sessionId)}/planned-milestones`,
+      { method: "PUT", body: JSON.stringify({ milestoneIds }) }
+    );
+  },
+
+  /**
+   * Cột mốc hiệu lực của các buổi học trên lịch (thực tế thắng dự kiến)
+   * GET /api/v1/progress/sessions/milestones?sessionIds=a,b
+   */
+  async getSessionMilestones(sessionIds: string[]): Promise<ApiResponse<SessionMilestones[]>> {
+    const query = new URLSearchParams({ sessionIds: sessionIds.join(",") }).toString();
+    return fetchApi<SessionMilestones[]>(`/api/v1/progress/sessions/milestones?${query}`, { method: "GET" });
+  },
+
+  /**
+   * Mẫu lộ trình: gia sư thấy mẫu hệ thống + mẫu riêng (có classId thì lọc theo môn × khối × mục tiêu của lớp);
+   * admin thấy mẫu hệ thống. GET /api/v1/progress/templates
+   */
+  async listPlanTemplates(classId?: string): Promise<ApiResponse<PlanTemplate[]>> {
+    const query = classId ? `?${new URLSearchParams({ classId }).toString()}` : "";
+    return fetchApi<PlanTemplate[]>(`/api/v1/progress/templates${query}`, { method: "GET" });
+  },
+
+  /** POST /api/v1/progress/templates */
+  async createPlanTemplate(payload: SavePlanTemplatePayload): Promise<ApiResponse<PlanTemplate>> {
+    return fetchApi<PlanTemplate>("/api/v1/progress/templates", { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  /** PUT /api/v1/progress/templates/{templateId} (bắt buộc version) */
+  async updatePlanTemplate(templateId: string, payload: SavePlanTemplatePayload): Promise<ApiResponse<PlanTemplate>> {
+    return fetchApi<PlanTemplate>(`/api/v1/progress/templates/${encodeURIComponent(templateId)}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /** DELETE /api/v1/progress/templates/{templateId} */
+  async deletePlanTemplate(templateId: string): Promise<ApiResponse<null>> {
+    return fetchApi<null>(`/api/v1/progress/templates/${encodeURIComponent(templateId)}`, { method: "DELETE" });
+  },
+
+  /**
+   * Ngăn "Việc cần làm" của gia sư
+   * GET /api/v1/progress/dashboard/tutor/todos
+   */
+  async getTutorTodos(): Promise<ApiResponse<TutorTodos>> {
+    return fetchApi<TutorTodos>("/api/v1/progress/dashboard/tutor/todos", { method: "GET" });
+  },
+
+  /**
+   * Cảm nhận 1 chạm của học sinh sau buổi học (chọn lại thì ghi đè)
+   * PUT /api/v1/progress/sessions/{sessionId}/self-rating
+   */
+  async rateSession(
+    sessionId: string,
+    rating: SelfRatingValue
+  ): Promise<ApiResponse<{ sessionId: string; rating: SelfRatingValue }>> {
+    return fetchApi<{ sessionId: string; rating: SelfRatingValue }>(
+      `/api/v1/progress/sessions/${encodeURIComponent(sessionId)}/self-rating`,
+      { method: "PUT", body: JSON.stringify({ rating }) }
+    );
+  },
+
+  async submitSessionFeedback(
+    sessionId: string,
+    payload: SubmitSessionFeedbackPayload
+  ): Promise<ApiResponse<SessionFeedbackView>> {
+    return fetchApi<SessionFeedbackView>(
+      `/api/v1/progress/sessions/${encodeURIComponent(sessionId)}/feedback`,
       {
         method: "POST",
         body: JSON.stringify(payload),

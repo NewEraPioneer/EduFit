@@ -123,7 +123,7 @@ describe("StudentDashboardView Component", () => {
             { milestoneId: "m-2", title: "Hệ phương trình", weight: 1, status: "NOT_STARTED", isArchived: false, sortOrder: 1 },
           ],
         },
-        sessionStats: { completedCount: 3, absentCount: 1, upcomingCount: 2 },
+        overview: { attendance: { attendanceRate: 75 } },
       },
     } as any);
 

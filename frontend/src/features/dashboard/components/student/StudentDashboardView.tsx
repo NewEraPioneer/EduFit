@@ -226,13 +226,8 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
     0
   );
 
-  const stats = progressDashboard?.sessionStats;
-  const statsCompleted = stats?.completedCount ?? stats?.completedSessions ?? 0;
-  const statsAbsent = stats?.absentCount ?? stats?.absentSessions ?? 0;
-  const attendanceRate =
-    statsCompleted + statsAbsent > 0
-      ? Math.round((statsCompleted / (statsCompleted + statsAbsent)) * 100)
-      : null;
+  // Tỉ lệ chuyên cần do backend tính (không trừ buổi hủy sớm hoặc do gia sư dời)
+  const attendanceRate = progressDashboard?.overview?.attendance.attendanceRate ?? null;
 
   const onboardingSteps = [
     {

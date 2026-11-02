@@ -15,6 +15,7 @@ import { OnboardingGuideBanner } from "@/shared/ui/OnboardingGuideBanner";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import { inboxNeedTitle } from "@/features/connection/components/StudentPedagogicalProfileModal";
 import { schedulingApi } from "@/features/scheduling";
+import { TutorTodoDrawer } from "@/features/progress";
 import type { TutoringClass } from "@/features/connection/types";
 import type { CalendarItem } from "@/features/scheduling/types";
 
@@ -207,6 +208,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
+          <TutorTodoDrawer />
           <Link
             href="/tutor/schedule"
             className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-neutral-800 rounded-xl text-xs font-bold shadow-2xs transition-colors shrink-0"

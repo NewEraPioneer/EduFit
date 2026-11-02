@@ -119,7 +119,7 @@ describe("ParentDashboardView Component", () => {
               classes: [],
               goalTitle: "Ôn thi chuyển cấp / thi tuyển",
               progressPercentage: 40,
-              sessionStats: { completedCount: 3, absentCount: 1, upcomingCount: 0, nextSessionStart: null },
+              overview: { attendance: { attendanceRate: 75, nextSessionStart: null } },
             },
           },
         ],

@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   ScrollText,
   BookOpen,
+  Route,
   HeartHandshake,
   Settings,
 } from "lucide-react";
@@ -37,6 +38,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     title: "QUẢN LÝ DỮ LIỆU",
     items: [
       { label: "Danh mục môn học", href: "/admin/catalogs", icon: BookOpen },
+      { label: "Mẫu lộ trình", href: "/admin/plan-templates", icon: Route },
       { label: "Liên kết hệ thống (UC3.3)", href: "/admin/links", icon: HeartHandshake },
     ],
   },
