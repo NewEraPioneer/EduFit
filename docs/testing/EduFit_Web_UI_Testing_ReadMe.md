@@ -262,17 +262,32 @@ Tất cả các route đã được đối chiếu chuẩn xác với cấu trú
 
 ---
 
-## 6. Bảng phân công nhiệm vụ 5 thành viên
+## 6. Bảng phân công nhiệm vụ 5 thành viên & Thứ tự thực hiện nhánh
 
 Mô hình phân công đảm bảo **không giẫm chân nhau**: mỗi thành viên sở hữu các tệp Page Object và Kịch bản Spec riêng biệt.
 
-| Thành viên | Trách nhiệm chính | Page Objects phụ trách | Kịch bản Spec & Mã TC phụ trách |
-|---|---|---|---|
-| **Thành viên A (Leader)** | - Quản trị repository & cấu hình test runner<br>- Thiết kế Framework cốt lõi: `DriverFactory`, `BasePage`, config<br>- Luồng Xác thực & Bảo mật phân quyền RBAC | `BasePage.ts`<br>`AuthPage.ts` | **Luồng 01:** `01-auth-flow.e2e.test.ts`<br>(TC_UI_01, 02, 03, 04, 05, 06, 07, 08, 10, 11) |
-| **Thành viên B** | - Luồng Xác minh năng lực (KYC) & Duyệt Admin<br>- Luồng Danh mục môn học Admin & Hồ sơ cá nhân | `KycPage.ts`<br>`CatalogPage.ts`<br>`ProfilePage.ts` | **Luồng 02:** `02-kyc-flow.e2e.test.ts`<br>(TC_UI_15, 16, 17, 18, 19)<br>**Luồng 03:** `03-catalog-profile-flow.e2e.test.ts`<br>(TC_UI_21, 22, 24) |
-| **Thành viên C** | - Luồng Khám phá gia sư công khai & AI Match<br>- Luồng Liên kết gia đình Phụ huynh & Học sinh | `TutorsPage.ts`<br>`FamilyPage.ts` | **Luồng 04:** `04-tutors-discovery-flow.e2e.test.ts`<br>(TC_UI_26, 28)<br>**Luồng 05:** `05-family-link-flow.e2e.test.ts`<br>(TC_UI_30, 31) |
-| **Thành viên D** | - Luồng Yêu cầu kèm cặp & Lớp học 2 phía<br>- Luồng Lập lịch giảng dạy & Thời khóa biểu | `ClassConnectionPage.ts`<br>`SchedulePage.ts` | **Luồng 06:** `06-connection-classes-flow.e2e.test.ts`<br>(TC_UI_34, 35)<br>**Luồng 07:** `07-schedule-attendance-flow.e2e.test.ts`<br>(TC_UI_36, 37) |
-| **Thành viên E** | - Luồng Cổng nạp tiền VietQR & Thu nhập gia sư<br>- Luồng Đánh giá nhận xét gia sư<br>- Luồng Quản trị Admin Dashboard & Audit Logs | `PaymentPage.ts`<br>`AdminManagementPage.ts` | **Luồng 08:** `08-billing-payout-flow.e2e.test.ts`<br>(TC_UI_43, 45)<br>**Luồng 09:** `09-review-flow.e2e.test.ts`<br>(TC_UI_50)<br>**Luồng 10:** `10-admin-management-flow.e2e.test.ts`<br>(TC_UI_51, 52, 54) |
+> [!IMPORTANT]
+> **Quy tắc làm việc theo thứ tự nhánh (Sequential Branch Lifecycle):**
+> - Các thành viên **tự tạo nhánh cá nhân từ `develop` mới nhất** trên máy của mình theo đúng thứ tự quy định bên dưới.
+> - **Làm dứt điểm từng nhánh**: Viết Page Object + Spec -> Chạy máy đạt Exit Code 0 -> **Push nhánh đó lên GitHub và mở PR** -> Review và Merge vào `develop` -> Kéo `develop` mới nhất về rồi mới tạo nhánh tiếp theo.
+> - **Tuyệt đối không tạo dồn nhiều nhánh hoặc làm nhánh sau khi nhánh trước chưa push & merge.**
+
+### Bảng phân công chi tiết theo thứ tự tuần tự của từng thành viên:
+
+| Thành viên | Thứ tự | Tên nhánh thực hiện | Page Objects phụ trách | Kịch bản Spec & Mã TC phụ trách | Ghi chú quy trình |
+|:---:|:---:|---|---|---|---|
+| **A (Leader)** | **1** *(làm trước)* | `chore/1-e2e-framework-setup` | `BasePage.ts`<br>`driver-factory.ts` | Cấu hình runner Vitest, `login-data.json`, file PDF mẫu | **Push & Merge đầu tiên** để cả nhóm có nền tảng chung |
+| | **2** | `test/2-auth-flow-specs` | `AuthPage.ts` | **Luồng 01:** `01-auth-flow.e2e.test.ts`<br>(TC_UI_01 → TC_UI_11) | Test xác thực, đa vai trò & chặn RBAC |
+| | **3** *(cuối)* | `docs/12-testing-final-report` | — | Tổng hợp báo cáo kết quả nghiệm thu toàn nhóm | Sau khi các thành viên đã merge xong |
+| **B** | **1** *(làm trước)* | `test/3-kyc-verification-flow` | `KycPage.ts` | **Luồng 02:** `02-kyc-flow.e2e.test.ts`<br>(TC_UI_15 → TC_UI_19) | Hoàn thành, test pass, **push & mở PR trước** |
+| | **2** *(làm sau)* | `test/4-catalog-profile-flow` | `CatalogPage.ts`<br>`ProfilePage.ts` | **Luồng 03:** `03-catalog-profile-flow.e2e.test.ts`<br>(TC_UI_21, 22, 24) | Pull `develop` về rồi mới làm nhánh này |
+| **C** | **1** *(làm trước)* | `test/5-tutors-discovery-flow` | `TutorsPage.ts` | **Luồng 04:** `04-tutors-discovery-flow.e2e.test.ts`<br>(TC_UI_26, 28) | Hoàn thành, test pass, **push & mở PR trước** |
+| | **2** *(làm sau)* | `test/6-family-link-flow` | `FamilyPage.ts` | **Luồng 05:** `05-family-link-flow.e2e.test.ts`<br>(TC_UI_30, 31) | Pull `develop` về rồi mới làm nhánh này |
+| **D** | **1** *(làm trước)* | `test/7-connection-classes-flow` | `ClassConnectionPage.ts` | **Luồng 06:** `06-connection-classes-flow.e2e.test.ts`<br>(TC_UI_34, 35) | Hoàn thành, test pass, **push & mở PR trước** |
+| | **2** *(làm sau)* | `test/8-schedule-attendance-flow` | `SchedulePage.ts` | **Luồng 07:** `07-schedule-attendance-flow.e2e.test.ts`<br>(TC_UI_36, 37) | Pull `develop` về rồi mới làm nhánh này |
+| **E** | **1** *(làm trước)* | `test/9-billing-payout-flow` | `PaymentPage.ts` | **Luồng 08:** `08-billing-payout-flow.e2e.test.ts`<br>(TC_UI_43, 45) | Hoàn thành, test pass, **push & mở PR trước** |
+| | **2** *(tiếp theo)* | `test/10-review-flow` | `SchedulePage.ts` / POM | **Luồng 09:** `09-review-flow.e2e.test.ts`<br>(TC_UI_50) | Pull `develop` về rồi mới làm nhánh này |
+| | **3** *(làm sau)* | `test/11-admin-management-flow` | `AdminManagementPage.ts` | **Luồng 10:** `10-admin-management-flow.e2e.test.ts`<br>(TC_UI_51, 52, 54) | Pull `develop` về rồi mới làm nhánh này |
 
 ---
 
