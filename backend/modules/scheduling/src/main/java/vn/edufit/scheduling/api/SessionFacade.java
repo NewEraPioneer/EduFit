@@ -76,9 +76,30 @@ public interface SessionFacade {
   List<vn.edufit.scheduling.api.dto.SessionTimelineView> findSessionsByClassId(UUID classId, Instant from, Instant to);
 
   /**
+   * Lấy toàn bộ buổi học của một lớp kèm thông tin hủy (người hủy, hủy muộn) để tính chuyên cần.
+   */
+  List<vn.edufit.scheduling.api.dto.SessionAttendanceView> findAttendanceByClassId(UUID classId);
+
+  /**
    * Lấy thống kê số buổi học theo danh sách các mã lớp học (Batch query tránh N+1).
    */
   java.util.Map<UUID, vn.edufit.scheduling.api.dto.ClassSessionStatsView> getSessionStatsByClassIds(List<UUID> classIds, Instant from, Instant to);
+
+  /**
+   * Buổi học đã hoàn thành (COMPLETED) có thời điểm kết thúc trong (from, to].
+   * Được module {@code progress} gọi để nhắc gia sư phản hồi buổi học.
+   */
+  List<SessionSummaryView> findCompletedSessionsEndedBetween(Instant from, Instant to);
+
+  /**
+   * Tra cứu tóm tắt nhiều buổi học theo mã (batch, tránh N+1). Mã không tồn tại bị bỏ qua.
+   */
+  List<SessionSummaryView> findSessionsByIds(java.util.Collection<UUID> sessionIds);
+
+  /**
+   * Tóm tắt các buổi học của nhiều lớp (lọc theo thời điểm bắt đầu; {@code null} = không giới hạn).
+   */
+  List<SessionSummaryView> findSessionSummariesByClassIds(java.util.Collection<UUID> classIds, Instant from, Instant to);
 
   /**
    * Đếm tổng số buổi học đã hoàn thành (COMPLETED) trên toàn hệ thống.

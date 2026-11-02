@@ -1,15 +1,21 @@
 package vn.edufit.progress.infra.persistence.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import org.hibernate.annotations.BatchSize;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -63,4 +69,15 @@ public class MilestoneJpaEntity {
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
+
+  @Builder.Default
+  @OneToMany(mappedBy = "milestone", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("sortOrder ASC")
+  @BatchSize(size = 100)
+  private List<MilestoneCriterionJpaEntity> criteria = new ArrayList<>();
+
+  public void addCriterion(MilestoneCriterionJpaEntity criterion) {
+    criteria.add(criterion);
+    criterion.setMilestone(this);
+  }
 }

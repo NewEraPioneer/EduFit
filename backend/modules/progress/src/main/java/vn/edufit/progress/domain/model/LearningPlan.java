@@ -1,11 +1,18 @@
 package vn.edufit.progress.domain.model;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import vn.edufit.progress.domain.policy.ProgressCalculator;
+import vn.edufit.progress.domain.policy.RoadmapShapePolicy;
 import vn.edufit.progress.domain.policy.ProgressCalculator.MilestoneWeight;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.InvalidOperationException;
@@ -15,6 +22,9 @@ import vn.edufit.shared.exception.InvalidOperationException;
  * Java thuần túy (POJO) - không phụ thuộc Spring Boot hay Hibernate.
  */
 public class LearningPlan {
+
+  /** Múi giờ nghiệp vụ dùng để quy đổi thời điểm sang ngày. */
+  public static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
   private final UUID planId;
   private final UUID classId;
@@ -62,7 +72,7 @@ public class LearningPlan {
     }
 
     LearningPlan plan = new LearningPlan(id, classId, summary, 0, creationTime, creationTime, attached);
-    plan.validateActiveMilestonesCount();
+    plan.validateShape();
     return plan;
   }
 
@@ -76,14 +86,34 @@ public class LearningPlan {
     this.updatedAt = now != null ? now : Instant.now();
   }
 
-  public void validateActiveMilestonesCount() {
-    long activeCount = countActiveMilestones();
-    if (activeCount < 1 || activeCount > 20) {
-      throw new InvalidOperationException(
-          ErrorCode.VALIDATION_FAILED,
-          "Kế hoạch học tập phải có từ 1 đến 20 cột mốc đang hoạt động"
-      );
+  /**
+   * Hình dạng chuẩn khi lập hoặc sửa lộ trình ({@link RoadmapShapePolicy}): 3–8 cột mốc đang hoạt động, cột mốc cuối
+   * có hạn. Lộ trình cũ chỉ phải tuân thủ khi được sửa.
+   */
+  public void validateShape() {
+    RoadmapShapePolicy.requireMilestoneCount(countActiveMilestones());
+    RoadmapShapePolicy.requireFinalTargetDate(orderedActiveMilestones().stream().map(Milestone::getTargetDate).toList());
+  }
+
+  /** Ngày lập lộ trình theo giờ Việt Nam, làm mốc 0 khi nội suy hạn các mốc giữa. */
+  public LocalDate startDate() {
+    return createdAt.atZone(BUSINESS_ZONE).toLocalDate();
+  }
+
+  /** Hạn hiệu lực của từng cột mốc đang hoạt động: hạn gia sư đặt hoặc ngày nội suy (không có thì không có khóa). */
+  public Map<UUID, RoadmapShapePolicy.ExpectedDate> expectedTargetDates() {
+    List<Milestone> ordered = orderedActiveMilestones();
+    List<RoadmapShapePolicy.ExpectedDate> expected =
+        RoadmapShapePolicy.interpolate(startDate(), ordered.stream().map(Milestone::getTargetDate).toList());
+    Map<UUID, RoadmapShapePolicy.ExpectedDate> result = new HashMap<>();
+    for (int i = 0; i < ordered.size(); i++) {
+      if (expected.get(i) != null) result.put(ordered.get(i).getMilestoneId(), expected.get(i));
     }
+    return result;
+  }
+
+  public List<Milestone> orderedActiveMilestones() {
+    return getActiveMilestones().stream().sorted(Comparator.comparingInt(Milestone::getSortOrder)).toList();
   }
 
   public long countActiveMilestones() {
@@ -95,19 +125,43 @@ public class LearningPlan {
   }
 
   /**
-   * Tính toán phần trăm tiến độ bằng ProgressCalculator.
+   * Tính phần trăm tiến độ có trọng số hiện tại (cột mốc đang học tính theo tiêu chí đã tick).
    *
    * @return % tiến độ (0–100), hoặc null nếu không có milestone active.
    */
   public Integer calculateProgressPercentage() {
-    List<MilestoneWeight> weights = this.milestones.stream()
-        .map(m -> new MilestoneWeight(
-            m.getWeight(),
-            m.getStatus() == MilestoneStatus.ACHIEVED,
-            m.isArchived()
-        ))
-        .toList();
-    return ProgressCalculator.calculate(weights);
+    return ProgressCalculator.calculate(this.milestones.stream()
+        .map(m -> toWeight(m, m.completionShare()))
+        .toList());
+  }
+
+  /**
+   * Dựng lại phần trăm tiến độ tại một thời điểm trong quá khứ từ {@code achievedDate} và thời điểm tick tiêu chí.
+   * Danh sách cột mốc dùng là danh sách hiện tại; việc điều chỉnh lộ trình trong kỳ được báo riêng qua plan_history.
+   */
+  public Integer calculateProgressPercentageAt(Instant cutoff, LocalDate cutoffDate) {
+    return ProgressCalculator.calculate(this.milestones.stream()
+        .map(m -> toWeight(m, m.completionShareAt(cutoff, cutoffDate)))
+        .toList());
+  }
+
+  /** Cột mốc đang được tập trung: cột mốc IN_PROGRESS đầu tiên, nếu không có thì cột mốc chưa đạt đầu tiên. */
+  public Optional<Milestone> findFocusMilestone() {
+    List<Milestone> ordered = orderedActiveMilestones();
+    return ordered.stream()
+        .filter(m -> m.getStatus() == MilestoneStatus.IN_PROGRESS)
+        .findFirst()
+        .or(() -> ordered.stream().filter(m -> m.getStatus() == MilestoneStatus.NOT_STARTED).findFirst());
+  }
+
+  public Optional<Milestone> findActiveMilestone(UUID milestoneId) {
+    return this.milestones.stream()
+        .filter(m -> !m.isArchived() && m.getMilestoneId().equals(milestoneId))
+        .findFirst();
+  }
+
+  private static MilestoneWeight toWeight(Milestone m, Milestone.CompletionShare share) {
+    return new MilestoneWeight(m.getWeight(), share.completed(), share.total(), m.isArchived());
   }
 
   private static void validateSummary(String summary) {

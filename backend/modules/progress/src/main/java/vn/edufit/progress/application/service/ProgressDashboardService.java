@@ -1,10 +1,6 @@
 package vn.edufit.progress.application.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -18,29 +14,21 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edufit.connection.api.ConnectionFacade;
-import vn.edufit.iam.api.IamFacade;
-import vn.edufit.iam.api.dto.UserSummaryView;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
-import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.progress.application.dto.ProgressViews.ClassSelectorItemView;
 import vn.edufit.progress.application.dto.ProgressViews.ParentDashboardView;
 import vn.edufit.progress.application.dto.ProgressViews.ParentStudentSummaryView;
 import vn.edufit.progress.application.dto.ProgressViews.PlanDetailView;
-import vn.edufit.progress.application.dto.ProgressViews.ProgressSeriesPointView;
+import vn.edufit.progress.application.dto.ProgressViews.ProgressOverviewView;
 import vn.edufit.progress.application.dto.ProgressViews.StudentDashboardView;
 import vn.edufit.progress.application.dto.ProgressViews.TeachingHistoryItemView;
 import vn.edufit.progress.application.dto.SessionNoteTimelineView;
 import vn.edufit.progress.domain.model.LearningPlan;
-import vn.edufit.progress.domain.model.Milestone;
-import vn.edufit.progress.domain.model.MilestoneStatus;
-import vn.edufit.progress.domain.model.SessionNote;
 import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
-import vn.edufit.progress.domain.repository.SessionNoteDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
 import vn.edufit.scheduling.api.dto.ClassSessionStatsView;
-import vn.edufit.scheduling.api.dto.SessionTimelineView;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ForbiddenOperationException;
 
@@ -48,30 +36,35 @@ import vn.edufit.shared.exception.ForbiddenOperationException;
 @Service
 public class ProgressDashboardService {
 
+  private static final int RECENT_NOTES_LIMIT = 10;
+
   private final LearningPlanDomainRepository planRepository;
-  private final SessionNoteDomainRepository noteRepository;
   private final ConnectionFacade connectionFacade;
   private final ProfileFacade profileFacade;
-  private final IamFacade iamFacade;
+  private final ProgressDisplayNames names;
   private final SessionFacade sessionFacade;
-  private final Clock clock;
+  private final SessionNoteTimelineAssembler timelineAssembler;
+  private final ProgressOverviewService overviewService;
+  private final ProgressAccessGuard accessGuard;
 
   public ProgressDashboardService(
       LearningPlanDomainRepository planRepository,
-      SessionNoteDomainRepository noteRepository,
       ConnectionFacade connectionFacade,
       ProfileFacade profileFacade,
-      IamFacade iamFacade,
+      ProgressDisplayNames names,
       SessionFacade sessionFacade,
-      Clock clock
+      SessionNoteTimelineAssembler timelineAssembler,
+      ProgressOverviewService overviewService,
+      ProgressAccessGuard accessGuard
   ) {
     this.planRepository = planRepository;
-    this.noteRepository = noteRepository;
     this.connectionFacade = connectionFacade;
     this.profileFacade = profileFacade;
-    this.iamFacade = iamFacade;
+    this.names = names;
     this.sessionFacade = sessionFacade;
-    this.clock = java.util.Objects.requireNonNull(clock);
+    this.timelineAssembler = timelineAssembler;
+    this.overviewService = overviewService;
+    this.accessGuard = accessGuard;
   }
 
   /**
@@ -81,8 +74,7 @@ public class ProgressDashboardService {
   public StudentDashboardView getStudentDashboard(
       CurrentUser actor,
       UUID studentId,
-      UUID specifiedClassId,
-      String range
+      UUID specifiedClassId
   ) {
     if (actor.hasRole("STUDENT")) {
       UUID actorStudentId = profileFacade.getStudentIdByUserId(actor.getUserId());
@@ -93,13 +85,13 @@ public class ProgressDashboardService {
     requireStudentAccess(actor, studentId);
 
     StudentSummaryDto student = profileFacade.findStudentById(studentId).orElse(null);
-    String studentName = resolveStudentName(student);
+    String studentName = names.studentName(student);
 
     List<ConnectionFacade.ClassDetailView> classes = connectionFacade.findClassesByStudent(studentId);
     if (classes.isEmpty()) {
       return new StudentDashboardView(
           studentId, studentName, List.of(), null, null, null, null, null,
-          null, null, null, List.of(), List.of(), false
+          null, null, null, List.of(), false
       );
     }
 
@@ -115,7 +107,7 @@ public class ProgressDashboardService {
     for (ConnectionFacade.ClassDetailView c : classes) {
       LearningPlan p = planMap.get(c.classId());
       Integer prog = p != null ? p.calculateProgressPercentage() : null;
-      String title = needTitle(goalMap.get(c.needId()), "Lớp học");
+      String title = ProgressDisplayNames.needTitle(goalMap.get(c.needId()), "Lớp học");
       selectorItems.add(new ClassSelectorItemView(c.classId(), title, c.status(), prog));
     }
 
@@ -141,45 +133,27 @@ public class ProgressDashboardService {
     }
 
     // Thông tin Tutor
-    String tutorName = "Gia sư";
-    if (selectedClass.tutorId() != null) {
-      TutorSummaryDto tutor = profileFacade.findTutorById(selectedClass.tutorId()).orElse(null);
-      if (tutor != null && tutor.userId() != null) {
-        tutorName = iamFacade.findUserSummaryById(tutor.userId())
-            .map(UserSummaryView::fullName)
-            .orElse("Gia sư");
-      }
-    }
+    String tutorName = names.tutorName(selectedClass.tutorId());
 
     // Tiêu đề mục tiêu
-    String goalTitle = needTitle(goalMap.get(selectedClass.needId()), "Mục tiêu học tập");
+    String goalTitle = ProgressDisplayNames.needTitle(goalMap.get(selectedClass.needId()), "Mục tiêu học tập");
 
-    // Session stats từ Scheduling
-    Map<UUID, ClassSessionStatsView> statsMap = sessionFacade.getSessionStatsByClassIds(List.of(classId), null, null);
-    ClassSessionStatsView stats = statsMap.get(classId);
+    // Người xem quyết định phần riêng tư: gia sư dạy học sinh ở lớp khác chỉ có quyền như gia sư.
+    ViewerAudience audience = accessGuard
+        .resolveAudience(actor, selectedClass.tutorId(), selectedClass.studentId())
+        .orElse(ViewerAudience.TUTOR);
 
-    // Biểu đồ chuỗi thời gian tiến độ
-    List<ProgressSeriesPointView> series = buildProgressSeries(plan, range);
-
-    // 10 ghi chú gần nhất
-    List<SessionTimelineView> recentSessions = sessionFacade.findSessionsByClassId(classId, null, null);
-    List<UUID> sessionIds = recentSessions.stream().map(SessionTimelineView::sessionId).toList();
-    Map<UUID, SessionNote> notesMap = noteRepository.findBySessionIdIn(sessionIds).stream()
-        .collect(Collectors.toMap(SessionNote::getSessionId, n -> n));
-
-    List<SessionNoteTimelineView> noteViews = recentSessions.stream()
-        .filter(s -> notesMap.containsKey(s.sessionId()))
-        .limit(10)
-        .map(s -> {
-          SessionNote note = notesMap.get(s.sessionId());
-          return new SessionNoteTimelineView(
-              s.sessionId(), s.classId(), s.startAt(), s.endAt(), s.status(),
-              note.getNoteText(), note.getCreatedAt()
-          );
-        })
+    // Sổ liên lạc: chỉ các buổi đã có nhận xét/ghi nhận, mới nhất trước
+    List<SessionNoteTimelineView> timeline = timelineAssembler.assemble(
+        sessionFacade.findSessionsByClassId(classId, null, null), plan, audience
+    ).stream()
+        .filter(n -> n.recordedAt() != null)
+        .sorted(Comparator.comparing(SessionNoteTimelineView::startAt).reversed())
         .toList();
+    List<SessionNoteTimelineView> noteViews = timeline.stream().limit(RECENT_NOTES_LIMIT).toList();
+    boolean hasMoreNotes = timeline.size() > RECENT_NOTES_LIMIT;
 
-    boolean hasMoreNotes = notesMap.size() > 10;
+    ProgressOverviewView overview = overviewService.build(selectedClass, plan, goalTitle, timeline);
 
     return new StudentDashboardView(
         studentId,
@@ -192,8 +166,7 @@ public class ProgressDashboardService {
         goalTitle,
         plan != null ? plan.calculateProgressPercentage() : null,
         plan != null ? PlanDetailView.from(plan) : null,
-        stats,
-        series,
+        overview,
         noteViews,
         hasMoreNotes
     );
@@ -212,7 +185,7 @@ public class ProgressDashboardService {
     List<ParentStudentSummaryView> summaries = new ArrayList<>();
 
     for (UUID sId : studentIds) {
-      StudentDashboardView studentDash = getStudentDashboard(actor, sId, null, "30D");
+      StudentDashboardView studentDash = getStudentDashboard(actor, sId, null);
       summaries.add(new ParentStudentSummaryView(
           sId,
           studentDash.studentName(),
@@ -262,7 +235,7 @@ public class ProgressDashboardService {
       String filterLower = studentNameFilter.toLowerCase();
       classes = classes.stream().filter(c -> {
         StudentSummaryDto s = profileFacade.findStudentById(c.studentId()).orElse(null);
-        String name = resolveStudentName(s);
+        String name = names.studentName(s);
         return name.toLowerCase().contains(filterLower);
       }).toList();
     }
@@ -288,9 +261,9 @@ public class ProgressDashboardService {
     List<TeachingHistoryItemView> items = new ArrayList<>();
     for (ConnectionFacade.ClassDetailView c : pagedClasses) {
       StudentSummaryDto student = profileFacade.findStudentById(c.studentId()).orElse(null);
-      String studentName = resolveStudentName(student);
+      String studentName = names.studentName(student);
 
-      String goalTitle = needTitle(goalMap.get(c.needId()), "Mục tiêu");
+      String goalTitle = ProgressDisplayNames.needTitle(goalMap.get(c.needId()), "Mục tiêu");
 
       LearningPlan p = planMap.get(c.classId());
       Integer progress = p != null ? p.calculateProgressPercentage() : null;
@@ -312,59 +285,6 @@ public class ProgressDashboardService {
     }
 
     return new PageImpl<>(items, PageRequest.of(page, size), totalElements);
-  }
-
-  // ── Helper xây dựng biểu đồ tích lũy tiến độ theo thời gian ───────────────
-
-  private List<ProgressSeriesPointView> buildProgressSeries(LearningPlan plan, String range) {
-    if (plan == null) return List.of();
-
-    List<Milestone> active = plan.getActiveMilestones();
-    int totalWeight = active.stream().mapToInt(Milestone::getWeight).sum();
-    if (totalWeight == 0) return List.of();
-
-    LocalDate today = LocalDate.now(clock);
-    LocalDate rangeStart = switch (range != null ? range.toUpperCase() : "30D") {
-      case "90D" -> today.minusDays(90);
-      case "ALL" -> LocalDate.MIN;
-      default -> today.minusDays(30);
-    };
-
-    // Lọc các milestone ACHIEVED có achievedDate
-    List<Milestone> achieved = active.stream()
-        .filter(m -> m.getStatus() == MilestoneStatus.ACHIEVED && m.getAchievedDate() != null)
-        .sorted(Comparator.comparing(Milestone::getAchievedDate))
-        .toList();
-
-    if (achieved.isEmpty()) return List.of();
-
-    // Điểm mở đầu: nếu có milestone achieved trước rangeStart
-    int priorWeight = achieved.stream()
-        .filter(m -> m.getAchievedDate().isBefore(rangeStart))
-        .mapToInt(Milestone::getWeight)
-        .sum();
-
-    List<ProgressSeriesPointView> points = new ArrayList<>();
-    if (rangeStart != LocalDate.MIN && priorWeight > 0) {
-      int initialPercent = BigDecimal.valueOf(priorWeight)
-          .multiply(BigDecimal.valueOf(100))
-          .divide(BigDecimal.valueOf(totalWeight), 0, RoundingMode.HALF_UP)
-          .intValue();
-      points.add(new ProgressSeriesPointView(rangeStart, initialPercent));
-    }
-
-    int runningWeight = priorWeight;
-    for (Milestone m : achieved) {
-      if (m.getAchievedDate().isBefore(rangeStart)) continue;
-      runningWeight += m.getWeight();
-      int percent = BigDecimal.valueOf(runningWeight)
-          .multiply(BigDecimal.valueOf(100))
-          .divide(BigDecimal.valueOf(totalWeight), 0, RoundingMode.HALF_UP)
-          .intValue();
-      points.add(new ProgressSeriesPointView(m.getAchievedDate(), percent));
-    }
-
-    return points;
   }
 
   private void requireStudentAccess(CurrentUser actor, UUID studentId) {
@@ -390,24 +310,5 @@ public class ProgressDashboardService {
     }
 
     throw new ForbiddenOperationException("Không có quyền truy cập tiến độ của học sinh này");
-  }
-
-  private String resolveStudentName(StudentSummaryDto student) {
-    if (student == null || student.userId() == null) return "Học sinh";
-    return iamFacade.findUserSummaryById(student.userId())
-        .map(UserSummaryView::fullName)
-        .orElse("Học sinh");
-  }
-
-  /** Tiêu đề lớp theo nhu cầu học, ví dụ "Luyện thi vào 10 · Toán · Lớp 9". */
-  private static String needTitle(LearningNeedView need, String fallback) {
-    if (need == null || need.goalTagName() == null) {
-      return fallback;
-    }
-    var parts = new java.util.ArrayList<String>();
-    parts.add(need.goalTagName());
-    if (need.subjectName() != null) parts.add(need.subjectName());
-    if (need.educationLevelName() != null) parts.add(need.educationLevelName());
-    return String.join(" · ", parts);
   }
 }

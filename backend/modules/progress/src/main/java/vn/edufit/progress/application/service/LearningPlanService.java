@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edufit.connection.api.ConnectionFacade;
-import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.progress.application.dto.CreatePlanCommand;
 import vn.edufit.progress.application.dto.UpdateMilestoneStatusCommand;
 import vn.edufit.progress.application.dto.UpdatePlanCommand;
@@ -26,50 +25,46 @@ import vn.edufit.progress.domain.repository.PlanHistoryDomainRepository;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
-import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.exception.ResourceConflictException;
-import vn.edufit.shared.notification.NotificationSink;
 
 @Slf4j
 @Service
 public class LearningPlanService {
 
+  static final String ACTION_STATUS_CHANGED = "MILESTONE_STATUS_CHANGED";
+  static final String ACTION_REOPENED = "MILESTONE_REOPENED";
+  static final String ACTION_UPDATED = "MILESTONE_UPDATED";
+
   private final LearningPlanDomainRepository planRepository;
   private final PlanHistoryDomainRepository historyRepository;
-  private final ConnectionFacade connectionFacade;
-  private final ProfileFacade profileFacade;
-  private final NotificationSink notifications;
+  private final ProgressAccessGuard accessGuard;
+  private final MilestoneAchievementNotifier achievementNotifier;
   private final Clock clock;
 
   public LearningPlanService(
       LearningPlanDomainRepository planRepository,
       PlanHistoryDomainRepository historyRepository,
-      ConnectionFacade connectionFacade,
-      ProfileFacade profileFacade,
-      NotificationSink notifications,
+      ProgressAccessGuard accessGuard,
+      MilestoneAchievementNotifier achievementNotifier,
       Clock clock
   ) {
     this.planRepository = planRepository;
     this.historyRepository = historyRepository;
-    this.connectionFacade = connectionFacade;
-    this.profileFacade = profileFacade;
-    this.notifications = notifications;
-    this.clock = java.util.Objects.requireNonNull(clock);
+    this.accessGuard = accessGuard;
+    this.achievementNotifier = achievementNotifier;
+    this.clock = Objects.requireNonNull(clock);
   }
 
   /**
    * Tạo Kế hoạch học tập mới cho lớp học (UC5.1).
-   * Chỉ Gia sư của lớp học ACTIVE mới có quyền tạo.
+   * Chỉ Gia sư của lớp học ACTIVE mới có quyền tạo. Mỗi cột mốc bắt buộc có 1–4 tiêu chí đạt.
    */
   @Transactional
   public LearningPlan createPlan(CurrentUser actor, CreatePlanCommand req) {
-    ConnectionFacade.ClassDetailView cls = requireClass(req.classId());
-    requireTutorOfClass(actor, cls);
-
-    if (!"ACTIVE".equals(cls.status())) {
-      throw new InvalidOperationException("Chỉ có thể tạo kế hoạch học tập cho lớp học đang hoạt động");
-    }
+    ConnectionFacade.ClassDetailView cls = accessGuard.requireClass(req.classId());
+    accessGuard.requireTutorOfClass(actor, cls);
+    accessGuard.requireActiveClass(cls, "Chỉ có thể tạo kế hoạch học tập cho lớp học đang hoạt động");
 
     if (planRepository.existsByClassId(req.classId())) {
       throw new ResourceConflictException("Lớp học này đã có kế hoạch học tập");
@@ -80,30 +75,24 @@ public class LearningPlanService {
     List<Milestone> initialMilestones = new ArrayList<>();
     int order = 0;
     for (CreatePlanCommand.CreateMilestoneItem item : req.milestones()) {
-      int weight = item.weight() != null ? item.weight() : 1;
       initialMilestones.add(Milestone.createNew(
           null, // planId will be set by LearningPlan.createNew
           item.title(),
           item.description(),
           item.targetDate(),
-          weight,
+          item.weight() != null ? item.weight() : 1,
           order++,
-          today
+          item.criteria(),
+          today,
+          now
       ));
     }
 
     LearningPlan plan = LearningPlan.createNew(req.classId(), req.summary(), initialMilestones, now);
     LearningPlan saved = planRepository.save(plan);
 
-    // Ghi Audit Trail
     historyRepository.save(PlanHistory.of(
-        saved.getPlanId(),
-        null,
-        "PLAN_CREATED",
-        actor.getUserId(),
-        null,
-        saved.getSummary(),
-        now
+        saved.getPlanId(), null, "PLAN_CREATED", actor.getUserId(), null, saved.getSummary(), now
     ));
 
     log.info("Tạo kế hoạch học tập thành công: planId={}, classId={}, tutorUserId={}",
@@ -118,8 +107,8 @@ public class LearningPlanService {
    */
   @Transactional(readOnly = true)
   public LearningPlan getPlanByClassId(CurrentUser actor, UUID classId) {
-    ConnectionFacade.ClassDetailView cls = requireClass(classId);
-    requireMemberOrParentAccess(actor, cls);
+    ConnectionFacade.ClassDetailView cls = accessGuard.requireClass(classId);
+    accessGuard.requireMemberOrParentAccess(actor, cls, "Bạn không có quyền truy cập kế hoạch học tập của lớp này");
 
     return planRepository.findByClassId(classId)
         .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kế hoạch học tập cho lớp học ID: " + classId));
@@ -134,26 +123,14 @@ public class LearningPlanService {
     LearningPlan plan = planRepository.findById(planId)
         .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kế hoạch học tập với ID: " + planId));
 
-    ConnectionFacade.ClassDetailView cls = requireClass(plan.getClassId());
-    requireTutorOfClass(actor, cls);
-
-    if (!"ACTIVE".equals(cls.status())) {
-      throw new InvalidOperationException("Chỉ có thể cập nhật kế hoạch học tập cho lớp học đang hoạt động");
-    }
-
-    // 1. Kiểm tra Optimistic Locking
-    if (plan.getVersion() != req.version()) {
-      throw new ResourceConflictException(
-          ErrorCode.PLAN_VERSION_CONFLICT,
-          "Kế hoạch đã bị chỉnh sửa bởi phiên làm việc khác (phiên bản máy chủ: "
-              + plan.getVersion() + ", phiên bản gửi lên: " + req.version() + ")"
-      );
-    }
+    ConnectionFacade.ClassDetailView cls = accessGuard.requireClass(plan.getClassId());
+    accessGuard.requireTutorOfClass(actor, cls);
+    accessGuard.requireActiveClass(cls, "Chỉ có thể cập nhật kế hoạch học tập cho lớp học đang hoạt động");
+    requireVersion(plan, req.version());
 
     LocalDate today = LocalDate.now(clock);
     Instant now = Instant.now(clock);
 
-    // 2. Cập nhật summary nếu thay đổi
     String oldSummary = plan.getSummary();
     if (!Objects.equals(oldSummary, req.summary())) {
       plan.updateSummary(req.summary(), now);
@@ -162,7 +139,6 @@ public class LearningPlanService {
       ));
     }
 
-    // 3. Xử lý danh sách Milestone: phân loại giữ lại, thêm mới, archive hoặc xóa
     Map<UUID, UpdatePlanCommand.UpdateMilestoneItem> incomingMap = req.milestones().stream()
         .filter(m -> m.milestoneId() != null)
         .collect(Collectors.toMap(UpdatePlanCommand.UpdateMilestoneItem::milestoneId, m -> m));
@@ -170,37 +146,49 @@ public class LearningPlanService {
     List<Milestone> currentList = new ArrayList<>(plan.getMilestones());
     List<Milestone> nextList = new ArrayList<>();
 
-    // 3.1. Xử lý các milestone hiện có
+    // 1. Milestone hiện có: cập nhật, archive (nếu đã tiến triển) hoặc xóa thật
     for (Milestone existing : currentList) {
-      if (incomingMap.containsKey(existing.getMilestoneId())) {
-        UpdatePlanCommand.UpdateMilestoneItem incoming = incomingMap.get(existing.getMilestoneId());
-        int weight = incoming.weight() != null ? incoming.weight() : existing.getWeight();
-        int sortOrder = req.milestones().indexOf(incoming);
-
-        existing.updateDetails(incoming.title(), incoming.description(), incoming.targetDate(), weight, sortOrder, today);
-        nextList.add(existing);
-      } else {
-        // Milestone không còn trong payload: nếu đã từng tiến triển thì archive, nếu chưa thì xóa thật
-        if (existing.hasProgressed()) {
-          existing.archive();
-          nextList.add(existing);
+      UpdatePlanCommand.UpdateMilestoneItem incoming = incomingMap.get(existing.getMilestoneId());
+      if (incoming != null) {
+        boolean changed = existing.updateDetails(
+            incoming.title(),
+            incoming.description(),
+            incoming.targetDate(),
+            incoming.weight() != null ? incoming.weight() : existing.getWeight(),
+            req.milestones().indexOf(incoming),
+            toDrafts(incoming.criteria()),
+            today,
+            now
+        );
+        if (changed) {
           historyRepository.save(PlanHistory.of(
-              planId, existing.getMilestoneId(), "MILESTONE_ARCHIVED", actor.getUserId(), existing.getTitle(), null, now
-          ));
-        } else {
-          historyRepository.save(PlanHistory.of(
-              planId, existing.getMilestoneId(), "MILESTONE_DELETED", actor.getUserId(), existing.getTitle(), null, now
+              planId, existing.getMilestoneId(), ACTION_UPDATED, actor.getUserId(), null, existing.getTitle(), now
           ));
         }
+        nextList.add(existing);
+      } else if (existing.hasProgressed()) {
+        existing.archive();
+        nextList.add(existing);
+        historyRepository.save(PlanHistory.of(
+            planId, existing.getMilestoneId(), "MILESTONE_ARCHIVED", actor.getUserId(), existing.getTitle(), null, now
+        ));
+      } else {
+        historyRepository.save(PlanHistory.of(
+            planId, existing.getMilestoneId(), "MILESTONE_DELETED", actor.getUserId(), existing.getTitle(), null, now
+        ));
       }
     }
 
-    // 3.2. Thêm các milestone mới (chưa có milestoneId hoặc milestoneId mới)
+    // 2. Milestone mới (chưa có milestoneId hoặc milestoneId lạ)
     for (int i = 0; i < req.milestones().size(); i++) {
       UpdatePlanCommand.UpdateMilestoneItem item = req.milestones().get(i);
       if (item.milestoneId() == null || currentList.stream().noneMatch(m -> m.getMilestoneId().equals(item.milestoneId()))) {
-        int weight = item.weight() != null ? item.weight() : 1;
-        Milestone newMilestone = Milestone.createNew(planId, item.title(), item.description(), item.targetDate(), weight, i, today);
+        List<String> contents = item.criteria() != null
+            ? item.criteria().stream().map(UpdatePlanCommand.CriterionItem::content).toList()
+            : List.of();
+        Milestone newMilestone = Milestone.createNew(
+            planId, item.title(), item.description(), item.targetDate(),
+            item.weight() != null ? item.weight() : 1, i, contents, today, now);
         nextList.add(newMilestone);
         historyRepository.save(PlanHistory.of(
             planId, newMilestone.getMilestoneId(), "MILESTONE_CREATED", actor.getUserId(), null, item.title(), now
@@ -208,7 +196,6 @@ public class LearningPlanService {
       }
     }
 
-    // Tạo aggregate mới với danh sách milestone đã cập nhật và validate 1-20 active
     LearningPlan updatedPlan = new LearningPlan(
         plan.getPlanId(),
         plan.getClassId(),
@@ -218,7 +205,7 @@ public class LearningPlanService {
         now,
         nextList
     );
-    updatedPlan.validateActiveMilestonesCount();
+    updatedPlan.validateShape();
 
     LearningPlan saved = planRepository.save(updatedPlan);
     log.info("Cập nhật kế hoạch học tập thành công: planId={}, newVersion={}", saved.getPlanId(), saved.getVersion());
@@ -227,127 +214,77 @@ public class LearningPlanService {
 
   /**
    * Cập nhật trạng thái một Cột mốc (UC5.4).
-   * Phát notification khi milestone chuyển từ trạng thái khác sang ACHIEVED.
+   *
+   * <ul>
+   *   <li>{@code ACHIEVED}: gia sư chốt, yêu cầu tick đủ tiêu chí; phát thông báo tới học sinh và phụ huynh.</li>
+   *   <li>{@code ACHIEVED → IN_PROGRESS}: mở lại, bắt buộc có lý do; ngày đạt cũ được lưu trong plan_history.</li>
+   *   <li>{@code IN_PROGRESS} tự động khi buổi học được gắn vào cột mốc, không đặt thủ công.</li>
+   * </ul>
    */
   @Transactional
   public LearningPlan updateMilestoneStatus(CurrentUser actor, UUID milestoneId, UpdateMilestoneStatusCommand req) {
     LearningPlan plan = planRepository.findByMilestoneId(milestoneId)
         .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cột mốc với ID: " + milestoneId));
 
-    ConnectionFacade.ClassDetailView cls = requireClass(plan.getClassId());
-    requireTutorOfClass(actor, cls);
+    ConnectionFacade.ClassDetailView cls = accessGuard.requireClass(plan.getClassId());
+    accessGuard.requireTutorOfClass(actor, cls);
+    accessGuard.requireActiveClass(cls, "Chỉ có thể cập nhật cột mốc cho lớp học đang hoạt động");
+    requireVersion(plan, req.version());
 
-    if (!"ACTIVE".equals(cls.status())) {
-      throw new InvalidOperationException("Chỉ có thể cập nhật cột mốc cho lớp học đang hoạt động");
-    }
-
-    // 1. Kiểm tra Optimistic Locking
-    if (plan.getVersion() != req.version()) {
-      throw new ResourceConflictException(
-          ErrorCode.PLAN_VERSION_CONFLICT,
-          "Kế hoạch đã bị chỉnh sửa bởi phiên làm việc khác (phiên bản máy chủ: "
-              + plan.getVersion() + ", phiên bản gửi lên: " + req.version() + ")"
-      );
-    }
-
-    Milestone milestone = plan.getMilestones().stream()
-        .filter(m -> m.getMilestoneId().equals(milestoneId))
-        .findFirst()
+    Milestone milestone = plan.findActiveMilestone(milestoneId)
         .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cột mốc trong kế hoạch"));
+    if (req.status() == null) {
+      throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED, "Trạng thái cột mốc không được để trống");
+    }
 
     LocalDate today = LocalDate.now(clock);
     Instant now = Instant.now(clock);
     MilestoneStatus oldStatus = milestone.getStatus();
-    milestone.updateStatus(req.status(), req.achievedDate(), today);
 
-    // 2. Ghi Audit Trail
-    historyRepository.save(PlanHistory.of(
-        plan.getPlanId(),
-        milestoneId,
-        "MILESTONE_STATUS_CHANGED",
-        actor.getUserId(),
-        oldStatus.name(),
-        req.status().name(),
-        now
-    ));
+    if (req.status() == MilestoneStatus.ACHIEVED) {
+      milestone.achieve(req.achievedDate(), today);
+      historyRepository.save(PlanHistory.of(
+          plan.getPlanId(), milestoneId, ACTION_STATUS_CHANGED, actor.getUserId(),
+          oldStatus.name(), MilestoneStatus.ACHIEVED.name(), now
+      ));
+    } else if (req.status() == MilestoneStatus.IN_PROGRESS && oldStatus == MilestoneStatus.ACHIEVED) {
+      LocalDate previousAchievedDate = milestone.reopen(req.reason());
+      historyRepository.save(PlanHistory.of(
+          plan.getPlanId(), milestoneId, ACTION_REOPENED, actor.getUserId(),
+          MilestoneStatus.ACHIEVED.name() + "@" + previousAchievedDate,
+          MilestoneStatus.IN_PROGRESS.name() + ": " + req.reason().trim(),
+          now
+      ));
+    } else {
+      throw new InvalidOperationException(
+          ErrorCode.INVALID_OPERATION,
+          "Chỉ có thể chốt đạt hoặc mở lại cột mốc đã đạt. Trạng thái \"Đang học\" được cập nhật tự động khi buổi học được gắn vào cột mốc."
+      );
+    }
 
-    // 3. Lưu kế hoạch
     LearningPlan saved = planRepository.save(plan);
 
-    // 4. Nếu vừa đạt trạng thái ACHIEVED -> gửi notification tới Học sinh và các Phụ huynh liên kết
-    if (oldStatus != MilestoneStatus.ACHIEVED && req.status() == MilestoneStatus.ACHIEVED) {
-      notifyMilestoneAchieved(cls, milestone);
+    if (req.status() == MilestoneStatus.ACHIEVED) {
+      achievementNotifier.notifyAchieved(cls, milestone);
     }
 
     log.info("Cập nhật trạng thái milestone thành công: milestoneId={}, oldStatus={}, newStatus={}",
         milestoneId, oldStatus, req.status());
-
     return saved;
   }
 
-  private void notifyMilestoneAchieved(ConnectionFacade.ClassDetailView cls, Milestone milestone) {
-    // Thông báo cho Học sinh
-    profileFacade.findStudentById(cls.studentId()).ifPresent(student -> {
-      notifications.notify(
-          student.userId(),
-          cls.studentId(),
-          "MILESTONE_ACHIEVED",
-          "Chúc mừng! Đạt cột mốc mới",
-          "Bạn đã hoàn thành cột mốc: " + milestone.getTitle(),
-          "MILESTONE",
-          milestone.getMilestoneId()
-      );
-    });
-
-    // Thông báo cho các Phụ huynh đã xác nhận liên kết
-    List<UUID> parentUserIds = connectionFacade.findConfirmedParentUserIds(cls.studentId());
-    for (UUID parentUserId : parentUserIds) {
-      notifications.notify(
-          parentUserId,
-          cls.studentId(),
-          "MILESTONE_ACHIEVED",
-          "Học sinh đạt cột mốc mới",
-          "Học sinh đã hoàn thành cột mốc: " + milestone.getTitle(),
-          "MILESTONE",
-          milestone.getMilestoneId()
+  private static void requireVersion(LearningPlan plan, Integer requestedVersion) {
+    if (requestedVersion == null || plan.getVersion() != requestedVersion) {
+      throw new ResourceConflictException(
+          ErrorCode.PLAN_VERSION_CONFLICT,
+          "Kế hoạch đã bị chỉnh sửa bởi phiên làm việc khác (phiên bản máy chủ: "
+              + plan.getVersion() + ", phiên bản gửi lên: " + requestedVersion + ")"
       );
     }
   }
 
-  // ── Helper xác thực quyền ────────────────────────────────────────────────
-
-  private ConnectionFacade.ClassDetailView requireClass(UUID classId) {
-    return connectionFacade.findClassById(classId)
-        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy lớp học với ID: " + classId));
-  }
-
-  private void requireTutorOfClass(CurrentUser actor, ConnectionFacade.ClassDetailView cls) {
-    if (!actor.hasRole("TUTOR")) {
-      throw new ForbiddenOperationException("Chỉ tài khoản Gia sư mới có quyền thực hiện thao tác này");
-    }
-    UUID tutorId = profileFacade.getTutorIdByUserId(actor.getUserId());
-    if (tutorId == null || !tutorId.equals(cls.tutorId())) {
-      throw new ForbiddenOperationException("Chỉ Gia sư được phân công của lớp học mới có quyền thực hiện thao tác này");
-    }
-  }
-
-  private void requireMemberOrParentAccess(CurrentUser actor, ConnectionFacade.ClassDetailView cls) {
-    if (actor.hasRole("ADMIN")) return;
-
-    if (actor.hasRole("TUTOR")) {
-      UUID tutorId = profileFacade.getTutorIdByUserId(actor.getUserId());
-      if (tutorId != null && tutorId.equals(cls.tutorId())) return;
-    }
-
-    if (actor.hasRole("STUDENT")) {
-      UUID studentId = profileFacade.getStudentIdByUserId(actor.getUserId());
-      if (studentId != null && studentId.equals(cls.studentId())) return;
-    }
-
-    if (actor.hasRole("PARENT")) {
-      if (connectionFacade.hasConfirmedParentLink(actor.getUserId(), cls.studentId())) return;
-    }
-
-    throw new ForbiddenOperationException("Bạn không có quyền truy cập kế hoạch học tập của lớp này");
+  private static List<Milestone.CriterionDraft> toDrafts(List<UpdatePlanCommand.CriterionItem> items) {
+    if (items == null) return List.of();
+    return items.stream().map(c -> new Milestone.CriterionDraft(c.criterionId(), c.content())).toList();
   }
 }

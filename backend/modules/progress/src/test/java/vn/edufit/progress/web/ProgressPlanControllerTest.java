@@ -61,7 +61,7 @@ class ProgressPlanControllerTest {
     UUID classId = UUID.randomUUID();
     CreatePlanRequest req = new CreatePlanRequest(classId, "Summary", List.of());
 
-    Milestone m = new Milestone(UUID.randomUUID(), UUID.randomUUID(), "M1", "Desc", LocalDate.now(), 1, MilestoneStatus.NOT_STARTED, null, false, 0, Instant.now());
+    Milestone m = new Milestone(UUID.randomUUID(), UUID.randomUUID(), "M1", "Desc", LocalDate.now(), 1, MilestoneStatus.NOT_STARTED, null, false, 0, Instant.now(), List.of());
     LearningPlan plan = new LearningPlan(UUID.randomUUID(), classId, "Summary", 0, Instant.now(), Instant.now(), List.of(m));
 
     when(planService.createPlan(eq(mockUser), eq(req.toCommand()))).thenReturn(plan);
@@ -108,9 +108,9 @@ class ProgressPlanControllerTest {
   @DisplayName("PATCH /milestones/{milestoneId}/status -> 200 OK tra ve PlanResponse day du")
   void updateMilestoneStatus_ReturnsOkWithFullPlanResponse() {
     UUID milestoneId = UUID.randomUUID();
-    UpdateMilestoneStatusRequest req = new UpdateMilestoneStatusRequest(0, MilestoneStatus.ACHIEVED, LocalDate.now());
+    UpdateMilestoneStatusRequest req = new UpdateMilestoneStatusRequest(0, MilestoneStatus.ACHIEVED, LocalDate.now(), null);
 
-    Milestone m = new Milestone(milestoneId, UUID.randomUUID(), "M1", "Desc", LocalDate.now(), 2, MilestoneStatus.ACHIEVED, LocalDate.now(), false, 0, Instant.now());
+    Milestone m = new Milestone(milestoneId, UUID.randomUUID(), "M1", "Desc", LocalDate.now(), 2, MilestoneStatus.ACHIEVED, LocalDate.now(), false, 0, Instant.now(), List.of());
     LearningPlan plan = new LearningPlan(UUID.randomUUID(), UUID.randomUUID(), "Summary", 1, Instant.now(), Instant.now(), List.of(m));
 
     when(planService.updateMilestoneStatus(eq(mockUser), eq(milestoneId), eq(req.toCommand()))).thenReturn(plan);

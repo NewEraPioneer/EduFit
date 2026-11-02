@@ -35,6 +35,10 @@ public interface TutoringSessionDomainRepository {
 
   List<TutoringSession> findOverdueOutcomeSessions(Instant cutoff);
 
+  List<TutoringSession> findCompletedEndedBetween(Instant from, Instant to);
+
+  List<TutoringSession> findByIds(java.util.Collection<UUID> sessionIds);
+
   List<TutoringSession> findScheduledSessionsByClass(UUID classId, Instant from, Instant to);
 
   List<TutoringSession> findByClassId(UUID classId, Instant from, Instant to);
