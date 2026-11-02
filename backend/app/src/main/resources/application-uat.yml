@@ -32,7 +32,9 @@ spring:
     # UAT chỉ chạy migration thật, KHÔNG nạp classpath:db/seed
     locations: classpath:db/migration
     validate-on-migrate: true
-    baseline-on-migrate: true
+    # Không tự baseline một database có lịch sử không rõ nguồn gốc; phải
+    # backup và đối chiếu flyway_schema_history trước khi migrate UAT.
+    baseline-on-migrate: false
     out-of-order: false
 
   jpa:

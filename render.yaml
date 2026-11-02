@@ -16,7 +16,7 @@ services:
     plan: free
     branch: develop
     healthCheckPath: /actuator/health
-    autoDeploy: false # Khuyến nghị: Deploy có kiểm soát sau khi nghiệm thu CI / QA
+    autoDeployTrigger: off # Deploy có kiểm soát sau khi nghiệm thu CI / QA
     envVars:
       # Cấu hình Spring Boot Profile
       - key: SPRING_PROFILES_ACTIVE
