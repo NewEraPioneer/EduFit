@@ -53,10 +53,12 @@ describe('Luồng 03 — Danh mục và hồ sơ chuyên môn', () => {
   let profilePage: ProfilePage;
   const admin = testData.validAccounts.find((account) => account.role === 'admin');
   const tutor = testData.validAccounts.find((account) => account.role === 'tutor');
+  const student = testData.validAccounts.find((account) => account.role === 'student');
   const runId = randomUUID().slice(0, 8);
   const tutorEmail = `e2e-profile-tutor-${runId}@example.test`;
   const tutorName = `Gia sư E2E ${runId}`;
   const tutorBio = `Giảng dạy Toán lớp 9 theo lộ trình cá nhân ${runId}.`;
+  const studentEmail = `e2e-profile-student-${runId}@example.test`;
 
   beforeAll(async () => {
     if (!admin) throw new Error('Thiếu tài khoản admin trong login-data.json');
@@ -115,5 +117,32 @@ describe('Luồng 03 — Danh mục và hồ sơ chuyên môn', () => {
     expect(offerings).toContain('Lớp 9');
     expect(offerings).toContain('230.000');
     expect(await profilePage.takeScreenshot('TC_UI_22_tutor_profile')).not.toBe('');
+  });
+
+  it('TC_UI_24: học sinh lưu hồ sơ và nhu cầu học rồi tải lại', async () => {
+    if (!student) throw new Error('Thiếu tài khoản student trong login-data.json');
+    await authPage.clearSession();
+    await driver.get(seleniumConfig.baseUrl);
+    await requestFromBrowser(driver, '/api/v1/auth/register', {
+      email: studentEmail,
+      password: student.password,
+      fullName: `Học sinh E2E ${runId}`,
+      role: 'STUDENT',
+    });
+    await requestFromBrowser(driver, '/api/v1/auth/login', {
+      email: studentEmail,
+      password: student.password,
+    });
+
+    await profilePage.navigateStudentProfile();
+    await profilePage.saveStudentDefaults();
+    await profilePage.navigateStudentProfile();
+    expect(await profilePage.getStudentDefaults()).toEqual({ level: 'Lớp 9', province: 'Hà Nội' });
+    await profilePage.createStudentLearningNeed();
+    await profilePage.navigateStudentProfile();
+    const needs = await profilePage.getLearningNeedsText();
+    expect(needs).toContain('Toán · Lớp 9 · Bồi dưỡng HSG & Thi chuyên');
+    expect(needs).toContain('Tối đa 250.000');
+    expect(await profilePage.takeScreenshot('TC_UI_24_student_profile')).not.toBe('');
   });
 });
