@@ -6,12 +6,12 @@ import { Plus } from "lucide-react";
 
 export interface ChildInfo {
   id: number;
+  studentId?: string;
   name: string;
   grade: string;
   tutorsCount: number;
   completedLessons: string;
   avgScore: string;
-  tuition: string;
   nextSession: string;
 }
 
@@ -52,7 +52,7 @@ export function ParentChildSwitcher({
         );
       })}
       <Link
-        href="/parent/link-student"
+        href="/parent/children"
         className="px-3.5 py-2.5 rounded-2xl border border-dashed border-stone-300 hover:border-emerald-400 text-neutral-500 hover:text-emerald-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
       >
         <Plus className="size-3.5" />

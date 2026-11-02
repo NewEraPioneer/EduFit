@@ -23,7 +23,9 @@ import {
   DollarSign,
   FileCheck2,
   HeartHandshake,
+  Star,
   BarChart3,
+  ScrollText,
   LucideIcon,
 } from "lucide-react";
 
@@ -78,6 +80,7 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         title: "TỔNG QUAN",
         items: [
           { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
+          { label: "Liên kết phụ huynh", href: "/student/family", icon: HeartHandshake },
           { label: "Tiến độ học tập", href: "/student/progress", icon: TrendingUp },
         ],
       },
@@ -99,7 +102,7 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
       {
         title: "TÀI CHÍNH",
         items: [
-          { label: "Học phí & Thanh toán", href: "/student/payments", icon: CreditCard },
+          { label: "Ví & Học phí", href: "/student/payments", icon: CreditCard },
         ],
       },
       {
@@ -125,13 +128,15 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         items: [
           { label: "Lịch dạy", href: "/tutor/schedule", icon: Calendar },
           { label: "Lớp học 1-1", href: "/tutor/classes", icon: BookOpen },
+          { label: "Lịch sử giảng dạy", href: "/tutor/history", icon: GraduationCap },
           { label: "Yêu cầu học viên", href: "/tutor/requests", icon: UserCheck },
+          { label: "Đánh giá", href: "/tutor/reviews", icon: Star },
         ],
       },
       {
         title: "THU NHẬP",
         items: [
-          { label: "Báo cáo thu nhập", href: "/tutor/earnings", icon: DollarSign },
+          { label: "Thu nhập & Rút tiền", href: "/tutor/earnings", icon: DollarSign },
         ],
       },
       {
@@ -149,7 +154,7 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         title: "TỔNG QUAN",
         items: [
           { label: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
-          { label: "Liên kết con em", href: "/parent/children", icon: HeartHandshake, badge: "2" },
+          { label: "Liên kết con em", href: "/parent/children", icon: HeartHandshake },
         ],
       },
       {
@@ -163,7 +168,7 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
       {
         title: "TÀI CHÍNH",
         items: [
-          { label: "Gói học & Thanh toán", href: "/parent/billing", icon: CreditCard },
+          { label: "Ví & Học phí", href: "/parent/billing", icon: CreditCard },
         ],
       },
       {
@@ -181,21 +186,24 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         title: "HỆ THỐNG",
         items: [
           { label: "Tổng quan", href: "/admin/dashboard", icon: LayoutDashboard },
-          { label: "Duyệt bằng cấp KYC", href: "/admin/verification-queue", icon: ShieldCheck, badge: "5" },
+          { label: "Duyệt bằng cấp KYC", href: "/admin/verification-queue", icon: ShieldCheck },
+          { label: "Đối soát thanh toán", href: "/admin/payments", icon: CreditCard },
+          { label: "Nhật ký kiểm toán", href: "/admin/audit-logs", icon: ScrollText },
         ],
       },
       {
-        title: "QUẢN LÝ NGƯỜI DÙNG",
+        title: "QUẢN LÝ DỮ LIỆU",
         items: [
           { label: "Học sinh & Phụ huynh", href: "/admin/learners", icon: Users },
           { label: "Gia sư", href: "/admin/tutors-management", icon: GraduationCap },
-          { label: "Khiếu nại & Tranh chấp", href: "/admin/disputes", icon: AlertTriangle, badge: "2" },
+          { label: "Liên kết Phụ huynh - Con", href: "/admin/family-links", icon: HeartHandshake },
+          { label: "Danh mục môn học", href: "/admin/catalogs", icon: BookOpen },
+          { label: "Khiếu nại & Tranh chấp", href: "/admin/disputes", icon: AlertTriangle },
         ],
       },
       {
         title: "CẤU HÌNH",
         items: [
-          { label: "Danh mục môn học", href: "/admin/catalogs", icon: BookOpen },
           { label: "Cài đặt hệ thống", href: "/admin/settings", icon: Settings },
         ],
       },
@@ -211,6 +219,7 @@ interface SidebarProps {
   user?: {
     fullName: string;
     email: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -252,7 +261,7 @@ function SidebarNav({
                     ? "bg-amber-500/10 dark:bg-amber-500/20 text-amber-900 dark:text-amber-400 font-semibold shadow-xs"
                     : "text-neutral-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-neutral-900 dark:hover:text-stone-100"
                 }`}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? (item.badge ? `${item.label} (${item.badge})` : item.label) : undefined}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon
@@ -273,7 +282,7 @@ function SidebarNav({
                 </div>
 
                 {!collapsed && item.badge && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs">
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
                     {item.badge}
                   </span>
                 )}
@@ -358,7 +367,7 @@ export function Sidebar({
                             ? "bg-amber-500/10 dark:bg-amber-500/20 text-amber-900 dark:text-amber-400 font-semibold shadow-xs"
                             : "text-neutral-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-neutral-900 dark:hover:text-stone-100"
                         }`}
-                        title={collapsed ? item.label : undefined}
+                        title={collapsed ? (item.badge ? `${item.label} (${item.badge})` : item.label) : undefined}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Icon
@@ -378,7 +387,7 @@ export function Sidebar({
                           </span>
                         </div>
                         {!collapsed && item.badge && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs">
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
                             {item.badge}
                           </span>
                         )}
@@ -408,9 +417,20 @@ export function Sidebar({
               collapsed ? "justify-center gap-0" : "gap-2"
             }`}
           >
-            <div className="size-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-bold text-xs flex items-center justify-center shrink-0 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/60 transition-colors">
-              {user.fullName.charAt(0).toUpperCase()}
-            </div>
+            {user.avatarUrl ? (
+              <div className="size-7 rounded-lg overflow-hidden border border-stone-200/80 dark:border-stone-700 shrink-0 bg-stone-100 dark:bg-stone-800">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={user.avatarUrl}
+                  alt={user.fullName}
+                  className="size-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="size-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-bold text-xs flex items-center justify-center shrink-0 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/60 transition-colors">
+                {user.fullName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div
               aria-hidden={collapsed}
               className={`flex flex-col overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ${

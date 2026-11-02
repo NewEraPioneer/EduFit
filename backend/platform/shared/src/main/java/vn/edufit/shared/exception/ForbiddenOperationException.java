@@ -22,4 +22,8 @@ public class ForbiddenOperationException extends BaseBusinessException {
   public ForbiddenOperationException(String message) {
     super(ErrorCode.FORBIDDEN, message);
   }
+
+  public ForbiddenOperationException(ErrorCode errorCode, String message) {
+    super(errorCode, message);
+  }
 }

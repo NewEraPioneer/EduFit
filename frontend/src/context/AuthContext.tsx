@@ -1,7 +1,15 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { authApi, type AuthUser, type LoginPayload, type RegisterPayload } from "@/features/auth/api/authApi";
+import {
+  authApi,
+  type AuthUser,
+  type LoginPayload,
+  type RegisterPayload,
+  type OAuthLoginPayload,
+  type OAuthLoginResult,
+  type CompleteOAuthRegistrationPayload,
+} from "@/features/auth/api/authApi";
 import { ApiError } from "@/lib/api";
 
 /**
@@ -23,10 +31,16 @@ interface AuthContextType {
   login: (payload: LoginPayload) => Promise<AuthUser>;
   /** Hàm thực hiện đăng ký tài khoản mới (UC1.1) */
   register: (payload: RegisterPayload) => Promise<AuthUser>;
+  /** Hàm đăng nhập bằng Google OAuth2 */
+  loginWithGoogle?: (payload: OAuthLoginPayload) => Promise<OAuthLoginResult>;
+  /** Hàm hoàn tất đăng ký OAuth sau khi chọn vai trò */
+  completeOAuthRegistration?: (payload: CompleteOAuthRegistrationPayload) => Promise<AuthUser>;
   /** Hàm đăng xuất và hủy phiên làm việc trên server (UC1.3) */
   logout: () => Promise<void>;
   /** Hàm làm mới và tải lại thông tin người dùng từ Backend */
   refreshUser: () => Promise<void>;
+  /** Hàm cập nhật thông tin người dùng trong bộ nhớ tạm (ví dụ khi cập nhật avatar) */
+  updateUser?: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -113,6 +127,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
+   * Xử lý Đăng nhập bằng Google OAuth2 (UC1.2)
+   */
+  const loginWithGoogle = async (payload: OAuthLoginPayload): Promise<OAuthLoginResult> => {
+    setError(null);
+    try {
+      const res = await authApi.loginWithGoogle(payload);
+      if (res.success && res.data) {
+        if (!res.data.needsRoleSelection && res.data.user) {
+          setUser(res.data.user);
+        }
+        return res.data;
+      }
+      throw new Error(res.message || "Đăng nhập Google thất bại");
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Đăng nhập Google thất bại. Vui lòng thử lại.";
+      setError(message);
+      throw err;
+    }
+  };
+
+  /**
+   * Xử lý Hoàn tất đăng ký sau khi chọn vai trò
+   */
+  const completeOAuthRegistration = async (
+    payload: CompleteOAuthRegistrationPayload
+  ): Promise<AuthUser> => {
+    setError(null);
+    try {
+      const res = await authApi.completeOAuthRegistration(payload);
+      if (res.success && res.data) {
+        setUser(res.data);
+        return res.data;
+      }
+      throw new Error(res.message || "Hoàn tất đăng ký thất bại");
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Hoàn tất đăng ký thất bại. Vui lòng thử lại.";
+      setError(message);
+      throw err;
+    }
+  };
+
+  /**
    * Xử lý Đăng xuất (UC1.3)
    * 1. Gửi POST /api/v1/auth/logout để hủy phiên trên Spring Session / PostgreSQL.
    * 2. Backend xóa bỏ cookie EDUFIT_SESSION.
@@ -134,8 +190,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error,
         login,
         register,
+        loginWithGoogle,
+        completeOAuthRegistration,
         logout,
         refreshUser,
+        updateUser: (updated: AuthUser) => setUser(updated),
       }}
     >
       {children}
@@ -154,3 +213,11 @@ export function useAuth() {
   }
   return context;
 }
+
+/**
+ * Hook truy cập AuthContext tùy chọn, trả về undefined nếu gọi ngoài <AuthProvider> thay vì ném ngoại lệ.
+ */
+export function useOptionalAuth() {
+  return useContext(AuthContext);
+}
+

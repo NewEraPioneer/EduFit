@@ -13,8 +13,13 @@ public record AuthUserResponse(
     String email,
     String fullName,
     AccountRole role,
-    AccountStatus status
+    AccountStatus status,
+    String avatarUrl
 ) {
+
+  public AuthUserResponse(UUID accountId, String email, String fullName, AccountRole role, AccountStatus status) {
+    this(accountId, email, fullName, role, status, null);
+  }
 
   public static AuthUserResponse from(Account account) {
     return new AuthUserResponse(
@@ -22,7 +27,8 @@ public record AuthUserResponse(
         account.getEmail(),
         account.getFullName(),
         account.getRole(),
-        account.getStatus()
+        account.getStatus(),
+        account.getAvatarUrl()
     );
   }
 }

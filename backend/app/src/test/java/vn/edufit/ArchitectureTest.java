@@ -26,7 +26,7 @@ import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.sli
 @AnalyzeClasses(packages = "vn.edufit", importOptions = {ImportOption.DoNotIncludeTests.class})
 public class ArchitectureTest {
   private static final Set<String> MODULES = Set.of("iam", "profile", "verification", "discovery",
-      "connection", "scheduling", "progress", "review", "notification");
+      "connection", "scheduling", "progress", "review", "notification", "payment");
   private static final String[] MODULE_PACKAGES = MODULES.stream()
       .map(module -> "vn.edufit." + module + "..").toArray(String[]::new);
 

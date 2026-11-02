@@ -1,16 +1,14 @@
 "use client";
 
 import React from "react";
-import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
-import type { SubjectItem, EducationLevel } from "@/services/catalog";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import type { LearningCatalog } from "@/services/catalog";
+import { goalTagsFor, tracksFor } from "@/features/learning-needs/catalogRules";
 import type { TutorSearchParams, TeachingMode } from "../../types";
 
 export interface QuickFilterPillsProps {
   params: TutorSearchParams;
-  subjects: SubjectItem[];
-  levels: EducationLevel[];
-  selectedSubject?: SubjectItem;
-  selectedLevel?: EducationLevel;
+  catalog: LearningCatalog | null;
   showAdvanced: boolean;
   hasActiveFilters: boolean;
   onUpdateFilters: (filters: Partial<TutorSearchParams>) => void;
@@ -29,23 +27,47 @@ const DAY_OPTIONS = [
   { value: 7, label: "Chủ Nhật" },
 ];
 
-const COMMON_AREAS = [
-  "Quận 1",
-  "Quận 3",
-  "Quận 5",
-  "Quận 7",
-  "Quận 10",
-  "Bình Thạnh",
-  "Tân Bình",
-  "Thủ Đức",
-];
+const activePill = "bg-[#006DCC] text-white border-transparent";
+const idlePill =
+  "bg-card border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800";
 
+/** Ô chọn dạng pill; giá trị rỗng nghĩa là không lọc. */
+function PillSelect({ label, value, options, onChange, disabled = false }: {
+  label: string;
+  value: number | string | undefined;
+  options: Array<{ value: number | string; label: string }>;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const active = value !== undefined && value !== "";
+  return (
+    <div className="relative inline-block max-w-full">
+      <select
+        value={value ?? ""}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label={`Lọc theo ${label.toLowerCase()}`}
+        disabled={disabled}
+        className={`appearance-none max-w-[14rem] truncate pl-3 pr-7 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed ${active ? activePill : idlePill}`}
+      >
+        <option value="" className="text-neutral-900 bg-card">{label}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="text-neutral-900 bg-card">{option.label}</option>
+        ))}
+      </select>
+      <ChevronDown className={`size-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${active ? "text-white" : "text-neutral-400"}`} />
+    </div>
+  );
+}
+
+const toId = (value: string) => (value ? Number(value) : undefined);
+
+/**
+ * Bộ lọc nhanh theo thứ tự Lớp → Môn → (Nhánh) → Mục tiêu, giống cách tạo nhu cầu học.
+ * Đổi cấp trên sẽ xóa các cấp dưới để không tạo tổ hợp không tồn tại.
+ */
 export function QuickFilterPills({
   params,
-  subjects,
-  levels,
-  selectedSubject,
-  selectedLevel,
+  catalog,
   showAdvanced,
   hasActiveFilters,
   onUpdateFilters,
@@ -53,167 +75,87 @@ export function QuickFilterPills({
   onToggleAdvanced,
   onClearKeywordInput,
 }: QuickFilterPillsProps) {
-  const handleModeChange = (mode?: TeachingMode) => {
+  const tracks = catalog ? tracksFor(catalog, params.subjectId, params.levelId) : [];
+  const goalTags = catalog ? goalTagsFor(catalog, params.levelId, params.subjectId, params.trackId) : [];
+
+  const handleModeChange = (mode: TeachingMode) => {
     onUpdateFilters({ mode: params.mode === mode ? undefined : mode });
-  };
-
-  const handleSubjectToggle = (subjectId: number) => {
-    onUpdateFilters({
-      subjectId: params.subjectId === subjectId ? undefined : subjectId,
-    });
-  };
-
-  const handleLevelToggle = (levelId: number) => {
-    onUpdateFilters({
-      levelId: params.levelId === levelId ? undefined : levelId,
-    });
-  };
-
-  const handleRatingToggle = (rating: number) => {
-    onUpdateFilters({
-      minRating: params.minRating === rating ? undefined : rating,
-    });
-  };
-
-  const handleAreaSelect = (area: string) => {
-    onUpdateFilters({
-      area: params.area === area ? undefined : area,
-    });
   };
 
   return (
     <div className="flex flex-wrap items-center gap-2 pt-0.5">
-      {/* Pill 1: Môn học */}
-      {selectedSubject ? (
-        <button
-          type="button"
-          onClick={() => onUpdateFilters({ subjectId: undefined })}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#006DCC] text-white shadow-2xs transition-all cursor-pointer"
-        >
-          <span>{selectedSubject.name}</span>
-          <X className="size-3" />
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            const math = subjects.find((s) => s.name.toLowerCase().includes("toán"));
-            if (math) handleSubjectToggle(math.subjectId);
-          }}
-          className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-card border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer shadow-2xs"
-        >
-          Toán
-        </button>
+      <PillSelect
+        label="Khối lớp"
+        value={params.levelId}
+        options={(catalog?.educationLevels ?? []).map((level) => ({ value: level.levelId, label: level.name }))}
+        onChange={(value) => onUpdateFilters({ levelId: toId(value), trackId: undefined, goalTagId: undefined })}
+      />
+      <PillSelect
+        label="Môn học"
+        value={params.subjectId}
+        options={(catalog?.subjects ?? []).map((subject) => ({ value: subject.subjectId, label: subject.name }))}
+        onChange={(value) =>
+          onUpdateFilters({ subjectId: toId(value), trackId: undefined, goalTagId: undefined, textbookSeriesId: undefined })}
+      />
+      {tracks.length > 0 && (
+        <PillSelect
+          label="Nhánh"
+          value={params.trackId}
+          options={tracks.map((track) => ({ value: track.trackId, label: track.name }))}
+          onChange={(value) => onUpdateFilters({ trackId: toId(value), goalTagId: undefined })}
+        />
+      )}
+      {goalTags.length > 0 && (
+        <PillSelect
+          label="Mục tiêu"
+          value={params.goalTagId}
+          options={goalTags.map((tag) => ({ value: tag.goalTagId, label: tag.name }))}
+          onChange={(value) => onUpdateFilters({ goalTagId: toId(value) })}
+        />
       )}
 
-      {/* Pill 2: Cấp lớp */}
-      {selectedLevel ? (
-        <button
-          type="button"
-          onClick={() => onUpdateFilters({ levelId: undefined })}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#006DCC] text-white shadow-2xs transition-all cursor-pointer"
-        >
-          <span>{selectedLevel.name}</span>
-          <X className="size-3" />
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            const grade9 = levels.find((l) => l.name.includes("9"));
-            if (grade9) handleLevelToggle(grade9.levelId);
-          }}
-          className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-card border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer shadow-2xs"
-        >
-          Lớp 9
-        </button>
-      )}
-
-      {/* Pill 3: Online */}
       <button
         type="button"
+        aria-pressed={params.mode === "ONLINE"}
         onClick={() => handleModeChange("ONLINE")}
-        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shadow-2xs ${
-          params.mode === "ONLINE"
-            ? "bg-[#006DCC] text-white"
-            : "bg-card border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800"
-        }`}
+        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shadow-2xs ${params.mode === "ONLINE" ? activePill : idlePill}`}
       >
         Online {params.mode === "ONLINE" && "✓"}
       </button>
 
-      {/* Pill 4: Khu vực */}
-      <div className="relative inline-block">
-        <select
-          value={params.area || ""}
-          onChange={(e) => handleAreaSelect(e.target.value)}
-          aria-label="Lọc theo khu vực"
-          className={`appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer shadow-2xs ${
-            params.area
-              ? "bg-[#006DCC] text-white border-transparent"
-              : "bg-card border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800"
-          }`}
-        >
-          <option value="" className="text-neutral-900 bg-card">Khu vực</option>
-          {COMMON_AREAS.map((a) => (
-            <option key={a} value={a} className="text-neutral-900 bg-card">
-              {a}
-            </option>
-          ))}
-        </select>
-        <ChevronDown
-          className={`size-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${
-            params.area ? "text-white" : "text-neutral-400"
-          }`}
-        />
-      </div>
+      <PillSelect
+        label="Tỉnh/thành"
+        value={params.provinceId}
+        options={(catalog?.provinces ?? []).map((province) => ({ value: province.provinceId, label: province.name }))}
+        onChange={(value) => onUpdateFilters({ provinceId: toId(value), districtId: undefined })}
+      />
 
-      {/* Pill 5: Lịch rảnh */}
-      <div className="relative inline-block">
-        <select
-          value={params.dayOfWeek || ""}
-          onChange={(e) =>
-            onUpdateFilters({
-              dayOfWeek: e.target.value ? Number(e.target.value) : undefined,
-            })
-          }
-          aria-label="Lọc theo lịch rảnh trong tuần"
-          className={`appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer shadow-2xs ${
-            params.dayOfWeek
-              ? "bg-[#006DCC] text-white border-transparent"
-              : "bg-card border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800"
-          }`}
-        >
-          <option value="" className="text-neutral-900 bg-card">Lịch rảnh</option>
-          {DAY_OPTIONS.map((d) => (
-            <option key={d.value} value={d.value} className="text-neutral-900 bg-card">
-              {d.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown
-          className={`size-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${
-            params.dayOfWeek ? "text-white" : "text-neutral-400"
-          }`}
-        />
-      </div>
+      <PillSelect
+        label="Lịch rảnh"
+        value={params.dayOfWeek}
+        options={DAY_OPTIONS}
+        onChange={(value) => {
+          const day = toId(value);
+          onUpdateFilters({
+            dayOfWeek: day,
+            availableFrom: day ? "00:00:00" : undefined,
+            availableTo: day ? "23:59:59" : undefined,
+          });
+        }}
+      />
 
-      {/* Pill 6: Rating */}
       <button
         type="button"
-        onClick={() => handleRatingToggle(4.5)}
-        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shadow-2xs ${
-          params.minRating === 4.5
-            ? "bg-[#006DCC] text-white"
-            : "bg-card border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800"
-        }`}
+        aria-pressed={params.minRating === 4.5}
+        onClick={() => onUpdateFilters({ minRating: params.minRating === 4.5 ? undefined : 4.5 })}
+        className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shadow-2xs ${params.minRating === 4.5 ? activePill : idlePill}`}
       >
         Rating 4.5+ {params.minRating === 4.5 && "★"}
       </button>
 
-      {/* Nút mở bộ lọc nâng cao */}
       <button
         type="button"
+        aria-expanded={showAdvanced}
         onClick={onToggleAdvanced}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer shadow-2xs ${
           showAdvanced
@@ -225,7 +167,6 @@ export function QuickFilterPills({
         <span>Bộ lọc chi tiết</span>
       </button>
 
-      {/* Xóa bộ lọc */}
       {hasActiveFilters && (
         <button
           type="button"

@@ -18,6 +18,7 @@ import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.response.ApiResponse;
 import vn.edufit.verification.application.service.AdminVerificationService;
 import vn.edufit.verification.web.request.ReviewVerificationRequest;
+import vn.edufit.verification.web.request.RevokeVerificationRequest;
 import vn.edufit.verification.web.response.PendingVerificationQueueResponse;
 import vn.edufit.verification.web.response.VerificationRequestDetailResponse;
 
@@ -34,6 +35,22 @@ public class AdminVerificationController {
   ) {
     this.adminVerificationService = adminVerificationService;
     this.currentUserProvider = currentUserProvider;
+  }
+
+  @GetMapping
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<PendingVerificationQueueResponse>> getVerifications(
+      @RequestParam(name = "status", required = false) String status,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size
+  ) {
+    PendingVerificationQueueResponse response = adminVerificationService.getQueue(
+        currentUser(),
+        status,
+        page,
+        size
+    );
+    return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách hồ sơ xác minh thành công"));
   }
 
   @GetMapping("/pending")
@@ -62,6 +79,20 @@ public class AdminVerificationController {
         request
     );
     return ResponseEntity.ok(ApiResponse.success(response, "Duyệt hồ sơ xác minh thành công"));
+  }
+
+  @PostMapping("/{id}/revoke")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<ApiResponse<VerificationRequestDetailResponse>> revoke(
+      @PathVariable("id") UUID requestId,
+      @Valid @RequestBody RevokeVerificationRequest request
+  ) {
+    VerificationRequestDetailResponse response = adminVerificationService.revoke(
+        currentUser(),
+        requestId,
+        request
+    );
+    return ResponseEntity.ok(ApiResponse.success(response, "Thu hồi phê duyệt hồ sơ xác minh thành công"));
   }
 
   @GetMapping("/{id}")

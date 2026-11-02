@@ -11,6 +11,8 @@ public interface SubjectRepository extends JpaRepository<Subject, Integer> {
 
   List<Subject> findByIsActiveTrueOrderByNameAsc();
 
+  List<Subject> findAllByOrderByNameAsc();
+
   Optional<Subject> findByName(String name);
 
   boolean existsByName(String name);

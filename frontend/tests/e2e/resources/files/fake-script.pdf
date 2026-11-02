@@ -1,0 +1,4 @@
+#!/bin/bash
+# Malicious script pretending to be a PDF
+echo "Hacking attempt"
+exit 1

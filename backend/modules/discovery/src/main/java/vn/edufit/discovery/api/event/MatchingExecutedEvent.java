@@ -11,12 +11,12 @@ import java.util.UUID;
 public record MatchingExecutedEvent(
     UUID userId,
     UUID studentId,
-    UUID goalId,
+    UUID needId,
     int resultCount,
     Instant executedAt
 ) {
 
-  public MatchingExecutedEvent(UUID userId, UUID studentId, UUID goalId, int resultCount) {
-    this(userId, studentId, goalId, resultCount, Instant.now());
+  public MatchingExecutedEvent(UUID userId, UUID studentId, UUID needId, int resultCount) {
+    this(userId, studentId, needId, resultCount, Instant.now());
   }
 }

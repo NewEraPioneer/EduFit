@@ -1,0 +1,100 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+
+  <profiles>
+    <profile>
+      <id>resilient-repositories</id>
+      <properties>
+        <maven.wagon.http.retryHandler.count>5</maven.wagon.http.retryHandler.count>
+        <maven.wagon.http.pool>false</maven.wagon.http.pool>
+        <maven.wagon.http.retryHandler.requestSentKeepAlive>true</maven.wagon.http.retryHandler.requestSentKeepAlive>
+        <aether.connector.http.retryHandler.count>5</aether.connector.http.retryHandler.count>
+        <aether.connector.connectTimeout>30000</aether.connector.connectTimeout>
+        <aether.connector.requestTimeout>60000</aether.connector.requestTimeout>
+      </properties>
+      <repositories>
+        <!-- Primary repository: Central -->
+        <repository>
+          <id>central</id>
+          <name>Maven Central Primary</name>
+          <url>https://repo.maven.apache.org/maven2</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+
+        <!-- Fallback 1: Google Cloud Storage Mirror of Maven Central -->
+        <repository>
+          <id>google-maven-central</id>
+          <name>Google Cloud Storage Maven Central Mirror</name>
+          <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+
+        <!-- Fallback 2: Repo1 Mirror -->
+        <repository>
+          <id>repo1-maven-org</id>
+          <name>Maven Central Alternate Endpoint</name>
+          <url>https://repo1.maven.org/maven2</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+      </repositories>
+
+      <pluginRepositories>
+        <pluginRepository>
+          <id>central</id>
+          <name>Maven Central Primary</name>
+          <url>https://repo.maven.apache.org/maven2</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+
+        <pluginRepository>
+          <id>google-maven-central</id>
+          <name>Google Cloud Storage Maven Central Mirror</name>
+          <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+
+        <pluginRepository>
+          <id>repo1-maven-org</id>
+          <name>Maven Central Alternate Endpoint</name>
+          <url>https://repo1.maven.org/maven2</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+
+  <activeProfiles>
+    <activeProfile>resilient-repositories</activeProfile>
+  </activeProfiles>
+</settings>

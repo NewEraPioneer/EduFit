@@ -31,11 +31,11 @@ import vn.edufit.iam.infra.security.Argon2PasswordService;
  */
 @SpringBootTest(
     properties = {"edufit.ai.provider=stub", "spring.session.jdbc.initialize-schema=never"})
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @DirtiesContext
 class DiscoveryHttpSecurityPostgresTest {
   @Container
-  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
   @DynamicPropertySource
   static void properties(DynamicPropertyRegistry registry) {
@@ -48,7 +48,7 @@ class DiscoveryHttpSecurityPostgresTest {
   @Autowired JdbcTemplate jdbc;
   @Autowired Argon2PasswordService encoder;
   MockMvc mvc;
-  UUID studentId, goalId;
+  UUID studentId, needId;
 
   @BeforeEach
   void setup() {
@@ -62,7 +62,7 @@ class DiscoveryHttpSecurityPostgresTest {
     jdbc.execute("delete from spring_session");
     UUID accountId = UUID.randomUUID();
     studentId = UUID.randomUUID();
-    goalId = UUID.randomUUID();
+    needId = UUID.randomUUID();
     jdbc.update(
         "insert into account(user_id,email,password_hash,full_name,role,status) values(?,?,?,?,"
             + " 'STUDENT','ACTIVE')",
@@ -77,15 +77,15 @@ class DiscoveryHttpSecurityPostgresTest {
         studentId,
         accountId);
     jdbc.update(
-        "insert into"
-            + " learning_goal(goal_id,student_id,subject_id,current_level,desired_level,goal_type,deadline,mode,budget_max)"
-            + " values(?,?,1,1,2,'IMPROVE_GRADES',current_date+30,'ONLINE',200000)",
-        goalId,
-        studentId);
+        "insert into learning_need(need_id,student_id,created_by,education_level_id,subject_id,mode,"
+            + "budget_max_per_session,status) values(?,?,?,1,1,'ONLINE',200000,'ACTIVE')",
+        needId,
+        studentId,
+        accountId);
     jdbc.update(
-        "insert into goal_availability_slot(goal_id,day_of_week,start_time,end_time)"
+        "insert into learning_need_slot(need_id,day_of_week,start_time,end_time)"
             + " values(?,1,'09:00','10:00')",
-        goalId);
+        needId);
   }
 
   @Test
@@ -278,6 +278,6 @@ class DiscoveryHttpSecurityPostgresTest {
   }
 
   String matchBody() {
-    return "{\"goalId\":\"" + goalId + "\"}";
+    return "{\"needId\":\"" + needId + "\"}";
   }
 }

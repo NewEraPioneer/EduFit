@@ -51,6 +51,10 @@ Hệ thống EduFit là nền tảng SaaS phục vụ việc kết nối, xác t
 | **ArchUnit** | Thư viện Java dùng để kiểm thử tự động các quy tắc kiến trúc, đảm bảo các module nghiệp vụ không vi phạm ranh giới đóng gói tại thời điểm chạy CI/CD. |
 | **Facade** | Mẫu thiết kế giao diện công khai (`xxx.api.XyzFacade`), là điểm tiếp xúc duy nhất cho phép các module Java khác gọi đọc dữ liệu trong bộ nhớ RAM. |
 | **Domain Event** | Sự kiện nghiệp vụ phát sinh khi trạng thái hệ thống thay đổi (ví dụ: `SessionScheduledEvent`), được phát tán nội bộ thông qua Spring `ApplicationEventPublisher`. |
+| **Buổi học (Tutoring Session)** | Một lần học cụ thể giữa 1 Gia sư và 1 Học sinh tại một mốc thời gian xác định `[start_at, end_at)` (bảng `tutoring_session`). Các Use Case UC4.4/UC4.5 áp dụng trên từng buổi học riêng lẻ khi có việc đột xuất. |
+| **Lịch học định kỳ (Class Recurring Schedule)** | Khung thời gian tuần hoàn (ví dụ: Thứ Ba & Thứ Năm 18:00–20:00) được thỏa thuận cho toàn bộ lớp học (`class`). Thay đổi lịch định kỳ được quản lý qua UC4.8 với sự đồng thuận 2 chiều. |
+| **Khung thời gian hữu hạn (Bounded Horizon)** | Giới hạn thời gian cụ thể (mặc định 4–8 tuần) khi sinh tự động các buổi học từ lịch học định kỳ, ngăn chặn bùng nổ dữ liệu (data explosion) và hạn chế rủi ro dồn lịch trong tương lai xa. |
+| **Người gác cổng (Dual Source Conflict Check)** | Cơ chế phòng thủ lớp ngoài tại `ConnectionRequestService.respondRequest(accept = true)`. Khi Gia sư chấp thuận yêu cầu kết nối, hệ thống đối chiếu các khung giờ đề xuất `desiredSlots` với cả 2 nguồn: (1) lịch định kỳ của các lớp `ACTIVE` và (2) các buổi học đã `SCHEDULED` của Gia sư để ngăn chặn xung đột trước khi tạo lớp học. |
 
 ---
 
@@ -701,13 +705,18 @@ erDiagram
 | 4. discovery      | matching_run_log           | DiscoveryFacade       | MatchingExecutedEvent       | Không                |
 |                   | (Không có bảng nghiệp vụ)  | (search, match engine)|                             |                      |
 +-------------------+----------------------------+-----------------------+-----------------------------+----------------------+
-| 5. connection     | link_invitation,           | ConnectionFacade      | LinkConfirmedEvent          | Không                |
-|                   | parent_student_link,       | (check link,          | RequestAcceptedEvent        |                      |
-|                   | connection_request, class  |  active class)        | ClassStartedEvent           |                      |
+| 5. connection     | link_invitation,           | ConnectionFacade      | LinkConfirmedEvent          | profile.api,         |
+|                   | parent_student_link,       | (check link,          | RequestAcceptedEvent        | iam.api              |
+|                   | connection_request, class  |  active class,        | ClassStartedEvent           |                      |
+|                   | (Cơ chế Người gác cổng     |  hasConfirmedParent-  | (Dual Source Gatekeeper     |                      |
+|                   |  Dual Source Gatekeeper)   |  Link, isClassActive) |  Check trước khi tạo class) |                      |
 +-------------------+----------------------------+-----------------------+-----------------------------+----------------------+
-| 6. scheduling     | tutoring_session,          | SessionFacade         | SessionProposedEvent        | Không                |
-|                   | reschedule_proposal,       | (check conflict,      | SessionScheduledEvent       |                      |
-|                   | session_history            |  session stats query) | SessionCancelledEvent       |                      |
+| 6. scheduling     | tutoring_session,          | SessionFacade         | SessionProposedEvent        | connection.api,      |
+|                   | reschedule_proposal,       | (check conflict,      | SessionScheduledEvent       | profile.api          |
+|                   | session_history            |  session stats query, | SessionCancelledEvent       |                      |
+|                   | (Quản lý Buổi học lẻ &     |  hasActiveConflict)   | SessionOutcomeRecordedEvent |                      |
+|                   |  Lịch định kỳ UC4.8 Bounded|                       | RecurringScheduleUpdated    |                      |
+|                   |  Horizon + Batch Schedule) |                       | Event                       |                      |
 +-------------------+----------------------------+-----------------------+-----------------------------+----------------------+
 | 7. progress       | session_note,              | ProgressFacade        | MilestoneAchievedEvent      | SessionOutcome-      |
 |                   | learning_plan, milestone,  | (calculate progress,  | PlanUpdatedEvent            | RecordedEvent        |
@@ -888,18 +897,24 @@ Hợp đồng hiện thực sau refactor: [Discovery API contract](discovery-api
 | `/api/v1/connections/parent-student/links` | `GET` | Role PARENT/STUDENT | Xem danh sách liên kết hiện hữu | *None* | `[ { linkId, studentId, studentName, parentName, confirmedAt } ]` | *None* |
 | `/api/v1/connections/parent-student/links/{id}` | `DELETE` | Role STUDENT/ADMIN | Thu hồi liên kết phụ huynh - con | `{ reason: "..." }` | `null` | `403 CANNOT_REVOKE` |
 | `/api/v1/connections/requests` | `POST` | Role STUDENT/PARENT | Gửi yêu cầu ghép cặp tới Gia sư | `{ tutorId, goalId, desiredSlots: [...], message }` | `{ requestId, status: "PENDING", expiresAt }` | `409 ACTIVE_REQUEST_EXISTS`<br>`409 ACTIVE_CLASS_EXISTS` |
-| `/api/v1/connections/requests/{id}/respond` | `POST` | Role TUTOR | Gia sư chấp nhận hoặc từ chối ghép | `{ accept: true, rejectReason: null }` | `{ requestId, status: "ACCEPTED", classId }` | `400 REQUEST_EXPIRED` |
+| `/api/v1/connections/requests` | `GET` | Authenticated | Lấy danh sách yêu cầu kết nối / Hộp thư Gia sư | Query: `studentId?` (chỉ dùng cho PARENT) | Learner: `RequestResponse[]`<br>Tutor: `TutorInboxResponse[]` (Hồ sơ đề nghị học tập sư phạm: `studentDisplayName`, `currentGrade`, `targetScore`, `budgetMin`, `budgetMax`, `district`, `city`, `subjectName`, `gradeLevelName`, `hasSlotConflict`, `conflictingSlots`; ẩn SĐT/Email theo BR-37) | `403 FORBIDDEN` |
+| `/api/v1/connections/requests/{id}/respond` | `POST` | Role TUTOR | Gia sư chấp thuận hoặc từ chối ghép cặp (Cơ chế Người gác cổng Gatekeeper: kiểm tra xung đột `desiredSlots` với các lớp `ACTIVE` và các buổi `SCHEDULED`) | `{ accept: true, rejectReason: null }` | `{ requestId, status: "ACCEPTED", classId }` | `400 REQUEST_EXPIRED`<br>`409 SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE`<br>`409 ACTIVE_CLASS_EXISTS` |
 
 ##### 6. Module Scheduling (`/api/v1/scheduling`)
 
 | Endpoint | Method | Phân quyền | Mô tả chức năng | Request Body | Response Data | Mã lỗi |
 |---|---|---|---|---|---|---|
-| `/api/v1/scheduling/sessions/propose` | `POST` | Role TUTOR/STUDENT | Đề xuất buổi học trong lớp (class) | `{ classId, startAt, endAt, mode, placeOrLink, message }` | `{ sessionId, status: "PROPOSED", expiresAt }` | `409 DOUBLE_BOOKING_CONFLICT`<br>`400 INVALID_DURATION` |
-| `/api/v1/scheduling/sessions/{id}/respond` | `POST` | Role TUTOR/STUDENT | Xác nhận hoặc từ chối đề xuất | `{ accept: true, reason: null }` | `{ sessionId, status: "SCHEDULED" }` | `409 SCHEDULE_OVERLAP_DETECTED`<br>`400 PROPOSAL_EXPIRED` |
-| `/api/v1/scheduling/sessions/{id}/reschedule`| `POST` | Role TUTOR/STUDENT | Đề xuất đổi thời gian buổi học | `{ newStartAt, newEndAt, reason }` | `{ proposalId, status: "PENDING" }` | `400 SESSION_NOT_SCHEDULED` |
-| `/api/v1/scheduling/sessions/{id}/cancel` | `POST` | Role TUTOR/STUDENT | Hủy lịch học kèm phân loại trễ | `{ reason: "SCHEDULE_CONFLICT", comment: "Bận đột xuất" }` | `{ sessionId, status: "CANCELLED", isLateCancel }` | `400 CANNOT_CANCEL_COMPLETED` |
-| `/api/v1/scheduling/sessions/{id}/outcome` | `POST` | Role TUTOR | Ghi nhận hoàn thành/vắng mặt & note| `{ outcome: "COMPLETED", noteText: "Hoàn thành tốt bài tập" }` | `{ sessionId, status: "COMPLETED", recordedAt }` | `403 ONLY_TUTOR_CAN_RECORD`<br>`400 TIME_NOT_PASSED` |
-| `/api/v1/scheduling/calendar` | `GET` | Authenticated | Lấy danh sách lịch học theo thời gian | Query: `from, to` | `[ { sessionId, classId, partnerName, startAt, endAt, mode, status } ]` | `400 INVALID_DATE_RANGE` |
+| `/api/v1/scheduling/sessions/propose` | `POST` | Role TUTOR/STUDENT | Đề xuất buổi học đơn lẻ trong lớp (class) | `{ classId, startAt, endAt, mode, placeOrLink, message }` | `{ sessionId, status: "PROPOSED", expiresAt }` | `409 DOUBLE_BOOKING_CONFLICT`<br>`400 INVALID_DURATION` |
+| `/api/v1/scheduling/sessions/propose-batch` | `POST` | Role TUTOR/STUDENT | Đề xuất hàng loạt buổi học (Batch Propose) - nguyên tử All-or-Nothing | `{ classId, items: [ { startAt, endAt, mode, placeOrLink, message } ] }` | `[ { sessionId, status: "PROPOSED", startAt, endAt } ]` | `409 DOUBLE_BOOKING_CONFLICT`<br>`400 INVALID_DURATION` |
+| `/api/v1/scheduling/sessions/{id}/respond` | `POST` | Role TUTOR/STUDENT | Xác nhận hoặc từ chối đề xuất 1 buổi học | `{ accept: true, reason: null }` | `{ sessionId, status: "SCHEDULED" }` | `409 SCHEDULE_OVERLAP_DETECTED`<br>`400 PROPOSAL_EXPIRED` |
+| `/api/v1/scheduling/sessions/respond-batch` | `POST` | Role TUTOR/STUDENT | Xác nhận hoặc từ chối hàng loạt đề xuất (Batch Respond) - nguyên tử | `{ sessionIds: [...], accept: true, reason: null }` | `[ { sessionId, status: "SCHEDULED" } ]` | `409 SCHEDULE_OVERLAP_DETECTED`<br>`400 PROPOSAL_EXPIRED` |
+| `/api/v1/scheduling/sessions/{id}` | `GET` | Role TUTOR/STUDENT/PARENT | Lấy chi tiết buổi học (bảo vệ quyền qua SchedulingSecurityResolver) | *None* | `SessionResponse` | `403 FORBIDDEN`<br>`404 RESOURCE_NOT_FOUND` |
+| `/api/v1/scheduling/sessions/{id}/reschedule`| `POST` | Role TUTOR/STUDENT | Đề xuất đổi thời gian 1 buổi học đột xuất (UC4.4) | `{ newStartAt, newEndAt, reason }` | `{ proposalId, status: "PENDING" }` | `400 SESSION_NOT_SCHEDULED` |
+| `/api/v1/scheduling/sessions/{id}/cancel` | `POST` | Role TUTOR/STUDENT | Hủy 1 buổi học lẻ kèm phân loại trễ (UC4.5) | `{ reason: "SCHEDULE_CONFLICT", comment: "Bận đột xuất" }` | `{ sessionId, status: "CANCELLED", isLateCancel }` | `400 CANNOT_CANCEL_COMPLETED` |
+| `/api/v1/scheduling/sessions/{id}/outcome` | `POST` | Role TUTOR | Ghi nhận hoàn thành/vắng mặt & note (UC4.6)| `{ outcome: "COMPLETED", noteText: "Hoàn thành tốt bài tập" }` | `{ sessionId, status: "COMPLETED", recordedAt }` | `403 ONLY_TUTOR_CAN_RECORD`<br>`400 TIME_NOT_PASSED` |
+| `/api/v1/scheduling/recurring/propose` | `POST` | Role TUTOR/STUDENT | Đề xuất đổi lịch học định kỳ của lớp (UC4.8) có giới hạn thời gian (Bounded Horizon 4–8 tuần) | `{ classId, newWeeklySlots: ["MONDAY 18:00-20:00"], effectiveFrom, effectiveTo, reason }` | `{ proposalId, status: "PENDING", horizonWeeks }` | `400 INVALID_HORIZON_WINDOW`<br>`409 ACTIVE_RECURRING_PROPOSAL_EXISTS` |
+| `/api/v1/scheduling/recurring/respond` | `POST` | Role TUTOR/STUDENT | Đồng thuận hoặc từ chối đổi lịch định kỳ (UC4.8) - tái sinh lịch học nguyên tử | `{ proposalId, accept: true, rejectReason: null }` | `{ proposalId, status: "ACCEPTED", generatedSessionsCount }` | `409 SCHEDULE_OVERLAP_DETECTED`<br>`400 PROPOSAL_EXPIRED` |
+| `/api/v1/scheduling/calendar` | `GET` | Authenticated | Lấy danh sách lịch học (hỗ trợ chuyển đổi user_id sang profile_id và parent xem lịch con) | Query: `from, to, studentId?` | `[ { sessionId, classId, partnerName, startAt, endAt, mode, status } ]` | `400 INVALID_DATE_RANGE`<br>`403 FORBIDDEN` |
 
 ##### 7. Module Progress (`/api/v1/progress`)
 
@@ -1119,6 +1134,65 @@ sequenceDiagram
 
 ---
 
+#### Luồng 3b: Đề xuất & Đồng thuận Thay đổi Lịch học Định kỳ của Lớp (UC4.8 - Bounded Horizon Recurring Reschedule)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Proposer as Bên Đề xuất (Tutor hoặc Student)
+    actor Responder as Bên Phản hồi (Student hoặc Tutor)
+    participant Browser as Web Browser
+    participant SchedCtrl as SessionController
+    participant RecurServ as RecurringScheduleService
+    participant ConnFacade as ConnectionFacade
+    participant SchedRepo as TutoringSessionRepository
+    participant DB as PostgreSQL 17 (GiST Exclusion Constraint)
+    participant EventPublisher as ApplicationEventPublisher
+    participant NotifListener as NotificationEventListener
+
+    Proposer ->> Browser: Chọn khung giờ định kỳ mới (ví dụ: Thứ 3 & Thứ 5, 18:00 - 20:00)
+    Browser ->> SchedCtrl: POST /api/v1/scheduling/recurring/propose<br/>{ classId, newWeeklySlots, effectiveFrom, effectiveTo, reason }
+    SchedCtrl ->> RecurServ: proposeRecurringSchedule(classId, proposerUserId, request)
+    
+    Note over RecurServ: Tầng 1: Kiểm tra Bounded Horizon (4 đến 8 tuần) & Class ACTIVE
+    RecurServ ->> ConnFacade: isClassActive(classId)
+    ConnFacade -->> RecurServ: true
+    Note over RecurServ: Kiểm tra window: (effectiveTo - effectiveFrom) ∈ [4, 8] tuần
+    RecurServ ->> SchedRepo: saveProposal(RecurringProposal [status = 'PENDING'])
+    SchedRepo -->> RecurServ: proposalId
+    RecurServ ->> EventPublisher: publishEvent(RecurringScheduleProposedEvent)
+    EventPublisher ->> NotifListener: Gửi thông báo tới Bên phản hồi
+    RecurServ -->> SchedCtrl: ProposalPendingDTO
+    SchedCtrl -->> Browser: HTTP 201 CREATED (Chờ bên kia xác nhận)
+
+    Note over Responder: Bên phản hồi nhận thông báo & mở hộp thoại xác nhận
+    Responder ->> Browser: Bấm "Đồng ý đổi lịch định kỳ"
+    Browser ->> SchedCtrl: POST /api/v1/scheduling/recurring/respond<br/>{ proposalId, accept: true }
+    SchedCtrl ->> RecurServ: respondRecurringSchedule(proposalId, responderUserId, true)
+    
+    Note over RecurServ: Bắt đầu Transaction nguyên tử (@Transactional - All-or-Nothing)<br/>Tái sinh lịch học theo Bounded Horizon
+    RecurServ ->> SchedRepo: findProposalForUpdate(proposalId)
+    Note over RecurServ: Hủy các buổi SCHEDULED cũ trong horizon chưa diễn ra
+    RecurServ ->> SchedRepo: cancelFutureScheduledSessions(classId, effectiveFrom, effectiveTo)
+    Note over RecurServ: Sinh danh sách buổi học mới tương ứng từng tuần trong horizon
+    RecurServ ->> SchedRepo: batchInsertSessions(newScheduledSessions)
+    
+    alt Có bất kỳ buổi học nào vi phạm GiST Exclusion (Double-Booking với lớp khác)
+        DB -->> SchedRepo: ERROR: exclusion_violation
+        Note over RecurServ: Transaction ROLLBACK toàn bộ (Lịch cũ được khôi phục nguyên vẹn)
+        RecurServ -->> SchedCtrl: Ném ResourceConflictException
+        SchedCtrl -->> Browser: HTTP 409 CONFLICT (Khung giờ định kỳ mới bị trùng với lịch đã có)
+    else Toàn bộ buổi học mới hợp lệ
+        RecurServ ->> SchedRepo: updateProposalStatus(proposalId, "ACCEPTED")
+        RecurServ ->> EventPublisher: publishEvent(RecurringScheduleUpdatedEvent)
+        EventPublisher ->> NotifListener: Thông báo lịch định kỳ mới đã được áp dụng cho cả 2 bên
+        RecurServ -->> SchedCtrl: RecurringScheduleSuccessDTO
+        SchedCtrl -->> Browser: HTTP 200 OK (Đã cập nhật lịch định kỳ và sinh buổi học thành công)
+    end
+```
+
+---
+
 #### Luồng 4: Thiết lập Kế hoạch Học tập, Ghi nhận Outcome Buổi học & Cập nhật Tiến độ (`progress` + `scheduling`)
 
 ```mermaid
@@ -1227,15 +1301,25 @@ sequenceDiagram
     Note over Tutor, ConnCtrl: Gia sư xem xét và đồng ý kết nối
     Tutor ->> Browser: Bấm "Chấp nhận yêu cầu kết nối"
     Browser ->> ConnCtrl: POST /api/v1/connections/requests/{id}/respond { accept: true }
-    ConnCtrl ->> ConnServ: acceptRequest(requestId, tutorId)
+    ConnCtrl ->> ConnServ: respondRequest(requestId, tutorId, accept = true)
     
-    Note over ConnServ: Bắt đầu Transaction (@Transactional)
-    ConnServ ->> ConnRepo: updateRequestStatus(requestId, "ACCEPTED")
-    Note over ConnServ: TẠO THỰC THỂ CLASS (ENGAGEMENT 1-1)
-    ConnServ ->> ConnRepo: insertClass(classId, requestId, studentId, tutorId, goalId, "ACTIVE")
-    ConnServ ->> EventPublisher: publishEvent(new ClassStartedEvent(classId))
-    EventPublisher ->> NotifListener: Thông báo cho cả Phụ huynh và Học sinh bắt đầu lên lịch học
-    ConnCtrl -->> Browser: HTTP 200 OK (Lớp học 1-1 chính thức được kích hoạt)
+    Note over ConnServ: Bắt đầu Transaction (@Transactional)<br/>Khóa dòng ConnectionRequest FOR UPDATE
+    ConnServ ->> ConnRepo: findByIdForUpdate(requestId)
+    Note over ConnServ: TẦNG BẢO VỆ NGƯỜI GÁC CỔNG (GATEKEEPER - DUAL SOURCE CHECK)
+    ConnServ ->> ConnRepo: checkActiveClassesAndDesiredSlots(tutorId, request.desiredSlots)
+    
+    alt Phát hiện xung đột khung giờ với lớp ACTIVE hoặc buổi SCHEDULED của Gia sư
+        Note over ConnServ: Ném ResourceConflictException ("SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE")
+        ConnServ -->> ConnCtrl: 409 Conflict
+        ConnCtrl -->> Browser: HTTP 409 CONFLICT (Khung giờ đề xuất trùng với lịch đã cam kết)
+    else Không xung đột khung giờ
+        ConnServ ->> ConnRepo: updateRequestStatus(requestId, "ACCEPTED")
+        Note over ConnServ: TẠO THỰC THỂ CLASS (ENGAGEMENT 1-1)
+        ConnServ ->> ConnRepo: insertClass(classId, requestId, studentId, tutorId, goalId, "ACTIVE")
+        ConnServ ->> EventPublisher: publishEvent(new ClassStartedEvent(classId))
+        EventPublisher ->> NotifListener: Thông báo cho cả Phụ huynh và Học sinh bắt đầu lên lịch học
+        ConnCtrl -->> Browser: HTTP 200 OK (Lớp học 1-1 chính thức được kích hoạt)
+    end
 ```
 
 ---

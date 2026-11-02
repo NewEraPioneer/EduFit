@@ -7,7 +7,10 @@ import {
   SLOT_PRESETS,
   sortAvailabilitySlots,
   validateAvailabilitySlots,
+  formatLocalDateToIso,
+  formatSessionTime,
 } from "@/shared/lib/dateTime";
+
 
 describe("shared/lib/dateTime", () => {
   it("exports valid day of week constants", () => {
@@ -83,4 +86,19 @@ describe("shared/lib/dateTime", () => {
     expect(normalizeAvailabilityTime("08:00")).toBe("08:00:00");
     expect(normalizeAvailabilityTime("19:30:00")).toBe("19:30:00");
   });
+
+  it("formats local date to ISO YYYY-MM-DD safely without UTC shift", () => {
+    const d = new Date(2026, 9, 19, 0, 0, 0); // Oct 19, 2026 local
+    expect(formatLocalDateToIso(d)).toBe("2026-10-19");
+    expect(formatLocalDateToIso("2026-10-19")).toBe("2026-10-19");
+    expect(formatLocalDateToIso(null)).toBe("");
+  });
+
+  it("formats session time range cleanly for non-hour durations", () => {
+    expect(formatSessionTime("18:00:00", "19:30:00")).toBe("18:00 - 19:30");
+    expect(formatSessionTime("08:00", "09:30")).toBe("08:00 - 09:30");
+    expect(formatSessionTime("18:00")).toBe("18:00");
+    expect(formatSessionTime(null)).toBe("");
+  });
 });
+

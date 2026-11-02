@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1150" viewBox="0 0 1680 1150">
+<rect width="100%" height="100%" fill="white"/>
+<text x="64" y="28" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">EDUFIT / PAYMENT / 01</text>
+<text x="64" y="66" font-family="Segoe UI, sans-serif" font-size="38" font-weight="700" fill="#0F172A" dominant-baseline="text-before-edge">Ba vòng đời của một khoản tiền</text>
+<text x="64" y="120" font-family="Segoe UI, sans-serif" font-size="23" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">Tiền ngân hàng và số dư nội bộ có vai trò khác nhau; mỗi bước đều cần bằng chứng riêng.</text>
+<path d="M64 164H1616" stroke="#E2E8F0" stroke-width="2"/>
+<text x="64" y="185" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700" fill="#475569" dominant-baseline="text-before-edge">1. NẠP TIỀN</text>
+<rect x="64" y="220" width="352" height="180" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="240" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">Ngân hàng người nạp</text>
+<text x="88" y="288" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Quét QR theo yêu cầu nạp.</text>
+<polyline points="419,310 460,310" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="460.0,310.0 446.0,317.7 446.0,302.3" fill="#64748B"/>
+<rect x="464" y="220" width="352" height="180" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="488" y="240" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">Ngân hàng EduFit</text>
+<text x="488" y="288" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Nhận tiền thật từ người</text>
+<text x="488" y="323" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">nạp.</text>
+<polyline points="819,310 860,310" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="860.0,310.0 846.0,317.7 846.0,302.3" fill="#64748B"/>
+<rect x="864" y="220" width="352" height="180" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="888" y="240" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">Backend xác minh</text>
+<text x="888" y="288" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Receipt có chữ ký và đúng</text>
+<text x="888" y="323" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">topup.</text>
+<polyline points="1219,310 1260,310" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1260.0,310.0 1246.0,317.7 1246.0,302.3" fill="#64748B"/>
+<rect x="1264" y="220" width="352" height="180" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="1288" y="240" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">Ví của người nạp</text>
+<text x="1288" y="288" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Tăng available đúng một</text>
+<text x="1288" y="323" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">lần.</text>
+<text x="64" y="475" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700" fill="#475569" dominant-baseline="text-before-edge">2. THANH TOÁN BUỔI HỌC</text>
+<rect x="64" y="510" width="352" height="180" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="530" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">Payer cấp tiền</text>
+<text x="88" y="578" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Available giảm; held tăng.</text>
+<polyline points="419,600 460,600" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="460.0,600.0 446.0,607.7 446.0,592.3" fill="#64748B"/>
+<rect x="464" y="510" width="352" height="180" rx="18" fill="#F1F5F9" stroke="#475569" stroke-width="2"/>
+<text x="488" y="530" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#475569" dominant-baseline="text-before-edge">Buổi học kết thúc</text>
+<text x="488" y="578" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">COMPLETED; mở đủ 24h</text>
+<text x="488" y="613" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">phản hồi.</text>
+<polyline points="819,600 860,600" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="860.0,600.0 846.0,607.7 846.0,592.3" fill="#64748B"/>
+<rect x="864" y="510" width="352" height="180" rx="18" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+<text x="888" y="530" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#7C3AED" dominant-baseline="text-before-edge">Xử lý học phí</text>
+<text x="888" y="578" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Đủ hạn hoặc Admin phân</text>
+<text x="888" y="613" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">xử.</text>
+<polyline points="1219,600 1260,600" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1260.0,600.0 1246.0,607.7 1246.0,592.3" fill="#64748B"/>
+<rect x="1264" y="510" width="352" height="180" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="1288" y="530" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">Chia trong ledger</text>
+<text x="1288" y="578" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Tutor nhận thu nhập; fee</text>
+<text x="1288" y="613" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">10% phần trả.</text>
+<text x="64" y="765" font-family="Segoe UI, sans-serif" font-size="22" font-weight="700" fill="#475569" dominant-baseline="text-before-edge">3. RÚT THU NHẬP</text>
+<rect x="64" y="800" width="352" height="180" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="820" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">Ví gia sư</text>
+<text x="88" y="868" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Yêu cầu rút; giữ riêng tiền</text>
+<text x="88" y="903" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">W.</text>
+<polyline points="419,890 460,890" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="460.0,890.0 446.0,897.7 446.0,882.3" fill="#64748B"/>
+<rect x="464" y="800" width="352" height="180" rx="18" fill="#F1F5F9" stroke="#475569" stroke-width="2"/>
+<text x="488" y="820" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#475569" dominant-baseline="text-before-edge">Admin kiểm tra</text>
+<text x="488" y="868" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Chọn manual hoặc kênh</text>
+<text x="488" y="903" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">chi payOS.</text>
+<polyline points="819,890 860,890" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="860.0,890.0 846.0,897.7 846.0,882.3" fill="#64748B"/>
+<rect x="864" y="800" width="352" height="180" rx="18" fill="#FFFBEB" stroke="#B45309" stroke-width="2"/>
+<text x="888" y="820" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B45309" dominant-baseline="text-before-edge">Xác minh kết quả</text>
+<text x="888" y="868" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Chưa rõ thì giữ held, không</text>
+<text x="888" y="903" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">chi lại.</text>
+<polyline points="1219,890 1260,890" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1260.0,890.0 1246.0,897.7 1246.0,882.3" fill="#64748B"/>
+<rect x="1264" y="800" width="352" height="180" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="1288" y="820" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">Ngân hàng gia sư</text>
+<text x="1288" y="868" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Chỉ PAID khi kết quả đã xác</text>
+<text x="1288" y="903" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">nhận.</text>
+<text x="64" y="1074" font-family="Segoe UI, sans-serif" font-size="21" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">Tất toán vào ví tutor không tự chuyển ngân hàng. Kênh thu và kênh chi phải có cấu hình/nguồn tiền phù hợp.</text>
+</svg>

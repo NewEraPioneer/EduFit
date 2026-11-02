@@ -1,0 +1,8 @@
+testCaseId,hoursBeforeStart,expectedLateCancel,description
+TC_LC_01,24,false,Huy truoc 24 tieng khong bi tinh tre
+TC_LC_02,13,false,Huy truoc 13 tieng khong bi tinh tre
+TC_LC_03,12,false,Huy dung moc 12 tieng khong bi tinh tre
+TC_LC_04,11,true,Huy truoc 11 tieng bi tinh tre
+TC_LC_05,2,true,Huy truoc 2 tieng bi tinh tre
+TC_LC_06,0,true,Huy dung luc bat dau bi tinh tre
+TC_LC_07,-1,true,Huy sau khi da bat dau bi tinh tre

@@ -37,6 +37,8 @@ class FlywayMigrationScriptTest {
 
   private final Path migrationRootDir =
       Paths.get("src", "main", "resources", "db", "migration");
+  private final Path seedRootDir =
+      Paths.get("src", "main", "resources", "db", "seed");
 
   private int checksum(Path file) throws IOException {
     var checksum = new java.util.zip.CRC32();
@@ -59,24 +61,35 @@ class FlywayMigrationScriptTest {
           .toList();
 
       assertFalse(sqlFiles.isEmpty(), "Phải có ít nhất một file migration SQL trong db/migration");
-      assertEquals(13, sqlFiles.size(), "Giữ lịch sử đã phát hành và seed discovery ở V1.13");
+      assertEquals(23, sqlFiles.size(), "Payment đến V1.21, Connection V1.22, danh mục V1.23, nhu cầu học V1.24–V1.26; seed demo đã tách sang db/seed");
       assertEquals(sqlFiles.size(), sqlFiles.stream()
           .map(path -> path.getFileName().toString().split("__", 2)[0])
           .distinct().count(), "Version Flyway phải duy nhất trên tất cả module");
       assertTrue(Files.exists(migrationRootDir.resolve("connection")
           .resolve("V1.11__allow_relink_after_revocation.sql")),
           "Migration cho relink, optimistic version và invite quota phải tồn tại");
-      assertTrue(Files.exists(migrationRootDir.resolve("platform")
-          .resolve("V1.10__seed_demo_accounts_and_catalogs.sql")), "Seed main được tích hợp ở V1.10");
-      assertTrue(Files.exists(migrationRootDir.resolve("platform")
-          .resolve("V1.13__seed_demo_matching_data.sql")), "Seed matching được tích hợp ở V1.13");
-      assertEquals(-1594466614, checksum(migrationRootDir.resolve("platform/V1.09__seed_demo_accounts_and_catalogs.sql")),
+      assertTrue(Files.exists(migrationRootDir.resolve("platform/V1.23__seed_reference_catalogs.sql")),
+          "Danh mục tham chiếu phải có ở mọi môi trường");
+      for (Path file : sqlFiles) {
+        assertFalse(Files.readString(file).contains("$argon2id$"),
+            "Migration production [" + file.getFileName() + "] không được chứa tài khoản/mật khẩu demo");
+      }
+
+      // Seed demo được di chuyển nguyên trạng: checksum giữ nguyên để DB dev đã áp dụng vẫn validate được
+      assertEquals(-1594466614, checksum(seedRootDir.resolve("V1.09__seed_demo_accounts_and_catalogs.sql")),
           "V1.09 phải khớp history main, không thay bằng DDL Connection");
-      assertEquals(-1594466614, checksum(migrationRootDir.resolve("platform/V1.10__seed_demo_accounts_and_catalogs.sql")),
+      assertEquals(-1594466614, checksum(seedRootDir.resolve("V1.10__seed_demo_accounts_and_catalogs.sql")),
           "Giữ nguyên checksum V1.10 đã phát hành");
+      assertTrue(Files.exists(seedRootDir.resolve("V1.13__seed_demo_matching_data.sql")),
+          "Seed matching nằm ở db/seed");
       assertEquals(1468271677, checksum(migrationRootDir.resolve("connection/V1.11__allow_relink_after_revocation.sql")),
           "Connection chỉ đổi version migration, giữ nguyên SQL");
 
+      assertTrue(Files.exists(migrationRootDir.resolve("platform/V1.14__add_structured_audit_metadata.sql")));
+      assertTrue(Files.exists(migrationRootDir.resolve("iam/V1.15__add_oauth_and_social_accounts.sql")),
+          "Migration cho OAuth và user social account phải tồn tại");
+      assertTrue(Files.exists(migrationRootDir.resolve("connection/V1.22__allow_multi_subject_connections.sql")),
+          "Migration cho phép multi-subject connection và active class phải tồn tại");
       for (Path file : sqlFiles) {
         String fileName = file.getFileName().toString();
         assertTrue(

@@ -1,0 +1,10 @@
+name: edufit
+
+services:
+  # Giữ độ bền ghi mặc định của PostgreSQL để bảo toàn ví và sổ giao dịch Payment.
+  backend:
+    environment:
+      # Cấp phát 512MB RAM heap ngay từ đầu, tránh G1GC pauses do co giãn heap trên máy local
+      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC"
+    healthcheck:
+      interval: 20s

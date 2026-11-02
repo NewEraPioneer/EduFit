@@ -68,7 +68,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans bg-stone-50 dark:bg-stone-950 text-neutral-900 dark:text-stone-100 transition-colors duration-200">
+      <body
+        className="min-h-full flex flex-col font-sans bg-stone-50 dark:bg-stone-950 text-neutral-900 dark:text-stone-100 transition-colors duration-200"
+        suppressHydrationWarning
+      >
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>

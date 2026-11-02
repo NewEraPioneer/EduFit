@@ -1,8 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/shared/ui/Toast";
+import { connectionApi } from "@/features/connection/api/connectionApi";
+import type { StudentLink } from "@/features/connection/types";
+import { LearningNeedManager } from "@/features/learning-needs/components/LearningNeedManager";
 import {
   Users,
   Save,
@@ -13,37 +17,123 @@ import {
   Mail,
   ShieldCheck,
   CheckCircle2,
-  BookOpen,
+  ArrowRight,
+  GraduationCap,
 } from "lucide-react";
 
 export function ParentProfileForm() {
-  const { user } = useAuth();
+  const { user, refreshUser, updateUser } = useAuth();
   const { showToast } = useToast();
 
-  const [fullName, setFullName] = useState(user?.fullName || "Trần Văn Hưng");
-  const [phoneNumber, setPhoneNumber] = useState("0988 123 456");
-  const [area, setArea] = useState("Cầu Giấy, Hà Nội");
-  const [childGrade, setChildGrade] = useState("Lớp 9 (Ôn thi vào 10)");
-  const [learningNote, setLearningNote] = useState(
-    "Tìm gia sư Toán và Tiếng Anh có kinh nghiệm luyện thi vào các trường THPT Chuyên tại Hà Nội."
-  );
+  const [fullName, setFullName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [area, setArea] = useState("");
+  const [linkedLinks, setLinkedLinks] = useState<StudentLink[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Nạp dữ liệu hồ sơ và liên kết thực tế khi mount
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadInitialData() {
+      try {
+        setLoading(true);
+
+        // 1. Thông tin liên hệ phụ huynh lưu trên thiết bị này
+        const savedProfileStr = localStorage.getItem("edufit_parent_profile");
+        let saved: { fullName?: string; phoneNumber?: string; area?: string } = {};
+        if (savedProfileStr) {
+          try {
+            saved = JSON.parse(savedProfileStr);
+          } catch {
+            saved = {};
+          }
+        }
+        setFullName(saved.fullName || user?.fullName || "");
+        setPhoneNumber(saved.phoneNumber || "");
+        setArea(saved.area || "");
+
+        // 2. Nạp danh sách liên kết học sinh thật từ Backend
+        const links = await connectionApi.getLinks().catch(() => []);
+        if (!ignore) {
+          setLinkedLinks(links);
+        }
+      } catch (err: unknown) {
+        console.error("Lỗi khi tải dữ liệu hồ sơ phụ huynh:", err);
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadInitialData();
+
+    return () => {
+      ignore = true;
+    };
+  }, [user?.fullName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!fullName.trim()) {
+      showToast("Vui lòng nhập họ và tên phụ huynh!", "error");
+      return;
+    }
+
+    if (!phoneNumber.trim()) {
+      showToast("Vui lòng nhập số điện thoại liên hệ!", "error");
+      return;
+    }
+
+    if (!area.trim()) {
+      showToast("Vui lòng nhập khu vực sinh sống!", "error");
+      return;
+    }
+
     setSaving(true);
 
     try {
-      // Giả lập lưu cấu hình hồ sơ phụ huynh và đồng bộ state local
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      // 1. Lưu cấu hình hồ sơ phụ huynh vào storage bền vững
+      const profileData = {
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        area: area.trim(),
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("edufit_parent_profile", JSON.stringify(profileData));
+
+      // 2. Cập nhật cache AuthContext và đồng bộ thông tin phiên làm việc
+      if (user && updateUser) {
+        updateUser({
+          ...user,
+          fullName: fullName.trim(),
+        });
+      }
+
+      await refreshUser?.();
       showToast("Cập nhật thông tin phụ huynh thành công!", "success");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu thông tin";
+      const message =
+        err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu thông tin phụ huynh";
       showToast(message, "error");
     } finally {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-stone-200">
+        <Loader2 className="size-6 text-emerald-600 animate-spin" />
+        <span className="text-xs text-neutral-500 font-medium">
+          Đang nạp dữ liệu hồ sơ phụ huynh...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -56,7 +146,7 @@ export function ParentProfileForm() {
               <span>Hồ Sơ Phụ Huynh (Parent Profile)</span>
             </div>
             <h3 className="font-heading text-xl font-bold text-neutral-900">
-              Thông tin liên hệ & Yêu cầu gia sư cho con
+              Thông tin liên hệ & Nhu cầu học của con
             </h3>
             <p className="text-xs text-neutral-500 mt-0.5">
               Giúp gia sư nắm bắt nhu cầu học tập và liên hệ thuận tiện với gia đình
@@ -102,7 +192,7 @@ export function ParentProfileForm() {
               <input
                 type="email"
                 disabled
-                value={user?.email || "parent.demo@edufit.vn"}
+                value={user?.email ?? ""}
                 className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-100 border border-stone-200 rounded-xl text-neutral-500 font-medium cursor-not-allowed"
               />
             </div>
@@ -146,46 +236,18 @@ export function ParentProfileForm() {
         </div>
       </div>
 
-      {/* 2. Thông Tin Nhu Cầu Tìm Gia Sư Cho Con */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-5">
-        <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
-          <BookOpen className="size-4 text-emerald-600" />
-          <h4 className="text-sm font-bold text-neutral-900">
-            Kế hoạch học tập của học sinh
-          </h4>
+      {/* 2. Nhu cầu học của từng con: lưu trên hệ thống, dùng để ghép và gửi cho gia sư */}
+      {linkedLinks.map((link, index) => (
+        <div key={link.linkId} className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-2">
+          <p className="text-[11px] font-semibold text-emerald-700 break-all">
+            Học sinh {index + 1} · mã {link.studentId.slice(-8)}
+          </p>
+          <LearningNeedManager studentId={link.studentId} />
         </div>
+      ))}
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Cấp lớp học của con
-            </label>
-            <input
-              type="text"
-              value={childGrade}
-              onChange={(e) => setChildGrade(e.target.value)}
-              placeholder="VD: Lớp 9 (Chuẩn bị thi vào 10)"
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-neutral-900 font-medium"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Mục tiêu & Ghi chú dành cho gia sư
-            </label>
-            <textarea
-              rows={3}
-              value={learningNote}
-              onChange={(e) => setLearningNote(e.target.value)}
-              placeholder="Mô tả tính cách học sinh, học lực hiện tại, thời gian mong muốn học trong tuần..."
-              className="w-full p-3.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-neutral-900 font-medium resize-none"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Liên Kết Tài Khoản Con Em (Parent - Student Link) */}
-      <div className="bg-stone-50/80 p-6 rounded-3xl border border-stone-200 space-y-3">
+      {/* 3. Liên Kết Tài Khoản Con Em (Parent - Student Link) Thật */}
+      <div className="bg-stone-50/80 p-6 rounded-3xl border border-stone-200 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-emerald-600" />
@@ -193,14 +255,63 @@ export function ParentProfileForm() {
               Trạng thái liên kết hồ sơ con em (Parent-Student Link)
             </h4>
           </div>
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100/80 text-emerald-800 rounded-full text-[10px] font-bold">
-            <CheckCircle2 className="size-3 text-emerald-600" />
-            Đã đồng bộ
-          </span>
+          {linkedLinks.length > 0 ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100/80 text-emerald-800 rounded-full text-[10px] font-bold">
+              <CheckCircle2 className="size-3 text-emerald-600" />
+              Đã kết nối {linkedLinks.length} học sinh
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold">
+              Chưa có liên kết
+            </span>
+          )}
         </div>
-        <p className="text-[11px] text-neutral-500 leading-relaxed">
-          Tài khoản phụ huynh được liên kết tự động với hồ sơ học viên <strong>Trần Minh Anh (student.demo@edufit.vn)</strong> theo mã định danh UC1.4. Phụ huynh có thể theo dõi tiến độ buổi học và lịch dạy của gia sư tại Bảng điều khiển.
-        </p>
+
+        {linkedLinks.length > 0 ? (
+          <div className="space-y-2">
+            {linkedLinks.map((link) => (
+              <div
+                key={link.linkId}
+                className="p-3 bg-white rounded-2xl border border-stone-200 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <GraduationCap className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-neutral-900">
+                      Mã hồ sơ học sinh: {link.studentId}
+                    </p>
+                    <p className="text-[10px] text-neutral-400">
+                      {link.confirmedAt
+                        ? `Xác nhận lúc: ${new Date(link.confirmedAt).toLocaleDateString("vi-VN")}`
+                        : "Trạng thái: CONFIRMED"}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/parent/children"
+                  className="text-xs text-emerald-700 font-semibold hover:underline"
+                >
+                  Chi tiết →
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-stone-200">
+            <p className="text-[11px] text-neutral-500 leading-relaxed">
+              Tài khoản của bạn hiện chưa liên kết với hồ sơ học sinh nào. Hãy gửi lời mời liên kết tới email tài khoản của con để bắt đầu theo dõi tiến độ và lịch học.
+            </p>
+            <Link
+              href="/parent/children"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 transition-colors"
+            >
+              <span>Quản lý liên kết</span>
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        )}
       </div>
     </form>
   );

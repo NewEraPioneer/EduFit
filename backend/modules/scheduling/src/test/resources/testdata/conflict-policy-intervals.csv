@@ -1,0 +1,9 @@
+testCaseId,existingStart,existingEnd,newStart,newEnd,expectedConflict,description
+TC_CONF_01,14:00,16:00,14:00,16:00,true,Trung khop hoan toan cung khung gio
+TC_CONF_02,14:00,16:00,14:30,15:30,true,Khung gio moi nam lot hoan toan ben trong
+TC_CONF_03,14:00,16:00,13:30,16:30,true,Khung gio moi bao trum hoan toan khung gio cu
+TC_CONF_04,14:00,16:00,13:30,14:30,true,Chong lan mot phan o dau
+TC_CONF_05,14:00,16:00,15:30,16:30,true,Chong lan mot phan o cuoi
+TC_CONF_06,14:00,16:00,12:00,14:00,false,Bien ke nhau ket thuc cu bang bat dau moi
+TC_CONF_07,14:00,16:00,16:00,18:00,false,Bien ke nhau ket thuc moi bang bat dau cu
+TC_CONF_08,14:00,16:00,18:00,20:00,false,Cach xa nhau hoan toan

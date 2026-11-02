@@ -1,0 +1,7 @@
+rating,expectedValid,description
+0,false,Dưới ngưỡng tối thiểu 1 sao
+1,true,Biên dưới hợp lệ (1 sao)
+3,true,Giá trị hợp lệ ở giữa (3 sao)
+5,true,Biên trên hợp lệ (5 sao)
+6,false,Vượt quá ngưỡng tối đa 5 sao
+-1,false,Điểm âm không hợp lệ

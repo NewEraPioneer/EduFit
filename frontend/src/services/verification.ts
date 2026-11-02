@@ -1,4 +1,5 @@
 import { apiClient, ApiError } from "@/lib/api";
+import type { TutorType } from "@/services/profile";
 
 export type VerificationStatus = "DRAFT" | "PENDING" | "APPROVED" | "VERIFIED" | "REJECTED";
 
@@ -11,12 +12,22 @@ export interface CredentialFileResponse {
   uploadedAt: string;
 }
 
+export type CredentialType =
+  | "DEGREE"
+  | "CERTIFICATE"
+  | "TEACHING_LICENCE"
+  | "STUDENT_CARD"
+  | "OTHER"
+  | "IDENTITY_CARD";
+
 export interface CredentialResponse {
   credentialId: string;
-  type: "DEGREE" | "CERTIFICATE" | "IDENTITY_CARD";
+  type: CredentialType | string;
   institution: string;
-  year?: number;
+  year?: number | null;
   note?: string;
+  /** Gói dạy mà giấy tờ này chứng minh (mục tiêu cần duyệt minh chứng). */
+  offeringId?: string | null;
   files: CredentialFileResponse[];
 }
 
@@ -33,9 +44,21 @@ export interface VerificationRequestDetail {
 
 export interface PendingQueueItem {
   requestId: string;
+  id?: string;
   tutorId: string;
   status: string;
   submittedAt: string;
+  tutorName?: string | null;
+  tutorEmail?: string | null;
+  email?: string | null;
+  credentialType?: string | null;
+  institution?: string | null;
+  year?: number | null;
+  documentUrls?: string[];
+  rejectionReason?: string | null;
+  reviewedAt?: string | null;
+  reviewerId?: string | null;
+  reviewedBy?: string | null;
 }
 
 export interface PendingQueueResponse {
@@ -48,11 +71,13 @@ export interface PendingQueueResponse {
 
 export interface SubmitVerificationPayload {
   credentials: Array<{
-    type: "DEGREE" | "CERTIFICATE" | "IDENTITY_CARD";
+    type: CredentialType | string;
     institution: string;
-    year?: number;
+    year?: number | null;
     note?: string;
     fileIndexes: number[];
+    /** Gói dạy mà giấy tờ này chứng minh (cho mục tiêu cần duyệt minh chứng như HSG, IELTS). */
+    offeringId?: string | null;
   }>;
 }
 
@@ -89,28 +114,73 @@ export const verificationService = {
   },
 
   /**
-   * Lấy hàng đợi hồ sơ KYC đang chờ duyệt (ADMIN)
+   * Lấy danh sách hồ sơ xác minh KYC theo trạng thái (ADMIN)
+   * GET /api/v1/admin/verifications?status=...&page=...&size=...
    */
-  async getPendingQueue(page = 0, size = 20): Promise<PendingQueueResponse> {
+  async getVerifications(
+    status?: string,
+    page = 0,
+    size = 20
+  ): Promise<PendingQueueResponse> {
+    const params = new URLSearchParams();
+    if (status && status !== "ALL") {
+      params.append("status", status);
+    }
+    params.append("page", String(page));
+    params.append("size", String(size));
+
     const res = await apiClient.get<PendingQueueResponse>(
-      `/api/v1/admin/verifications/pending?page=${page}&size=${size}`
+      `/api/v1/admin/verifications?${params.toString()}`
     );
     return res.data as PendingQueueResponse;
   },
 
   /**
+   * Lấy hàng đợi hồ sơ KYC đang chờ duyệt (ADMIN - backward compatible)
+   */
+  async getPendingQueue(page = 0, size = 20): Promise<PendingQueueResponse> {
+    return this.getVerifications("PENDING", page, size);
+  },
+
+  /**
+   * Thu hồi bằng cấp / phê duyệt hồ sơ KYC của gia sư (ADMIN)
+   * POST /api/v1/admin/verifications/${requestId}/revoke
+   * Payload: { reason } (min 5 chars)
+   */
+  async revokeVerification(
+    requestId: string,
+    reason: string
+  ): Promise<VerificationRequestDetail> {
+    const res = await apiClient.post<VerificationRequestDetail>(
+      `/api/v1/admin/verifications/${requestId}/revoke`,
+      { reason: reason.trim() }
+    );
+    return res.data as VerificationRequestDetail;
+  },
+
+  /**
    * Duyệt hoặc từ chối hồ sơ xác minh của gia sư (ADMIN)
+   * Gửi { action, reason?, confirmedTutorType? } khớp ReviewVerificationRequest backend.
+   * confirmedTutorType: loại gia sư admin xác nhận theo giấy tờ khi duyệt.
    */
   async reviewVerification(
     requestId: string,
-    decision: "APPROVED" | "REJECTED",
-    rejectionReason?: string
+    actionOrDecision: "APPROVE" | "REJECT" | "APPROVED" | "REJECTED",
+    reasonOrRejectionReason?: string,
+    confirmedTutorType?: TutorType | null
   ): Promise<VerificationRequestDetail> {
+    const action: "APPROVE" | "REJECT" =
+      actionOrDecision === "APPROVE" || actionOrDecision === "APPROVED"
+        ? "APPROVE"
+        : "REJECT";
+    const reason = reasonOrRejectionReason?.trim() || undefined;
+
     const res = await apiClient.post<VerificationRequestDetail>(
       `/api/v1/admin/verifications/${requestId}/review`,
       {
-        decision,
-        rejectionReason: rejectionReason || undefined,
+        action,
+        reason,
+        confirmedTutorType: action === "APPROVE" ? confirmedTutorType || undefined : undefined,
       }
     );
     return res.data as VerificationRequestDetail;

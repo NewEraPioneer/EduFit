@@ -25,27 +25,11 @@ import java.util.Objects;
  */
 public record AiResponse(String text, int latencyMs, Integer tokenCount, boolean generatedByModel) {
 
-  /** Source-compatible constructor for existing model-backed callers and test doubles. */
-  public AiResponse(String text, int latencyMs, Integer tokenCount) {
-    this(text, latencyMs, tokenCount, true);
-  }
-
   /** Compact constructor kiểm tra tính hợp lệ cơ bản. */
   public AiResponse {
     Objects.requireNonNull(text, "text kết quả không được phép null");
     if (latencyMs < 0) {
       throw new IllegalArgumentException("latencyMs không được phép là số âm");
     }
-  }
-
-  /**
-   * Phương thức tạo nhanh (Static Factory Method) không kèm token count.
-   *
-   * @param text Chuỗi văn bản kết quả
-   * @param latencyMs Thời gian xử lý (ms)
-   * @return Đối tượng {@link AiResponse} mới
-   */
-  public static AiResponse of(String text, int latencyMs) {
-    return new AiResponse(text, latencyMs, null);
   }
 }

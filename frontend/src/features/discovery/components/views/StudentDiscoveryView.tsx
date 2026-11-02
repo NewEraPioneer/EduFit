@@ -13,8 +13,7 @@ import {
   useTutorMatching,
 } from "@/features/discovery";
 import { useToast } from "@/shared/ui/Toast";
-import { GoalSelector } from "@/features/discovery/components/GoalSelector";
-import { ConnectionRequestDialog, SentRequests } from "@/features/connection";
+import { ConnectionRequestDialog, SentRequests, type ConnectionTutorInfo } from "@/features/connection";
 
 export function StudentDiscoveryView() {
   const searchParams = useSearchParams();
@@ -62,25 +61,19 @@ export function StudentDiscoveryView() {
   } = useTutorDetail();
 
   // 3. AI Matching Hook (Tab 2: Gợi ý thông minh)
-  const matching = useTutorMatching();
-  const {
-    matches,
-    isMatching,
-    error: matchError,
-    need,
-    updateNeed,
-  } = matching;
+  const matching = useTutorMatching({ enabled: activeTab === "matches" });
+  const { matches } = matching;
 
   // 4. Request connection state
-  const [connectTutorId, setConnectTutorId] = useState<string | null>(null);
+  const [connectTutor, setConnectTutor] = useState<ConnectionTutorInfo | null>(null);
 
   const handleRequestConnect = (tutorId: string) => {
-    if (activeTab === "matches" && matching.goal) {
-      setConnectTutorId(tutorId);
-    } else {
-      showToast("Chuyển sang tab Gợi ý phù hợp để ghép lớp theo mục tiêu.", "info");
-      handleTabChange("matches");
-    }
+    const match = matching.matches.find((m) => m.tutorId === tutorId);
+    const found =
+      tutors.find((t) => t.tutorId === tutorId) ||
+      (selectedTutor?.tutorId === tutorId ? selectedTutor : null) ||
+      match?.tutorInfo || { tutorId, displayName: "Gia sư" };
+    setConnectTutor(found);
   };
 
   return (
@@ -254,13 +247,8 @@ export function StudentDiscoveryView() {
       {/* 4. TAB 2: GỢI Ý PHÙ HỢP (AI MATCH VIEW) */}
       {activeTab === "matches" && (
         <div className="space-y-4">
-          <GoalSelector matching={matching} />
           <AiMatchView
-            matches={matches}
-            isMatching={isMatching}
-            error={matchError}
-            need={need}
-            onUpdateNeed={updateNeed}
+            matching={matching}
             onViewDetail={openTutor}
             onRequestConnect={handleRequestConnect}
           />
@@ -271,13 +259,15 @@ export function StudentDiscoveryView() {
       {activeTab === "requests" && <SentRequests />}
 
       {/* 6. MODALS */}
-      {connectTutorId && matching.goal && (
+      {connectTutor && (
         <ConnectionRequestDialog
-          tutorId={connectTutorId}
-          goal={matching.goal}
-          onClose={() => setConnectTutorId(null)}
+          tutorId={connectTutor.tutorId}
+          tutor={connectTutor}
+          initialNeedId={matching.needId || undefined}
+          onNeedSaved={(saved) => matching.refreshNeeds(saved.needId)}
+          onClose={() => setConnectTutor(null)}
           onSent={() => {
-            setConnectTutorId(null);
+            setConnectTutor(null);
             showToast("Đã gửi yêu cầu kết nối thành công.", "success");
             handleTabChange("requests");
           }}

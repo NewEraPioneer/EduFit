@@ -9,6 +9,6 @@ export * from "./components/TutorSearchFilters";
 export * from "./components/TutorDetailModal";
 export * from "./components/AiExplanationBadge";
 export * from "./components/AiMatchView";
-export * from "./components/MatchingNeedModal";
 export * from "./components/views/StudentDiscoveryView";
 export * from "./components/views/ParentDiscoveryView";
+export * from "./components/LoginPromptModal";

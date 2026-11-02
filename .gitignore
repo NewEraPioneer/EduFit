@@ -5,6 +5,10 @@
 *.pem
 *.key
 
+# Dependencies
+node_modules/
+**/node_modules/
+
 # Java and Maven outputs
 **/target/
 **/.flattened-pom.xml
@@ -18,8 +22,17 @@ Thumbs.db
 
 # Local document review artifacts
 .codex-doc-review/
+.agents/
+AGENTS.md
+.claude/
 
 # Runtime uploads and local cookies
 **/var/
 cookie*.txt
 *.cookie
+
+# Temporary document merge and reports
+.tmp_doc_merge*/
+Assignment-1_Report_*.docx
+tools/
+

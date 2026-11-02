@@ -50,8 +50,11 @@ public class Account {
   @Column(name = "email", nullable = false, unique = true, length = 255)
   private String email;
 
-  @Column(name = "password_hash", nullable = false, length = 255)
+  @Column(name = "password_hash", length = 255)
   private String passwordHash;
+
+  @Column(name = "avatar_url", length = 500)
+  private String avatarUrl;
 
   @Column(name = "full_name", nullable = false, length = 150)
   private String fullName;
@@ -111,6 +114,46 @@ public class Account {
   }
 
   /**
+   * Khởi tạo tài khoản mới từ OAuth2 (không có mật khẩu ban đầu).
+   */
+  public static Account createOAuthAccount(String email, String fullName, AccountRole role, String avatarUrl) {
+    Objects.requireNonNull(email, "Email không được để trống");
+    Objects.requireNonNull(fullName, "Họ tên không được để trống");
+    Objects.requireNonNull(role, "Vai trò không được để trống");
+
+    if (role == AccountRole.ADMIN) {
+      throw new InvalidOperationException(
+          ErrorCode.FORBIDDEN,
+          "Không được phép tự đăng ký tài khoản với quyền Quản trị viên (ADMIN)"
+      );
+    }
+
+    Account account = new Account();
+    account.email = normalizeEmail(email);
+    account.passwordHash = null;
+    account.fullName = fullName.trim();
+    account.role = role;
+    account.status = AccountStatus.ACTIVE;
+    account.avatarUrl = avatarUrl;
+    account.failedLoginAttempts = 0;
+    return account;
+  }
+
+  /**
+   * Cập nhật ảnh đại diện tài khoản.
+   */
+  public void updateAvatar(String avatarUrl) {
+    this.avatarUrl = avatarUrl;
+  }
+
+  /**
+   * Cập nhật trạng thái hoạt động của tài khoản (ACTIVE / DEACTIVATED).
+   */
+  public void updateStatus(AccountStatus status) {
+    this.status = Objects.requireNonNull(status, "Trạng thái không được để trống");
+  }
+
+  /**
    * Khởi tạo tài khoản mới ở trạng thái ACTIVE (UC1.1).
    */
   public static Account createActive(String email, String passwordHash, String fullName, AccountRole role) {
@@ -128,6 +171,18 @@ public class Account {
       AccountRole role,
       AccountStatus status
   ) {
+    return of(id, email, passwordHash, fullName, role, status, null);
+  }
+
+  public static Account of(
+      UUID id,
+      String email,
+      String passwordHash,
+      String fullName,
+      AccountRole role,
+      AccountStatus status,
+      String avatarUrl
+  ) {
     Account account = new Account();
     account.id = id;
     account.email = normalizeEmail(email);
@@ -135,6 +190,7 @@ public class Account {
     account.fullName = fullName != null ? fullName.trim() : "";
     account.role = role;
     account.status = status;
+    account.avatarUrl = avatarUrl;
     account.failedLoginAttempts = 0;
     return account;
   }

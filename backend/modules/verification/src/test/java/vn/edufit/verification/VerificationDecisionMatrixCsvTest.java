@@ -68,7 +68,9 @@ class VerificationDecisionMatrixCsvTest {
   void setUp() {
     adminVerificationService = new AdminVerificationService(
         verificationRequestRepository,
-        profileFacade
+        profileFacade,
+        org.mockito.Mockito.mock(vn.edufit.shared.audit.AuditSink.class),
+        org.mockito.Mockito.mock(vn.edufit.iam.api.IamFacade.class)
     );
 
     tutorVerificationService = new TutorVerificationService(
@@ -152,7 +154,7 @@ class VerificationDecisionMatrixCsvTest {
         .thenReturn(Optional.of(request));
 
     ReviewVerificationRequest.Action action = ReviewVerificationRequest.Action.valueOf(adminAction);
-    ReviewVerificationRequest reviewRequest = new ReviewVerificationRequest(action, rejectionReason);
+    ReviewVerificationRequest reviewRequest = new ReviewVerificationRequest(action, rejectionReason, null);
 
     if ("NONE".equals(expectedErrorCode)) {
       when(verificationRequestRepository.save(any(VerificationRequest.class)))
@@ -202,7 +204,7 @@ class VerificationDecisionMatrixCsvTest {
             institution,
             (short) gradYear,
             "Ghi chú",
-            List.of(0)
+            List.of(0), null
         )
     ));
 

@@ -8,18 +8,20 @@ interface TutorVerificationBannerProps {
   status: VerificationStatus;
   rejectionReason?: string;
   onOpenUploadModal: () => void;
+  isProfileVerified?: boolean;
 }
 
 export function TutorVerificationBanner({
   status,
   rejectionReason,
   onOpenUploadModal,
+  isProfileVerified,
 }: TutorVerificationBannerProps) {
   switch (status) {
     case "APPROVED":
     case "VERIFIED":
       return (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3 text-emerald-950">
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-950">
           <div className="flex items-center gap-3">
             <div className="size-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
               <ShieldCheck className="size-5" />
@@ -33,10 +35,41 @@ export function TutorVerificationBanner({
               </span>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={onOpenUploadModal}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shrink-0 flex items-center gap-1.5 shadow-xs"
+          >
+            <UploadCloud className="size-4" />
+            <span>Bổ sung bằng cấp</span>
+          </button>
         </div>
       );
 
     case "PENDING":
+      if (isProfileVerified) {
+        return (
+          <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-950">
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <ShieldCheck className="size-5" />
+              </div>
+              <div>
+                <span className="text-xs sm:text-sm font-bold block">
+                  Hồ sơ gia sư đã được xác thực chính thức ✅
+                </span>
+                <span className="text-xs text-emerald-800">
+                  Bằng cấp bổ sung mới đang được Quản trị viên xét duyệt ⏳ (Huy hiệu uy tín của bạn vẫn được giữ nguyên).
+                </span>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 text-emerald-800 rounded-xl text-xs font-semibold shrink-0 shadow-2xs">
+              <Clock className="size-3.5 text-emerald-600" />
+              <span>Đang duyệt bằng bổ sung</span>
+            </span>
+          </div>
+        );
+      }
       return (
         <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-between gap-3 text-sky-950">
           <div className="flex items-center gap-3">
@@ -64,7 +97,9 @@ export function TutorVerificationBanner({
             </div>
             <div>
               <span className="text-xs sm:text-sm font-bold block">
-                Hồ sơ xác minh chưa được duyệt ❌
+                {isProfileVerified
+                  ? "Hồ sơ bổ sung bằng cấp chưa được duyệt ❌"
+                  : "Hồ sơ xác minh chưa được duyệt ❌"}
               </span>
               <span className="text-xs text-red-800">
                 {rejectionReason || "Hình ảnh bằng cấp mờ hoặc chưa đủ thông tin công chứng. Vui lòng nộp lại giấy tờ."}
@@ -76,7 +111,7 @@ export function TutorVerificationBanner({
             onClick={onOpenUploadModal}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-colors shrink-0 shadow-xs"
           >
-            Nộp lại bằng cấp
+            {isProfileVerified ? "Nộp lại bằng bổ sung" : "Nộp lại bằng cấp"}
           </button>
         </div>
       );

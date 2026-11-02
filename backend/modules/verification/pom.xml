@@ -31,6 +31,10 @@
       <groupId>vn.edufit</groupId>
       <artifactId>audit</artifactId>
     </dependency>
+    <dependency>
+      <groupId>vn.edufit</groupId>
+      <artifactId>iam</artifactId>
+    </dependency>
 
     <!-- Spring Starters -->
     <dependency>

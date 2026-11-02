@@ -1,8 +1,11 @@
 package vn.edufit.iam.application;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.iam.api.dto.UserSummaryView;
@@ -36,6 +39,16 @@ public class IamFacadeImpl implements IamFacade {
     return accountRepository.findByEmail(email.trim().toLowerCase(Locale.ROOT)).map(this::toSummary);
   }
 
+  @Override
+  public Map<UUID, UserSummaryView> findUserSummariesByIds(List<UUID> ids) {
+    if (ids == null || ids.isEmpty()) {
+      return Map.of();
+    }
+    return accountRepository.findAllById(ids).stream()
+        .map(this::toSummary)
+        .collect(Collectors.toMap(UserSummaryView::id, u -> u));
+  }
+
   private UserSummaryView toSummary(vn.edufit.iam.infra.persistence.Account account) {
     return new UserSummaryView(account.getId(), account.getEmail(), account.getFullName(),
         account.getRole(), account.getStatus());
@@ -48,4 +61,20 @@ public class IamFacadeImpl implements IamFacade {
     }
     return accountRepository.existsById(id);
   }
+
+  @Override
+  public long countTotalUsers() {
+    return accountRepository.count();
+  }
+
+  @Override
+  public long countUsersByRole(vn.edufit.iam.api.AccountRole role) {
+    if (role == null) {
+      return 0L;
+    }
+    return accountRepository.countByRole(role);
+  }
+
+  @Override
+  public List<UUID> findActiveAdminIds() { return accountRepository.findActiveAdminIds(); }
 }

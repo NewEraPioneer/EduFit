@@ -2,6 +2,7 @@ package vn.edufit.profile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -11,7 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import vn.edufit.profile.application.service.CatalogFixtures;
 import vn.edufit.profile.application.service.CatalogQueryService;
+import vn.edufit.profile.application.service.LearningCatalogLoader;
 import vn.edufit.profile.infra.persistence.entity.EducationLevel;
 import vn.edufit.profile.infra.persistence.entity.Subject;
 import vn.edufit.profile.infra.persistence.repository.EducationLevelRepository;
@@ -27,11 +30,14 @@ class CatalogQueryServiceTest {
   @Mock
   private SubjectRepository subjectRepository;
 
+  @Mock
+  private LearningCatalogLoader learningCatalogLoader;
+
   private CatalogQueryService catalogQueryService;
 
   @BeforeEach
   void setUp() {
-    catalogQueryService = new CatalogQueryService(educationLevelRepository, subjectRepository);
+    catalogQueryService = new CatalogQueryService(educationLevelRepository, subjectRepository, learningCatalogLoader);
   }
 
   @Test
@@ -53,5 +59,28 @@ class CatalogQueryServiceTest {
     assertEquals(2, catalog.subjects().size());
     assertEquals("Lớp 10", catalog.educationLevels().get(0).name());
     assertEquals("Toán", catalog.subjects().get(0).name());
+  }
+
+  @Test
+  @DisplayName("Danh mục nhu cầu học chỉ trả mục đang hoạt động kèm luật mục tiêu")
+  void shouldReturnLearningCatalogWithRules() {
+    when(learningCatalogLoader.load()).thenReturn(CatalogFixtures.catalog());
+
+    var catalog = catalogQueryService.getLearningCatalog();
+
+    assertEquals(4, catalog.educationLevels().size());
+    assertEquals(List.of("Toán", "Khoa học tự nhiên"), catalog.subjects().stream().map(s -> s.name()).toList());
+    assertEquals(List.of("SCI_INTEGRATED", "SCI_PHYSICS"), catalog.tracks().stream().map(t -> t.code()).toList());
+    assertEquals(List.of(1, 2), catalog.tracks().getFirst().levelIds());
+    assertTrue(catalog.goalTagRules().size() > 10);
+  }
+
+  @Test
+  @DisplayName("Lọc mục tiêu theo lớp/môn/nhánh: lớp 7 Toán không có Luyện thi vào 10")
+  void shouldFilterGoalTags() {
+    when(learningCatalogLoader.load()).thenReturn(CatalogFixtures.catalog());
+    assertEquals(List.of("FOUNDATION", "GRADE_BOOST", "GIFTED"),
+        catalogQueryService.getGoalTags(CatalogFixtures.LEVEL_7, CatalogFixtures.MATH, null).stream()
+            .map(tag -> tag.code()).toList());
   }
 }

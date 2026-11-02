@@ -19,6 +19,7 @@ export function UploadCredentialModal({ isOpen, onClose, onSuccess }: UploadCred
     setGraduationYear,
     documentType,
     setDocumentType,
+    handleDocumentTypeChange,
     notes,
     setNotes,
     selectedFiles,
@@ -44,8 +45,8 @@ export function UploadCredentialModal({ isOpen, onClose, onSuccess }: UploadCred
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-neutral-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-neutral-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-xl space-y-5 animate-in fade-in zoom-in-95 duration-150 my-auto">
         <div className="flex items-center justify-between pb-3 border-b border-stone-100">
           <div>
             <h3 className="font-heading text-lg font-bold text-neutral-900">
@@ -77,12 +78,14 @@ export function UploadCredentialModal({ isOpen, onClose, onSuccess }: UploadCred
             <label className="block text-xs font-bold text-neutral-700 mb-1">Loại giấy tờ xác minh</label>
             <select
               value={documentType}
-              onChange={(e) => setDocumentType(e.target.value as CredentialType)}
+              onChange={(e) => handleDocumentTypeChange(e.target.value as CredentialType)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-xs font-medium focus:bg-white focus:outline-sky-500"
             >
-              <option value="DEGREE">Bằng Cử nhân / Thạc sĩ / Tiến sĩ</option>
-              <option value="CERTIFICATE">Chứng chỉ Ngoại ngữ (IELTS, TOEIC...) / Giải thưởng</option>
-              <option value="IDENTITY_CARD">Giấy tờ định danh</option>
+              <option value="DEGREE">Bằng cấp</option>
+              <option value="CERTIFICATE">Chứng chỉ</option>
+              <option value="TEACHING_LICENCE">Chứng chỉ sư phạm</option>
+              <option value="STUDENT_CARD">Thẻ sinh viên</option>
+              <option value="OTHER">Giấy tờ khác / CCCD</option>
             </select>
           </div>
 
@@ -100,11 +103,16 @@ export function UploadCredentialModal({ isOpen, onClose, onSuccess }: UploadCred
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1">Năm tốt nghiệp (hoặc dự kiến)</label>
+              <label className="block text-xs font-bold text-neutral-700 mb-1">
+                Năm tốt nghiệp (hoặc dự kiến){documentType === "OTHER" ? " - Không bắt buộc" : ""}
+              </label>
               <input
                 type="number"
-                value={graduationYear}
-                onChange={(e) => setGraduationYear(Number(e.target.value))}
+                value={graduationYear ?? ""}
+                onChange={(e) =>
+                  setGraduationYear(e.target.value ? Number(e.target.value) : undefined)
+                }
+                placeholder={documentType === "OTHER" ? "Để trống nếu là CCCD" : "Ví dụ: 2024"}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-xs font-medium focus:bg-white focus:outline-sky-500"
               />
             </div>

@@ -44,22 +44,13 @@ public class TutorVerificationService {
   public TutorVerificationService(
       VerificationRequestRepository verificationRequestRepository,
       CredentialStorageService credentialStorageService,
-      ProfileFacade profileFacade
-  ) {
-    this(verificationRequestRepository, credentialStorageService, profileFacade, null);
-  }
-
-  @org.springframework.beans.factory.annotation.Autowired
-  public TutorVerificationService(
-      VerificationRequestRepository verificationRequestRepository,
-      CredentialStorageService credentialStorageService,
       ProfileFacade profileFacade,
       CredentialFileRepository credentialFileRepository
   ) {
     this.verificationRequestRepository = verificationRequestRepository;
     this.credentialStorageService = credentialStorageService;
     this.profileFacade = profileFacade;
-    this.credentialFileRepository = credentialFileRepository;
+    this.credentialFileRepository = java.util.Objects.requireNonNull(credentialFileRepository);
   }
 
   @Transactional(readOnly = true)
@@ -68,12 +59,6 @@ public class TutorVerificationService {
       throw new InvalidOperationException(
           ErrorCode.UNAUTHORIZED,
           "Phiên làm việc chưa được xác thực hoặc đã hết hạn"
-      );
-    }
-    if (credentialFileRepository == null) {
-      throw new InvalidOperationException(
-          ErrorCode.INVALID_OPERATION,
-          "CredentialFileRepository chưa được cấu hình"
       );
     }
 
@@ -132,7 +117,13 @@ public class TutorVerificationService {
     try {
       VerificationRequest verificationRequest = VerificationRequest.pending(tutorId, Instant.now());
       for (SubmitVerificationRequest.CredentialItem item : request.credentials()) {
-        Credential credential = Credential.create(item.type(), item.institution(), item.year(), item.note());
+        if (item.offeringId() != null && profileFacade.findTutorOfferings(tutorId).stream()
+            .noneMatch(offering -> offering.offeringId().equals(item.offeringId()))) {
+          throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED,
+              "Gói dạy được chọn làm bằng chứng không thuộc hồ sơ của bạn");
+        }
+        Credential credential = Credential.create(
+            item.type(), item.institution(), item.year(), item.note(), item.offeringId());
         for (Integer fileIndex : item.fileIndexes()) {
           MultipartFile file = getFile(files, fileIndex);
           StoredCredentialFile storedFile = credentialStorageService.store(file);
@@ -149,7 +140,15 @@ public class TutorVerificationService {
       }
 
       VerificationRequest saved = verificationRequestRepository.save(verificationRequest);
-      profileFacade.markTutorPendingVerification(tutorId);
+
+      boolean isAlreadyVerified = profileFacade.findTutorById(tutorId)
+          .map(t -> "VERIFIED".equalsIgnoreCase(t.status()))
+          .orElse(false);
+
+      if (!isAlreadyVerified) {
+        profileFacade.markTutorPendingVerification(tutorId);
+      }
+
       return VerificationRequestDetailResponse.from(saved);
     } catch (RuntimeException ex) {
       storedKeys.forEach(credentialStorageService::delete);
@@ -161,14 +160,48 @@ public class TutorVerificationService {
   public VerificationRequestDetailResponse getMyLatestRequest(CurrentUser currentUser) {
     ensureTutor(currentUser);
     UUID tutorId = profileFacade.getTutorIdByUserId(currentUser.getUserId());
-    VerificationRequest request = verificationRequestRepository
-        .findWithCredentialsByRequestId(
-            verificationRequestRepository.findFirstByTutorIdOrderBySubmittedAtDesc(tutorId)
-                .orElseThrow(() -> new EntityNotFoundException("Gia sư chưa có hồ sơ xác minh"))
-                .getRequestId()
-        )
+    VerificationRequest latestRequest = verificationRequestRepository
+        .findFirstByTutorIdOrderBySubmittedAtDesc(tutorId)
         .orElseThrow(() -> new EntityNotFoundException("Gia sư chưa có hồ sơ xác minh"));
-    return VerificationRequestDetailResponse.from(request);
+
+    VerificationRequest fullRequest = verificationRequestRepository
+        .findWithCredentialsByRequestId(latestRequest.getRequestId())
+        .orElse(latestRequest);
+
+    List<VerificationRequest> allRequests = verificationRequestRepository
+        .findByTutorIdOrderBySubmittedAtAsc(tutorId);
+
+    List<VerificationRequestDetailResponse.CredentialResponse> allCredentials = new ArrayList<>();
+    if (allRequests == null || allRequests.isEmpty()) {
+      allCredentials.addAll(
+          fullRequest.getCredentials().stream()
+              .map(VerificationRequestDetailResponse.CredentialResponse::from)
+              .toList()
+      );
+    } else {
+      java.util.Set<UUID> seenCredIds = new java.util.HashSet<>();
+      for (VerificationRequest req : allRequests) {
+        boolean isCurrent = req == fullRequest || (req.getRequestId() != null && req.getRequestId().equals(fullRequest.getRequestId()));
+        if (isCurrent || req.getStatus() == VerificationRequest.Status.APPROVED) {
+          for (Credential cred : req.getCredentials()) {
+            if (cred.getCredentialId() == null || seenCredIds.add(cred.getCredentialId())) {
+              allCredentials.add(VerificationRequestDetailResponse.CredentialResponse.from(cred));
+            }
+          }
+        }
+      }
+    }
+
+    return new VerificationRequestDetailResponse(
+        fullRequest.getRequestId(),
+        fullRequest.getTutorId(),
+        fullRequest.getStatus().name(),
+        fullRequest.getRejectionReason(),
+        fullRequest.getSubmittedAt(),
+        fullRequest.getReviewedBy(),
+        fullRequest.getReviewedAt(),
+        allCredentials
+    );
   }
 
   private MultipartFile getFile(List<MultipartFile> files, Integer fileIndex) {

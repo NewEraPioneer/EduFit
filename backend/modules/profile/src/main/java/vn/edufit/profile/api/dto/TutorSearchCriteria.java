@@ -4,13 +4,19 @@ import java.math.BigDecimal;
 import java.time.LocalTime;
 
 /**
- * Bộ tiêu chí tìm kiếm hồ sơ gia sư dùng bởi module Discovery qua public facade.
+ * Bộ lọc cứng do người dùng tự chọn ở Discovery. Mọi tiêu chí là tùy chọn;
+ * các điều kiện về gói dạy (môn, nhánh, lớp, mục tiêu, bộ sách, giá) phải cùng thỏa trên một gói.
  */
 public record TutorSearchCriteria(
-    Integer subjectId,
     Integer levelId,
-    String area,
+    Integer subjectId,
+    Integer trackId,
+    Integer goalTagId,
+    Integer textbookSeriesId,
+    String tutorType,
     String mode,
+    Integer provinceId,
+    Integer districtId,
     Long minPrice,
     Long maxPrice,
     BigDecimal minRating,
@@ -19,16 +25,8 @@ public record TutorSearchCriteria(
     LocalTime availableFrom,
     LocalTime availableTo
 ) {
-
-  public TutorSearchCriteria(
-      Integer subjectId,
-      Integer levelId,
-      String area,
-      String mode,
-      Long minPrice,
-      Long maxPrice,
-      BigDecimal minRating
-  ) {
-    this(subjectId, levelId, area, mode, minPrice, maxPrice, minRating, null, null, null, null);
+  public static TutorSearchCriteria none() {
+    return new TutorSearchCriteria(null, null, null, null, null, null, null, null, null, null, null, null,
+        null, null, null, null);
   }
 }

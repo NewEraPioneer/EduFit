@@ -6,22 +6,32 @@ import {
   VerificationRequestDetail,
   VerificationStatus,
 } from "@/services/verification";
+import { profileService, TutorProfileData } from "@/services/profile";
 import {
   TutorVerificationBanner,
   UploadCredentialModal,
 } from "@/features/verification";
-import { ShieldCheck, FileText, Upload, Loader2 } from "lucide-react";
+import { ShieldCheck, FileText, Upload, Loader2, Clock } from "lucide-react";
 
 export default function TutorVerificationPage() {
   const [requestDetail, setRequestDetail] = useState<VerificationRequestDetail | null>(null);
+  const [profile, setProfile] = useState<TutorProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  const loadMyRequest = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await verificationService.getMyRequest();
-      setRequestDetail(data);
+      const [reqData, profileData] = await Promise.allSettled([
+        verificationService.getMyRequest(),
+        profileService.getMyTutorProfile(),
+      ]);
+      if (reqData.status === "fulfilled") {
+        setRequestDetail(reqData.value);
+      }
+      if (profileData.status === "fulfilled") {
+        setProfile(profileData.value);
+      }
     } catch (err) {
       console.error("Lỗi khi tải hồ sơ KYC gia sư:", err);
     } finally {
@@ -30,10 +40,11 @@ export default function TutorVerificationPage() {
   }, []);
 
   useEffect(() => {
-    void loadMyRequest();
-  }, [loadMyRequest]);
+    void loadData();
+  }, [loadData]);
 
   const status: VerificationStatus = requestDetail?.status || "DRAFT";
+  const isProfileVerified = profile?.status === "VERIFIED" || Boolean(profile?.verifiedAt);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -42,6 +53,7 @@ export default function TutorVerificationPage() {
         status={status}
         rejectionReason={requestDetail?.rejectionReason}
         onOpenUploadModal={() => setIsUploadOpen(true)}
+        isProfileVerified={isProfileVerified}
       />
 
       {/* Khung chi tiết hồ sơ xác minh */}
@@ -67,8 +79,32 @@ export default function TutorVerificationPage() {
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors shrink-0"
             >
               <Upload className="size-3.5" />
-              <span>{status === "REJECTED" ? "Nộp lại hồ sơ" : "Nộp hồ sơ"}</span>
+              <span>
+                {status === "REJECTED"
+                  ? isProfileVerified
+                    ? "Nộp lại bằng bổ sung"
+                    : "Nộp lại hồ sơ"
+                  : "Nộp hồ sơ"}
+              </span>
             </button>
+          )}
+
+          {(status === "APPROVED" || status === "VERIFIED") && (
+            <button
+              type="button"
+              onClick={() => setIsUploadOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors shrink-0"
+            >
+              <Upload className="size-3.5" />
+              <span>Bổ sung bằng cấp</span>
+            </button>
+          )}
+
+          {status === "PENDING" && (
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-sky-50 text-sky-800 border border-sky-200 rounded-xl text-xs font-medium shrink-0">
+              <Clock className="size-3.5 text-sky-600" />
+              <span>{isProfileVerified ? "Đang xét duyệt bằng bổ sung" : "Đang chờ duyệt hồ sơ"}</span>
+            </span>
           )}
         </div>
 
@@ -99,9 +135,26 @@ export default function TutorVerificationPage() {
                   )}
                 </div>
 
-                <div className="text-xs text-neutral-400 flex items-center gap-1.5 shrink-0">
-                  <FileText className="size-4 text-sky-600" />
-                  <span>{cred.files?.length || 0} tệp đính kèm</span>
+                <div className="flex flex-col sm:items-end gap-1.5 shrink-0">
+                  <div className="text-xs text-neutral-400 flex items-center gap-1.5">
+                    <FileText className="size-4 text-sky-600" />
+                    <span>{cred.files?.length || 0} tệp đính kèm</span>
+                  </div>
+                  {cred.files && cred.files.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {cred.files.map((file) => (
+                        <a
+                          key={file.fileId}
+                          href={verificationService.getCredentialFileUrl(file.fileId)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-sky-50 text-sky-800 rounded-lg border border-stone-200 text-[11px] font-medium transition-colors shadow-2xs"
+                        >
+                          <span className="truncate max-w-[120px]">{file.fileName}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -117,7 +170,7 @@ export default function TutorVerificationPage() {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onSuccess={() => {
-          void loadMyRequest();
+          void loadData();
         }}
       />
     </div>

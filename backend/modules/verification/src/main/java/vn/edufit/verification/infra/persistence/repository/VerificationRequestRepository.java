@@ -16,6 +16,8 @@ public interface VerificationRequestRepository extends JpaRepository<Verificatio
 
   Optional<VerificationRequest> findFirstByTutorIdOrderBySubmittedAtDesc(UUID tutorId);
 
+  java.util.List<VerificationRequest> findByTutorIdOrderBySubmittedAtAsc(UUID tutorId);
+
   @org.springframework.data.jpa.repository.Query("SELECT r FROM VerificationRequest r WHERE r.id = :requestId")
   Optional<VerificationRequest> findWithCredentialsByRequestId(@org.springframework.data.repository.query.Param("requestId") UUID requestId);
 
@@ -23,4 +25,11 @@ public interface VerificationRequestRepository extends JpaRepository<Verificatio
       VerificationRequest.Status status,
       Pageable pageable
   );
+
+  Page<VerificationRequest> findByStatus(
+      VerificationRequest.Status status,
+      Pageable pageable
+  );
+
+  long countByStatus(VerificationRequest.Status status);
 }

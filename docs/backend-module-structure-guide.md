@@ -335,6 +335,12 @@ flowchart TD
    - Nếu module có thư mục `domain/`, code bên trong `domain/` phải là **Java thuần**. Không import `org.springframework.*`, không import `jakarta.persistence.*`.
 4. **Bảo vệ tính đóng gói liên module**:
    - Không module nào được phép phụ thuộc xuyên tầng vào `web/`, `application/`, hay `infra/` của module khác. Mọi giao tiếp bắt buộc phải đi qua interface ở `api/`.
+5. **Ràng buộc Định danh (Identity Mapping & Authorization Guardrail)**:
+   - Trong kiến trúc dữ liệu EduFit, `account.user_id` là định danh tài khoản xác thực (chứa trong `CurrentUser` / Security Session), trong khi `tutor_profile.tutor_id` và `student_profile.student_id` là UUID riêng biệt của từng loại hồ sơ vai trò.
+   - **Tuyệt đối không so sánh trực tiếp** `user_id == tutor_id` hoặc `user_id == student_id`. Các module phụ thuộc (đặc biệt là `scheduling`) bắt buộc phải sử dụng `SchedulingSecurityResolver` phối hợp `ProfileFacade` để chuyển đổi `user_id` $\leftrightarrow$ `profile_id`, đồng thời tra cứu `ConnectionFacade.hasConfirmedParentLink` để cấp quyền hợp lệ cho Phụ huynh thao tác thay Học sinh.
+6. **Xử lý Hàng loạt & Tính Nguyên tử (Batch Processing & Atomic Transactions)**:
+   - Đối với các luồng xử lý hàng loạt (như `propose-batch`, `respond-batch`, hoặc đổi lịch định kỳ UC4.8 Bounded Horizon), toàn bộ danh sách phải được xử lý trong **đúng một giao dịch `@Transactional`** theo nguyên lý **All-or-Nothing**.
+   - Nếu có bất kỳ buổi học nào vi phạm chính sách cửa sổ thời gian hoặc kích hoạt xung đột cơ sở dữ liệu (`GiST exclusion_violation`), toàn bộ batch phải bị hủy bỏ (Rollback) hoàn toàn và trả về mã lỗi thích hợp (400 hoặc 409). Không áp dụng cơ chế Partial-Commit (lưu một nửa, bỏ một nửa) nhằm ngăn ngừa tình trạng dữ liệu mồ côi và rách trạng thái (state fragmentation).
 
 ---
 

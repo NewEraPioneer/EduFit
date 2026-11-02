@@ -1,0 +1,15 @@
+testCaseId,fromState,toState,expectedAllowed,description
+TC_ST_01,PROPOSED,SCHEDULED,true,Chap thuan de xuat chuyen sang SCHEDULED
+TC_ST_02,PROPOSED,REJECTED,true,Tu choi de xuat chuyen sang REJECTED
+TC_ST_03,PROPOSED,WITHDRAWN,true,Nguoi de xuat rut lai chuyen sang WITHDRAWN
+TC_ST_04,PROPOSED,EXPIRED,true,Qua han phan hoi chuyen sang EXPIRED
+TC_ST_05,PROPOSED,COMPLETED,false,Cam nhay coc tu PROPOSED sang COMPLETED
+TC_ST_06,PROPOSED,CANCELLED,false,Cam nhay coc tu PROPOSED sang CANCELLED
+TC_ST_07,SCHEDULED,COMPLETED,true,Gia su ghi nhan hoan thanh
+TC_ST_08,SCHEDULED,ABSENT,true,Gia su ghi nhan vang mat
+TC_ST_09,SCHEDULED,CANCELLED,true,Huy buoi hoc da len lich
+TC_ST_10,SCHEDULED,PROPOSED,false,Cam quay lui ve PROPOSED
+TC_ST_11,COMPLETED,SCHEDULED,false,Cam hoi sinh buoi hoc da hoan thanh
+TC_ST_12,CANCELLED,SCHEDULED,false,Cam hoi sinh buoi hoc da huy
+TC_ST_13,REJECTED,SCHEDULED,false,Cam chap nhan de xuat da bi tu choi
+TC_ST_14,EXPIRED,SCHEDULED,false,Cam chap nhan de xuat da het han

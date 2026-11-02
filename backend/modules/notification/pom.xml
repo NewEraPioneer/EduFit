@@ -13,13 +13,31 @@
   <packaging>jar</packaging>
   <name>EduFit :: Module :: Notification</name>
   <dependencies>
-    <!-- Chỉ dùng Shared Kernel, không phụ thuộc vào bất kỳ module nghiệp vụ nào khác -->
+    <!-- Shared kernel and public Domain Events from other modules (ADR-002) -->
     <dependency>
       <groupId>vn.edufit</groupId>
       <artifactId>shared</artifactId>
     </dependency>
+    <dependency>
+      <groupId>vn.edufit</groupId>
+      <artifactId>connection</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>vn.edufit</groupId>
+      <artifactId>scheduling</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>vn.edufit</groupId>
+      <artifactId>review</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>vn.edufit</groupId>
+      <artifactId>profile</artifactId>
+    </dependency>
 
     <!-- Spring Starters -->
+    <dependency><groupId>vn.edufit</groupId><artifactId>payment</artifactId></dependency>
+    <dependency><groupId>vn.edufit</groupId><artifactId>iam</artifactId></dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
@@ -31,6 +49,13 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- Testing -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

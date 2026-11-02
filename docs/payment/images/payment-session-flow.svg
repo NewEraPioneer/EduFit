@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1260" viewBox="0 0 1680 1260">
+<rect width="100%" height="100%" fill="white"/>
+<text x="64" y="28" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">EDUFIT / PAYMENT / 03</text>
+<text x="64" y="66" font-family="Segoe UI, sans-serif" font-size="38" font-weight="700" fill="#0F172A" dominant-baseline="text-before-edge">Giữ học phí → phản hồi 24h → tất toán</text>
+<text x="64" y="120" font-family="Segoe UI, sans-serif" font-size="23" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">Một buổi có một charge và một payer. Giá và commission được snapshot khi cấp tiền.</text>
+<path d="M64 164H1616" stroke="#E2E8F0" stroke-width="2"/>
+<rect x="64" y="200" width="1000" height="150" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="220" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">1. Cấp tiền cho buổi học</text>
+<text x="88" y="268" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Payer đủ tiền: available -A, held +A. Giá phải khớp hồ sơ hiện hành.</text>
+<polyline points="564,353 564,396" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,396.0 556.3,382.0 571.7,382.0" fill="#64748B"/>
+<rect x="64" y="400" width="1000" height="150" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="420" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">2. Kiểm tra buổi đã hoàn thành</text>
+<text x="88" y="468" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Nguồn Scheduling phải COMPLETED và thời gian server đã tới endAt.</text>
+<polyline points="564,553 564,596" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,596.0 556.3,582.0 571.7,582.0" fill="#64748B"/>
+<rect x="64" y="600" width="1000" height="150" rx="18" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+<text x="88" y="620" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#7C3AED" dominant-baseline="text-before-edge">3. Giữ đủ cửa sổ phản hồi 24h</text>
+<text x="88" y="668" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Xác nhận chỉ ghi việc học. Đủ reviewStartedAt + 24h, COMPLETED và không có vấn đề</text>
+<text x="88" y="703" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">mới tự thu.</text>
+<polyline points="564,753 564,796" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,796.0 556.3,782.0 571.7,782.0" fill="#64748B"/>
+<rect x="64" y="800" width="1000" height="150" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="88" y="820" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">4. Tất toán trong một transaction</text>
+<text x="88" y="868" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Giải phóng held; trả phần dư payer; cộng tutor và ghi hoa hồng.</text>
+<rect x="1120" y="200" width="496" height="240" rx="18" fill="#F1F5F9" stroke="#475569" stroke-width="2"/>
+<text x="1144" y="220" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#475569" dominant-baseline="text-before-edge">Ai được cấp tiền?</text>
+<text x="1144" y="268" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Student của buổi hoặc Parent có</text>
+<text x="1144" y="303" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">confirmed link. Available phải đủ, không</text>
+<text x="1144" y="338" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">tự trả cho mình.</text>
+<rect x="1120" y="500" width="496" height="250" rx="18" fill="#FFFBEB" stroke="#B45309" stroke-width="2"/>
+<text x="1144" y="520" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B45309" dominant-baseline="text-before-edge">Mốc 24 giờ</text>
+<text x="1144" y="568" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Mở/lưu/thông báo cùng transaction.</text>
+<text x="1144" y="603" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Ghi nhận hoàn thành muộn vẫn đủ 24h;</text>
+<text x="1144" y="638" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">không backdate.</text>
+<rect x="1120" y="810" width="496" height="250" rx="18" fill="#FEF2F2" stroke="#B91C1C" stroke-width="2"/>
+<text x="1144" y="830" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B91C1C" dominant-baseline="text-before-edge">Nếu mở tranh chấp</text>
+<text x="1144" y="878" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Chặn tất toán thường; giữ tiền và</text>
+<text x="1144" y="913" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">chuyển luồng báo cáo 48h ở sơ đồ 04.</text>
+<rect x="64" y="1000" width="1000" height="130" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="88" y="1020" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">Ví dụ A = S = 200.000đ</text>
+<text x="88" y="1068" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Tutor +180.000đ; hoa hồng +20.000đ; payer held -200.000đ.</text>
+<text x="64" y="1184" font-family="Segoe UI, sans-serif" font-size="21" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">Chưa có gate buộc nạp/cấp tiền trước khi bắt đầu học. Hủy/vắng mặt chưa có case: hoàn khoản giữ; đã có case chờ Admin.</text>
+</svg>

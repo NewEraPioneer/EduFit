@@ -6,6 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,7 +20,9 @@ import vn.edufit.storage.api.StoredCredentialFile;
 import vn.edufit.storage.api.StoredCredentialResource;
 
 @Service
-public class LocalCredentialStorageService implements CredentialStorageService {
+public class LocalCredentialStorageService implements CredentialStorageService, InitializingBean {
+
+  private static final Logger log = LoggerFactory.getLogger(LocalCredentialStorageService.class);
 
   private final CredentialStorageProperties properties;
   private final FileValidationService validationService;
@@ -31,20 +36,38 @@ public class LocalCredentialStorageService implements CredentialStorageService {
   }
 
   @Override
+  public void afterPropertiesSet() {
+    init();
+  }
+
+  public void init() {
+    Path rootDir = root();
+    try {
+      Files.createDirectories(rootDir);
+      log.info("Khởi tạo thư mục lưu trữ bằng cấp thành công: {}", rootDir);
+    } catch (IOException ex) {
+      log.error("Không thể khởi tạo thư mục lưu trữ bằng cấp tại: {}. Lỗi: {}", rootDir, ex.getMessage(), ex);
+    }
+  }
+
+  @Override
   public StoredCredentialFile store(MultipartFile file) {
     FileValidationService.ValidatedFile validated = validationService.validate(file);
     String storageKey = UUID.randomUUID() + validationService.extensionFor(validated.contentType());
     Path target = resolveStorageKey(storageKey);
 
     try {
-      Files.createDirectories(root());
+      Files.createDirectories(target.getParent());
       try (InputStream inputStream = file.getInputStream()) {
         Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
       }
     } catch (IOException ex) {
+      log.error("Không thể lưu file bằng cấp vào local storage. Target: {}, Root: {}. Lỗi: {}",
+          target, root(), ex.getMessage(), ex);
       throw new InvalidOperationException(
           ErrorCode.INVALID_OPERATION,
-          "Không thể lưu file bằng cấp vào local storage"
+          "Không thể lưu file bằng cấp vào local storage",
+          ex
       );
     }
 
@@ -71,9 +94,11 @@ public class LocalCredentialStorageService implements CredentialStorageService {
     try {
       Files.deleteIfExists(path);
     } catch (IOException ex) {
+      log.error("Không thể xóa file bằng cấp khỏi local storage. Path: {}. Lỗi: {}", path, ex.getMessage(), ex);
       throw new InvalidOperationException(
           ErrorCode.INVALID_OPERATION,
-          "Không thể xóa file bằng cấp khỏi local storage"
+          "Không thể xóa file bằng cấp khỏi local storage",
+          ex
       );
     }
   }

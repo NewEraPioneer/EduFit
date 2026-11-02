@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1260" viewBox="0 0 1680 1260">
+<rect width="100%" height="100%" fill="white"/>
+<text x="64" y="28" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">EDUFIT / PAYMENT / 07</text>
+<text x="64" y="66" font-family="Segoe UI, sans-serif" font-size="38" font-weight="700" fill="#0F172A" dominant-baseline="text-before-edge">Cơ chế chống sai số dư và ghi tiền trùng</text>
+<text x="64" y="120" font-family="Segoe UI, sans-serif" font-size="23" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">Một transaction gắn trạng thái nghiệp vụ, số dư, ledger, audit và thông báo thành một lần thay đổi.</text>
+<path d="M64 164H1616" stroke="#E2E8F0" stroke-width="2"/>
+<rect x="64" y="200" width="1000" height="155" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="220" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">1. BEGIN và khóa payment_mutex</text>
+<text x="88" y="268" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">SELECT FOR UPDATE serialize thao tác tiền giữa nhiều request/instance.</text>
+<polyline points="564,358 564,391" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,391.0 556.3,377.0 571.7,377.0" fill="#64748B"/>
+<rect x="64" y="395" width="1000" height="155" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="415" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">2. Kiểm điều kiện và số dư</text>
+<text x="88" y="463" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Đúng actor/state/reference; available và held không được âm.</text>
+<polyline points="564,553 564,586" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,586.0 556.3,572.0 571.7,572.0" fill="#64748B"/>
+<rect x="64" y="590" width="1000" height="155" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="610" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">3. Ghi các thay đổi liên quan</text>
+<text x="88" y="658" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">State + wallet + entry(event_key unique) + audit + NotificationSink.</text>
+<polyline points="564,748 564,781" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,781.0 556.3,767.0 571.7,767.0" fill="#64748B"/>
+<rect x="64" y="785" width="1000" height="155" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="88" y="805" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">4. COMMIT khi tất cả thành công</text>
+<text x="88" y="853" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Chỉ sau commit, các request khác mới thấy thay đổi tiền đã hoàn tất.</text>
+<rect x="1120" y="200" width="496" height="260" rx="18" fill="#F1F5F9" stroke="#475569" stroke-width="2"/>
+<text x="1144" y="220" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#475569" dominant-baseline="text-before-edge">Không giữ lock khi gọi payOS</text>
+<text x="1144" y="268" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">HTTP tạo checkout/chi/lookup nằm</text>
+<text x="1144" y="303" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">ngoài transaction tiền; lỗi mạng không</text>
+<text x="1144" y="338" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">giữ khóa DB.</text>
+<rect x="1120" y="520" width="496" height="270" rx="18" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+<text x="1144" y="540" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#7C3AED" dominant-baseline="text-before-edge">Webhook/refresh bị lặp</text>
+<text x="1144" y="588" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Trạng thái và reference kiểm lại; unique</text>
+<text x="1144" y="623" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">event_key ngăn một sự kiện ghi sổ hai</text>
+<text x="1144" y="658" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">lần.</text>
+<rect x="64" y="1040" width="1552" height="120" rx="18" fill="#FEF2F2" stroke="#B91C1C" stroke-width="2"/>
+<text x="88" y="1060" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B91C1C" dominant-baseline="text-before-edge">Bất kỳ bước ghi nào lỗi → ROLLBACK</text>
+<text x="88" y="1108" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Không để ví đã tăng nhưng thiếu entry/notification, hoặc charge tất toán mà tutor chưa nhận số dư.</text>
+<text x="64" y="1184" font-family="Segoe UI, sans-serif" font-size="21" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">Mutex toàn cục ưu tiên đúng đắn cho quy mô hiện tại; throughput production chưa được đo và chưa có SLA p95.</text>
+</svg>

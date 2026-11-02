@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1410" viewBox="0 0 1680 1410">
+<rect width="100%" height="100%" fill="white"/>
+<text x="64" y="28" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">EDUFIT / PAYMENT / 06</text>
+<text x="64" y="66" font-family="Segoe UI, sans-serif" font-size="38" font-weight="700" fill="#0F172A" dominant-baseline="text-before-edge">Rút tiền: giữ trước, xác minh rồi ghi kết quả</text>
+<text x="64" y="120" font-family="Segoe UI, sans-serif" font-size="23" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">Lệnh chi cần Admin duyệt. Timeout không có nghĩa ngân hàng chưa chuyển tiền.</text>
+<path d="M64 164H1616" stroke="#E2E8F0" stroke-width="2"/>
+<rect x="64" y="200" width="1000" height="140" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="220" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">1. Tutor yêu cầu rút W</text>
+<text x="88" y="268" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Chọn số tiền và tài khoản đã lưu; xác nhận → PENDING, available -W, held +W.</text>
+<polyline points="564,343 564,376" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,376.0 556.3,362.0 571.7,362.0" fill="#64748B"/>
+<rect x="64" y="380" width="1000" height="140" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="400" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">2. Admin duyệt chi payOS</text>
+<text x="88" y="448" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Cần kênh chi bật, khóa riêng và thông tin ngân hàng có BIN.</text>
+<polyline points="564,523 564,556" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,556.0 556.3,542.0 571.7,542.0" fill="#64748B"/>
+<rect x="64" y="560" width="1000" height="140" rx="18" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+<text x="88" y="580" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#7C3AED" dominant-baseline="text-before-edge">3. Lưu PROCESSING trước HTTP</text>
+<text x="88" y="628" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Withdrawal UUID là referenceId và idempotency key cố định; tạo lệnh một lần.</text>
+<polyline points="564,703 564,736" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,736.0 556.3,722.0 571.7,722.0" fill="#64748B"/>
+<rect x="64" y="740" width="1000" height="140" rx="18" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+<text x="88" y="760" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#7C3AED" dominant-baseline="text-before-edge">4. Xác minh kết quả hoặc query lại</text>
+<text x="88" y="808" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Chữ ký, ID/reference, amount, BIN, tài khoản và đúng một transaction phải khớp.</text>
+<rect x="1120" y="200" width="496" height="280" rx="18" fill="#F1F5F9" stroke="#475569" stroke-width="2"/>
+<text x="1144" y="220" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#475569" dominant-baseline="text-before-edge">Nhánh manual ở PENDING</text>
+<text x="1144" y="268" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Admin chuyển ngoài app rồi xác minh,</text>
+<text x="1144" y="303" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">nhập reference thật để ghi PAID; hoặc</text>
+<text x="1144" y="338" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">từ chối để trả held.</text>
+<rect x="1120" y="560" width="496" height="320" rx="18" fill="#FFFBEB" stroke="#B45309" stroke-width="2"/>
+<text x="1144" y="580" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B45309" dominant-baseline="text-before-edge">Đã PROCESSING</text>
+<text x="1144" y="628" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Chặn manual paid/reject và không gửi</text>
+<text x="1144" y="663" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">create lần hai. API/job chỉ lookup; lease</text>
+<text x="1144" y="698" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">60s. Crash trước dispatch có thể cần hỗ</text>
+<text x="1144" y="733" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">trợ provider.</text>
+<polyline points="564,883 564,920 304,920 304,976" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="304.0,976.0 296.3,962.0 311.7,962.0" fill="#64748B"/>
+<rect x="64" y="980" width="480" height="260" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="88" y="1000" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">SUCCEEDED đã khớp</text>
+<text x="88" y="1048" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">PAID; held -W. Không cộng lại ví và</text>
+<text x="88" y="1083" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">không trừ lần hai.</text>
+<polyline points="564,883 564,920 840,920 840,976" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="840.0,976.0 832.3,962.0 847.7,962.0" fill="#64748B"/>
+<rect x="600" y="980" width="480" height="260" rx="18" fill="#FEF2F2" stroke="#B91C1C" stroke-width="2"/>
+<text x="624" y="1000" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B91C1C" dominant-baseline="text-before-edge">Thất bại cuối đã khớp</text>
+<text x="624" y="1048" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">FAILED/CANCELLED/REVERSED: ghi</text>
+<text x="624" y="1083" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">FAILED; available +W, held -W.</text>
+<polyline points="564,883 564,920 1376,920 1376,976" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1376.0,976.0 1368.3,962.0 1383.7,962.0" fill="#64748B"/>
+<rect x="1136" y="980" width="480" height="260" rx="18" fill="#FFFBEB" stroke="#B45309" stroke-width="2"/>
+<text x="1160" y="1000" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B45309" dominant-baseline="text-before-edge">Kết quả chưa chắc chắn</text>
+<text x="1160" y="1048" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Giữ PROCESSING và held; không hoàn</text>
+<text x="1160" y="1083" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">tiền, không chi lại.</text>
+<text x="64" y="1334" font-family="Segoe UI, sans-serif" font-size="21" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">Kênh thu không tự cấp nguồn tiền cho kênh chi. Chỉ dùng kết quả cuối đã xác minh để kết thúc khoản rút.</text>
+</svg>

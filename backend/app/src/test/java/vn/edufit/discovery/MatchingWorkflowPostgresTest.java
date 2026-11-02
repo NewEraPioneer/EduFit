@@ -38,7 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import vn.edufit.connection.application.ConnectionService;
+import vn.edufit.connection.application.service.ConnectionFacadeImpl;
 import vn.edufit.discovery.api.DiscoveryFacade;
 import vn.edufit.discovery.api.event.MatchingExecutedEvent;
 import vn.edufit.discovery.application.service.*;
@@ -46,7 +46,6 @@ import vn.edufit.discovery.web.DiscoveryController;
 import vn.edufit.discovery.web.request.TutorMatchRequest;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.LearningGoalDiscoveryDto;
 import vn.edufit.profile.api.dto.WeeklyAvailabilityDto;
 import vn.edufit.shared.audit.AuditSink;
 import vn.edufit.shared.auth.CurrentUser;
@@ -54,12 +53,12 @@ import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.notification.NotificationSink;
 
 /** Real Flyway schema, Connection link reads, JPA transactions and AFTER_COMMIT delivery. */
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(MatchingWorkflowPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class MatchingWorkflowPostgresTest {
 
-  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
   @Autowired private DiscoveryFacade facade;
   @Autowired private TutorMatchingService matching;
   @Autowired private DiscoveryQueryService queries;
@@ -77,33 +76,31 @@ class MatchingWorkflowPostgresTest {
     reset(profile, explanations);
     events.received.clear();
     jdbc = new JdbcTemplate(dataSource);
-    jdbc.execute("truncate account, subject, education_level cascade");
+    jdbc.execute("truncate account cascade");
     studentUserId = UUID.randomUUID();
     parentUserId = UUID.randomUUID();
     studentId = UUID.randomUUID();
     goalId = UUID.randomUUID();
     account(studentUserId, "STUDENT");
     account(parentUserId, "PARENT");
-    jdbc.update("insert into subject(subject_id,name) values(1,'Math')");
-    jdbc.update("insert into education_level(level_id,name,sort_order) values(2,'Middle',1)");
     jdbc.update("insert into student_profile(student_id,user_id,education_level_id) values(?,?,2)", studentId, studentUserId);
     jdbc.update("""
-        insert into learning_goal(goal_id,student_id,subject_id,current_level,desired_level,
-            goal_type,deadline,mode,budget_max) values(?,?,1,1,2,'OTHER','2027-01-01','ONLINE',300000)
-        """, goalId, studentId);
+        insert into learning_need(need_id,student_id,created_by,subject_id,mode,budget_max_per_session,status)
+        values(?,?,?,1,'ONLINE',300000,'ACTIVE')
+        """, goalId, studentId, studentUserId);
     stubGoal(goalId);
   }
 
   @Test
   void committedEmptyRunDeliversOneEventWithPersistedPayload() {
-    assertEquals(List.of(), facade.findTopMatchesForGoal(actor(studentUserId, "STUDENT"), goalId, 5));
+    assertEquals(List.of(), facade.findTopMatchesForNeed(actor(studentUserId, "STUDENT"), goalId, 5));
     assertEquals(1, countLogs());
     assertEquals(1, events.received.size());
     var event = events.received.getFirst();
     var row = jdbc.queryForMap("select * from matching_run_log");
     assertEquals(row.get("user_id"), event.userId());
     assertEquals(row.get("student_id"), event.studentId());
-    assertEquals(row.get("goal_id"), event.goalId());
+    assertEquals(row.get("need_id"), event.needId());
     assertEquals(row.get("result_count"), event.resultCount());
     var persistedAt = jdbc.queryForObject("select created_at from matching_run_log", java.sql.Timestamp.class).toInstant();
     assertTrue(java.time.Duration.between(persistedAt, event.executedAt()).abs().toNanos() < 1000,
@@ -114,7 +111,7 @@ class MatchingWorkflowPostgresTest {
   @Test
   void listenerWaitsForOuterTransactionCommit() {
     new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-      facade.findTopMatchesForGoal(actor(studentUserId, "STUDENT"), goalId, 5);
+      facade.findTopMatchesForNeed(actor(studentUserId, "STUDENT"), goalId, 5);
       entityManager.flush();
       assertEquals(1, countLogs());
       assertTrue(events.received.isEmpty());
@@ -126,7 +123,7 @@ class MatchingWorkflowPostgresTest {
   @Test
   void rollbackLeavesNeitherLogNorCommittedEvent() {
     assertThrows(IllegalStateException.class, () -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-      facade.findTopMatchesForGoal(actor(studentUserId, "STUDENT"), goalId, 5);
+      facade.findTopMatchesForNeed(actor(studentUserId, "STUDENT"), goalId, 5);
       entityManager.flush();
       assertEquals(1, countLogs());
       assertTrue(events.received.isEmpty());
@@ -141,7 +138,7 @@ class MatchingWorkflowPostgresTest {
     UUID missingGoal = UUID.randomUUID();
     stubGoal(missingGoal);
     assertThrows(RuntimeException.class,
-        () -> facade.findTopMatchesForGoal(actor(studentUserId, "STUDENT"), missingGoal, 5));
+        () -> facade.findTopMatchesForNeed(actor(studentUserId, "STUDENT"), missingGoal, 5));
     assertEquals(0, countLogs());
     assertTrue(events.received.isEmpty());
   }
@@ -161,13 +158,13 @@ class MatchingWorkflowPostgresTest {
     when(provider.getIfAvailable()).thenReturn(parent);
     var controller = new DiscoveryController(queries, matching, provider);
     if (state.equals("CONFIRMED")) {
-      assertEquals(List.of(), facade.findTopMatchesForGoal(parent, goalId, 5));
+      assertEquals(List.of(), facade.findTopMatchesForNeed(parent, goalId, 5));
       assertEquals(200, controller.matchTutors(new TutorMatchRequest(goalId, null)).getStatusCode().value());
       assertEquals(2, countLogs());
       assertEquals(2, events.received.size());
       assertTrue(events.received.stream().allMatch(e -> e.userId().equals(parentUserId)));
     } else {
-      assertThrows(ForbiddenOperationException.class, () -> facade.findTopMatchesForGoal(parent, goalId, 5));
+      assertThrows(ForbiddenOperationException.class, () -> facade.findTopMatchesForNeed(parent, goalId, 5));
       assertThrows(ForbiddenOperationException.class, () -> controller.matchTutors(new TutorMatchRequest(goalId, null)));
       assertEquals(0, countLogs());
       assertTrue(events.received.isEmpty());
@@ -181,9 +178,8 @@ class MatchingWorkflowPostgresTest {
   }
 
   private void stubGoal(UUID id) {
-    when(profile.findLearningGoalForDiscovery(id)).thenReturn(Optional.of(new LearningGoalDiscoveryDto(
-        id, studentId, studentUserId, 1, 2, "ONLINE", "Hanoi", 0L, 300000L, "ACTIVE",
-        List.of(new WeeklyAvailabilityDto((short) 1, LocalTime.of(18, 0), LocalTime.of(20, 0))))));
+    when(profile.findLearningNeed(id)).thenReturn(Optional.of(
+        vn.edufit.connection.ConnectionTestFixtures.need(id, studentId, studentUserId, 1, 2, "ACTIVE")));
   }
 
   private int countLogs() {
@@ -205,8 +201,9 @@ class MatchingWorkflowPostgresTest {
 
   @Configuration
   @EnableTransactionManagement
-  @EnableJpaRepositories(basePackages = {"vn.edufit.discovery.infra.persistence.repository", "vn.edufit.connection.infra.persistence"})
-  @Import({TutorMatchingService.class, DiscoveryFacadeImpl.class, DiscoveryQueryService.class, ConnectionService.class})
+  @EnableJpaRepositories(basePackages = {"vn.edufit.discovery.infra.persistence.repository", "vn.edufit.connection.infra.persistence.repository"})
+  @Import({TutorMatchingService.class, DiscoveryFacadeImpl.class, DiscoveryQueryService.class,
+      vn.edufit.discovery.application.service.NeedAccessService.class, ConnectionFacadeImpl.class})
   static class Config {
     @Bean DataSource dataSource() {
       var source = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -216,7 +213,7 @@ class MatchingWorkflowPostgresTest {
     @Bean LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource source) {
       var factory = new LocalContainerEntityManagerFactoryBean();
       factory.setDataSource(source);
-      factory.setPackagesToScan("vn.edufit.discovery.infra.persistence.entity", "vn.edufit.connection.infra.persistence");
+      factory.setPackagesToScan("vn.edufit.discovery.infra.persistence.entity", "vn.edufit.connection.infra.persistence.entity");
       factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
       factory.setJpaPropertyMap(Map.of("hibernate.hbm2ddl.auto", "validate"));
       return factory;
@@ -229,5 +226,8 @@ class MatchingWorkflowPostgresTest {
     @Bean AuditSink audit() { return mock(AuditSink.class); }
     @Bean NotificationSink notifications() { return mock(NotificationSink.class); }
     @Bean CommittedEvents committedEvents() { return new CommittedEvents(); }
+    @Bean vn.edufit.discovery.application.matching.MatchWeights matchWeights() {
+      return vn.edufit.discovery.application.matching.MatchWeights.standard();
+    }
   }
 }

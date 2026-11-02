@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Calendar, Users, DollarSign, Star } from "lucide-react";
 
 interface TutorKpiGridProps {
   completedSessions: number;
   plannedSessions: number;
   activeStudents: number;
-  estimatedIncome: number;
   ratingAverage: number;
   reviewCount: number;
 }
@@ -16,7 +16,6 @@ export function TutorKpiGrid({
   completedSessions,
   plannedSessions,
   activeStudents,
-  estimatedIncome,
   ratingAverage,
   reviewCount,
 }: TutorKpiGridProps) {
@@ -56,15 +55,15 @@ export function TutorKpiGrid({
 
       <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between text-neutral-400">
-          <span className="text-xs font-bold uppercase tracking-wider">Thu nhập tạm tính</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Thu nhập theo ví</span>
           <DollarSign className="size-4 text-emerald-600" />
         </div>
         <div className="mt-3">
           <div className="text-2xl font-extrabold font-heading text-neutral-900">
-            {estimatedIncome.toLocaleString("vi-VN")} đ
+            <Link href="/tutor/earnings" className="hover:underline">Xem thu nhập</Link>
           </div>
           <div className="text-[11px] text-neutral-400 font-medium mt-0.5">
-            Thu nhập theo dữ liệu buổi học
+            Đối chiếu tiền đã tất toán trong ví
           </div>
         </div>
       </div>

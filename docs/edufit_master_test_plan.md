@@ -328,6 +328,27 @@ stateDiagram-v2
     DISPUTED --> [*]
 ```
 
+* **Máy trạng thái Đề xuất Đổi Lịch học Định kỳ của Lớp (UC4.8 - Recurring Reschedule Proposal):**
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: Gia sư hoặc Học sinh đề xuất đổi lịch định kỳ (kèm Bounded Horizon 4-8 tuần)
+    PENDING --> ACCEPTED: Bên đối tác đồng ý đổi lịch định kỳ (Mutual Consent)
+    PENDING --> REJECTED: Bên đối tác từ chối đổi lịch định kỳ
+    PENDING --> EXPIRED: Quá hạn phản hồi (48h) hoặc tới thời điểm hiệu lực của lịch mới
+
+    ACCEPTED --> [*]: Hủy các buổi cũ trong horizon & Tự động sinh hàng loạt buổi học mới nguyên tử
+    REJECTED --> [*]: Giữ nguyên lịch học định kỳ hiện tại của lớp
+    EXPIRED --> [*]: Hết hạn đề xuất, giữ nguyên lịch học định kỳ hiện tại
+```
+
+| Trạng thái hiện tại | Sự kiện kích hoạt | Điều kiện tiên quyết (Preconditions) | Trạng thái kế tiếp | Hành động hệ thống (System Action) |
+|---|---|---|---|---|
+| `[*]` | `proposeRecurringSchedule` | Lớp đang `ACTIVE`; Khung thời gian hiệu lực từ 4 đến 8 tuần; Người đề xuất là Gia sư hoặc Học sinh của lớp | `PENDING` | Lưu đề xuất đổi lịch; bắn `RecurringScheduleProposedEvent` gửi thông báo cho bên kia |
+| `PENDING` | `respondRecurringSchedule(accept = true)` | Người phản hồi là bên đối tác trong lớp; Đề xuất chưa hết hạn; Toàn bộ slot mới không bị trùng GiST Exclusion | `ACCEPTED` | Bắt đầu `@Transactional`: Hủy các buổi `SCHEDULED` cũ trong horizon, sinh hàng loạt buổi học mới, bắn `RecurringScheduleUpdatedEvent` |
+| `PENDING` | `respondRecurringSchedule(accept = false)` | Người phản hồi là bên đối tác trong lớp | `REJECTED` | Cập nhật trạng thái `REJECTED`, lý do từ chối; giữ nguyên lịch hiện tại |
+| `PENDING` | `expireOverdueProposals` (Job) | Thời gian hiện tại $\ge$ `expires_at` hoặc $\ge$ `effective_from` | `EXPIRED` | Tự động đánh dấu `EXPIRED`; không ảnh hưởng tới lịch học hiện tại |
+
 * **Ma trận Chuyển trạng thái & Ca kiểm thử tương ứng:**
 
 | Trạng thái hiện tại | Sự kiện kích hoạt (Event) | Trạng thái tiếp theo hợp lệ | Trạng thái không hợp lệ (Phải ném Exception) |
@@ -399,7 +420,7 @@ Kiểm thử mọi tổ hợp đường đi khả dĩ từ điểm bắt đầu 
 
 | Kỹ thuật | Yêu cầu kiểm chuẩn | Công cụ thực hiện | Kịch bản kiểm thử chi tiết |
 |---|---|---|---|
-| **Concurrency Testing (Kiểm thử tương tranh)** | NFR-15, NFR-17 (Chống double-booking, chống tranh chấp dữ liệu) | Java `CountDownLatch`, `ExecutorService`, **k6** | Tạo 50 luồng ảo (Virtual Threads) đồng thời gọi hàm `scheduleSession()` cho cùng 1 gia sư tại cùng 1 thời điểm. Xác minh transaction lock thành công, chỉ 1 luồng ghi DB thành công. |
+| **Concurrency Testing (Kiểm thử tương tranh)** | NFR-15, NFR-17 (Chống double-booking, chống tranh chấp dữ liệu, nguyên tử All-or-Nothing) | Java `CountDownLatch`, `ExecutorService`, **k6** | **1. Buổi học đơn lẻ (Single Session):** 50 luồng đồng thời gọi `respondToProposal(accept = true)` cho cùng một khung giờ của Gia sư; xác minh chỉ đúng 1 luồng thành công (200 OK), 49 luồng còn lại nhận 409 Conflict.<br>**2. Người gác cổng Kết nối (Connection Gatekeeper Dual Source Check):** 20 luồng đồng thời gọi `respondRequest(accept = true)` với các request có trùng `desiredSlots`; xác minh chỉ đúng 1 request được duyệt tạo lớp học, các request còn lại bị từ chối 409 `SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE`.<br>**3. Lịch hàng loạt (Batch Scheduling Atomicity):** 1 luồng gọi `propose-batch` 8 buổi học trong khi 1 luồng khác đồng thời đặt 1 buổi trùng giờ với buổi thứ 5 trong batch; xác minh toàn bộ 8 buổi bị rollback nguyên tử (All-or-Nothing), không tạo dữ liệu mồ côi. |
 | **Security Penetration Testing** | NFR-01..06, OWASP Top 10 | OWASP ZAP, Postman Security, Burp Suite | 1. Thử gửi email hoa thường (`Admin@EduFit.vn`) để xem có tạo được 2 user không (BR-01).<br>2. Đo thời gian phản hồi khi đăng nhập bằng email có thật vs email không có thật để xác minh chống Timing Attack (NFR-06).<br>3. Kiểm tra flag cookie session (`HttpOnly`, `SameSite=Lax`). |
 | **Storage & File Security Testing** | NFR-08 (Xác thực loại file bằng nội dung) | Apache Tika, Custom JUnit Tests | Đổi đuôi file `virus.sh` thành `virus.pdf` hoặc nhúng payload PHP vào ảnh PNG. Gọi `CredentialStorageService.store()` và kỳ vọng ném lỗi `INVALID_FILE_CONTENT`. |
 | **Database Migration Integrity Testing** | Tính toàn vẹn cấu trúc DB trên môi trường sạch | Testcontainers (PostgreSQL 17), Flyway | Chạy toàn bộ các script `V1__init_schema.sql` từ trạng thái CSDL trống. Kiểm tra khóa ngoại, ràng buộc `UNIQUE(tutor_id, student_id)` của bảng `review`, và cấu trúc bảng `account`. |

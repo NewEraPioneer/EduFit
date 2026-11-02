@@ -85,6 +85,10 @@ public enum ErrorCode {
   /** Khung giờ đề xuất bị xung đột/trùng lịch với lịch dạy hoặc lịch học đã có (BR-42, NFR-17). */
   SCHEDULE_OVERLAP,
 
+  // --- Module Connection (Liên kết & Ghép nối - Milestone 1) ---
+  /** Khung giờ đề xuất bị trùng với lịch lớp học hoặc buổi học đã chốt của gia sư. */
+  SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,
+
   /** Đề xuất buổi học đã quá hạn phản hồi và không còn hiệu lực (FR-17, BR-41). */
   PROPOSAL_EXPIRED,
 
@@ -95,10 +99,23 @@ public enum ErrorCode {
   /** Học sinh đã đánh giá gia sư này cho khóa học hiện tại rồi, không được đánh giá lại (NFR-24). */
   REVIEW_ALREADY_EXISTS,
 
+  /** Chưa hoàn thành đủ số buổi học quy định để được đánh giá gia sư (UC6.1). */
+  NOT_ENOUGH_SESSIONS,
+
+  /** Chỉ tác giả tạo đánh giá mới có quyền chỉnh sửa đánh giá này (BR-57). */
+  ONLY_AUTHOR_CAN_EDIT,
+
+  /** Điểm đánh giá (rating) không hợp lệ, phải là số nguyên từ 1 đến 5 (BR-58). */
+  INVALID_RATING,
+
   // --- Module AI Platform (Cổng gọi LLM - FR-05, NFR-10) ---
   /** Dịch vụ AI bên ngoài không khả dụng hoặc trả về lỗi kết nối. */
   AI_SERVICE_UNAVAILABLE,
 
   /** Dịch vụ AI quá hạn thời gian phản hồi (vượt quá 15 giây theo NFR-10). */
-  AI_REQUEST_TIMEOUT
+  AI_REQUEST_TIMEOUT,
+
+  // --- Module Progress (Kế hoạch học tập & Tiến độ - UC5.1 đến UC5.5) ---
+  /** Xung đột phiên bản kế hoạch học tập (Optimistic Locking Conflict). */
+  PLAN_VERSION_CONFLICT
 }

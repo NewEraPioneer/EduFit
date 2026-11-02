@@ -1,0 +1,5 @@
+# Profile dev: chỉ dùng cho máy local / docker compose. KHÔNG bật ở môi trường triển khai thật.
+spring:
+  flyway:
+    # Nạp thêm tài khoản & hồ sơ demo (mật khẩu chung công khai) cho phát triển và demo.
+    locations: classpath:db/migration,classpath:db/seed

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edufit.profile.api.ProfileFacade;
+import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
@@ -117,7 +119,7 @@ class TutorVerificationServiceTest {
             "Đại học Bách Khoa",
             (short) 2024,
             "Bằng cử nhân xuất sắc",
-            List.of(0)
+            List.of(0), null
         )
     ));
 
@@ -140,7 +142,7 @@ class TutorVerificationServiceTest {
 
     SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2024, "Ghi chú", List.of(0)
+            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2024, "Ghi chú", List.of(0), null
         )
     ));
 
@@ -160,7 +162,7 @@ class TutorVerificationServiceTest {
 
     SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2024, "Ghi chú", List.of(0)
+            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2024, "Ghi chú", List.of(0), null
         )
     ));
 
@@ -189,7 +191,7 @@ class TutorVerificationServiceTest {
 
     SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.CERTIFICATE, "IELTS 8.0", (short) 2023, "IELTS IDP", List.of(0)
+            Credential.Type.CERTIFICATE, "IELTS 8.0", (short) 2023, "IELTS IDP", List.of(0), null
         )
     ));
 
@@ -235,7 +237,7 @@ class TutorVerificationServiceTest {
   void shouldGetCredentialFileForOwnerTutor() {
     UUID fileId = UUID.randomUUID();
     VerificationRequest request = VerificationRequest.pending(tutorId, Instant.now());
-    Credential cred = Credential.create(Credential.Type.DEGREE, "ĐHBK", (short) 2023, null);
+    Credential cred = Credential.create(Credential.Type.DEGREE, "ĐHBK", (short) 2023, null, null);
     request.addCredential(cred);
     CredentialFile credFile = CredentialFile.create("degree.pdf", "key-xyz", "application/pdf", 100L, Instant.now());
     cred.addFile(credFile);
@@ -257,7 +259,7 @@ class TutorVerificationServiceTest {
     UUID fileId = UUID.randomUUID();
     UUID otherTutorId = UUID.randomUUID();
     VerificationRequest request = VerificationRequest.pending(otherTutorId, Instant.now());
-    Credential cred = Credential.create(Credential.Type.DEGREE, "ĐHBK", (short) 2023, null);
+    Credential cred = Credential.create(Credential.Type.DEGREE, "ĐHBK", (short) 2023, null, null);
     request.addCredential(cred);
     CredentialFile credFile = CredentialFile.create("degree.pdf", "key-xyz", "application/pdf", 100L, Instant.now());
     cred.addFile(credFile);
@@ -270,5 +272,168 @@ class TutorVerificationServiceTest {
         () -> tutorVerificationService.getCredentialFile(tutorUser, fileId)
     );
     assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
+  }
+
+  @Test
+  @DisplayName("Nộp hồ sơ xác minh với giấy tờ loại OTHER (CCCD) và năm tốt nghiệp rỗng (null)")
+  void shouldSubmitVerificationWithOtherTypeAndNullYearSuccessfully() {
+    when(profileFacade.getTutorIdByUserId(userId)).thenReturn(tutorId);
+    when(verificationRequestRepository.existsByTutorIdAndStatus(tutorId, VerificationRequest.Status.PENDING))
+        .thenReturn(false);
+
+    MockMultipartFile file = new MockMultipartFile(
+        "file", "cccd.jpg", "image/jpeg", "image-content".getBytes()
+    );
+    List<MultipartFile> files = List.of(file);
+
+    StoredCredentialFile storedFile = new StoredCredentialFile(
+        "key-cccd", "cccd.jpg", "image/jpeg", 13L
+    );
+    when(credentialStorageService.store(file)).thenReturn(storedFile);
+
+    when(verificationRequestRepository.save(any(VerificationRequest.class)))
+        .thenAnswer(inv -> inv.getArgument(0));
+
+    SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
+        new SubmitVerificationRequest.CredentialItem(
+            Credential.Type.OTHER,
+            "Cục Cảnh sát QLHC về TTXH",
+            null,
+            "Căn cước công dân gắn chip",
+            List.of(0), null
+        )
+    ));
+
+    VerificationRequestDetailResponse response = tutorVerificationService.submit(
+        tutorUser, request, files
+    );
+
+    assertNotNull(response);
+    assertEquals("PENDING", response.status());
+    assertEquals(1, response.credentials().size());
+    assertEquals("OTHER", response.credentials().getFirst().type());
+    org.junit.jupiter.api.Assertions.assertNull(response.credentials().getFirst().year());
+    verify(profileFacade).markTutorPendingVerification(tutorId);
+  }
+
+  @Test
+  @DisplayName("Gia sư đã VERIFIED khi nộp thêm bằng cấp thì BẢO TOÀN HUY HIỆU VERIFIED (không gọi markPending)")
+  void shouldPreserveVerifiedBadgeWhenTutorSubmitsAdditionalCredentials() {
+    when(profileFacade.getTutorIdByUserId(userId)).thenReturn(tutorId);
+    when(verificationRequestRepository.existsByTutorIdAndStatus(tutorId, VerificationRequest.Status.PENDING))
+        .thenReturn(false);
+
+    TutorSummaryDto verifiedTutor = new TutorSummaryDto(tutorId, userId, "Gia sư Bách Khoa", "Thạc sĩ CNTT", null, "ONLINE", null, false, null, "Hà Nội", (short) 5, null, "VERIFIED", Instant.now(), null, 10);
+    when(profileFacade.findTutorById(tutorId)).thenReturn(Optional.of(verifiedTutor));
+
+    MockMultipartFile file = new MockMultipartFile(
+        "file", "ielts.pdf", "application/pdf", "ielts-content".getBytes()
+    );
+    List<MultipartFile> files = List.of(file);
+
+    StoredCredentialFile storedFile = new StoredCredentialFile(
+        "key-ielts-85", "ielts.pdf", "application/pdf", 100L
+    );
+    when(credentialStorageService.store(file)).thenReturn(storedFile);
+
+    when(verificationRequestRepository.save(any(VerificationRequest.class)))
+        .thenAnswer(inv -> inv.getArgument(0));
+
+    SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
+        new SubmitVerificationRequest.CredentialItem(
+            Credential.Type.CERTIFICATE,
+            "IDP Education",
+            (short) 2024,
+            "IELTS 8.5 Certificate",
+            List.of(0), null
+        )
+    ));
+
+    VerificationRequestDetailResponse response = tutorVerificationService.submit(
+        tutorUser, request, files
+    );
+
+    assertNotNull(response);
+    assertEquals("PENDING", response.status());
+    // QUAN TRỌNG: Tuyệt đối không giáng cấp Profile về PENDING
+    verify(profileFacade, never()).markTutorPendingVerification(any());
+  }
+
+  @Test
+  @DisplayName("Gia sư ở trạng thái UNVERIFIED khi nộp bằng cấp thì chuyển profile sang PENDING_VERIFICATION")
+  void shouldMarkPendingWhenTutorIsUnverified() {
+    when(profileFacade.getTutorIdByUserId(userId)).thenReturn(tutorId);
+    when(verificationRequestRepository.existsByTutorIdAndStatus(tutorId, VerificationRequest.Status.PENDING))
+        .thenReturn(false);
+
+    TutorSummaryDto unverifiedTutor = new TutorSummaryDto(tutorId, userId, "Gia sư mới", null, null, "ONLINE", null, false, null, "Hà Nội", (short) 1, null, "UNVERIFIED", null, null, 0);
+    when(profileFacade.findTutorById(tutorId)).thenReturn(Optional.of(unverifiedTutor));
+
+    MockMultipartFile file = new MockMultipartFile(
+        "file", "degree.pdf", "application/pdf", "degree-content".getBytes()
+    );
+    List<MultipartFile> files = List.of(file);
+
+    StoredCredentialFile storedFile = new StoredCredentialFile(
+        "key-deg", "degree.pdf", "application/pdf", 100L
+    );
+    when(credentialStorageService.store(file)).thenReturn(storedFile);
+
+    when(verificationRequestRepository.save(any(VerificationRequest.class)))
+        .thenAnswer(inv -> inv.getArgument(0));
+
+    SubmitVerificationRequest request = new SubmitVerificationRequest(List.of(
+        new SubmitVerificationRequest.CredentialItem(
+            Credential.Type.DEGREE,
+            "Đại học Quốc Gia Hà Nội",
+            (short) 2023,
+            "Cử nhân Sư phạm",
+            List.of(0), null
+        )
+    ));
+
+    VerificationRequestDetailResponse response = tutorVerificationService.submit(
+        tutorUser, request, files
+    );
+
+    assertNotNull(response);
+    assertEquals("PENDING", response.status());
+    verify(profileFacade).markTutorPendingVerification(tutorId);
+  }
+
+  @Test
+  @DisplayName("Khi gia sư có hồ sơ APPROVED trước đó và đang nộp bổ sung PENDING thì getMyLatestRequest tổng hợp cả 2 bằng cấp")
+  void shouldAggregateApprovedCredentialsAndPendingSupplementaryInGetMyLatestRequest() {
+    when(profileFacade.getTutorIdByUserId(userId)).thenReturn(tutorId);
+
+    // Hồ sơ 1 đã duyệt (APPROVED) với bằng cử nhân
+    VerificationRequest req1 = VerificationRequest.pending(tutorId, Instant.now().minusSeconds(86400));
+    req1.approve(UUID.randomUUID(), Instant.now().minusSeconds(43200));
+    org.springframework.test.util.ReflectionTestUtils.setField(req1, "requestId", UUID.randomUUID());
+    Credential cred1 = Credential.create(Credential.Type.DEGREE, "Đại học Bách Khoa Hà Nội", (short) 2022, "Cử nhân", null);
+    req1.addCredential(cred1);
+
+    // Hồ sơ 2 bổ sung đang chờ duyệt (PENDING) với chứng chỉ IELTS
+    VerificationRequest req2 = VerificationRequest.pending(tutorId, Instant.now());
+    UUID req2Id = UUID.randomUUID();
+    org.springframework.test.util.ReflectionTestUtils.setField(req2, "requestId", req2Id);
+    Credential cred2 = Credential.create(Credential.Type.CERTIFICATE, "British Council", (short) 2024, "IELTS 8.0", null);
+    req2.addCredential(cred2);
+
+    when(verificationRequestRepository.findFirstByTutorIdOrderBySubmittedAtDesc(tutorId))
+        .thenReturn(Optional.of(req2));
+    when(verificationRequestRepository.findWithCredentialsByRequestId(req2Id))
+        .thenReturn(Optional.of(req2));
+    when(verificationRequestRepository.findByTutorIdOrderBySubmittedAtAsc(tutorId))
+        .thenReturn(List.of(req1, req2));
+
+    VerificationRequestDetailResponse response = tutorVerificationService.getMyLatestRequest(tutorUser);
+
+    assertNotNull(response);
+    assertEquals("PENDING", response.status());
+    // Danh sách bằng cấp phải tổng hợp cả bằng đã APPROVED trước đó và bằng đang bổ sung
+    assertEquals(2, response.credentials().size());
+    assertEquals("Đại học Bách Khoa Hà Nội", response.credentials().get(0).institution());
+    assertEquals("British Council", response.credentials().get(1).institution());
   }
 }

@@ -559,8 +559,10 @@ TC_STATE_09,CANCELLED,ACCEPT,TUTOR,CANCELLED,false,ILLEGAL_STATE_TRANSITION
 ### 7.2. Module `connection` (Liên Kết Phụ Huynh - Con & Đề Nghị Ghép Cặp)
 
 #### A. Kỹ Thuật Kiểm Thử:
-1. **Decision Table Testing:** Ma trận quyền hạn giữa Parent và Student khi gửi đề nghị ghép cặp.
-2. **Invitation Lifecycle Testing:** Lời mời kết nối phụ huynh (`link_invitation`) có TTL 14 ngày theo BR-29 và migration V1.04; sau khi từ chối, cùng người gửi chỉ được mời lại sau 7 ngày.
+1. **Decision Table Testing:** Ma trận quyền hạn giữa Parent, Student và Tutor khi gửi, chấp nhận, từ chối hoặc hủy đề nghị ghép cặp và lời mời liên kết.
+2. **Invitation Lifecycle Testing:** Lời mời kết nối phụ huynh (`link_invitation`) có TTL 14 ngày (336 giờ) theo BR-29 và migration V1.04; sau khi từ chối, cùng người gửi chỉ được mời lại sau 7 ngày (168 giờ). Trạng thái hợp lệ gồm `PENDING`, `ACCEPTED`, `DECLINED`, `WITHDRAWN`, `EXPIRED`.
+3. **Request Lifecycle & Boundary Testing:** Đề nghị kết nối gia sư (`connection_request`) có TTL 7 ngày (168 giờ). Trạng thái gồm `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELLED`, `EXPIRED`. Tối đa 5 yêu cầu PENDING cho mỗi học sinh.
+4. **Standard Error Codes:** Sử dụng mã lỗi chuẩn của nền tảng (`NONE`, `CONFLICT_DETECTED`, `FORBIDDEN_ACCESS`, `BAD_REQUEST`), không sinh enum giả ngoài thiết kế.
 
 #### B. Thiết Kế Bộ Dữ Liệu CSV Cho `connection`:
 
@@ -568,11 +570,31 @@ TC_STATE_09,CANCELLED,ACCEPT,TUTOR,CANCELLED,false,ILLEGAL_STATE_TRANSITION
 ```csv
 # testCaseId,invitationStatus,hoursElapsed,targetUserRole,isAllowedToConfirm,expectedErrorCode
 TC_INV_01,PENDING,24,STUDENT,true,NONE
-TC_INV_02,PENDING,47,STUDENT,true,NONE
-TC_INV_03,PENDING,49,STUDENT,false,INVITATION_EXPIRED
-TC_INV_04,ACCEPTED,1,STUDENT,false,INVITATION_ALREADY_USED
-TC_INV_05,REVOKED,5,STUDENT,false,INVITATION_REVOKED
-TC_INV_06,PENDING,10,TUTOR,false,FORBIDDEN_ROLE
+TC_INV_02,PENDING,335,STUDENT,true,NONE
+TC_INV_03,PENDING,336,STUDENT,false,CONFLICT_DETECTED
+TC_INV_04,PENDING,337,STUDENT,false,CONFLICT_DETECTED
+TC_INV_05,ACCEPTED,1,STUDENT,false,CONFLICT_DETECTED
+TC_INV_06,DECLINED,1,STUDENT,false,CONFLICT_DETECTED
+TC_INV_07,WITHDRAWN,1,STUDENT,false,CONFLICT_DETECTED
+TC_INV_08,EXPIRED,1,STUDENT,false,CONFLICT_DETECTED
+TC_INV_09,PENDING,10,TUTOR,false,FORBIDDEN_ACCESS
+```
+
+* **File: `backend/modules/connection/src/test/resources/testdata/connection-request-matrix.csv`**
+```csv
+# testCaseId,requestStatus,hoursElapsed,actorRole,action,isAllowed,expectedErrorCode
+TC_REQ_01,PENDING,24,TUTOR,ACCEPT,true,NONE
+TC_REQ_02,PENDING,24,TUTOR,REJECT,true,NONE
+TC_REQ_03,PENDING,167,TUTOR,ACCEPT,true,NONE
+TC_REQ_04,PENDING,168,TUTOR,ACCEPT,false,CONFLICT_DETECTED
+TC_REQ_05,PENDING,169,TUTOR,ACCEPT,false,CONFLICT_DETECTED
+TC_REQ_06,PENDING,24,STUDENT,CANCEL,true,NONE
+TC_REQ_07,PENDING,24,PARENT,CANCEL,true,NONE
+TC_REQ_08,PENDING,24,TUTOR,CANCEL,false,FORBIDDEN_ACCESS
+TC_REQ_09,ACCEPTED,1,TUTOR,ACCEPT,false,CONFLICT_DETECTED
+TC_REQ_10,REJECTED,1,TUTOR,ACCEPT,false,CONFLICT_DETECTED
+TC_REQ_11,CANCELLED,1,TUTOR,ACCEPT,false,CONFLICT_DETECTED
+TC_REQ_12,EXPIRED,1,TUTOR,ACCEPT,false,CONFLICT_DETECTED
 ```
 
 ---
@@ -730,7 +752,7 @@ Dưới đây là các đầu việc triển khai cụ thể được chia theo 
 
 ### Nhóm 4: Chuẩn bị Dữ liệu & Kịch bản Test-First cho các Module Tương Lai
 * [ ] Module `scheduling`: Chuẩn bị file CSV kiểm tra xung đột `conflict-policy-intervals.csv` và máy trạng thái `session-state-transitions.csv`.
-* [ ] Module `connection`: Chuẩn bị file CSV kiểm tra token lời mời `link-invitation-rules.csv`.
+* [x] Module `connection`: Chuẩn bị file CSV kiểm tra lời mời `link-invitation-rules.csv` và ma trận đề nghị `connection-request-matrix.csv`.
 * [ ] Module `discovery`: Chuẩn bị bộ trọng số CSV `match-scorer-weight-dataset.csv`.
 * [ ] Module `progress`: Chuẩn bị bộ test BVA `session-note-bva.csv` và `progress-calculator-dataset.csv`.
 * [ ] Module `review`: Chuẩn bị bộ test rating `review-rating-validation.csv`.

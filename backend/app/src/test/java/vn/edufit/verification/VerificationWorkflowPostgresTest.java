@@ -54,7 +54,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.json.JsonMapper;
 import vn.edufit.profile.api.ProfileFacade;
+import vn.edufit.profile.application.service.LearningCatalogLoader;
+import vn.edufit.profile.application.service.LearningNeedService;
 import vn.edufit.profile.application.service.ProfileFacadeImpl;
+import vn.edufit.profile.application.service.TutorProfileAssembler;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.storage.infra.CredentialStorageProperties;
 import vn.edufit.storage.infra.FileValidationService;
@@ -68,14 +71,14 @@ import vn.edufit.verification.web.request.ReviewVerificationRequest;
 import vn.edufit.verification.web.request.SubmitVerificationRequest;
 import vn.edufit.web.advice.GlobalExceptionHandler;
 
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringJUnitConfig(VerificationWorkflowPostgresTest.Config.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @DisplayName("Kiểm thử tích hợp vòng đời Verification & Thẩm định KYC trên PostgreSQL 17 thật (Testcontainers)")
 class VerificationWorkflowPostgresTest {
 
   @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine")
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
       .withEnv("TZ", "Asia/Ho_Chi_Minh");
 
   @TempDir
@@ -130,8 +133,8 @@ class VerificationWorkflowPostgresTest {
 
     // Tạo hồ sơ Tutor trạng thái UNVERIFIED
     jdbc.update(
-        "INSERT INTO tutor_profile(tutor_id, user_id, display_name, headline, bio, teaching_mode, area, price_per_session, status, rating_avg, review_count, created_at, updated_at) " +
-            "VALUES (?, ?, 'Nguyen Van A', 'Toan Cap 3', 'Gia su toan', 'ONLINE', 'Hanoi', 200000, 'UNVERIFIED', 0.0, 0, now(), now())",
+        "INSERT INTO tutor_profile(tutor_id, user_id, display_name, headline, bio, teaching_mode, status, rating_avg, review_count, created_at, updated_at) " +
+            "VALUES (?, ?, 'Nguyen Van A', 'Toan Cap 3', 'Gia su toan', 'ONLINE', 'UNVERIFIED', 0.0, 0, now(), now())",
         tutorProfileId, tutorUserId
     );
 
@@ -149,10 +152,10 @@ class VerificationWorkflowPostgresTest {
 
     SubmitVerificationRequest submitRequest = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Sư phạm Hà Nội", (short) 2023, "Bằng cử nhân sư phạm toán", List.of(0)
+            Credential.Type.DEGREE, "Đại học Sư phạm Hà Nội", (short) 2023, "Bằng cử nhân sư phạm toán", List.of(0), null
         ),
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.CERTIFICATE, "IELTS British Council", (short) 2022, "IELTS 7.5 Academic", List.of(1)
+            Credential.Type.CERTIFICATE, "IELTS British Council", (short) 2022, "IELTS 7.5 Academic", List.of(1), null
         )
     ));
 
@@ -212,7 +215,7 @@ class VerificationWorkflowPostgresTest {
         .andExpect(jsonPath("$.data.credentials[*].files[*].fileName", hasItems("bang_dai_hoc.pdf", "ielts_cert.pdf")));
 
     // 4. Admin phê duyệt hồ sơ (APPROVE)
-    ReviewVerificationRequest approveRequest = new ReviewVerificationRequest(ReviewVerificationRequest.Action.APPROVE, null);
+    ReviewVerificationRequest approveRequest = new ReviewVerificationRequest(ReviewVerificationRequest.Action.APPROVE, null, null);
     mvc.perform(post("/api/v1/admin/verifications/" + requestId + "/review")
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonMapper.writeValueAsString(approveRequest)))
@@ -227,13 +230,157 @@ class VerificationWorkflowPostgresTest {
   }
 
   @Test
+  @DisplayName("Quy trình 1B: Gia sư đã VERIFIED nộp bổ sung bằng cấp -> Lưu PENDING, BẢO TOÀN huy hiệu VERIFIED -> getMyRequest trả đủ bằng -> Admin từ chối không làm mất huy hiệu")
+  void testSupplementaryVerificationLifecycleForVerifiedTutor() throws Exception {
+    // 1. Gia sư đã có 1 hồ sơ APPROVED và profile VERIFIED từ trước
+    UUID approvedReqId = UUID.randomUUID();
+    jdbc.update(
+        "UPDATE tutor_profile SET status = 'VERIFIED', verified_at = now() WHERE tutor_id = ?",
+        tutorProfileId
+    );
+    jdbc.update(
+        "INSERT INTO verification_request(request_id, tutor_id, status, submitted_at, reviewed_by, reviewed_at) " +
+            "VALUES (?, ?, 'APPROVED', now() - interval '2 days', ?, now() - interval '1 day')",
+        approvedReqId, tutorProfileId, adminUserId
+    );
+    UUID prevCredId = UUID.randomUUID();
+    jdbc.update(
+        "INSERT INTO credential(credential_id, request_id, type, institution, year, note) " +
+            "VALUES (?, ?, 'DEGREE', 'Đại học Bách Khoa Hà Nội', 2022, 'Cử nhân CNTT')",
+        prevCredId, approvedReqId
+    );
+
+    // 2. Gia sư đăng nhập và nộp bổ sung chứng chỉ IELTS
+    currentUser.actAs(tutorUserId, "tutor@edufit.vn", Set.of("TUTOR"));
+
+    SubmitVerificationRequest supplementRequest = new SubmitVerificationRequest(List.of(
+        new SubmitVerificationRequest.CredentialItem(
+            Credential.Type.CERTIFICATE, "British Council", (short) 2024, "IELTS 8.0 Supplementary", List.of(0), null
+        )
+    ));
+    byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
+    MockMultipartFile payloadPart = new MockMultipartFile(
+        "payload", "", "application/json", jsonMapper.writeValueAsBytes(supplementRequest)
+    );
+    MockMultipartFile file0 = new MockMultipartFile(
+        "files", "ielts_80.pdf", "application/pdf", pdfBytes
+    );
+
+    String submitResultJson = mvc.perform(multipart("/api/v1/verifications")
+            .file(payloadPart)
+            .file(file0)
+            .contentType(MediaType.MULTIPART_FORM_DATA))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.status").value("PENDING"))
+        .andReturn()
+        .getResponse()
+        .getContentAsString();
+
+    UUID suppRequestId = UUID.fromString(jsonMapper.readTree(submitResultJson).get("data").get("requestId").asText());
+
+    // 3. Kiểm tra DB: Hồ sơ bổ sung PENDING, NHƯNG tutor_profile vẫn giữ nguyên 'VERIFIED'
+    assertEquals("PENDING", jdbc.queryForObject("SELECT status FROM verification_request WHERE request_id = ?", String.class, suppRequestId));
+    assertEquals("VERIFIED", jdbc.queryForObject("SELECT status FROM tutor_profile WHERE tutor_id = ?", String.class, tutorProfileId));
+
+    // Thử nộp tiếp yêu cầu khác khi đang có hồ sơ PENDING -> Bị chặn theo BR-15 (409 Conflict)
+    mvc.perform(multipart("/api/v1/verifications")
+            .file(payloadPart)
+            .file(file0)
+            .contentType(MediaType.MULTIPART_FORM_DATA))
+        .andExpect(status().isConflict());
+
+    // 4. Gia sư kiểm tra hồ sơ qua getMyRequest -> Trả về hồ sơ PENDING nhưng tổng hợp cả bằng trước đó (2 bằng)
+    mvc.perform(get("/api/v1/verifications/my-request"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("PENDING"))
+        .andExpect(jsonPath("$.data.credentials.length()").value(2))
+        .andExpect(jsonPath("$.data.credentials[*].institution", containsInAnyOrder("Đại học Bách Khoa Hà Nội", "British Council")));
+
+    // 5. Admin từ chối hồ sơ bổ sung (do giấy tờ mờ)
+    currentUser.actAs(adminUserId, "admin@edufit.vn", Set.of("ADMIN"));
+    ReviewVerificationRequest rejectRequest = new ReviewVerificationRequest(
+        ReviewVerificationRequest.Action.REJECT, "Chứng chỉ IELTS không đủ rõ nét", null
+    );
+    mvc.perform(post("/api/v1/admin/verifications/" + suppRequestId + "/review")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonMapper.writeValueAsString(rejectRequest)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("REJECTED"));
+
+    // DB: Hồ sơ bổ sung bị REJECTED, nhưng profile gia sư VẪN LÀ VERIFIED vì đã có bằng cấp APPROVED trước đó
+    assertEquals("REJECTED", jdbc.queryForObject("SELECT status FROM verification_request WHERE request_id = ?", String.class, suppRequestId));
+    assertEquals("VERIFIED", jdbc.queryForObject("SELECT status FROM tutor_profile WHERE tutor_id = ?", String.class, tutorProfileId));
+  }
+
+  @Test
+  @DisplayName("Quy trình 1C: Gia sư có nhiều hồ sơ APPROVED -> Admin thu hồi (REVOKE) -> Thu hồi tất cả APPROVED & Giáng profile UNVERIFIED -> Nộp lại chuyển PENDING_VERIFICATION")
+  void testRevokeVerificationWhenMultipleApprovedExist() throws Exception {
+    // 1. Gia sư có 2 hồ sơ APPROVED (hồ sơ gốc + hồ sơ bổ sung)
+    UUID req1Id = UUID.randomUUID();
+    UUID req2Id = UUID.randomUUID();
+
+    jdbc.update(
+        "UPDATE tutor_profile SET status = 'VERIFIED', verified_at = now() WHERE tutor_id = ?",
+        tutorProfileId
+    );
+    jdbc.update(
+        "INSERT INTO verification_request(request_id, tutor_id, status, submitted_at, reviewed_by, reviewed_at) " +
+            "VALUES (?, ?, 'APPROVED', now() - interval '5 days', ?, now() - interval '4 days')",
+        req1Id, tutorProfileId, adminUserId
+    );
+    jdbc.update(
+        "INSERT INTO verification_request(request_id, tutor_id, status, submitted_at, reviewed_by, reviewed_at) " +
+            "VALUES (?, ?, 'APPROVED', now() - interval '2 days', ?, now() - interval '1 day')",
+        req2Id, tutorProfileId, adminUserId
+    );
+
+    // 2. Admin thu hồi hồ sơ req2Id
+    currentUser.actAs(adminUserId, "admin@edufit.vn", Set.of("ADMIN"));
+    vn.edufit.verification.web.request.RevokeVerificationRequest revokeReq =
+        new vn.edufit.verification.web.request.RevokeVerificationRequest("Phát hiện văn bằng bổ sung và bằng gốc là giả mạo");
+
+    mvc.perform(post("/api/v1/admin/verifications/" + req2Id + "/revoke")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonMapper.writeValueAsString(revokeReq)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("REJECTED"));
+
+    // 3. Kiểm tra DB: Cả 2 hồ sơ đều bị REJECTED ([REVOKED] ...), tutor_profile chuyển UNVERIFIED
+    assertEquals("REJECTED", jdbc.queryForObject("SELECT status FROM verification_request WHERE request_id = ?", String.class, req1Id));
+    assertEquals("REJECTED", jdbc.queryForObject("SELECT status FROM verification_request WHERE request_id = ?", String.class, req2Id));
+    assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM verification_request WHERE tutor_id = ? AND status = 'APPROVED'", Integer.class, tutorProfileId));
+    assertEquals("UNVERIFIED", jdbc.queryForObject("SELECT status FROM tutor_profile WHERE tutor_id = ?", String.class, tutorProfileId));
+
+    // 4. Gia sư nộp lại hồ sơ xác minh mới -> Profile phải chuyển thành PENDING_VERIFICATION
+    currentUser.actAs(tutorUserId, "tutor@edufit.vn", Set.of("TUTOR"));
+    SubmitVerificationRequest resubmitRequest = new SubmitVerificationRequest(List.of(
+        new SubmitVerificationRequest.CredentialItem(
+            Credential.Type.DEGREE, "Đại học Mới Hợp Lệ", (short) 2024, "Bằng chính quy mới", List.of(0), null
+        )
+    ));
+    byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< >>\nendobj\n%%EOF".getBytes();
+    MockMultipartFile payloadPart = new MockMultipartFile("payload", "", "application/json", jsonMapper.writeValueAsBytes(resubmitRequest));
+    MockMultipartFile file0 = new MockMultipartFile("files", "new_degree.pdf", "application/pdf", pdfBytes);
+
+    mvc.perform(multipart("/api/v1/verifications")
+            .file(payloadPart)
+            .file(file0)
+            .contentType(MediaType.MULTIPART_FORM_DATA))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.status").value("PENDING"));
+
+    assertEquals("PENDING_VERIFICATION", jdbc.queryForObject("SELECT status FROM tutor_profile WHERE tutor_id = ?", String.class, tutorProfileId));
+  }
+
+  @Test
   @DisplayName("Quy trình 2: Admin từ chối REJECT không có lý do -> 400 Bad Request; Có lý do -> REJECTED & Profile UNVERIFIED")
   void testVerificationRejectionLifecycle() throws Exception {
     currentUser.actAs(tutorUserId, "tutor@edufit.vn", Set.of("TUTOR"));
 
     SubmitVerificationRequest submitRequest = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học X", (short) 2021, "Bằng cử nhân", List.of(0)
+            Credential.Type.DEGREE, "Đại học X", (short) 2021, "Bằng cử nhân", List.of(0), null
         )
     ));
     byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< >>\nendobj\n%%EOF".getBytes();
@@ -254,7 +401,7 @@ class VerificationWorkflowPostgresTest {
 
     // Admin từ chối không kèm lý do -> Bị lỗi (BR-06)
     currentUser.actAs(adminUserId, "admin@edufit.vn", Set.of("ADMIN"));
-    ReviewVerificationRequest invalidReject = new ReviewVerificationRequest(ReviewVerificationRequest.Action.REJECT, null);
+    ReviewVerificationRequest invalidReject = new ReviewVerificationRequest(ReviewVerificationRequest.Action.REJECT, null, null);
     mvc.perform(post("/api/v1/admin/verifications/" + requestId + "/review")
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonMapper.writeValueAsString(invalidReject)))
@@ -262,7 +409,7 @@ class VerificationWorkflowPostgresTest {
 
     // Admin từ chối kèm lý do hợp lệ
     ReviewVerificationRequest validReject = new ReviewVerificationRequest(
-        ReviewVerificationRequest.Action.REJECT, "Ảnh chụp bằng cấp quá mờ, không thể đọc số hiệu"
+        ReviewVerificationRequest.Action.REJECT, "Ảnh chụp bằng cấp quá mờ, không thể đọc số hiệu", null
     );
     mvc.perform(post("/api/v1/admin/verifications/" + requestId + "/review")
             .contentType(MediaType.APPLICATION_JSON)
@@ -291,7 +438,7 @@ class VerificationWorkflowPostgresTest {
 
     SubmitVerificationRequest submitRequest = new SubmitVerificationRequest(List.of(
         new SubmitVerificationRequest.CredentialItem(
-            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2023, "Bằng kỹ sư", List.of(0)
+            Credential.Type.DEGREE, "Đại học Bách Khoa", (short) 2023, "Bằng kỹ sư", List.of(0), null
         )
     ));
     byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF".getBytes();
@@ -328,8 +475,8 @@ class VerificationWorkflowPostgresTest {
     UUID anotherTutorUserId = UUID.randomUUID();
     UUID anotherTutorProfileId = UUID.randomUUID();
     jdbc.update("INSERT INTO account(user_id, email, password_hash, full_name, role) VALUES (?, 'other@edufit.vn', 'hash', 'Other', 'TUTOR')", anotherTutorUserId);
-    jdbc.update("INSERT INTO tutor_profile(tutor_id, user_id, display_name, headline, bio, teaching_mode, price_per_session, status, rating_avg, review_count, created_at, updated_at) " +
-        "VALUES (?, ?, 'Other', 'H', 'B', 'ONLINE', 200000, 'UNVERIFIED', 0, 0, now(), now())", anotherTutorProfileId, anotherTutorUserId);
+    jdbc.update("INSERT INTO tutor_profile(tutor_id, user_id, display_name, headline, bio, teaching_mode, status, rating_avg, review_count, created_at, updated_at) " +
+        "VALUES (?, ?, 'Other', 'H', 'B', 'ONLINE', 'UNVERIFIED', 0, 0, now(), now())", anotherTutorProfileId, anotherTutorUserId);
 
     currentUser.actAs(anotherTutorUserId, "other@edufit.vn", Set.of("TUTOR"));
     mvc.perform(get("/api/v1/verifications/credentials/files/" + fileId))
@@ -379,6 +526,9 @@ class VerificationWorkflowPostgresTest {
   })
   @Import({
       ProfileFacadeImpl.class,
+      LearningNeedService.class,
+      LearningCatalogLoader.class,
+      TutorProfileAssembler.class,
       AdminVerificationService.class,
       TutorVerificationService.class,
       AdminVerificationController.class,
@@ -387,6 +537,23 @@ class VerificationWorkflowPostgresTest {
       FileValidationService.class
   })
   static class Config {
+
+    // AdminVerificationService bắt buộc ghi audit và tra cứu IAM; slice test cung cấp mock tường minh
+    @Bean
+    vn.edufit.shared.audit.AuditSink auditSink() {
+      return org.mockito.Mockito.mock(vn.edufit.shared.audit.AuditSink.class);
+    }
+
+    @Bean
+    vn.edufit.iam.api.IamFacade iamFacade() {
+      return org.mockito.Mockito.mock(vn.edufit.iam.api.IamFacade.class);
+    }
+
+    // Liên kết phụ huynh–học sinh thuộc module connection, ngoài phạm vi slice test này
+    @Bean
+    vn.edufit.profile.api.port.ParentStudentLinkPort parentStudentLinkPort() {
+      return org.mockito.Mockito.mock(vn.edufit.profile.api.port.ParentStudentLinkPort.class);
+    }
 
     @Bean(destroyMethod = "close")
     HikariDataSource dataSource() {

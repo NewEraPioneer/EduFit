@@ -26,17 +26,23 @@ export function ParentQuickActions() {
       >
         <div className="flex items-center gap-2.5">
           <CreditCard className="size-4 text-amber-600" />
-          <span>Xem hóa đơn & thanh toán</span>
+          <div className="flex items-center gap-2">
+            <span>Thông tin học phí & gói học</span>
+            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-100 text-amber-800">
+              Ví & học phí
+            </span>
+          </div>
         </div>
         <ChevronRight className="size-4 text-neutral-400" />
       </Link>
       <button
         type="button"
-        className="w-full p-2.5 rounded-xl hover:bg-stone-50 flex items-center justify-between text-xs font-semibold text-neutral-700 transition-colors text-left"
+        disabled
+        className="w-full p-2.5 rounded-xl flex items-center justify-between text-xs font-semibold text-neutral-500 text-left cursor-not-allowed"
       >
         <div className="flex items-center gap-2.5">
           <MessageSquare className="size-4 text-sky-600" />
-          <span>Nhóm trò chuyện cùng gia sư</span>
+          <span>Nhóm trò chuyện cùng gia sư · Ví & học phí</span>
         </div>
         <ChevronRight className="size-4 text-neutral-400" />
       </button>

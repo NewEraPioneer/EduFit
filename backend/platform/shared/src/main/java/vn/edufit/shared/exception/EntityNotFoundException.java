@@ -23,6 +23,10 @@ public class EntityNotFoundException extends BaseBusinessException {
     super(ErrorCode.RESOURCE_NOT_FOUND, message);
   }
 
+  public EntityNotFoundException(ErrorCode errorCode, String message) {
+    super(errorCode, message);
+  }
+
   /**
    * Phương thức tiện ích tạo ngoại lệ theo tên thực thể và ID định danh.
    *

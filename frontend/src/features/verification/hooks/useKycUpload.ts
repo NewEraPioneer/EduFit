@@ -11,12 +11,21 @@ import type { CredentialType } from "../types";
 
 export function useKycUpload() {
   const [institutionName, setInstitutionName] = useState("");
-  const [graduationYear, setGraduationYear] = useState<number>(new Date().getFullYear());
+  const [graduationYear, setGraduationYear] = useState<number | undefined>(
+    new Date().getFullYear()
+  );
   const [documentType, setDocumentType] = useState<CredentialType>("DEGREE");
   const [notes, setNotes] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDocumentTypeChange = useCallback((newType: CredentialType) => {
+    setDocumentType(newType);
+    if (newType === "OTHER") {
+      setGraduationYear(undefined);
+    }
+  }, []);
 
   const resetForm = useCallback(() => {
     setInstitutionName("");
@@ -91,7 +100,7 @@ export function useKycUpload() {
               {
                 type: parseResult.data.documentType,
                 institution: parseResult.data.institutionName,
-                year: parseResult.data.graduationYear,
+                year: parseResult.data.graduationYear ?? undefined,
                 note: parseResult.data.notes,
                 fileIndexes: selectedFiles.map((_, idx) => idx),
               },
@@ -127,6 +136,7 @@ export function useKycUpload() {
     setGraduationYear,
     documentType,
     setDocumentType,
+    handleDocumentTypeChange,
     notes,
     setNotes,
     selectedFiles,

@@ -26,17 +26,23 @@ export function StudentQuickActions() {
       >
         <div className="flex items-center gap-2.5">
           <CreditCard className="size-4 text-neutral-500 dark:text-stone-400" />
-          <span>Nạp học phí / Thanh toán</span>
+          <div className="flex items-center gap-2">
+            <span>Thông tin học phí</span>
+            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+              Ví & học phí
+            </span>
+          </div>
         </div>
         <ChevronRight className="size-4 text-neutral-400 dark:text-stone-400" />
       </Link>
       <button
         type="button"
-        className="w-full p-2.5 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center justify-between text-xs font-semibold text-neutral-700 dark:text-stone-200 transition-colors text-left cursor-pointer"
+        disabled
+        className="w-full p-2.5 rounded-xl flex items-center justify-between text-xs font-semibold text-neutral-500 dark:text-stone-400 text-left cursor-not-allowed"
       >
         <div className="flex items-center gap-2.5">
           <MessageSquare className="size-4 text-neutral-500 dark:text-stone-400" />
-          <span>Nhắn tin cho gia sư</span>
+          <span>Nhắn tin cho gia sư · Ví & học phí</span>
         </div>
         <ChevronRight className="size-4 text-neutral-400 dark:text-stone-400" />
       </button>

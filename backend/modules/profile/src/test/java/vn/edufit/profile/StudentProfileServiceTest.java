@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,14 +23,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import vn.edufit.profile.api.event.ProfileUpdatedEvent;
 import vn.edufit.profile.application.service.StudentProfileService;
-import vn.edufit.profile.infra.persistence.entity.EducationLevel;
 import vn.edufit.profile.infra.persistence.entity.StudentProfile;
-import vn.edufit.profile.infra.persistence.repository.EducationLevelRepository;
+import vn.edufit.profile.application.service.CatalogFixtures;
+import vn.edufit.profile.application.service.LearningCatalogLoader;
 import vn.edufit.profile.infra.persistence.repository.StudentProfileRepository;
 import vn.edufit.profile.web.request.UpdateStudentProfileRequest;
 import vn.edufit.profile.web.response.StudentProfileResponse;
 import vn.edufit.shared.auth.CurrentUser;
-import vn.edufit.shared.exception.EntityNotFoundException;
+import vn.edufit.shared.exception.FieldValidationException;
 import vn.edufit.shared.exception.ForbiddenOperationException;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,7 +40,7 @@ class StudentProfileServiceTest {
   private StudentProfileRepository studentProfileRepository;
 
   @Mock
-  private EducationLevelRepository educationLevelRepository;
+  private LearningCatalogLoader learningCatalogLoader;
 
   @Mock
   private ApplicationEventPublisher eventPublisher;
@@ -50,9 +51,10 @@ class StudentProfileServiceTest {
   void setUp() {
     studentProfileService = new StudentProfileService(
         studentProfileRepository,
-        educationLevelRepository,
+        learningCatalogLoader,
         eventPublisher
     );
+    lenient().when(learningCatalogLoader.load()).thenReturn(CatalogFixtures.catalog());
   }
 
   @Test
@@ -78,17 +80,17 @@ class StudentProfileServiceTest {
     StudentProfile existing = new StudentProfile(userId);
 
     when(studentProfileRepository.findByUserId(userId)).thenReturn(Optional.of(existing));
-    when(educationLevelRepository.existsById(1)).thenReturn(true);
-    when(educationLevelRepository.findById(1)).thenReturn(Optional.of(new EducationLevel("Lớp 12", 12, true)));
     when(studentProfileRepository.save(any(StudentProfile.class))).thenAnswer(inv -> inv.getArgument(0));
 
-    UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(1, "Hà Nội");
+    UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(
+        CatalogFixtures.LEVEL_9, CatalogFixtures.HA_NOI, CatalogFixtures.CAU_GIAY);
     StudentProfileResponse response = studentProfileService.updateProfile(currentUser, request);
 
     assertNotNull(response);
     assertTrue(response.profileComplete());
-    assertEquals("Hà Nội", response.area());
-    assertEquals("Lớp 12", response.educationLevelName());
+    assertEquals("Hà Nội", response.provinceName());
+    assertEquals("Cầu Giấy", response.districtName());
+    assertEquals("Lớp 9", response.educationLevelName());
 
     ArgumentCaptor<ProfileUpdatedEvent> eventCaptor = ArgumentCaptor.forClass(ProfileUpdatedEvent.class);
     verify(eventPublisher).publishEvent(eventCaptor.capture());
@@ -104,16 +106,18 @@ class StudentProfileServiceTest {
     StudentProfile existing = new StudentProfile(userId);
 
     when(studentProfileRepository.findByUserId(userId)).thenReturn(Optional.of(existing));
-    when(educationLevelRepository.existsById(999)).thenReturn(false);
 
-    UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(999, "TP.HCM");
-    assertThrows(EntityNotFoundException.class, () -> studentProfileService.updateProfile(currentUser, request));
+    UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(999, CatalogFixtures.HA_NOI,
+        CatalogFixtures.HAI_CHAU);
+    var ex = assertThrows(FieldValidationException.class, () -> studentProfileService.updateProfile(currentUser, request));
+    assertTrue(ex.getFieldErrors().containsKey("educationLevelId"));
+    assertTrue(ex.getFieldErrors().containsKey("districtId"));
   }
 
   @Test
   @DisplayName("Ném lỗi khi chưa đăng nhập")
   void shouldThrowWhenUnauthenticated() {
-    UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(1, "TP.HCM");
+    UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(1, null, null);
     assertThrows(ForbiddenOperationException.class, () -> studentProfileService.updateProfile(null, request));
   }
 

@@ -6,8 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record TutorMatchRequest(
-    @NotNull(message = "goalId không được để trống")
-    UUID goalId,
+    @NotNull(message = "needId không được để trống")
+    UUID needId,
 
     @Min(value = 1, message = "topN phải từ 1 đến 10")
     @Max(value = 10, message = "topN phải từ 1 đến 10")

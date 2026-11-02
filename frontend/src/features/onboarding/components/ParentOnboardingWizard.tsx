@@ -1,108 +1,137 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/shared/ui/Toast";
+import { connectionApi } from "@/features/connection/api/connectionApi";
+import type { LinkInvitation, StudentLink } from "@/features/connection/types";
 import {
   Users,
-  QrCode,
   CheckCircle2,
   Lightbulb,
   ArrowRight,
-  Plus,
-  BookOpen,
-  School,
-  Sparkles,
+  Send,
   Loader2,
   Trash2,
+  Mail,
+  Clock,
+  GraduationCap,
 } from "lucide-react";
-
-interface LinkedStudent {
-  code: string;
-  name: string;
-  grade: string;
-  school: string;
-  subjects: string;
-  goal: string;
-}
 
 export function ParentOnboardingWizard() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
 
-  const [inputCode, setInputCode] = useState<string>("EDU-849");
-  const [showQrMock, setShowQrMock] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [inputEmail, setInputEmail] = useState<string>("");
+  const [links, setLinks] = useState<StudentLink[]>([]);
+  const [invitations, setInvitations] = useState<LinkInvitation[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [sending, setSending] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  // List of connected children
-  const [linkedStudents, setLinkedStudents] = useState<LinkedStudent[]>([
-    {
-      code: "EDU-849",
-      name: "Trần Minh Đức",
-      grade: "Lớp 9",
-      school: "Trường THCS Nguyễn Du",
-      subjects: "Toán, Tiếng Anh",
-      goal: "Ôn thi vào lớp 10",
-    },
-  ]);
+  const loadConnections = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [confirmedLinks, allInvitations] = await Promise.all([
+        connectionApi.getLinks().catch(() => []),
+        connectionApi.getLinkInvitations().catch(() => []),
+      ]);
+      setLinks(confirmedLinks);
+      setInvitations(
+        allInvitations.filter(
+          (item) => item.status === "PENDING" && item.inviterUserId === user?.id
+        )
+      );
+    } catch (err: unknown) {
+      console.error("Lỗi khi tải danh sách liên kết:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
 
-  // Additional child input dialog
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newCode, setNewCode] = useState("");
-  const [newName, setNewName] = useState("");
-  const [newGrade, setNewGrade] = useState("Lớp 8");
+  useEffect(() => {
+    void loadConnections();
+  }, [loadConnections]);
 
-  const handleLinkNewChild = () => {
-    if (!newCode.trim() || !newName.trim()) {
-      showToast("Vui lòng nhập đầy đủ mã và tên con!", "error");
+  const handleSendInvitation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetEmail = inputEmail.trim().toLowerCase();
+    if (!targetEmail) {
+      showToast("Vui lòng nhập địa chỉ email tài khoản học sinh của con!", "error");
       return;
     }
 
-    const newChild: LinkedStudent = {
-      code: newCode.trim().toUpperCase(),
-      name: newName.trim(),
-      grade: newGrade,
-      school: "Trường THCS Thực Nghiệm",
-      subjects: "Toán, Ngữ văn",
-      goal: "Củng cố kiến thức nền tảng",
-    };
+    if (!targetEmail.includes("@")) {
+      showToast("Địa chỉ email không đúng định dạng!", "error");
+      return;
+    }
 
-    setLinkedStudents((prev) => [...prev, newChild]);
-    setNewCode("");
-    setNewName("");
-    setShowAddModal(false);
-    showToast(`Đã ghép nối hồ sơ của ${newChild.name} thành công!`, "success");
+    setSending(true);
+    try {
+      await connectionApi.inviteParentStudent(targetEmail);
+      showToast(`Đã gửi lời mời liên kết tới ${targetEmail} thành công!`, "success");
+      setInputEmail("");
+      await loadConnections();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Không thể gửi lời mời liên kết. Vui lòng kiểm tra lại email tài khoản học sinh.";
+      showToast(message, "error");
+    } finally {
+      setSending(false);
+    }
   };
 
-  const handleRemoveChild = (code: string) => {
-    if (linkedStudents.length <= 1) {
-      showToast("Bạn cần duy trì ít nhất 1 học sinh được ghép nối!", "error");
-      return;
+  const handleWithdrawInvitation = async (invitationId: string) => {
+    setBusyId(invitationId);
+    try {
+      await connectionApi.withdrawLinkInvitation(invitationId);
+      showToast("Đã rút lời mời liên kết thành công.", "success");
+      await loadConnections();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Có lỗi xảy ra khi rút lời mời liên kết.";
+      showToast(message, "error");
+    } finally {
+      setBusyId(null);
     }
-    setLinkedStudents((prev) => prev.filter((c) => c.code !== code));
   };
 
   const handleComplete = async () => {
-    if (linkedStudents.length === 0) {
-      showToast("Vui lòng ghép nối ít nhất 1 hồ sơ học sinh!", "error");
-      return;
-    }
-
     setSubmitting(true);
     try {
-      // 1. Lưu danh sách con em đã ghép nối vào localStorage để Parent Dashboard đọc linh hoạt
-      localStorage.setItem("edufit_parent_linked_students", JSON.stringify(linkedStudents));
+      // Đánh dấu phụ huynh đã hoàn tất onboarding
       localStorage.setItem("edufit_parent_onboarding_completed", "true");
+
+      // Đồng bộ danh sách học sinh đã xác nhận nếu có
+      if (links.length > 0) {
+        const syncedChildren = links.map((link, idx) => ({
+          id: idx + 1,
+          code: link.studentId,
+          name: `Học sinh ${link.studentId.slice(0, 8)}`,
+          grade: "Lớp học kèm",
+          school: "EduFit Platform",
+          subjects: "Đang cập nhật",
+          goal: "Đồng hành học tập",
+        }));
+        localStorage.setItem(
+          "edufit_parent_linked_students",
+          JSON.stringify(syncedChildren)
+        );
+      }
 
       showToast("Thiết lập tài khoản phụ huynh thành công! Chào mừng bạn đến với EduFit.", "success");
       await refreshUser?.();
       router.push("/parent/dashboard");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi hoàn tất thiết lập";
+      const message =
+        err instanceof Error ? err.message : "Có lỗi xảy ra khi hoàn tất thiết lập";
       showToast(message, "error");
     } finally {
       setSubmitting(false);
@@ -126,6 +155,11 @@ export function ParentOnboardingWizard() {
         <div className="flex items-center gap-4">
           <Link
             href="/parent/dashboard"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                localStorage.setItem("edufit_parent_onboarding_completed", "true");
+              }
+            }}
             className="text-xs text-neutral-500 hover:text-neutral-900 transition-colors"
           >
             Bỏ qua để vào sau
@@ -133,7 +167,7 @@ export function ParentOnboardingWizard() {
         </div>
       </header>
 
-      {/* 2. Main Container (Figma 142:8392) */}
+      {/* 2. Main Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 space-y-6">
         {/* Left/Top Tip Box */}
         <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white rounded-3xl p-5 sm:p-6 border border-emerald-100 flex items-start gap-4">
@@ -142,10 +176,10 @@ export function ParentOnboardingWizard() {
           </div>
           <div className="space-y-1">
             <h3 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
-              Lấy mã liên kết ở đâu?
+              Cách liên kết tài khoản con em
             </h3>
             <p className="text-xs text-emerald-900 leading-relaxed">
-              Học sinh có thể mở <strong>EduFit &gt; Hồ sơ cá nhân &gt; chọn 'Liên kết phụ huynh'</strong> để lấy mã 6 ký tự hoặc mở mã QR để phụ huynh quét nhanh.
+              Nhập chính xác địa chỉ email tài khoản học sinh của con em bạn. Hệ thống sẽ gửi lời mời trực tiếp đến tài khoản học sinh. Con bạn chỉ cần mở ứng dụng và xác nhận <strong>"Đồng ý liên kết"</strong> là hoàn tất!
             </p>
           </div>
         </div>
@@ -154,207 +188,155 @@ export function ParentOnboardingWizard() {
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200/90 shadow-xs space-y-6">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">
-              BƯỚC 1: NHẬP MÃ GHÉP NỐI
+              BƯỚC 1: GỬI LỜI MỜI LIÊN KẾT HỌC SINH
             </span>
             <h2 className="font-heading text-2xl font-bold text-neutral-900">
-              Nhập mã liên kết từ tài khoản học sinh của con
+              Kết nối với tài khoản học sinh của con
             </h2>
             <p className="text-xs text-neutral-500">
-              Mã này giúp đồng bộ dữ liệu học tập, tiến độ bài tập và thông báo lịch học trực tiếp đến tài khoản của bạn.
+              Liên kết giúp phụ huynh đồng bộ tiến độ học tập, theo dõi thời khóa biểu và nhận phản hồi sau mỗi buổi dạy của gia sư.
             </p>
           </div>
 
-          {/* Input Box for 6 characters */}
-          <div className="p-5 bg-stone-50 border border-stone-200 rounded-3xl space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-neutral-700">
-                MÃ GHÉP NỐI (6 KÝ TỰ HOẶC ĐỊNH DẠNG EDU-XXX)
-              </label>
+          {/* Form Gửi Lời Mời */}
+          <form
+            onSubmit={handleSendInvitation}
+            className="p-5 bg-stone-50 border border-stone-200 rounded-3xl space-y-3"
+          >
+            <label className="block text-xs font-bold text-neutral-700">
+              EMAIL TÀI KHOẢN HỌC SINH CỦA CON <span className="text-rose-500">*</span>
+            </label>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Mail className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  value={inputEmail}
+                  onChange={(e) => setInputEmail(e.target.value)}
+                  placeholder="VD: email.cua.con@gmail.com"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-2xl text-xs font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
               <button
-                type="button"
-                onClick={() => setShowQrMock(!showQrMock)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 cursor-pointer"
+                type="submit"
+                disabled={sending || !inputEmail.trim()}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs rounded-2xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
               >
-                <QrCode className="size-4" />
-                <span>Quét mã QR</span>
+                {sending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+                <span>{sending ? "Đang gửi..." : "Gửi lời mời liên kết"}</span>
               </button>
             </div>
+            <p className="text-[11px] text-neutral-400">
+              Lưu ý: Học sinh phải có tài khoản EduFit đang kích hoạt để nhận lời mời.
+            </p>
+          </form>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={inputCode}
-                onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                placeholder="VD: EDU-849"
-                className="w-full sm:w-64 px-4 py-3 bg-white border border-stone-300 rounded-2xl text-center text-lg font-mono font-bold tracking-widest text-neutral-900 uppercase focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <span className="text-xs text-emerald-600 font-semibold px-2">
-                ✓ Đã tìm thấy
-              </span>
+          {/* Danh sách học sinh đã kết nối & Lời mời đang chờ */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                Trạng thái liên kết hồ sơ con em ({links.length} đã kết nối, {invitations.length} đang chờ)
+              </label>
             </div>
 
-            {showQrMock && (
-              <div className="p-4 bg-white border border-emerald-200 rounded-2xl flex items-center justify-between animate-in fade-in">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 font-bold">
-                    <QrCode className="size-5" />
+            {loading ? (
+              <div className="p-8 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col items-center justify-center gap-2 text-neutral-400">
+                <Loader2 className="size-5 animate-spin text-emerald-600" />
+                <span className="text-xs">Đang tải danh sách liên kết...</span>
+              </div>
+            ) : links.length === 0 && invitations.length === 0 ? (
+              <div className="p-8 text-center bg-stone-50 border border-dashed border-stone-300 rounded-3xl space-y-2">
+                <Users className="size-8 text-neutral-300 mx-auto" />
+                <p className="text-xs font-bold text-neutral-700">
+                  Chưa có tài khoản con em nào được kết nối
+                </p>
+                <p className="text-[11px] text-neutral-500 max-w-sm mx-auto">
+                  Hãy nhập email học sinh của con bạn ở trên để gửi lời mời liên kết ngay bây giờ, hoặc bạn có thể bỏ qua để thực hiện sau.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* 1. Danh sách đã xác nhận */}
+                {links.map((link) => (
+                  <div
+                    key={link.linkId}
+                    className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center">
+                        <GraduationCap className="size-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-neutral-900">
+                            Học sinh mã: {link.studentId}
+                          </h4>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-full text-[10px]">
+                            <CheckCircle2 className="size-3" />
+                            Đã liên kết
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-neutral-500 mt-0.5">
+                          {link.confirmedAt
+                            ? `Đã xác nhận ngày: ${new Date(link.confirmedAt).toLocaleDateString("vi-VN")}`
+                            : "Đã sẵn sàng đồng bộ lịch học & kết quả"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-neutral-800">Mã QR Scanner Simulator</p>
-                    <p className="text-[11px] text-neutral-400">Camera đã quét tự động mã EDU-849</p>
+                ))}
+
+                {/* 2. Danh sách lời mời đang chờ */}
+                {invitations.map((item) => (
+                  <div
+                    key={item.invitationId}
+                    className="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl flex items-center justify-between gap-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-xl bg-amber-500 text-white font-bold flex items-center justify-center">
+                        <Clock className="size-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-neutral-900">
+                            Đang chờ học sinh chấp nhận
+                          </h4>
+                          <span className="inline-flex items-center px-2 py-0.5 bg-amber-100 text-amber-800 font-bold rounded-full text-[10px]">
+                            Đang chờ
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-neutral-500 mt-0.5">
+                          Mã lời mời: {item.invitationId.slice(0, 8)} · Hết hạn:{" "}
+                          {new Date(item.expiresAt).toLocaleDateString("vi-VN")}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={busyId === item.invitationId}
+                      onClick={() => handleWithdrawInvitation(item.invitationId)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-xl border border-rose-200 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {busyId === item.invitationId ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3.5" />
+                      )}
+                      <span>Rút lời mời</span>
+                    </button>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowQrMock(false)}
-                  className="px-3 py-1 bg-stone-100 hover:bg-stone-200 text-neutral-700 text-xs font-semibold rounded-lg"
-                >
-                  Xong
-                </button>
+                ))}
               </div>
             )}
           </div>
-
-          {/* List of Matched Children Cards */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-neutral-700">
-                Hồ sơ học sinh đã ghép nối ({linkedStudents.length})
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowAddModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold transition-colors cursor-pointer"
-              >
-                <Plus className="size-3.5" />
-                <span>Thêm một con khác</span>
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {linkedStudents.map((child) => (
-                <div
-                  key={child.code}
-                  className="p-5 bg-gradient-to-br from-stone-50 to-white border border-stone-200 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="size-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-bold text-lg flex items-center justify-center shadow-xs shrink-0">
-                      {child.name[0]}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-sm text-neutral-900">{child.name}</h4>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-full text-[10px]">
-                          <CheckCircle2 className="size-3" />
-                          Mã hợp lệ ✓
-                        </span>
-                      </div>
-                      <p className="text-xs text-neutral-500 flex items-center gap-1.5">
-                        <School className="size-3.5 text-neutral-400" />
-                        <span>
-                          Học sinh {child.grade} • {child.school}
-                        </span>
-                      </p>
-                      <p className="text-xs text-neutral-600 flex items-center gap-1.5">
-                        <BookOpen className="size-3.5 text-neutral-400" />
-                        <span>
-                          Môn quan tâm: <strong>{child.subjects}</strong> • Mục tiêu:{" "}
-                          <strong>{child.goal}</strong>
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {linkedStudents.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveChild(child.code)}
-                      className="p-2 text-stone-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 transition-colors self-end sm:self-center"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Modal to add another child */}
-          {showAddModal && (
-            <div className="p-5 bg-stone-50 border border-stone-200 rounded-3xl space-y-4 animate-in fade-in">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-neutral-900">
-                  Thêm hồ sơ con thứ {linkedStudents.length + 1}
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="text-xs text-neutral-400 hover:text-neutral-700"
-                >
-                  Đóng
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-neutral-600 mb-1">
-                    Mã liên kết
-                  </label>
-                  <input
-                    type="text"
-                    value={newCode}
-                    onChange={(e) => setNewCode(e.target.value)}
-                    placeholder="VD: EDU-721"
-                    className="w-full px-3 py-2 text-xs bg-white border border-stone-200 rounded-xl uppercase font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-neutral-600 mb-1">
-                    Tên học sinh
-                  </label>
-                  <input
-                    type="text"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="VD: Trần Phương Thảo"
-                    className="w-full px-3 py-2 text-xs bg-white border border-stone-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-neutral-600 mb-1">
-                    Khối lớp
-                  </label>
-                  <select
-                    value={newGrade}
-                    onChange={(e) => setNewGrade(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-white border border-stone-200 rounded-xl"
-                  >
-                    <option value="Lớp 6">Lớp 6</option>
-                    <option value="Lớp 7">Lớp 7</option>
-                    <option value="Lớp 8">Lớp 8</option>
-                    <option value="Lớp 9">Lớp 9</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-3 py-1.5 text-xs text-neutral-600 hover:bg-stone-100 rounded-xl"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLinkNewChild}
-                  className="px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 shadow-xs"
-                >
-                  Xác nhận liên kết
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Action Footer */}
           <div className="flex items-center justify-end pt-4 border-t border-stone-100">

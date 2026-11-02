@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/shared/ui/Toast";
 import { authApi } from "@/features/auth/api/authApi";
 import { evaluatePasswordCriteria } from "@/features/auth/schemas/authSchemas";
+import { AvatarUploadCard } from "./AvatarUploadCard";
 
 export function AccountSettingsTab() {
   const { user } = useAuth();
@@ -125,7 +126,10 @@ export function AccountSettingsTab() {
         </div>
       </div>
 
-      {/* 2. Form Đổi Mật Khẩu */}
+      {/* 2. Ảnh đại diện người dùng */}
+      <AvatarUploadCard />
+
+      {/* 3. Form Đổi Mật Khẩu */}
       <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200/90 shadow-xs space-y-5">
         <div className="flex items-center justify-between pb-3 border-b border-stone-100">
           <div className="flex items-center gap-2.5 text-xs font-bold text-neutral-800">

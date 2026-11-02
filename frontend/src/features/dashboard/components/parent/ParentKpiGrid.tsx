@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Calendar, TrendingUp, CreditCard, Clock } from "lucide-react";
 import { ChildInfo } from "./ParentChildSwitcher";
 
@@ -39,8 +40,8 @@ export function ParentKpiGrid({ child }: ParentKpiGridProps) {
           <CreditCard className="size-4 text-amber-600" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-extrabold font-heading text-neutral-900">{child.tuition}</div>
-          <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">Đã thanh toán đủ</div>
+          <div className="text-2xl font-extrabold font-heading text-neutral-900"><Link href="/parent/billing" className="hover:underline">Xem học phí</Link></div>
+          <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">Chi tiết trong ví học phí</div>
         </div>
       </div>
 

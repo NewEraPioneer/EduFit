@@ -1,16 +1,23 @@
 package vn.edufit.profile.infra.persistence.entity;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -41,11 +48,21 @@ public class TutorProfile {
   @Column(name = "teaching_mode", nullable = false, length = 20)
   private TeachingMode teachingMode;
 
-  @Column(name = "area", length = 100)
-  private String area;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "tutor_type", length = 30)
+  private TutorType tutorType;
 
-  @Column(name = "price_per_session", nullable = false)
-  private Long pricePerSession;
+  @Column(name = "tutor_type_verified", nullable = false)
+  private boolean tutorTypeVerified;
+
+  @Column(name = "province_id")
+  private Integer provinceId;
+
+  @org.hibernate.annotations.BatchSize(size = 50)
+  @ElementCollection(fetch = FetchType.LAZY)
+  @CollectionTable(name = "tutor_district", joinColumns = @JoinColumn(name = "tutor_id"))
+  @Column(name = "district_id")
+  private Set<Integer> districtIds = new HashSet<>();
 
   @Column(name = "experience_years")
   private Short experienceYears;
@@ -83,13 +100,11 @@ public class TutorProfile {
   public TutorProfile(
       UUID userId,
       String displayName,
-      TeachingMode teachingMode,
-      Long pricePerSession
+      TeachingMode teachingMode
   ) {
     this.userId = userId;
     this.displayName = displayName;
     this.teachingMode = teachingMode;
-    this.pricePerSession = pricePerSession;
     this.status = TutorStatus.DRAFT;
     this.createdAt = Instant.now();
     this.updatedAt = Instant.now();
@@ -110,6 +125,10 @@ public class TutorProfile {
     this.status = TutorStatus.UNVERIFIED;
     this.verifiedAt = null;
     this.updatedAt = Instant.now();
+  }
+
+  public void markUnverified() {
+    markRejected();
   }
 
   public UUID getTutorId() {
@@ -156,21 +175,45 @@ public class TutorProfile {
     this.updatedAt = Instant.now();
   }
 
-  public String getArea() {
-    return area;
+  public TutorType getTutorType() {
+    return tutorType;
   }
 
-  public void setArea(String area) {
-    this.area = area;
+  public boolean isTutorTypeVerified() {
+    return tutorTypeVerified;
+  }
+
+  /** Gia sư đổi loại khai báo thì cần admin xác nhận lại. */
+  public void declareTutorType(TutorType tutorType) {
+    if (this.tutorType != tutorType) {
+      this.tutorType = tutorType;
+      this.tutorTypeVerified = false;
+      this.updatedAt = Instant.now();
+    }
+  }
+
+  /** Admin xác nhận loại gia sư khi duyệt hồ sơ, dựa trên giấy tờ đã nộp. */
+  public void confirmTutorType(TutorType tutorType) {
+    this.tutorType = tutorType;
+    this.tutorTypeVerified = true;
     this.updatedAt = Instant.now();
   }
 
-  public Long getPricePerSession() {
-    return pricePerSession;
+  public Integer getProvinceId() {
+    return provinceId;
   }
 
-  public void setPricePerSession(Long pricePerSession) {
-    this.pricePerSession = pricePerSession;
+  public Set<Integer> getDistrictIds() {
+    return Set.copyOf(districtIds);
+  }
+
+  /** Khu vực dạy trực tiếp: một Tỉnh/Thành và nhiều Khu vực thuộc tỉnh đó. */
+  public void setTeachingArea(Integer provinceId, Collection<Integer> districtIds) {
+    this.provinceId = provinceId;
+    this.districtIds.clear();
+    if (provinceId != null) {
+      this.districtIds.addAll(districtIds);
+    }
     this.updatedAt = Instant.now();
   }
 

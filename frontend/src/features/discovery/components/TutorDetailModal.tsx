@@ -1,22 +1,30 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Star,
   ShieldCheck,
   MapPin,
-  Video,
-  Home,
-  BookOpen,
-  Calendar,
   Clock,
   Briefcase,
   GraduationCap,
-  Sparkles,
   MessageSquare,
+  PenLine,
 } from "lucide-react";
+import { TUTOR_TYPE_LABELS } from "@/features/learning-needs/catalogRules";
 import type { TutorDetail } from "../types";
+import { OfferingList } from "./OfferingList";
+import { TEACHING_MODE_TEXT, formatRating, formatVnd, tutorAreaText } from "../utils/tutorDisplay";
+import {
+  RatingSummaryCard,
+  ReviewList,
+  ReviewModal,
+  reviewApi,
+  type ReviewItem,
+  type TutorRatingSummary,
+} from "@/features/review";
+import { useAuth } from "@/context/AuthContext";
 
 export interface TutorDetailModalProps {
   isOpen: boolean;
@@ -43,11 +51,47 @@ export function TutorDetailModal({
   onClose,
   onRequestConnect,
 }: TutorDetailModalProps) {
+  const { user } = useAuth();
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [ratingSummary, setRatingSummary] = useState<TutorRatingSummary | null>(null);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState<ReviewItem | null>(null);
+
+  const loadReviewData = async (tutorId: string) => {
+    try {
+      setIsLoadingReviews(true);
+      const [sumRes, revRes] = await Promise.all([
+        reviewApi.getTutorRatingSummary(tutorId),
+        reviewApi.getTutorReviews(tutorId, 0, 10),
+      ]);
+      if (sumRes.success && sumRes.data) {
+        setRatingSummary(sumRes.data);
+      }
+      if (revRes.success && revRes.data) {
+        setReviews(revRes.data.content || []);
+      }
+    } catch {
+      // Ignored for resilience
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && tutor?.tutorId) {
+      loadReviewData(tutor.tutorId);
+    } else {
+      setReviews([]);
+      setRatingSummary(null);
+      setEditingReview(null);
+    }
+  }, [isOpen, tutor?.tutorId]);
+
   if (!isOpen) return null;
 
-  const formattedPrice = tutor
-    ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(tutor.pricePerSession)
-    : "0 đ";
+  const prices = tutor?.offerings.map((offering) => offering.pricePerSession) ?? [];
+  const minPrice = prices.length > 0 ? Math.min(...prices) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
@@ -65,6 +109,7 @@ export function TutorDetailModal({
           </div>
           <button
             type="button"
+            aria-label="Đóng"
             onClick={onClose}
             className="p-1.5 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-stone-200/60 transition-colors cursor-pointer"
           >
@@ -102,18 +147,25 @@ export function TutorDetailModal({
                   <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-neutral-600">
                     <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg">
                       <Star className="size-3.5 fill-amber-500 text-amber-500" />
-                      {tutor.ratingAvg ? tutor.ratingAvg.toFixed(1) : "5.0"} ({tutor.reviewCount} đánh giá)
+                      {formatRating(tutor.ratingAvg, tutor.reviewCount)}
                     </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Briefcase className="size-3.5 text-neutral-400" />
-                      {tutor.experienceYears} năm kinh nghiệm
-                    </span>
-                    {tutor.area && (
+                    {tutor.tutorType && (
                       <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-3.5 text-neutral-400" />
-                        {tutor.area}
+                        <GraduationCap className="size-3.5 text-neutral-400" />
+                        {TUTOR_TYPE_LABELS[tutor.tutorType]}
+                        {tutor.tutorTypeVerified && <ShieldCheck aria-label="Đã xác minh" className="size-3.5 text-emerald-600" />}
                       </span>
                     )}
+                    {tutor.experienceYears != null && (
+                      <span className="inline-flex items-center gap-1">
+                        <Briefcase className="size-3.5 text-neutral-400" />
+                        {tutor.experienceYears} năm kinh nghiệm
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 min-w-0">
+                      <MapPin className="size-3.5 text-neutral-400 shrink-0" />
+                      <span className="break-words">{TEACHING_MODE_TEXT[tutor.teachingMode]} · {tutorAreaText(tutor)}</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -136,21 +188,10 @@ export function TutorDetailModal({
                 </div>
               )}
 
-              {/* Danh sách môn dạy & Cấp lớp */}
+              {/* Gói dạy */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">Danh mục môn học nhận dạy</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {tutor.subjects.map((sub, idx) => (
-                    <div
-                      key={`${sub.subjectId}-${sub.educationLevelId}-${idx}`}
-                      className="flex items-center gap-2 p-3 rounded-xl bg-stone-50 border border-stone-200/80 text-xs font-semibold text-neutral-800"
-                    >
-                      <BookOpen className="size-4 text-amber-600 shrink-0" />
-                      <span>{sub.subjectName}</span>
-                      <span className="text-neutral-400 font-normal">· {sub.educationLevelName}</span>
-                    </div>
-                  ))}
-                </div>
+                <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">Gói dạy</h4>
+                <OfferingList offerings={tutor.offerings} />
               </div>
 
               {/* Ma trận khung giờ rảnh trong tuần */}
@@ -183,17 +224,64 @@ export function TutorDetailModal({
                   </p>
                 )}
               </div>
+
+              {/* Đánh giá & Nhận xét từ học sinh / phụ huynh */}
+              <div className="space-y-4 pt-4 border-t border-stone-200">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
+                    Đánh giá & Nhận xét
+                  </h4>
+                  {user && (user.role === "STUDENT" || user.role === "PARENT") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingReview(null);
+                        setIsReviewModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
+                    >
+                      <PenLine className="size-3.5" />
+                      <span>Viết đánh giá</span>
+                    </button>
+                  )}
+                </div>
+
+                {ratingSummary && ratingSummary.totalReviews > 0 ? (
+                  <RatingSummaryCard summary={ratingSummary} />
+                ) : (
+                  <div className="p-4 rounded-xl bg-stone-50 border border-stone-200/60 text-xs text-neutral-500 text-center">
+                    Gia sư này hiện chưa có đánh giá nào.
+                  </div>
+                )}
+
+                {isLoadingReviews ? (
+                  <div className="py-8 flex justify-center text-xs text-neutral-400">
+                    Đang tải đánh giá...
+                  </div>
+                ) : (
+                  <ReviewList
+                    reviews={reviews}
+                    currentUserId={user?.id}
+                    onEditReview={(rev) => {
+                      setEditingReview(rev);
+                      setIsReviewModalOpen(true);
+                    }}
+                  />
+                )}
+              </div>
             </>
           )}
         </div>
 
         {/* Footer */}
         {tutor && !isLoading && (
-          <div className="p-5 sm:p-6 bg-stone-50 border-t border-stone-200 flex items-center justify-between gap-4">
+          <div className="p-5 sm:p-6 bg-stone-50 border-t border-stone-200 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <span className="text-[10px] text-neutral-400 block font-medium">Mức học phí niêm yết</span>
-              <span className="text-base sm:text-lg font-black text-neutral-900">{formattedPrice}</span>
-              <span className="text-xs text-neutral-500"> /buổi</span>
+              <span className="text-[10px] text-neutral-400 block font-medium">
+                {prices.length > 1 ? "Học phí từ" : "Học phí"}
+              </span>
+              <span className="text-base sm:text-lg font-black text-neutral-900">{formatVnd(minPrice)}</span>
+              {minPrice != null && <span className="text-xs text-neutral-500"> /buổi</span>}
             </div>
 
             <div className="flex items-center gap-2">
@@ -218,6 +306,26 @@ export function TutorDetailModal({
           </div>
         )}
       </div>
+
+      {/* Review Modal */}
+      {isReviewModalOpen && tutor && (
+        <ReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => {
+            setIsReviewModalOpen(false);
+            setEditingReview(null);
+          }}
+          tutorId={tutor.tutorId}
+          reviewerRole={user?.role}
+          tutorName={tutor.displayName}
+          existingReview={editingReview}
+          onSuccess={() => {
+            setIsReviewModalOpen(false);
+            setEditingReview(null);
+            loadReviewData(tutor.tutorId);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -51,23 +51,31 @@ import vn.edufit.iam.infra.security.Argon2PasswordService;
  * <p>Only the external Gemini boundary is faked. IAM, HTTP security, JDBC sessions, profile,
  * discovery, connection, notification, audit, quota and logging all use production beans and a
  * real PostgreSQL database.
+ *
+ * <p>Timeout 500ms: đủ rộng cho lần gọi đầu khi JVM còn nguội, vẫn ngắn hơn hẳn 1s mà fake
+ * provider ngủ ở chế độ "timeout".
  */
 @SpringBootTest(
     properties = {
       "edufit.ai.provider=gemini",
-      "edufit.ai.timeout=200ms",
+      "edufit.ai.timeout=500ms",
       "edufit.ai.gemini.api-key=test-only-key",
       "edufit.ai.gemini.model=test-model",
       "spring.session.jdbc.initialize-schema=never"
     })
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @DirtiesContext
 class AiDiscoveryConnectionE2ETest {
   private static final String PASSWORD = "Password123@";
+  /** Danh mục do migration seed: Toán = 1, Ngữ Văn = 2, Lớp 7 = 2, Lớp 8 = 3. */
+  private static final int MATH = 1;
+  private static final int LITERATURE = 2;
+  private static final int LEVEL_7 = 2;
+  private static final int LEVEL_8 = 3;
   private static final JsonMapper JSON = JsonMapper.builder().build();
 
   @Container
-  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 
   static final AtomicInteger providerCalls = new AtomicInteger();
   static final ExecutorService providerExecutor = Executors.newVirtualThreadPerTaskExecutor();
@@ -94,6 +102,8 @@ class AiDiscoveryConnectionE2ETest {
   UUID parentUserId;
   UUID tutorUserId;
   UUID tutorId;
+  UUID offeringId;
+  int giftedTagId;
 
   @BeforeEach
   void setup() {
@@ -103,7 +113,7 @@ class AiDiscoveryConnectionE2ETest {
                 context.getBean("springSessionRepositoryFilter", Filter.class),
                 context.getBean("springSecurityFilterChain", Filter.class))
             .build();
-    jdbc.execute("truncate account, subject, education_level cascade");
+    jdbc.execute("truncate account cascade");
     jdbc.execute("delete from spring_session");
     providerCalls.set(0);
     providerMode = "success";
@@ -116,14 +126,12 @@ class AiDiscoveryConnectionE2ETest {
     seedAccount(studentUserId, "student@example.test", "Student", "STUDENT");
     seedAccount(parentUserId, "parent@example.test", "Parent", "PARENT");
     seedAccount(tutorUserId, "tutor@example.test", "Tutor", "TUTOR");
-    jdbc.update("insert into education_level(level_id,name,sort_order) values(2,'Grade 7',2)");
-    jdbc.update("insert into education_level(level_id,name,sort_order) values(3,'Grade 8',3)");
-    jdbc.update("insert into subject(subject_id,name) values(1,'Math')");
     jdbc.update(
         "insert into student_profile(student_id,user_id,profile_complete) values(?,?,false)",
         studentId,
         studentUserId);
-    seedTutor(2);
+    giftedTagId = jdbc.queryForObject("select goal_tag_id from goal_tag where code='GIFTED'", Integer.class);
+    seedTutor(LEVEL_7);
   }
 
   @AfterAll
@@ -137,8 +145,7 @@ class AiDiscoveryConnectionE2ETest {
       throws Exception {
     ActorSession student = login("student@example.test");
     completeStudentProfile(student);
-    UUID goalId = createGoal(student);
-    setGoalAvailability(student, goalId);
+    UUID needId = createNeed(student);
 
     mvc.perform(get("/api/v1/discovery/tutors").param("subjectId", "1"))
         .andExpect(status().isOk())
@@ -147,14 +154,14 @@ class AiDiscoveryConnectionE2ETest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.tutorId").value(tutorId.toString()));
 
-    MvcResult match = match(student, goalId).andExpect(status().isOk()).andReturn();
+    MvcResult match = match(student, needId).andExpect(status().isOk()).andReturn();
     JsonNode matchJson = json(match);
     assertThat(matchJson.at("/data/0/tutorId").asText()).isEqualTo(tutorId.toString());
     assertThat(matchJson.at("/data/0/aiGenerated").asBoolean()).isTrue();
     assertThat(matchJson.at("/data/0/explanation").asText()).isEqualTo("Grounded E2E answer");
     assertThat(providerCalls).hasValue(1);
 
-    UUID requestId = createConnectionRequest(student, goalId, tutorId);
+    UUID requestId = createConnectionRequest(student, needId, tutorId);
     ActorSession tutor = login("tutor@example.test");
     mvc.perform(get("/api/v1/connections/requests").cookie(tutor.session()))
         .andExpect(status().isOk())
@@ -183,15 +190,14 @@ class AiDiscoveryConnectionE2ETest {
             jdbc.queryForObject(
                 "select status from connection_request where request_id=?", String.class, requestId))
         .isEqualTo("ACCEPTED");
-    assertSuccessfulMatchingAudit(goalId, studentUserId);
+    assertSuccessfulMatchingAudit(needId, studentUserId);
   }
 
   @Test
-  void parentCanUseStudentGoalUntilStudentRevokesTheConfirmedLink() throws Exception {
+  void parentCanUseStudentNeedUntilStudentRevokesTheConfirmedLink() throws Exception {
     ActorSession student = login("student@example.test");
     completeStudentProfile(student);
-    UUID goalId = createGoal(student);
-    setGoalAvailability(student, goalId);
+    UUID needId = createNeed(student);
     ActorSession parent = login("parent@example.test");
 
     unsafe(
@@ -220,12 +226,12 @@ class AiDiscoveryConnectionE2ETest {
     UUID linkId = UUID.fromString(json(accepted).at("/data/linkId").asText());
 
     mvc.perform(
-            get("/api/v1/discovery/students/{studentId}/goals", studentId)
+            get("/api/v1/learning-needs").param("studentId", studentId.toString())
                 .cookie(parent.session()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data[0].goalId").value(goalId.toString()));
-    match(parent, goalId).andExpect(status().isOk());
-    createConnectionRequest(parent, goalId, tutorId);
+        .andExpect(jsonPath("$.data[0].needId").value(needId.toString()));
+    match(parent, needId).andExpect(status().isOk());
+    createConnectionRequest(parent, needId, tutorId);
 
     unsafe(
             delete("/api/v1/connections/parent-student/links/{id}", linkId)
@@ -234,13 +240,13 @@ class AiDiscoveryConnectionE2ETest {
         .andExpect(status().isOk());
     int callsBeforeDeniedActions = providerCalls.get();
     mvc.perform(
-            get("/api/v1/discovery/students/{studentId}/goals", studentId)
+            get("/api/v1/learning-needs").param("studentId", studentId.toString())
                 .cookie(parent.session()))
         .andExpect(status().isForbidden());
-    match(parent, goalId).andExpect(status().isForbidden());
+    match(parent, needId).andExpect(status().isForbidden());
     unsafe(
             post("/api/v1/connections/requests")
-                .content(connectionBody(goalId, tutorId)),
+                .content(connectionBody(needId, tutorId)),
             parent)
         .andExpect(status().isForbidden());
     assertThat(providerCalls).hasValue(callsBeforeDeniedActions);
@@ -251,15 +257,14 @@ class AiDiscoveryConnectionE2ETest {
   void providerFailureFallsBackAndConnectionRemainsAvailable(String failure) throws Exception {
     ActorSession student = login("student@example.test");
     completeStudentProfile(student);
-    UUID goalId = createGoal(student);
-    setGoalAvailability(student, goalId);
+    UUID needId = createNeed(student);
     providerMode = failure;
 
-    MvcResult result = match(student, goalId).andExpect(status().isOk()).andReturn();
+    MvcResult result = match(student, needId).andExpect(status().isOk()).andReturn();
     assertThat(json(result).at("/data/0/aiGenerated").asBoolean()).isFalse();
     assertThat(json(result).at("/data/0/explanation").asText()).isNotBlank();
     assertThat(providerCalls).hasValue(1);
-    createConnectionRequest(student, goalId, tutorId);
+    createConnectionRequest(student, needId, tutorId);
     String expected = failure.equals("timeout") ? "TIMEOUT" : "ERROR";
     assertThat(jdbc.queryForList("select status from ai_request_log", String.class))
         .containsExactly(expected);
@@ -267,38 +272,46 @@ class AiDiscoveryConnectionE2ETest {
 
   @Test
   void emptyCandidateSetSkipsProviderAndStillRecordsMatchingRun() throws Exception {
-    jdbc.update("delete from tutor_subject where tutor_id=?", tutorId);
+    jdbc.update("delete from tutor_offering where tutor_id=?", tutorId);
     ActorSession student = login("student@example.test");
     completeStudentProfile(student);
-    UUID goalId = createGoal(student);
-    setGoalAvailability(student, goalId);
+    UUID needId = createNeed(student);
 
-    match(student, goalId).andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
+    match(student, needId).andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
     assertThat(providerCalls).hasValue(0);
     assertThat(
             jdbc.queryForObject(
-                "select result_count from matching_run_log where goal_id=?",
+                "select result_count from matching_run_log where need_id=?",
                 Integer.class,
-                goalId))
+                needId))
         .isZero();
     assertThat(jdbc.queryForObject("select count(*) from ai_request_log", Integer.class)).isZero();
   }
 
   @Test
-  void discoveryCanRankAdjacentLevelButConnectionRequiresExactSubjectAndLevel() throws Exception {
-    jdbc.update(
-        "update tutor_subject set education_level_id=3 where tutor_id=? and subject_id=1", tutorId);
+  void adjacentLevelIsRankedWithWarningAndStillAllowsConnection() throws Exception {
+    jdbc.update("update tutor_offering_level set level_id=? where offering_id=?", LEVEL_8, offeringId);
     ActorSession student = login("student@example.test");
     completeStudentProfile(student);
-    UUID goalId = createGoal(student);
-    setGoalAvailability(student, goalId);
+    UUID needId = createNeed(student);
 
-    match(student, goalId)
+    match(student, needId)
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data[0].tutorId").value(tutorId.toString()));
+        .andExpect(jsonPath("$.data[0].tutorId").value(tutorId.toString()))
+        .andExpect(jsonPath("$.data[0].tutorInfo.fit.checks[?(@.criterion=='LEVEL')].matched").value(false));
+    createConnectionRequest(student, needId, tutorId);
+  }
+
+  @Test
+  void connectionRequiresAnOfferingForTheNeedSubject() throws Exception {
+    jdbc.update("update tutor_offering set subject_id=? where offering_id=?", LITERATURE, offeringId);
+    ActorSession student = login("student@example.test");
+    completeStudentProfile(student);
+    UUID needId = createNeed(student);
+
     unsafe(
             post("/api/v1/connections/requests")
-                .content(connectionBody(goalId, tutorId)),
+                .content(connectionBody(needId, tutorId)),
             student)
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_OPERATION"));
@@ -317,17 +330,24 @@ class AiDiscoveryConnectionE2ETest {
 
   private void seedTutor(int educationLevelId) {
     jdbc.update(
-        "insert into tutor_profile(tutor_id,user_id,display_name,headline,bio,teaching_mode,area,"
-            + " price_per_session,experience_years,teaching_method,status,verified_at,rating_avg,review_count)"
-            + " values(?,?,?,'Math tutor','Grounded bio','ONLINE','Hanoi',150000,5,'Practice',"
+        "insert into tutor_profile(tutor_id,user_id,display_name,headline,bio,teaching_mode,"
+            + " experience_years,teaching_method,status,verified_at,rating_avg,review_count)"
+            + " values(?,?,?,'Math tutor','Grounded bio','ONLINE',5,'Practice',"
             + " 'VERIFIED',now(),4.90,20)",
         tutorId,
         tutorUserId,
         "Tutor");
+    offeringId = UUID.randomUUID();
     jdbc.update(
-        "insert into tutor_subject(tutor_id,subject_id,education_level_id) values(?,1,?)",
+        "insert into tutor_offering(offering_id,tutor_id,subject_id,price_per_session) values(?,?,?,150000)",
+        offeringId,
         tutorId,
-        educationLevelId);
+        MATH);
+    jdbc.update("insert into tutor_offering_level(offering_id,level_id) values(?,?)", offeringId, educationLevelId);
+    jdbc.update(
+        "insert into tutor_offering_goal(offering_id,goal_tag_id,evidence_verified) values(?,?,true)",
+        offeringId,
+        giftedTagId);
     jdbc.update(
         "insert into tutor_availability_slot(tutor_id,day_of_week,start_time,end_time)"
             + " values(?,1,'18:00','20:00')",
@@ -358,59 +378,49 @@ class AiDiscoveryConnectionE2ETest {
   private void completeStudentProfile(ActorSession student) throws Exception {
     unsafe(
             put("/api/v1/profiles/students/me")
-                .content("{\"educationLevelId\":2,\"area\":\"Hanoi\"}"),
+                .content("{\"educationLevelId\":" + LEVEL_7 + "}"),
             student)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.educationLevelId").value(2));
   }
 
-  private UUID createGoal(ActorSession student) throws Exception {
+  /** Nhu cầu đủ thông tin (Lớp 7, Toán, HSG, online, ngân sách, lịch) nên được ghép ngay. */
+  private UUID createNeed(ActorSession student) throws Exception {
     String body =
-        "{\"subjectId\":1,\"currentLevel\":1,\"desiredLevel\":2,"
-            + "\"goalType\":\"IMPROVE_GRADES\",\"deadline\":\""
-            + LocalDate.now().plusMonths(2)
-            + "\",\"mode\":\"ONLINE\",\"area\":null,\"budgetMin\":100000,"
-            + "\"budgetMax\":200000}";
+        "{\"educationLevelId\":" + LEVEL_7 + ",\"subjectId\":" + MATH + ",\"goalTagId\":" + giftedTagId
+            + ",\"mode\":\"ONLINE\",\"budgetMaxPerSession\":200000,"
+            + "\"availabilitySlots\":[{\"dayOfWeek\":1,\"startTime\":\"18:30\",\"endTime\":\"19:30\"}]}";
     MvcResult result =
-        unsafe(post("/api/v1/profiles/students/me/goals").content(body), student)
+        unsafe(post("/api/v1/learning-needs").content(body), student)
             .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.data.status").value("ACTIVE"))
             .andReturn();
-    return UUID.fromString(json(result).at("/data/goalId").asText());
-  }
-
-  private void setGoalAvailability(ActorSession student, UUID goalId) throws Exception {
-    unsafe(
-            put("/api/v1/profiles/students/me/goals/{id}/availability", goalId)
-                .content(
-                    "{\"slots\":[{\"dayOfWeek\":1,\"startTime\":\"18:30\","
-                        + "\"endTime\":\"19:30\"}]}"),
-            student)
-        .andExpect(status().isOk());
+    return UUID.fromString(json(result).at("/data/needId").asText());
   }
 
   private org.springframework.test.web.servlet.ResultActions match(
-      ActorSession actor, UUID goalId) throws Exception {
+      ActorSession actor, UUID needId) throws Exception {
     return unsafe(
         post("/api/v1/discovery/match")
-            .content("{\"goalId\":\"" + goalId + "\",\"topN\":5}"),
+            .content("{\"needId\":\"" + needId + "\",\"topN\":5}"),
         actor);
   }
 
-  private UUID createConnectionRequest(ActorSession actor, UUID goalId, UUID targetTutorId)
+  private UUID createConnectionRequest(ActorSession actor, UUID needId, UUID targetTutorId)
       throws Exception {
     MvcResult result =
         unsafe(
                 post("/api/v1/connections/requests")
-                    .content(connectionBody(goalId, targetTutorId)),
+                    .content(connectionBody(needId, targetTutorId)),
                 actor)
             .andExpect(status().isOk())
             .andReturn();
     return UUID.fromString(json(result).at("/data/requestId").asText());
   }
 
-  private String connectionBody(UUID goalId, UUID targetTutorId) {
-    return "{\"goalId\":\""
-        + goalId
+  private String connectionBody(UUID needId, UUID targetTutorId) {
+    return "{\"needId\":\""
+        + needId
         + "\",\"tutorId\":\""
         + targetTutorId
         + "\",\"desiredSlots\":[\"MONDAY 18:30-19:30\"],"
@@ -470,13 +480,13 @@ class AiDiscoveryConnectionE2ETest {
     }
   }
 
-  private void assertSuccessfulMatchingAudit(UUID goalId, UUID actorId) {
+  private void assertSuccessfulMatchingAudit(UUID needId, UUID actorId) {
     assertThat(
             jdbc.queryForObject(
-                "select count(*) from matching_run_log where goal_id=? and user_id=?"
+                "select count(*) from matching_run_log where need_id=? and user_id=?"
                     + " and student_id=? and result_count=1",
                 Integer.class,
-                goalId,
+                needId,
                 actorId,
                 studentId))
         .isEqualTo(1);

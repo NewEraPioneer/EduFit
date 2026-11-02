@@ -14,8 +14,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 3s
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 10s
       timeout: 3s
       retries: 20
       start_period: 5s
@@ -32,14 +32,33 @@ services:
     build:
       context: ./backend
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-edufit}?options=-c%20timezone=Asia/Ho_Chi_Minh
       DB_USERNAME: ${POSTGRES_USER:-edufit}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-edufit-local-only}
       MAIL_HOST: mail
       MAIL_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-no-reply@edufit.local}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
       AI_PROVIDER: ${AI_PROVIDER:-stub}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      PAYOS_CLIENT_ID: ${PAYOS_CLIENT_ID:-}
+      PAYOS_API_KEY: ${PAYOS_API_KEY:-}
+      PAYOS_CHECKSUM_KEY: ${PAYOS_CHECKSUM_KEY:-}
+      PAYMENT_BANK_ACCOUNT: ${PAYMENT_BANK_ACCOUNT:-}
+      PAYMENT_FRONTEND_URL: ${PAYMENT_FRONTEND_URL:-http://localhost:3000}
+      PAYMENT_BANK_BIN: ${PAYMENT_BANK_BIN:-}
+      PAYMENT_BANK_HOLDER: ${PAYMENT_BANK_HOLDER:-}
+      PAYOS_PAYOUT_ENABLED: ${PAYOS_PAYOUT_ENABLED:-false}
+      PAYOS_PAYOUT_CLIENT_ID: ${PAYOS_PAYOUT_CLIENT_ID:-}
+      PAYOS_PAYOUT_API_KEY: ${PAYOS_PAYOUT_API_KEY:-}
+      PAYOS_PAYOUT_CHECKSUM_KEY: ${PAYOS_PAYOUT_CHECKSUM_KEY:-}
+      STORAGE_CREDENTIALS_ROOT: ${STORAGE_CREDENTIALS_ROOT:-/app/var/credentials}
+      JAVA_OPTS: ${JAVA_OPTS:-}
+    volumes:
+      - credential_data:/app/var/credentials
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -48,7 +67,7 @@ services:
       mail:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'" ]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -57,3 +76,4 @@ services:
 
 volumes:
   postgres_data:
+  credential_data:

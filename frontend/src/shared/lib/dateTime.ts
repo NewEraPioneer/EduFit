@@ -148,3 +148,68 @@ export function formatMatchingSlots(slots: AvailabilitySlotLike[]): string {
   }
   return `${days} · ${first.startTime.slice(0, 5)}–${first.endTime.slice(0, 5)}`;
 }
+
+/**
+ * Chuyển đổi Date hoặc chuỗi ngày thành định dạng YYYY-MM-DD theo múi giờ địa phương (local timezone),
+ * loại trừ triệt để lỗi lệch múi giờ (UTC shift rollback) do toISOString().slice(0, 10) gây ra.
+ */
+export function formatLocalDateToIso(date: Date | string | number | null | undefined): string {
+  if (!date) return "";
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Định dạng thời gian cục bộ HH:mm từ Date hoặc chuỗi ISO / timestamp.
+ */
+export function formatLocalTime(value: Date | string | number | null | undefined): string {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const timeMatch = value.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/);
+    if (timeMatch) {
+      return `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}`;
+    }
+  }
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+
+/**
+ * Hiển thị khoảng thời gian buổi học theo múi giờ địa phương, ví dụ: "18:00 - 19:30".
+ * An toàn tuyệt đối với ca lẻ tiếng và múi giờ Việt Nam UTC+7.
+ */
+export function formatSessionTime(
+  startAt: Date | string | number | null | undefined,
+  endAt?: Date | string | number | null | undefined
+): string {
+  const startStr = formatLocalTime(startAt);
+  if (!endAt) return startStr;
+  const endStr = formatLocalTime(endAt);
+  if (!startStr && !endStr) return "";
+  if (!endStr) return startStr;
+  if (!startStr) return endStr;
+  return `${startStr} - ${endStr}`;
+}
+
+/**
+ * Kiểm tra xem hai thời điểm có rơi vào cùng một ngày theo múi giờ địa phương hay không.
+ */
+export function isSameDay(
+  date1: Date | string | number | null | undefined,
+  date2: Date | string | number | null | undefined
+): boolean {
+  if (!date1 || !date2) return false;
+  return formatLocalDateToIso(date1) === formatLocalDateToIso(date2);
+}
+

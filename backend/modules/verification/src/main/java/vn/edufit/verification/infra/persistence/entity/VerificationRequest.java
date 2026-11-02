@@ -96,6 +96,26 @@ public class VerificationRequest {
     this.reviewedAt = reviewedAt;
   }
 
+  public void revoke(UUID adminUserId, String reason, Instant reviewedAt) {
+    if (this.status != Status.APPROVED) {
+      throw new InvalidOperationException(
+          ErrorCode.INVALID_OPERATION,
+          "Chỉ có thể thu hồi phê duyệt đối với hồ sơ đang ở trạng thái APPROVED"
+      );
+    }
+    if (reason == null || reason.isBlank()) {
+      throw new InvalidOperationException(
+          ErrorCode.VALIDATION_FAILED,
+          "Lý do thu hồi phê duyệt hồ sơ là bắt buộc"
+      );
+    }
+    this.status = Status.REJECTED;
+    String trimmed = reason.trim();
+    this.rejectionReason = trimmed.startsWith("[REVOKED] ") ? trimmed : "[REVOKED] " + trimmed;
+    this.reviewedBy = adminUserId;
+    this.reviewedAt = reviewedAt;
+  }
+
   private void ensurePending() {
     if (this.status != Status.PENDING) {
       throw new InvalidOperationException(

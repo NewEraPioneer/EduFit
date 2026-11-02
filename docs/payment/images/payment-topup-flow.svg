@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1370" viewBox="0 0 1680 1370">
+<rect width="100%" height="100%" fill="white"/>
+<text x="64" y="28" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">EDUFIT / PAYMENT / 02</text>
+<text x="64" y="66" font-family="Segoe UI, sans-serif" font-size="38" font-weight="700" fill="#0F172A" dominant-baseline="text-before-edge">Nhập số tiền → QR → tăng ví</text>
+<text x="64" y="120" font-family="Segoe UI, sans-serif" font-size="23" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">QR mở ngay trong popup EduFit; callback trình duyệt không phải bằng chứng tiền đã vào ví.</text>
+<path d="M64 164H1616" stroke="#E2E8F0" stroke-width="2"/>
+<rect x="64" y="200" width="1000" height="138" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="220" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">1. Người dùng nhập 100.000đ</text>
+<text x="88" y="268" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Student/Parent bấm nạp trong ví. Backend kiểm quyền và giới hạn tiền.</text>
+<polyline points="564,341 564,371" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,371.0 556.3,357.0 571.7,357.0" fill="#64748B"/>
+<rect x="64" y="375" width="1000" height="138" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="395" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">2. Lưu yêu cầu nạp PENDING</text>
+<text x="88" y="443" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Backend gắn order riêng, gọi payOS tạo checkout ngoài transaction DB.</text>
+<polyline points="564,516 564,546" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,546.0 556.3,532.0 571.7,532.0" fill="#64748B"/>
+<rect x="64" y="550" width="1000" height="138" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="570" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">3. Hiển thị QR trong popup</text>
+<text x="88" y="618" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">SDK payOS nhúng checkout; đúng số tiền và mã yêu cầu, không rời trang.</text>
+<polyline points="564,691 564,721" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,721.0 556.3,707.0 571.7,707.0" fill="#64748B"/>
+<rect x="64" y="725" width="1000" height="138" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="745" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">4. Người dùng quét QR bằng app ngân hàng</text>
+<text x="88" y="793" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Tiền thật chuyển tới tài khoản nhận liên kết kênh thu EduFit.</text>
+<polyline points="564,866 564,896" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,896.0 556.3,882.0 571.7,882.0" fill="#64748B"/>
+<rect x="64" y="900" width="1000" height="138" rx="18" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+<text x="88" y="920" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#2563EB" dominant-baseline="text-before-edge">5. Backend xác minh giao dịch</text>
+<text x="88" y="968" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Webhook đã ký hoặc signed lookup phải khớp yêu cầu đã lưu.</text>
+<polyline points="564,1041 564,1071" fill="none" stroke="#64748B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="564.0,1071.0 556.3,1057.0 571.7,1057.0" fill="#64748B"/>
+<rect x="64" y="1075" width="1000" height="138" rx="18" fill="#ECFDF5" stroke="#047857" stroke-width="2"/>
+<text x="88" y="1095" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#047857" dominant-baseline="text-before-edge">6. Ghi ví, ledger, audit và thông báo</text>
+<text x="88" y="1143" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Available tăng 100.000đ một lần; UI tải lại để hiện số dư mới.</text>
+<rect x="1120" y="200" width="496" height="230" rx="18" fill="#FFFBEB" stroke="#B45309" stroke-width="2"/>
+<text x="1144" y="220" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B45309" dominant-baseline="text-before-edge">Chưa cộng tiền</text>
+<text x="1144" y="268" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Tạo QR, bấm quay về hoặc gửi ảnh biên</text>
+<text x="1144" y="303" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">lai đều không phải xác nhận nhận tiền.</text>
+<rect x="1120" y="505" width="496" height="265" rx="18" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+<text x="1144" y="525" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#7C3AED" dominant-baseline="text-before-edge">Webhook chậm hoặc bị mất</text>
+<text x="1144" y="573" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Owner/Admin có thể refresh. Job query</text>
+<text x="1144" y="608" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">provider; lease topup 30s để tránh gọi</text>
+<text x="1144" y="643" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">liên tục.</text>
+<rect x="1120" y="845" width="496" height="275" rx="18" fill="#FEF2F2" stroke="#B91C1C" stroke-width="2"/>
+<text x="1144" y="865" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" fill="#B91C1C" dominant-baseline="text-before-edge">Sai receipt hoặc kết quả chưa rõ</text>
+<text x="1144" y="913" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">Không credit. Sai số tiền/tài khoản hoặc</text>
+<text x="1144" y="948" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">chuyển nhiều lần cần đối soát; không</text>
+<text x="1144" y="983" font-family="Segoe UI, sans-serif" font-size="25" font-weight="400" fill="#334155" dominant-baseline="text-before-edge">cộng tay.</text>
+<text x="64" y="1294" font-family="Segoe UI, sans-serif" font-size="21" font-weight="400" fill="#475569" dominant-baseline="text-before-edge">FE refresh 15s khi tab đang hiển thị và khi focus. Chưa kiểm chứng giao dịch merchant live bằng khóa thật.</text>
+</svg>

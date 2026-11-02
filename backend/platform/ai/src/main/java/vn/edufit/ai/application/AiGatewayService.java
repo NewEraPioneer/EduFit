@@ -128,11 +128,13 @@ public class AiGatewayService implements AiGateway, AiUsageQuery {
       // Các lỗi kết nối mạng, lỗi 5xx từ nhà cung cấp hoặc dữ liệu không hợp lệ
       int latency = (int) (System.currentTimeMillis() - startTime);
       log.error(
-          "AI request gặp ERROR sau {}ms [user: {}, feature: {}, type: {}]",
+          "AI request gặp ERROR sau {}ms [user: {}, feature: {}, type: {}, message: {}]",
           latency,
           userId,
           featureName,
-          ex.getClass().getSimpleName());
+          ex.getClass().getSimpleName(),
+          ex.getMessage(),
+          ex);
 
       if (ex instanceof AiUnavailableException aue) {
         throw aue;

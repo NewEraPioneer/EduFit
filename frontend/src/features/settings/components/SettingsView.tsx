@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { User, KeyRound, Palette, Bell, Tv, LucideIcon } from "lucide-react";
 import { UserRole } from "@/shared/ui/Sidebar";
@@ -36,18 +36,19 @@ function SettingsContent({ role = "STUDENT", defaultTab = "profile" }: SettingsV
   const pathname = usePathname();
 
   const queryTab = searchParams.get("tab") as SettingsTabId | null;
-  const initialTab = queryTab && TABS.some((t) => t.id === queryTab) ? queryTab : defaultTab;
+  const [selectedTab, setSelectedTab] = useState<SettingsTabId | null>(null);
+  const [prevQueryTab, setPrevQueryTab] = useState<SettingsTabId | null>(queryTab);
 
-  const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
+  if (queryTab !== prevQueryTab) {
+    setPrevQueryTab(queryTab);
+    setSelectedTab(null);
+  }
 
-  useEffect(() => {
-    if (queryTab && TABS.some((t) => t.id === queryTab)) {
-      setActiveTab(queryTab);
-    }
-  }, [queryTab]);
+  const validQueryTab = queryTab && TABS.some((t) => t.id === queryTab) ? queryTab : null;
+  const activeTab = selectedTab ?? validQueryTab ?? defaultTab;
 
   const handleSelectTab = (tabId: SettingsTabId) => {
-    setActiveTab(tabId);
+    setSelectedTab(tabId);
     router.replace(`${pathname}?tab=${tabId}`, { scroll: false });
   };
 

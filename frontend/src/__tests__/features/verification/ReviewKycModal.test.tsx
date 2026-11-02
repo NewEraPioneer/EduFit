@@ -80,6 +80,39 @@ describe("ReviewKycModal Component Tests", () => {
     expect(fileLink).toHaveAttribute("target", "_blank");
   });
 
+  it("gửi loại gia sư admin xác nhận theo giấy tờ khi phê duyệt", async () => {
+    vi.mocked(verificationService.getVerificationDetail).mockResolvedValue({
+      requestId: "req-abc-123",
+      tutorId: "tutor-xyz",
+      status: "PENDING",
+      credentials: [],
+    });
+    vi.mocked(verificationService.reviewVerification).mockResolvedValue({
+      requestId: "req-abc-123",
+      tutorId: "tutor-xyz",
+      status: "APPROVED",
+      credentials: [],
+    });
+
+    render(
+      <ToastProvider>
+        <ReviewKycModal item={mockItem} isOpen={true} onClose={vi.fn()} onReviewed={vi.fn()} />
+      </ToastProvider>
+    );
+
+    fireEvent.change(screen.getByLabelText(/Xác nhận loại gia sư/), { target: { value: "IN_SERVICE_TEACHER" } });
+    fireEvent.click(screen.getByRole("button", { name: /Xác nhận quyết định/i }));
+
+    await waitFor(() => {
+      expect(verificationService.reviewVerification).toHaveBeenCalledWith(
+        "req-abc-123",
+        "APPROVED",
+        undefined,
+        "IN_SERVICE_TEACHER"
+      );
+    });
+  });
+
   it("phê duyệt hồ sơ (APPROVE) thành công", async () => {
     vi.mocked(verificationService.getVerificationDetail).mockResolvedValue({
       requestId: "req-abc-123",
@@ -117,7 +150,8 @@ describe("ReviewKycModal Component Tests", () => {
       expect(verificationService.reviewVerification).toHaveBeenCalledWith(
         "req-abc-123",
         "APPROVED",
-        undefined
+        undefined,
+        null
       );
       expect(onReviewedMock).toHaveBeenCalled();
       expect(onCloseMock).toHaveBeenCalled();
@@ -169,7 +203,8 @@ describe("ReviewKycModal Component Tests", () => {
       expect(verificationService.reviewVerification).toHaveBeenCalledWith(
         "req-abc-123",
         "REJECTED",
-        "Ảnh mờ không rõ con dấu nhà trường"
+        "Ảnh mờ không rõ con dấu nhà trường",
+        null
       );
     });
   });

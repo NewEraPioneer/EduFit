@@ -489,3 +489,112 @@ Ref: ai_request_log.user_id > account.user_id
 Ref: matching_run_log.user_id > account.user_id
 Ref: matching_run_log.student_id > student_profile.student_id
 Ref: matching_run_log.goal_id > learning_goal.goal_id
+
+
+// Payment V1.16: selected wallet model, replacing the old D5 research scope.
+Table payment_wallet {
+  user_id uuid [pk, ref: > account.user_id]
+  available bigint [not null, default: 0, note: 'VND, nonnegative']
+  held bigint [not null, default: 0, note: 'VND reserved for sessions/withdrawals']
+}
+Table payment_charge {
+  session_id uuid [pk, ref: > tutoring_session.session_id]
+  class_id uuid [not null, ref: > class.class_id]
+  student_id uuid [not null, ref: > student_profile.student_id]
+  tutor_user_id uuid [not null, ref: > account.user_id]
+  payer_user_id uuid [not null, ref: > account.user_id]
+  amount bigint [not null, note: 'Accepted per-session price snapshot, VND']
+  commission_bps integer [not null, note: '1000 = 10%, snapshot']
+  end_at timestamptz [not null]
+  status varchar(30) [not null, note: 'FUNDED, AWAITING_CONFIRMATION, DISPUTED, AWAITING_ADMIN, ADMIN_REVIEW, SETTLED, REFUNDED, EXPIRED']
+  learner_accepted boolean [not null, default: false]
+  tutor_accepted boolean [not null, default: false]
+  auto_accepted boolean [not null, default: false]
+  dispute_reason varchar(2000)
+  dispute_opened_at timestamptz
+  learner_report varchar(4000)
+  tutor_report varchar(4000)
+  learner_amount bigint
+  tutor_amount bigint
+  settled_amount bigint [not null, default: 0]
+  review_started_at timestamptz [note: 'V1.21: full notified 24h window; NULL for legacy pending until opened']
+  dispute_category varchar(30) [not null, default: 'OTHER', note: 'DURATION, NO_SHOW, TECHNICAL, QUALITY, OTHER']
+  dispute_evidence varchar(4000)
+  dispute_reporter_id uuid [ref: > account.user_id]
+  resolution_note varchar(2000)
+  resolved_at timestamptz
+  updated_at timestamptz [not null]
+}
+Table payment_case_message {
+  id uuid [pk, note: 'Idempotent client message ID']
+  session_id uuid [not null, ref: > payment_charge.session_id]
+  author_id uuid [not null, ref: > account.user_id]
+  side varchar(10) [not null, note: 'STUDENT, PAYER, TUTOR']
+  message varchar(4000) [not null]
+  created_at timestamptz [not null]
+  indexes { (session_id, created_at) }
+}
+Table payment_topup {
+  id uuid [pk]
+  order_code bigserial [not null, unique]
+  user_id uuid [not null, ref: > account.user_id]
+  amount bigint [not null]
+  provider varchar(20) [not null, note: 'MANUAL or PAYOS']
+  status varchar(20) [not null, note: 'PENDING, PAID, CANCELLED']
+  checkout_url text [note: 'Hosted checkout or manual QR snapshot including recipient/amount/reference']
+  provider_id varchar(150)
+  provider_account_number varchar(100) [note: 'V1.18: receiving account from signed payOS checkout; can be an order-specific virtual account; NULL for legacy/manual']
+  transaction_reference varchar(200) [unique]
+  expires_at timestamptz [not null]
+  reconcile_after timestamptz [not null, note: 'V1.17 reconciliation lease']
+  created_at timestamptz [not null]
+}
+Table payment_withdrawal {
+  id uuid [pk]
+  user_id uuid [not null, ref: > account.user_id]
+  amount bigint [not null]
+  status varchar(20) [not null, note: 'PENDING, PROCESSING, PAID, REJECTED, FAILED; at most one PENDING/PROCESSING per user']
+  bank_name varchar(100) [not null]
+  bank_account varchar(50) [not null]
+  bank_holder varchar(150) [not null]
+  bank_bin varchar(6) [note: 'V1.17; NULL only for legacy/manual requests']
+  provider_id varchar(150) [unique]
+  provider_state varchar(40)
+  provider_message varchar(500)
+  payout_requested_at timestamptz
+  reconcile_after timestamptz [not null, note: 'V1.17 reconciliation lease']
+  transaction_reference varchar(200) [unique]
+  admin_note varchar(2000)
+  created_at timestamptz [not null]
+}
+Table payment_entry {
+  id uuid [pk]
+  user_id uuid [ref: > account.user_id, note: 'NULL for platform commission ledger']
+  event_key varchar(250) [not null, unique]
+  kind varchar(40) [not null]
+  available_delta bigint [not null]
+  held_delta bigint [not null]
+  reference_id uuid [not null]
+  created_at timestamptz [not null]
+}
+Table payment_audit {
+  id uuid [pk]
+  actor_id uuid [ref: > account.user_id, note: 'NULL for automated action']
+  reference_id uuid [not null]
+  action varchar(60) [not null]
+  detail varchar(4000) [not null]
+  created_at timestamptz [not null]
+}
+Table payment_mutex {
+  id boolean [pk, note: 'Single true row, database transaction coordination']
+}
+
+Table payment_payout_account {
+  user_id uuid [pk, ref: > account.user_id]
+  id uuid [not null, unique, note: 'V1.20: changes on replacement; stale withdrawal forms are rejected']
+  bank_name varchar(100) [not null]
+  bank_bin varchar(6) [not null]
+  bank_account varchar(34) [not null]
+  bank_holder varchar(150) [not null]
+  updated_at timestamptz [not null]
+}

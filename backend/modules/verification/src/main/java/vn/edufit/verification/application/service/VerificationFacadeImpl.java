@@ -20,24 +20,28 @@ public class VerificationFacadeImpl implements VerificationFacade {
   @Override
   @Transactional(readOnly = true)
   public boolean isTutorVerified(UUID tutorId) {
-    return verificationRequestRepository
-        .findFirstByTutorIdOrderBySubmittedAtDesc(tutorId)
-        .map(request -> request.getStatus() == VerificationRequest.Status.APPROVED)
-        .orElse(false);
+    return verificationRequestRepository.existsByTutorIdAndStatus(tutorId, VerificationRequest.Status.APPROVED);
   }
 
   @Override
   @Transactional(readOnly = true)
   public VerificationStatusDto getTutorVerificationStatus(UUID tutorId) {
+    boolean isVerified = verificationRequestRepository.existsByTutorIdAndStatus(tutorId, VerificationRequest.Status.APPROVED);
     return verificationRequestRepository
         .findFirstByTutorIdOrderBySubmittedAtDesc(tutorId)
         .map(request -> new VerificationStatusDto(
             tutorId,
-            request.getStatus() == VerificationRequest.Status.APPROVED,
+            isVerified,
             request.getStatus().name(),
             request.getSubmittedAt(),
             request.getReviewedAt()
         ))
         .orElse(new VerificationStatusDto(tutorId, false, null, null, null));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long countPendingRequests() {
+    return verificationRequestRepository.countByStatus(VerificationRequest.Status.PENDING);
   }
 }

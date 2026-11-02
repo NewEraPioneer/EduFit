@@ -33,12 +33,12 @@ export default function HomePage() {
             >
               Cách hoạt động
             </a>
-            <a
-              href="#gia-su"
+            <Link
+              href="/tutors"
               className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
             >
-              Gia sư
-            </a>
+              Danh bạ gia sư
+            </Link>
             <a
               href="#tien-bo"
               className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
@@ -323,7 +323,7 @@ export default function HomePage() {
 
               <div>
                 <Link
-                  href="/student/dashboard"
+                  href="/tutors"
                   className="inline-flex items-center gap-2 px-6 py-3.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-full transition shadow-sm active:scale-95"
                 >
                   Khám phá gia sư
@@ -395,9 +395,12 @@ export default function HomePage() {
                     <div className="text-sky-600 text-xs font-medium flex items-center gap-1.5">
                       <Clock className="size-3.5" /> Còn trống: T3, T5, T7
                     </div>
-                    <button className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-neutral-900 text-sm font-semibold rounded-full transition">
+                    <Link
+                      href="/tutors"
+                      className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-neutral-900 text-sm font-semibold rounded-full transition"
+                    >
                       Xem hồ sơ
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

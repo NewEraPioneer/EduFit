@@ -77,6 +77,12 @@ export function ParentActiveTutors({ tutors = [] }: ParentActiveTutorsProps) {
                     <span className="font-semibold text-neutral-700">{tutor.subject}</span>
                     <span>·</span>
                     <span className="text-amber-600 font-medium">{tutor.rating}</span>
+                    {tutor.progress && (
+                      <>
+                        <span>·</span>
+                        <span className="font-medium text-emerald-700">{tutor.progress}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -84,10 +90,11 @@ export function ParentActiveTutors({ tutors = [] }: ParentActiveTutorsProps) {
               <div className="flex items-center gap-2 self-end sm:self-auto">
                 <button
                   type="button"
-                  className="px-3 py-1.5 border border-stone-200 hover:bg-stone-50 text-neutral-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  disabled
+                  className="px-3 py-1.5 border border-stone-200 text-neutral-500 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed"
                 >
                   <MessageSquare className="size-3.5 text-neutral-500" />
-                  <span>Nhắn tin</span>
+                  <span>Nhắn tin · Sắp ra mắt</span>
                 </button>
               </div>
             </div>

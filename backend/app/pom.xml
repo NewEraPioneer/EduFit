@@ -73,6 +73,8 @@
       <artifactId>notification</artifactId>
     </dependency>
 
+    <dependency><groupId>vn.edufit</groupId><artifactId>payment</artifactId></dependency>
+
     <!-- 3. RUNTIME & INFRASTRUCTURE STARTERS                   -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

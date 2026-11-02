@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { verificationService, PendingQueueItem, VerificationRequestDetail } from "@/services/verification";
 import { useToast } from "@/shared/ui/Toast";
+import type { TutorType } from "@/services/profile";
+import { TUTOR_TYPE_LABELS } from "@/features/learning-needs/catalogRules";
 import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
   X,
   FileText,
-  AlertTriangle,
   Loader2,
   Calendar,
   ExternalLink,
@@ -22,10 +23,19 @@ import {
  * Endpoint: POST /api/v1/admin/verifications/{id}/review
  * Controller: vn.edufit.verification.web.AdminVerificationController#review
  * Security: @PreAuthorize("hasRole('ADMIN')")
- * Request Body: ReviewVerificationRequest { decision: 'APPROVED'|'REJECTED', rejectionReason }
+ * Request Body: ReviewVerificationRequest { action: 'APPROVE'|'REJECT', reason }
  * Business Rule: BR-06 - Từ chối bắt buộc phải có lý do giải thích
  * =========================================================================
  */
+
+const CREDENTIAL_TYPE_LABELS: Record<string, string> = {
+  DEGREE: "Bằng cấp",
+  CERTIFICATE: "Chứng chỉ",
+  TEACHING_LICENCE: "Chứng chỉ sư phạm",
+  STUDENT_CARD: "Thẻ sinh viên",
+  OTHER: "Giấy tờ khác / CCCD",
+  IDENTITY_CARD: "Giấy tờ khác / CCCD",
+};
 
 interface ReviewKycModalProps {
   item: PendingQueueItem | null;
@@ -39,17 +49,27 @@ export function ReviewKycModal({ item, isOpen, onClose, onReviewed }: ReviewKycM
 
   const [decision, setDecision] = useState<"APPROVED" | "REJECTED">("APPROVED");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [confirmedTutorType, setConfirmedTutorType] = useState<TutorType | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [detail, setDetail] = useState<VerificationRequestDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  const currentRequestId = isOpen && item ? item.requestId : null;
+  const [prevRequestId, setPrevRequestId] = useState<string | null>(null);
+
+  if (currentRequestId !== prevRequestId) {
+    setPrevRequestId(currentRequestId);
+    setDetail(null);
+    setLoadingDetail(Boolean(currentRequestId));
+    setRejectionReason("");
+    setDecision("APPROVED");
+  }
+
   useEffect(() => {
     if (!isOpen || !item) {
-      setDetail(null);
       return;
     }
     let active = true;
-    setLoadingDetail(true);
     verificationService.getVerificationDetail(item.requestId)
       .then((data) => {
         if (active) setDetail(data);
@@ -80,7 +100,8 @@ export function ReviewKycModal({ item, isOpen, onClose, onReviewed }: ReviewKycM
       await verificationService.reviewVerification(
         item.requestId,
         decision,
-        decision === "REJECTED" ? rejectionReason.trim() : undefined
+        decision === "REJECTED" ? rejectionReason.trim() : undefined,
+        decision === "APPROVED" ? confirmedTutorType || null : null
       );
 
       showToast(
@@ -100,8 +121,8 @@ export function ReviewKycModal({ item, isOpen, onClose, onReviewed }: ReviewKycM
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-stone-200 shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+      <div className="w-full max-w-lg bg-white rounded-3xl border border-stone-200 shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-150 my-auto">
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-3 pb-4 border-b border-stone-100">
           <div className="flex items-center gap-3">
@@ -163,10 +184,15 @@ export function ReviewKycModal({ item, isOpen, onClose, onReviewed }: ReviewKycM
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-neutral-900">{cred.institution}</span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800">
-                      {cred.type} {cred.year ? `(${cred.year})` : ""}
+                      {CREDENTIAL_TYPE_LABELS[cred.type] || cred.type} {cred.year ? `(${cred.year})` : ""}
                     </span>
                   </div>
                   {cred.note && <p className="text-[11px] text-neutral-500 italic">"{cred.note}"</p>}
+                  {cred.offeringId && (
+                    <p className="text-[11px] font-semibold text-amber-700">
+                      Minh chứng cho gói dạy có mục tiêu cần duyệt (HSG, chứng chỉ). Phê duyệt sẽ xác nhận mục tiêu đó.
+                    </p>
+                  )}
                   {cred.files && cred.files.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-1.5 border-t border-stone-200/60">
                       {cred.files.map((f) => (
@@ -224,6 +250,28 @@ export function ReviewKycModal({ item, isOpen, onClose, onReviewed }: ReviewKycM
               </button>
             </div>
           </div>
+
+          {decision === "APPROVED" && (
+            <div>
+              <label htmlFor="confirmed-tutor-type" className="block text-xs font-bold text-neutral-700 mb-1.5">
+                Xác nhận loại gia sư theo giấy tờ (không bắt buộc)
+              </label>
+              <select
+                id="confirmed-tutor-type"
+                value={confirmedTutorType}
+                onChange={(e) => setConfirmedTutorType(e.target.value as TutorType | "")}
+                className="w-full px-3 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-emerald-500"
+              >
+                <option value="">Chưa đủ giấy tờ để xác nhận</option>
+                {(Object.keys(TUTOR_TYPE_LABELS) as TutorType[]).map((type) => (
+                  <option key={type} value={type}>{TUTOR_TYPE_LABELS[type]}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-neutral-500">
+                Khi xác nhận, hồ sơ gia sư hiển thị loại này kèm dấu đã xác minh.
+              </p>
+            </div>
+          )}
 
           {decision === "REJECTED" && (
             <div className="space-y-1.5 animate-in fade-in duration-150">

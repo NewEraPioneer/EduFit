@@ -1,0 +1,8 @@
+testCaseId,startMinutesFromNow,durationMinutes,expectedValid,description
+TC_WIN_01,60,60,true,Khoang 1 tieng hop le bat dau sau 1 tieng
+TC_WIN_02,60,30,true,Khoang 30 phut toi thieu hop le
+TC_WIN_03,60,240,true,Khoang 240 phut toi da hop le
+TC_WIN_04,60,29,false,Duoi 30 phut vi pham toi thieu
+TC_WIN_05,60,241,false,Tren 240 phut vi pham toi da
+TC_WIN_06,-10,60,false,Bat dau trong qua khu
+TC_WIN_07,60,-10,false,Thoi luong am

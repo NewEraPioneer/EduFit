@@ -67,7 +67,7 @@ backend/
     ├── verification/                    # UC1.10–1.12 (Group 1c)
     ├── discovery/                       # UC2.1–2.5 (Group 2) — không có bảng riêng, chỉ tổng hợp
     ├── connection/                      # UC3.1–3.5 (Group 3)
-    ├── scheduling/                      # UC4.1–4.6 (Group 4)
+    ├── scheduling/                      # UC4.1–4.8 (Group 4)
     ├── progress/                        # UC5.1–5.5 (Group 5)
     ├── review/                          # UC6.1–6.2 (Group 6)
     └── notification/                    # UC6.3 (Group 6)
@@ -88,17 +88,26 @@ modules/scheduling/
     │   │       ├── SessionProposed.java      # domain event — notification lắng nghe
     │   │       ├── SessionScheduled.java
     │   │       ├── SessionCancelled.java
-    │   │       └── SessionOutcomeRecorded.java
+    │   │       ├── SessionOutcomeRecorded.java
+    │   │       └── RecurringScheduleUpdated.java
     │   │
     │   ├── web/                         # controller + request/response DTO (tầng HTTP, riêng của module)
     │   │   └── SessionController.java
     │   │
     │   ├── application/                 # use case, ranh giới @Transactional — 1 class = 1 hành động người dùng
-    │   │   ├── ProposeSessionService.java        # UC4.1
-    │   │   ├── RespondToProposalService.java     # UC4.3
-    │   │   ├── RescheduleSessionService.java     # UC4.4
-    │   │   ├── CancelSessionService.java         # UC4.5
-    │   │   └── RecordSessionOutcomeService.java  # UC4.6 (gọi progress.api để lưu note)
+    │   │   ├── ProposeSessionService.java        # UC4.1: Đề xuất 1 buổi học
+    │   │   ├── ProposeBatchSessionsService.java  # Đề xuất hàng loạt buổi học (Batch Propose)
+    │   │   ├── RespondToProposalService.java     # UC4.3: Xác nhận 1 buổi học
+    │   │   ├── RespondBatchSessionsService.java  # Xác nhận hàng loạt (Batch Respond)
+    │   │   ├── RescheduleSessionService.java     # UC4.4: Đổi 1 buổi học lẻ
+    │   │   ├── CancelSessionService.java         # UC4.5: Hủy 1 buổi học lẻ
+    │   │   ├── RecordSessionOutcomeService.java  # UC4.6: Ghi nhận kết quả buổi học
+    │   │   ├── GetSessionDetailsService.java     # UC4.7: Xem chi tiết buổi học (bảo mật quyền)
+    │   │   ├── GetCalendarService.java           # UC4.7: Tra cứu lịch học theo ngày
+    │   │   ├── ProposeRecurringScheduleService.java # UC4.8: Đề xuất đổi lịch định kỳ lớp (Bounded Horizon)
+    │   │   ├── RespondRecurringScheduleService.java # UC4.8: Đồng thuận đổi lịch định kỳ (tái sinh buổi học)
+    │   │   └── security/
+    │   │       └── SchedulingSecurityResolver.java  # Ánh xạ user_id <-> profile_id & kiểm tra parent_link
     │   │
     │   ├── domain/                      # Java THUẦN — không Spring, không JPA — nơi giá trị thật nằm ở đây
     │   │   ├── Session.java                  # aggregate root, state machine BR-39–BR-48

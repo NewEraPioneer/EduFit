@@ -8,4 +8,6 @@ public interface VerificationFacade {
   boolean isTutorVerified(UUID tutorId);
 
   VerificationStatusDto getTutorVerificationStatus(UUID tutorId);
+
+  long countPendingRequests();
 }

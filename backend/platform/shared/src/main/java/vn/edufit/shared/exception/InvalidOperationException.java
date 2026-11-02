@@ -33,4 +33,25 @@ public class InvalidOperationException extends BaseBusinessException {
   public InvalidOperationException(ErrorCode errorCode, String message) {
     super(errorCode, message);
   }
+
+  /**
+   * Khởi tạo ngoại lệ với thông điệp chi tiết và nguyên nhân gốc.
+   *
+   * @param message Thông điệp mô tả thao tác không hợp lệ.
+   * @param cause   Nguyên nhân gốc gây ra lỗi.
+   */
+  public InvalidOperationException(String message, Throwable cause) {
+    super(ErrorCode.INVALID_OPERATION, message, cause);
+  }
+
+  /**
+   * Khởi tạo ngoại lệ với mã lỗi cụ thể, thông điệp chi tiết và nguyên nhân gốc.
+   *
+   * @param errorCode Mã lỗi định danh nghiệp vụ.
+   * @param message   Thông điệp mô tả thao tác không hợp lệ.
+   * @param cause     Nguyên nhân gốc gây ra lỗi.
+   */
+  public InvalidOperationException(ErrorCode errorCode, String message, Throwable cause) {
+    super(errorCode, message, cause);
+  }
 }

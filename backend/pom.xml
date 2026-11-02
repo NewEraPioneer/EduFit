@@ -39,6 +39,8 @@
         <maven-surefire-plugin.version>3.5.0</maven-surefire-plugin.version>
         <jacoco.version>0.8.12</jacoco.version>
         <jacoco.haltOnFailure>false</jacoco.haltOnFailure>
+        <!-- Giá trị mặc định để @{argLine} hợp lệ cả khi JaCoCo bị bỏ qua (-Djacoco.skip) -->
+        <argLine></argLine>
       </properties>
 
     <dependencyManagement>
@@ -156,6 +158,7 @@
           <artifactId>notification</artifactId>
           <version>${project.version}</version>
         </dependency>
+        <dependency><groupId>vn.edufit</groupId><artifactId>payment</artifactId><version>${project.version}</version></dependency>
         <!-- Quản lý thêm WebMvc Test Starter cho các module cần kiểm thử web slice -->
         <dependency>
           <groupId>org.springframework.boot</groupId>
@@ -196,6 +199,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
+          <configuration>
+            <!-- Test không chạy qua EduFitApplication.main() nên phải dùng cùng múi giờ chuẩn của production (NFR-18).
+                 Thiếu dòng này, JVM trên Windows mang alias cũ "Asia/Saigon" mà PostgreSQL 17 (Debian) từ chối. -->
+            <argLine>@{argLine} -Duser.timezone=Asia/Ho_Chi_Minh</argLine>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.springframework.boot</groupId>
@@ -260,5 +268,77 @@
       </plugin>
     </plugins>
   </build>
+
+  <repositories>
+    <repository>
+      <id>central</id>
+      <name>Maven Central Primary</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>google-maven-central</id>
+      <name>Google Cloud Storage Maven Central Mirror</name>
+      <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>repo1-maven-org</id>
+      <name>Maven Central Alternate Endpoint</name>
+      <url>https://repo1.maven.org/maven2</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>central</id>
+      <name>Maven Central Primary</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </pluginRepository>
+    <pluginRepository>
+      <id>google-maven-central</id>
+      <name>Google Cloud Storage Maven Central Mirror</name>
+      <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </pluginRepository>
+    <pluginRepository>
+      <id>repo1-maven-org</id>
+      <name>Maven Central Alternate Endpoint</name>
+      <url>https://repo1.maven.org/maven2</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </pluginRepository>
+  </pluginRepositories>
 
 </project>

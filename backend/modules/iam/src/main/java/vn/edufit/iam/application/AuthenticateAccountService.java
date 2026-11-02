@@ -90,7 +90,8 @@ public class AuthenticateAccountService {
     }
 
     // 3. So khớp mật khẩu bằng Argon2id
-    boolean passwordMatches = passwordService.verify(account.getPasswordHash(), password);
+    boolean passwordMatches = account.getPasswordHash() != null
+        && passwordService.verify(account.getPasswordHash(), password);
 
     if (!passwordMatches) {
       account.recordLoginFailure(now);
