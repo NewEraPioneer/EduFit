@@ -4,9 +4,9 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AdminPlanTemplatesView } from "@/features/progress/components/AdminPlanTemplatesView";
 import { progressApi } from "@/features/progress/api/progressApi";
-import { catalogService, type LearningCatalog } from "@/services/catalog";
+import { catalogService } from "@/services/catalog";
 import type { PlanTemplate } from "@/features/progress/types";
-import { FIXTURE_IDS, FIXTURE_TEXT } from "./progressFixtures";
+import { CATALOG, FIXTURE_IDS, FIXTURE_TEXT, catalog } from "./progressFixtures";
 
 vi.mock("@/features/progress/api/progressApi", () => ({
   progressApi: {
@@ -20,36 +20,6 @@ vi.mock("@/features/progress/api/progressApi", () => ({
 vi.mock("@/services/catalog", () => ({
   catalogService: { getLearningCatalog: vi.fn() },
 }));
-
-const CATALOG = {
-  subjectId: 1,
-  subjectName: "Toán",
-  levelId: 9,
-  levelName: "Lớp 9",
-  goalTagId: 3,
-  goalName: "Luyện thi vào 10",
-} as const;
-
-const catalog = {
-  educationLevels: [{ levelId: CATALOG.levelId, name: CATALOG.levelName, sortOrder: 9 }],
-  subjects: [{ subjectId: CATALOG.subjectId, name: CATALOG.subjectName }],
-  tracks: [],
-  goalTags: [
-    {
-      goalTagId: CATALOG.goalTagId,
-      code: "EXAM_10",
-      name: CATALOG.goalName,
-      requiresTextbook: false,
-      requiresExamProvince: false,
-      premium: false,
-    },
-  ],
-  goalTagRules: [{ goalTagId: CATALOG.goalTagId, subjectId: CATALOG.subjectId, trackId: null, levelId: CATALOG.levelId }],
-  textbooks: [],
-  provinces: [],
-  districts: [],
-  specializedSchools: [],
-} satisfies LearningCatalog;
 
 const systemTemplate: PlanTemplate = {
   templateId: FIXTURE_IDS.template,

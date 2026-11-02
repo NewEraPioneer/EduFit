@@ -6,6 +6,8 @@ import { ClipboardList, Loader2, X } from "lucide-react";
 import { progressApi } from "../api/progressApi";
 import type { PlanResponse, TutorTodos } from "../types";
 import { SessionOutcomeModal } from "./SessionOutcomeModal";
+import { PendingReportEditor } from "./PeriodReports";
+import { formatLocalDate } from "../constants/feedbackLabels";
 
 /** Nơi gia sư lập/sửa lộ trình của lớp. */
 export const TUTOR_CLASSES_HREF = "/tutor/classes";
@@ -24,24 +26,21 @@ const formatDateTime = (iso: string) => {
   }
 };
 
-const formatDate = (isoDate: string) => {
-  const [y, m, d] = isoDate.split("-");
-  return d && m && y ? `${d}/${m}/${y}` : isoDate;
-};
-
 const countTodos = (t: TutorTodos | null) =>
   t
     ? t.sessionsMissingFeedback.length +
       t.classesWithoutPlan.length +
       t.overdueMilestones.length +
-      t.plansMissingFinalDate.length
+      t.plansMissingFinalDate.length +
+      t.pendingReports.length
     : 0;
 
 type FeedbackTarget = TutorTodos["sessionsMissingFeedback"][number];
 
 /**
  * Ngăn "Việc cần làm" của gia sư (mục 3.14): buổi chưa phản hồi (bổ sung ngay trong ngăn), lớp chưa có lộ trình,
- * cột mốc quá hạn, lộ trình thiếu ngày cuối. Mọi danh sách do backend tính.
+ * cột mốc quá hạn, lộ trình thiếu ngày cuối, báo cáo kỳ chờ gửi (viết câu tổng kết và gửi ngay trong ngăn).
+ * Mọi danh sách do backend tính.
  */
 export function TutorTodoDrawer() {
   const [todos, setTodos] = useState<TutorTodos | null>(null);
@@ -184,7 +183,7 @@ export function TutorTodoDrawer() {
               <TodoSection title="Cột mốc quá hạn" count={todos.overdueMilestones.length}>
                 {todos.overdueMilestones.map((m) => (
                   <li key={m.milestoneId}>
-                    <strong>{m.milestoneTitle}</strong> ({m.studentName ?? "Học sinh"}) · hạn {formatDate(m.targetDate)}, trễ{" "}
+                    <strong>{m.milestoneTitle}</strong> ({m.studentName ?? "Học sinh"}) · hạn {formatLocalDate(m.targetDate)}, trễ{" "}
                     {m.daysLate} ngày
                   </li>
                 ))}
@@ -201,6 +200,26 @@ export function TutorTodoDrawer() {
                     <Link href={TUTOR_CLASSES_HREF} className="shrink-0 text-[11px] font-bold text-amber-700 underline">
                       Đặt hạn cuối
                     </Link>
+                  </li>
+                ))}
+              </TodoSection>
+            )}
+
+            {todos && todos.pendingReports.length > 0 && (
+              <TodoSection title="Báo cáo kỳ chờ gửi" count={todos.pendingReports.length}>
+                {todos.pendingReports.map((p) => (
+                  <li key={p.report.reportId}>
+                    <PendingReportEditor
+                      report={p.report}
+                      title={`${p.studentName ?? "Học sinh"}${p.classTitle ? ` · ${p.classTitle}` : ""}`}
+                      onSent={(sent) =>
+                        setTodos((prev) =>
+                          prev
+                            ? { ...prev, pendingReports: prev.pendingReports.filter((x) => x.report.reportId !== sent.reportId) }
+                            : prev
+                        )
+                      }
+                    />
                   </li>
                 ))}
               </TodoSection>

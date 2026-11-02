@@ -17,6 +17,10 @@ import type {
   TutorTodos,
   PlanTemplate,
   SavePlanTemplatePayload,
+  PeriodReport,
+  Topic,
+  SaveTopicPayload,
+  PlanDraft,
 } from "../types";
 
 export interface GetClassNotesParams {
@@ -257,5 +261,57 @@ export const progressApi = {
         body: JSON.stringify(payload),
       }
     );
+  },
+  /**
+   * Báo cáo kỳ của lớp, mới nhất trước. Gia sư/admin thấy cả bản nháp; học sinh/phụ huynh chỉ thấy bản đã gửi.
+   * GET /api/v1/progress/classes/{classId}/reports
+   */
+  async listPeriodReports(classId: string): Promise<ApiResponse<PeriodReport[]>> {
+    return fetchApi<PeriodReport[]>(`/api/v1/progress/classes/${encodeURIComponent(classId)}/reports`, {
+      method: "GET",
+    });
+  },
+
+  /** PUT /api/v1/progress/reports/{reportId}/summary (bắt buộc version) */
+  async savePeriodReportSummary(reportId: string, summary: string, version: number): Promise<ApiResponse<PeriodReport>> {
+    return fetchApi<PeriodReport>(`/api/v1/progress/reports/${encodeURIComponent(reportId)}/summary`, {
+      method: "PUT",
+      body: JSON.stringify({ summary, version }),
+    });
+  },
+
+  /** Gửi ngay kèm câu tổng kết. POST /api/v1/progress/reports/{reportId}/send */
+  async sendPeriodReport(reportId: string, summary: string, version: number): Promise<ApiResponse<PeriodReport>> {
+    return fetchApi<PeriodReport>(`/api/v1/progress/reports/${encodeURIComponent(reportId)}/send`, {
+      method: "POST",
+      body: JSON.stringify({ summary, version }),
+    });
+  },
+
+  /**
+   * Danh mục chủ đề chuẩn: có classId thì là chủ đề dùng được cho lớp (gia sư); không có là toàn bộ (admin).
+   * GET /api/v1/progress/topics
+   */
+  async listTopics(classId?: string): Promise<ApiResponse<Topic[]>> {
+    const query = classId ? `?${new URLSearchParams({ classId }).toString()}` : "";
+    return fetchApi<Topic[]>(`/api/v1/progress/topics${query}`, { method: "GET" });
+  },
+
+  /** POST /api/v1/progress/topics */
+  async createTopic(payload: SaveTopicPayload): Promise<ApiResponse<Topic>> {
+    return fetchApi<Topic>("/api/v1/progress/topics", { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  /** PUT /api/v1/progress/topics/{topicId} (bắt buộc version) */
+  async updateTopic(topicId: string, payload: SaveTopicPayload): Promise<ApiResponse<Topic>> {
+    return fetchApi<Topic>(`/api/v1/progress/topics/${encodeURIComponent(topicId)}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /** Bản nháp lộ trình bằng AI cho lớp. POST /api/v1/progress/plans/draft */
+  async draftPlan(classId: string): Promise<ApiResponse<PlanDraft>> {
+    return fetchApi<PlanDraft>("/api/v1/progress/plans/draft", { method: "POST", body: JSON.stringify({ classId }) });
   },
 };

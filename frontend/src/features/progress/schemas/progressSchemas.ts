@@ -47,6 +47,15 @@ export const createMilestoneItemSchema = z.object({
     .array(criterionContentSchema)
     .min(1, { message: "Mỗi cột mốc cần ít nhất 1 tiêu chí đạt" })
     .max(MAX_CRITERIA_PER_MILESTONE, { message: `Mỗi cột mốc có tối đa ${MAX_CRITERIA_PER_MILESTONE} tiêu chí đạt` }),
+  /** Số buổi gợi ý (tùy chọn) cho dự báo "còn X buổi". */
+  suggestedSessions: z
+    .number()
+    .int()
+    .min(MIN_SUGGESTED_SESSIONS, { message: `Số buổi gợi ý từ ${MIN_SUGGESTED_SESSIONS} đến ${MAX_SUGGESTED_SESSIONS}` })
+    .max(MAX_SUGGESTED_SESSIONS, { message: `Số buổi gợi ý từ ${MIN_SUGGESTED_SESSIONS} đến ${MAX_SUGGESTED_SESSIONS}` })
+    .optional(),
+  /** Chủ đề chuẩn (tùy chọn), trục của radar năng lực. */
+  topicId: z.string().regex(UUID_REGEX, { message: "Chủ đề chuẩn không hợp lệ" }).optional(),
 });
 
 export type CreateMilestoneItemInput = z.infer<typeof createMilestoneItemSchema>;

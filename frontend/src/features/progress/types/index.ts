@@ -21,6 +21,10 @@ export interface MilestoneResponse {
   isArchived: boolean;
   sortOrder: number;
   criteria: MilestoneCriterion[];
+  /** Số buổi gợi ý 2–6 (tùy chọn), dùng cho dự báo "còn X buổi". */
+  suggestedSessions?: number | null;
+  /** Chủ đề chuẩn của môn × khối (tùy chọn), trục của radar năng lực. */
+  topicId?: string | null;
 }
 
 // Backwards-compatible alias for existing views
@@ -141,6 +145,8 @@ export interface TutorTodos {
     daysLate: number;
   }[];
   plansMissingFinalDate: TutorTodoClass[];
+  /** Báo cáo kỳ đang là bản nháp: gia sư viết câu tổng kết và gửi trước autoSendAt. */
+  pendingReports: { studentName?: string | null; classTitle?: string | null; report: PeriodReport }[];
 }
 
 export interface TutorTodoClass {
@@ -241,6 +247,86 @@ export interface ProgressOverview {
   }[];
   /** Cảm nhận 1 chạm của học sinh trong 30 ngày, cũ trước mới sau; rỗng với gia sư. */
   selfRatings?: { sessionId: string; startAt: string; rating: SelfRatingValue }[];
+  forecast?: ProgressForecast | null;
+  radar?: ProgressRadar | null;
+}
+
+/**
+ * Dự báo "còn X buổi cho Y cột mốc". basis = PACE (nhịp thực tế) hoặc SUGGESTED (số buổi gợi ý);
+ * estimatedFinishDate chỉ có khi lớp học đều. Không dự báo được thì chỉ có unavailableReason.
+ */
+export interface ProgressForecast {
+  remainingSessions?: number | null;
+  remainingMilestones?: number | null;
+  basis?: "PACE" | "SUGGESTED" | null;
+  estimatedFinishDate?: string | null;
+  unavailableReason?: string | null;
+}
+
+/** Radar năng lực theo chủ đề chuẩn; ít hơn 3 trục thì axes rỗng và có unavailableReason. */
+export interface ProgressRadar {
+  axes: { topicId: string; topicName: string; level: IndependenceLevel }[];
+  unavailableReason?: string | null;
+}
+
+export type PeriodReportStatus = "DRAFT" | "SENT";
+
+/** Báo cáo kỳ 30 ngày: ảnh chụp 3 thẻ + câu tổng kết tùy chọn của gia sư. */
+export interface PeriodReport {
+  reportId: string;
+  classId: string;
+  periodIndex: number;
+  periodStart: string;
+  periodEnd: string;
+  onTrackStatus: OnTrackStatus;
+  onTrackExplanation: string;
+  progressPercentage?: number | null;
+  progressDelta?: number | null;
+  attendedCount: number;
+  countedCount: number;
+  highlight?: string | null;
+  nextFocusTitle?: string | null;
+  achievedMilestones: string[];
+  tutorSummary?: string | null;
+  status: PeriodReportStatus;
+  autoSendAt: string;
+  sentAt?: string | null;
+  version: number;
+}
+
+/** Chủ đề chuẩn theo môn × khối do admin quản lý. */
+export interface Topic {
+  topicId: string;
+  subjectId: number;
+  educationLevelId: number;
+  name: string;
+  sortOrder: number;
+  archived: boolean;
+  version: number;
+}
+
+/** subjectId/educationLevelId chỉ dùng khi tạo; version chỉ dùng khi sửa. */
+export interface SaveTopicPayload {
+  subjectId?: number;
+  educationLevelId?: number;
+  name: string;
+  sortOrder?: number;
+  archived?: boolean;
+  version?: number;
+}
+
+/** Bản nháp lộ trình bằng AI; milestones rỗng thì unavailableReason gợi ý dùng mẫu. */
+export interface PlanDraft {
+  milestones: {
+    title: string;
+    description?: string | null;
+    weight: number;
+    suggestedSessions: number;
+    criteria: string[];
+    topicId?: string | null;
+  }[];
+  unavailableReason?: string | null;
+  remainingQuota: number;
 }
 
 // Backwards-compatible alias
@@ -325,6 +411,8 @@ export interface CreateMilestoneItemPayload {
   targetDate?: string;
   weight?: number;
   criteria: string[];
+  suggestedSessions?: number;
+  topicId?: string;
 }
 
 export interface CreatePlanPayload {
@@ -340,6 +428,8 @@ export interface UpdateMilestoneItemPayload {
   targetDate?: string;
   weight?: number;
   criteria: { criterionId?: string; content: string }[];
+  suggestedSessions?: number;
+  topicId?: string;
 }
 
 export interface UpdatePlanPayload {

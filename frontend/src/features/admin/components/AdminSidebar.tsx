@@ -9,6 +9,7 @@ import {
   ScrollText,
   BookOpen,
   Route,
+  Tags,
   HeartHandshake,
   Settings,
 } from "lucide-react";
@@ -39,6 +40,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     items: [
       { label: "Danh mục môn học", href: "/admin/catalogs", icon: BookOpen },
       { label: "Mẫu lộ trình", href: "/admin/plan-templates", icon: Route },
+      { label: "Chủ đề chuẩn", href: "/admin/topics", icon: Tags },
       { label: "Liên kết hệ thống (UC3.3)", href: "/admin/links", icon: HeartHandshake },
     ],
   },

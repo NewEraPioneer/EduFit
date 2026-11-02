@@ -5,7 +5,14 @@ import userEvent from "@testing-library/user-event";
 import { ProgressDashboardView } from "@/features/progress/components/ProgressDashboardView";
 import { progressApi } from "@/features/progress/api/progressApi";
 import type { ParentDashboardResponse } from "@/features/progress/types";
-import { FIXTURE_IDS, FIXTURE_TEXT, buildOverview, buildStudentDashboard } from "./progressFixtures";
+import {
+  FIXTURE_IDS,
+  FIXTURE_TEXT,
+  FIXTURE_TOPICS,
+  buildOverview,
+  buildPeriodReport,
+  buildStudentDashboard,
+} from "./progressFixtures";
 
 const lateFeedbackNote = () => {
   const note = buildStudentDashboard().recentNotes![0];
@@ -17,6 +24,7 @@ vi.mock("@/features/progress/api/progressApi", () => ({
     getStudentDashboard: vi.fn(),
     getParentDashboard: vi.fn(),
     rateSession: vi.fn(),
+    listPeriodReports: vi.fn(),
   },
 }));
 
@@ -25,6 +33,7 @@ const renderStudent = () => render(<ProgressDashboardView role="STUDENT" student
 describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên lạc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(progressApi.listPeriodReports).mockResolvedValue({ success: true, data: [] });
   });
 
   it("hiển thị trạng thái đang tải", () => {
@@ -172,5 +181,65 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     expect(screen.getByText(FIXTURE_TEXT.parentMessage)).toBeInTheDocument();
     expect(screen.getByText("Bổ sung muộn")).toBeInTheDocument();
     expect(screen.queryByRole("radiogroup", { name: /Em thấy buổi học/ })).not.toBeInTheDocument();
+  });
+
+  it("dự báo và radar hiển thị số do backend tính; thiếu dữ liệu thì '—' kèm lý do", async () => {
+    vi.mocked(progressApi.getStudentDashboard).mockResolvedValue({
+      success: true,
+      data: buildStudentDashboard({
+        overview: buildOverview({
+          forecast: {
+            remainingSessions: 9,
+            remainingMilestones: 2,
+            basis: "PACE",
+            estimatedFinishDate: "2026-12-10",
+            unavailableReason: null,
+          },
+          radar: {
+            axes: FIXTURE_TOPICS.map((t, i) => ({ topicId: t.topicId, topicName: t.name, level: (i + 2) as 2 | 3 | 4 })),
+            unavailableReason: null,
+          },
+        }),
+      }),
+    });
+    const { unmount } = renderStudent();
+
+    const forecast = await screen.findByTestId("card-forecast");
+    expect(within(forecast).getByText("Còn khoảng 9 buổi cho 2 cột mốc")).toBeInTheDocument();
+    expect(within(forecast).getByText(/10\/12\/2026/)).toBeInTheDocument();
+    const radar = screen.getByTestId("card-radar");
+    expect(within(radar).getByRole("img", { name: /radar/i })).toBeInTheDocument();
+    for (const t of FIXTURE_TOPICS) expect(within(radar).getAllByText(t.name).length).toBeGreaterThan(0);
+    unmount();
+
+    vi.mocked(progressApi.getStudentDashboard).mockResolvedValue({
+      success: true,
+      data: buildStudentDashboard({
+        overview: buildOverview({
+          forecast: { unavailableReason: FIXTURE_TEXT.forecastUnavailable },
+          radar: { axes: [], unavailableReason: "Cần điểm chấm ở ít nhất 3 chủ đề (hiện có 1)" },
+        }),
+      }),
+    });
+    renderStudent();
+    const emptyForecast = await screen.findByTestId("card-forecast");
+    expect(within(emptyForecast).getByText("—")).toBeInTheDocument();
+    expect(within(emptyForecast).getByText(FIXTURE_TEXT.forecastUnavailable)).toBeInTheDocument();
+    expect(within(screen.getByTestId("card-radar")).queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("báo cáo kỳ đã gửi hiện kèm câu tổng kết của gia sư", async () => {
+    vi.mocked(progressApi.getStudentDashboard).mockResolvedValue({ success: true, data: buildStudentDashboard() });
+    vi.mocked(progressApi.listPeriodReports).mockResolvedValue({
+      success: true,
+      data: [buildPeriodReport({ status: "SENT", sentAt: "2026-10-02T03:00:00Z", tutorSummary: FIXTURE_TEXT.reportSummary })],
+    });
+    renderStudent();
+
+    const section = await screen.findByRole("region", { name: "Báo cáo kỳ" });
+    expect(progressApi.listPeriodReports).toHaveBeenCalledWith(FIXTURE_IDS.class);
+    expect(within(section).getByText(/Báo cáo kỳ 1 · 01\/09\/2026 – 30\/09\/2026/)).toBeInTheDocument();
+    expect(within(section).getByText(new RegExp(FIXTURE_TEXT.reportSummary))).toBeInTheDocument();
+    expect(within(section).queryByText(/Bản nháp/)).not.toBeInTheDocument();
   });
 });

@@ -11,10 +11,11 @@ import {
   HelpCircle,
   CheckCircle2,
   ListChecks,
+  Sparkles,
 } from "lucide-react";
 import { progressApi } from "../api/progressApi";
 import { createPlanSchema, CreatePlanInput, planTemplateSchema } from "../schemas/progressSchemas";
-import type { PlanResponse, PlanTemplate, TemplateMilestone } from "../types";
+import type { PlanDraft, PlanResponse, PlanTemplate, TemplateMilestone, Topic } from "../types";
 import { MAX_CRITERIA_PER_MILESTONE } from "../constants/feedbackLabels";
 import {
   DEFAULT_SUGGESTED_SESSIONS,
@@ -47,8 +48,10 @@ interface MilestoneFormField {
   description: string;
   targetDate: string;
   weight: number;
-  /** Chỉ dùng khi lưu thành mẫu lộ trình (lộ trình của lớp không lưu số buổi). */
-  suggestedSessions: number;
+  /** Số buổi gợi ý (tùy chọn) cho dự báo "còn X buổi"; null = chưa đặt. Lưu thành mẫu thì dùng mặc định. */
+  suggestedSessions: number | null;
+  /** Chủ đề chuẩn (tùy chọn); "" = không gắn. */
+  topicId: string;
   criteria: CriterionFormField[];
 }
 
@@ -57,9 +60,15 @@ const emptyMilestone = (): MilestoneFormField => ({
   description: "",
   targetDate: "",
   weight: 1,
-  suggestedSessions: DEFAULT_SUGGESTED_SESSIONS,
+  suggestedSessions: null,
+  topicId: "",
   criteria: [{ content: "" }],
 });
+
+const SESSION_OPTIONS = Array.from(
+  { length: MAX_SUGGESTED_SESSIONS - MIN_SUGGESTED_SESSIONS + 1 },
+  (_, i) => MIN_SUGGESTED_SESSIONS + i
+);
 
 const emptyRoadmap = (): MilestoneFormField[] => Array.from({ length: MIN_PLAN_MILESTONES }, emptyMilestone);
 
@@ -70,7 +79,14 @@ const fromTemplate = (m: TemplateMilestone): MilestoneFormField => ({
   targetDate: "",
   weight: m.weight,
   suggestedSessions: m.suggestedSessions,
+  topicId: "",
   criteria: m.criteria.map((content) => ({ content })),
+});
+
+/** Bản nháp AI vào biểu mẫu: như mẫu, kèm chủ đề nếu AI chọn đúng tên trong danh mục. */
+const fromDraft = (m: PlanDraft["milestones"][number]): MilestoneFormField => ({
+  ...fromTemplate(m),
+  topicId: m.topicId ?? "",
 });
 
 /** Bỏ các dòng tiêu chí để trống trước khi gửi. */
@@ -94,6 +110,9 @@ export function CreateLearningPlanModal({
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templateTitle, setTemplateTitle] = useState("");
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [drafting, setDrafting] = useState(false);
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -113,7 +132,8 @@ export function CreateLearningPlanModal({
               description: m.description || "",
               targetDate: m.targetDate ? formatLocalDateToIso(m.targetDate) : "",
               weight: m.weight || 1,
-              suggestedSessions: DEFAULT_SUGGESTED_SESSIONS,
+              suggestedSessions: m.suggestedSessions ?? null,
+              topicId: m.topicId ?? "",
               criteria:
                 m.criteria && m.criteria.length > 0
                   ? m.criteria.map((c) => ({ criterionId: c.criterionId, content: c.content }))
@@ -126,6 +146,7 @@ export function CreateLearningPlanModal({
         setMilestones(emptyRoadmap());
       }
       setSelectedTemplateId("");
+      setDraftNotice(null);
       setSaveAsTemplate(false);
       setTemplateTitle(className ?? "");
     }
@@ -147,6 +168,23 @@ export function CreateLearningPlanModal({
       ignore = true;
     };
   }, [isOpen, initialPlan, classId]);
+
+  // Chủ đề chuẩn của môn × khối của lớp (cả khi sửa); lỗi hoặc chưa có chủ đề thì ẩn ô chọn chủ đề
+  useEffect(() => {
+    if (!isOpen) return;
+    let ignore = false;
+    progressApi
+      .listTopics(classId)
+      .then((res) => {
+        if (!ignore) setTopics(res.success && res.data ? res.data : []);
+      })
+      .catch(() => {
+        if (!ignore) setTopics([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [isOpen, classId]);
 
   if (!isOpen) return null;
 
@@ -179,6 +217,31 @@ export function CreateLearningPlanModal({
     if (!summary.trim() && selectedTemplate.description) setSummary(selectedTemplate.description);
   };
 
+  const handleDraftWithAi = async () => {
+    setErrorMessage(null);
+    setFieldErrors({});
+    setDraftNotice(null);
+    setDrafting(true);
+    try {
+      const res = await progressApi.draftPlan(classId);
+      const draft = res.data;
+      if (!res.success || !draft) {
+        setErrorMessage(res.message || "Không gợi ý được lộ trình. Hãy chọn mẫu lộ trình hoặc tự lập.");
+      } else if (draft.milestones.length === 0) {
+        setErrorMessage(draft.unavailableReason || "Không gợi ý được lộ trình. Hãy chọn mẫu lộ trình hoặc tự lập.");
+      } else {
+        setMilestones(draft.milestones.map(fromDraft));
+        setDraftNotice(
+          `Đã điền bản nháp AI (còn ${draft.remainingQuota} lượt trong giờ). Hãy đọc lại, sửa và đặt hạn cho cột mốc cuối trước khi lưu.`
+        );
+      }
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Không gợi ý được lộ trình.");
+    } finally {
+      setDrafting(false);
+    }
+  };
+
   const handleDeleteTemplate = async () => {
     if (!selectedTemplate?.mine) return;
     try {
@@ -201,7 +264,7 @@ export function CreateLearningPlanModal({
       title: m.title.trim(),
       description: m.description.trim() || undefined,
       weight: Number(m.weight) || 1,
-      suggestedSessions: Number(m.suggestedSessions),
+      suggestedSessions: m.suggestedSessions ?? DEFAULT_SUGGESTED_SESSIONS,
       criteria: filledCriteria(m.criteria).map((c) => c.content),
     })),
   });
@@ -209,7 +272,7 @@ export function CreateLearningPlanModal({
   const handleMilestoneChange = (
     index: number,
     field: keyof MilestoneFormField,
-    value: string | number
+    value: string | number | null
   ) => {
     const updated = [...milestones];
     updated[index] = { ...updated[index], [field]: value };
@@ -254,6 +317,8 @@ export function CreateLearningPlanModal({
         targetDate: m.targetDate || undefined,
         weight: Number(m.weight) || 1,
         criteria: filledCriteria(m.criteria).map((c) => c.content),
+        suggestedSessions: m.suggestedSessions ?? undefined,
+        topicId: m.topicId || undefined,
       })),
     };
 
@@ -293,6 +358,8 @@ export function CreateLearningPlanModal({
             targetDate: m.targetDate || undefined,
             weight: Number(m.weight) || 1,
             criteria: filledCriteria(m.criteria),
+            suggestedSessions: m.suggestedSessions ?? undefined,
+            topicId: m.topicId || undefined,
           })),
         });
         if (res.success && res.data) {
@@ -376,6 +443,31 @@ export function CreateLearningPlanModal({
                   <p className="font-bold">Không thể lưu kế hoạch</p>
                   <p className="mt-0.5">{errorMessage}</p>
                 </div>
+              </div>
+            )}
+
+            {!isEditing && (
+              <div className="space-y-2 rounded-2xl border border-violet-200 bg-violet-50/50 p-3" data-testid="plan-ai-draft">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-neutral-700">
+                    <span className="font-bold text-neutral-800">Gợi ý bằng AI:</span> lập bản nháp theo môn, khối, mục
+                    tiêu của lớp. Không gửi thông tin cá nhân của học sinh.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void handleDraftWithAi()}
+                    disabled={drafting}
+                    className="inline-flex items-center gap-1.5 min-h-9 px-3 rounded-xl bg-violet-600 text-white text-xs font-bold disabled:opacity-50 cursor-pointer"
+                  >
+                    {drafting ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                    {drafting ? "Đang gợi ý…" : "Gợi ý lộ trình bằng AI"}
+                  </button>
+                </div>
+                {draftNotice && (
+                  <p role="status" className="text-[11px] text-violet-800">
+                    {draftNotice}
+                  </p>
+                )}
               </div>
             )}
 
@@ -599,26 +691,47 @@ export function CreateLearningPlanModal({
                         </div>
                       </div>
 
-                      {!isEditing && saveAsTemplate && (
-                        <label className="flex items-center gap-2 text-[11px] font-bold text-neutral-700">
-                          Số buổi gợi ý cho mẫu
+                      <div className="flex flex-wrap gap-3 text-[11px] font-bold text-neutral-700">
+                        <label className="flex items-center gap-2">
+                          Số buổi gợi ý
                           <select
                             aria-label={`Số buổi gợi ý của cột mốc ${idx + 1}`}
-                            value={item.suggestedSessions}
-                            onChange={(e) => handleMilestoneChange(idx, "suggestedSessions", Number(e.target.value))}
+                            value={item.suggestedSessions ?? ""}
+                            onChange={(e) =>
+                              handleMilestoneChange(idx, "suggestedSessions", e.target.value ? Number(e.target.value) : null)
+                            }
                             className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs"
                           >
-                            {Array.from(
-                              { length: MAX_SUGGESTED_SESSIONS - MIN_SUGGESTED_SESSIONS + 1 },
-                              (_, i) => MIN_SUGGESTED_SESSIONS + i
-                            ).map((n) => (
+                            <option value="">Chưa đặt</option>
+                            {SESSION_OPTIONS.map((n) => (
                               <option key={n} value={n}>
                                 {n} buổi
                               </option>
                             ))}
                           </select>
                         </label>
-                      )}
+                        {(topics.length > 0 || item.topicId) && (
+                          <label className="flex items-center gap-2">
+                            Chủ đề chuẩn
+                            <select
+                              aria-label={`Chủ đề chuẩn của cột mốc ${idx + 1}`}
+                              value={item.topicId}
+                              onChange={(e) => handleMilestoneChange(idx, "topicId", e.target.value)}
+                              className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs"
+                            >
+                              <option value="">Không gắn</option>
+                              {topics.map((t) => (
+                                <option key={t.topicId} value={t.topicId}>
+                                  {t.name}
+                                </option>
+                              ))}
+                              {item.topicId && !topics.some((t) => t.topicId === item.topicId) && (
+                                <option value={item.topicId}>Chủ đề đã ngừng dùng</option>
+                              )}
+                            </select>
+                          </label>
+                        )}
+                      </div>
 
                       {/* Tiêu chí đạt */}
                       <div className="space-y-2 rounded-xl border border-stone-200/70 bg-stone-50/40 p-3">

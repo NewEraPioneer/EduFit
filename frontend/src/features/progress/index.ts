@@ -11,3 +11,6 @@ export * from "./components/PlannedMilestonesPicker";
 export * from "./components/TutorTodoDrawer";
 export * from "./constants/roadmap";
 export * from "./components/AdminPlanTemplatesView";
+export * from "./components/AdminTopicsView";
+export * from "./components/ProgressInsights";
+export * from "./components/PeriodReports";

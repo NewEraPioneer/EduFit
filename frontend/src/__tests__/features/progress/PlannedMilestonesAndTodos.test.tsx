@@ -6,7 +6,7 @@ import { PlannedMilestonesPicker } from "@/features/progress/components/PlannedM
 import { TutorTodoDrawer, TUTOR_CLASSES_HREF } from "@/features/progress/components/TutorTodoDrawer";
 import { progressApi } from "@/features/progress/api/progressApi";
 import type { TutorTodos } from "@/features/progress/types";
-import { FIXTURE_IDS, FIXTURE_TEXT, buildPlan } from "./progressFixtures";
+import { FIXTURE_IDS, FIXTURE_TEXT, buildPeriodReport, buildPlan } from "./progressFixtures";
 
 vi.mock("@/features/progress/api/progressApi", () => ({
   progressApi: {
@@ -16,6 +16,8 @@ vi.mock("@/features/progress/api/progressApi", () => ({
     getPlanByClassId: vi.fn(),
     recordSessionOutcome: vi.fn(),
     submitSessionFeedback: vi.fn(),
+    savePeriodReportSummary: vi.fn(),
+    sendPeriodReport: vi.fn(),
   },
 }));
 
@@ -42,6 +44,7 @@ const todos = (overrides: Partial<TutorTodos> = {}): TutorTodos => ({
     },
   ],
   plansMissingFinalDate: [],
+  pendingReports: [],
   ...overrides,
 });
 
@@ -148,5 +151,36 @@ describe("TutorTodoDrawer — ngăn Việc cần làm của gia sư", () => {
     await waitFor(() => expect(screen.getByTestId("tutor-todo-count")).toHaveTextContent("0"));
     await user.click(screen.getByRole("button", { name: /Việc cần làm/ }));
     expect(screen.getByText(/Không còn việc nào cần làm/)).toBeInTheDocument();
+  });
+
+  it("báo cáo kỳ chờ gửi: gia sư viết câu tổng kết rồi gửi ngay, mục biến khỏi ngăn", async () => {
+    const user = userEvent.setup();
+    const draft = buildPeriodReport();
+    vi.mocked(progressApi.getTutorTodos).mockResolvedValue({
+      success: true,
+      data: todos({
+        sessionsMissingFeedback: [],
+        classesWithoutPlan: [],
+        overdueMilestones: [],
+        pendingReports: [{ studentName: FIXTURE_TEXT.studentName, classTitle: FIXTURE_TEXT.goalTitle, report: draft }],
+      }),
+    });
+    vi.mocked(progressApi.sendPeriodReport).mockResolvedValue({
+      success: true,
+      data: { ...draft, status: "SENT", tutorSummary: FIXTURE_TEXT.reportSummary, version: draft.version + 1 },
+    });
+    render(<TutorTodoDrawer />);
+
+    await waitFor(() => expect(screen.getByTestId("tutor-todo-count")).toHaveTextContent("1"));
+    await user.click(screen.getByRole("button", { name: /Việc cần làm/ }));
+    const section = screen.getByRole("region", { name: "Báo cáo kỳ chờ gửi" });
+    expect(within(section).getByText(FIXTURE_TEXT.milestoneA)).toBeInTheDocument();
+
+    await user.type(within(section).getByLabelText(/Câu tổng kết của gia sư/), FIXTURE_TEXT.reportSummary);
+    await user.click(within(section).getByRole("button", { name: /Gửi ngay/ }));
+
+    expect(progressApi.sendPeriodReport).toHaveBeenCalledWith(draft.reportId, FIXTURE_TEXT.reportSummary, draft.version);
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Báo cáo kỳ chờ gửi" })).not.toBeInTheDocument());
+    expect(screen.getByTestId("tutor-todo-count")).toHaveTextContent("0");
   });
 });

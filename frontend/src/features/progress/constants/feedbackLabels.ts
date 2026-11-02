@@ -53,6 +53,31 @@ export const ON_TRACK_LABELS: Record<OnTrackStatus, string> = {
   NO_PLAN: "Chưa có lộ trình",
 };
 
+/** Màu chip trạng thái "đúng hướng": chậm dùng cam, không dùng đỏ (mục 3.8). */
+export const ON_TRACK_TONE: Record<OnTrackStatus, string> = {
+  AHEAD: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  ON_TRACK: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  NEEDS_ATTENTION: "bg-amber-50 text-amber-900 border-amber-200",
+  BEHIND: "bg-orange-50 text-orange-900 border-orange-200",
+  NOT_STARTED: "bg-stone-100 text-neutral-700 border-stone-200",
+  NOT_ENOUGH_DATA: "bg-stone-100 text-neutral-700 border-stone-200",
+  NO_PLAN: "bg-stone-100 text-neutral-700 border-stone-200",
+};
+
+/** Chip thay đổi so với 30 ngày trước; null nghĩa là chưa đủ dữ liệu. */
+export const formatDelta = (delta?: number | null) => {
+  if (delta === null || delta === undefined) return "—";
+  if (delta === 0) return "Không đổi";
+  return delta > 0 ? `+${delta}%` : `−${Math.abs(delta)}%`;
+};
+
+/** Ngày dạng yyyy-MM-dd (LocalDate của backend) sang dd/MM/yyyy, không qua múi giờ. */
+export const formatLocalDate = (isoDate?: string | null) => {
+  if (!isoDate) return "";
+  const [y, m, d] = isoDate.split("-");
+  return d && m && y ? `${d}/${m}/${y}` : isoDate;
+};
+
 export const MISSED_SESSION_LABELS: Record<MissedSessionKind, string> = {
   ABSENT: "Vắng mặt",
   LATE_CANCEL_BY_FAMILY: "Gia đình hủy muộn (dưới 12 giờ)",

@@ -18,7 +18,6 @@ import {
 import { progressApi } from "../api/progressApi";
 import type {
   MilestoneResponse,
-  OnTrackStatus,
   ParentDashboardResponse,
   ParentStudentSummary,
   ProgressOverview,
@@ -27,10 +26,14 @@ import type {
   StudentDashboardResponse,
 } from "../types";
 import { formatGoalTitle } from "../utils/goalTitle";
+import { ProgressInsights } from "./ProgressInsights";
+import { PeriodReportsSection } from "./PeriodReports";
 import {
   MISSED_SESSION_LABELS,
   ON_TRACK_LABELS,
+  ON_TRACK_TONE,
   SELF_RATINGS,
+  formatDelta,
   attitudeLabel,
   homeworkLabel,
   independenceLabel,
@@ -43,16 +46,6 @@ interface ProgressDashboardViewProps {
   classId?: string;
   onOpenCreatePlan?: (classId: string) => void;
 }
-
-const ON_TRACK_TONE: Record<OnTrackStatus, string> = {
-  AHEAD: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  ON_TRACK: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  NEEDS_ATTENTION: "bg-amber-50 text-amber-900 border-amber-200",
-  BEHIND: "bg-orange-50 text-orange-900 border-orange-200",
-  NOT_STARTED: "bg-stone-100 text-neutral-700 border-stone-200",
-  NOT_ENOUGH_DATA: "bg-stone-100 text-neutral-700 border-stone-200",
-  NO_PLAN: "bg-stone-100 text-neutral-700 border-stone-200",
-};
 
 const formatDate = (iso?: string | null) => {
   if (!iso) return "";
@@ -76,13 +69,6 @@ const formatDateTime = (iso?: string | null) => {
   } catch {
     return iso;
   }
-};
-
-/** Chip thay đổi so với 30 ngày trước; null nghĩa là chưa đủ dữ liệu. */
-const formatDelta = (delta?: number | null) => {
-  if (delta === null || delta === undefined) return "—";
-  if (delta === 0) return "Không đổi";
-  return delta > 0 ? `+${delta}%` : `−${Math.abs(delta)}%`;
 };
 
 export function ProgressDashboardView({
@@ -246,7 +232,9 @@ export function ProgressDashboardView({
       {overview ? (
         <>
           <OverviewCards overview={overview} />
+          <ProgressInsights forecast={overview.forecast} radar={overview.radar} />
           {role === "PARENT" && <SelfRatingTrend points={overview.selfRatings ?? []} />}
+          <PeriodReportsSection classId={studentData?.selectedClassId} />
         </>
       ) : (
         <div className="rounded-3xl border border-dashed border-stone-200 bg-stone-50/50 p-8 text-center text-xs text-neutral-500">

@@ -1,6 +1,9 @@
+import type { LearningCatalog } from "@/services/catalog";
 import type {
   MilestoneResponse,
+  PeriodReport,
   PlanResponse,
+  Topic,
   ProgressOverview,
   StudentDashboardResponse,
 } from "@/features/progress/types";
@@ -16,6 +19,10 @@ export const FIXTURE_IDS = {
   class: "66666666-6666-6666-6666-666666666666",
   student: "77777777-7777-7777-7777-777777777777",
   template: "88888888-8888-8888-8888-888888888888",
+  report: "99999999-9999-9999-9999-999999999999",
+  topicAlgebra: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+  topicGeometry: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2",
+  topicStatistics: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3",
 } as const;
 
 export const FIXTURE_TEXT = {
@@ -31,7 +38,58 @@ export const FIXTURE_TEXT = {
   finalTargetDate: "2026-12-20",
   templateTitle: "Toán 9 ôn thi vào 10",
   parentMessage: "Gia đình nhắc con ngủ sớm hơn trước hôm có buổi học",
+  topicAlgebra: "Đại số",
+  topicGeometry: "Hình học",
+  topicStatistics: "Thống kê",
+  reportSummary: "Con tiến bộ rõ ở hệ phương trình, kỳ tới tập trung hình học",
+  aiUnavailable: "AI hiện không khả dụng. Hãy chọn mẫu lộ trình phù hợp hoặc tự lập lộ trình.",
+  forecastUnavailable: "Chưa đủ buổi học để ước lượng nhịp học",
 } as const;
+
+export const FIXTURE_TOPICS = [
+  { topicId: FIXTURE_IDS.topicAlgebra, name: FIXTURE_TEXT.topicAlgebra },
+  { topicId: FIXTURE_IDS.topicGeometry, name: FIXTURE_TEXT.topicGeometry },
+  { topicId: FIXTURE_IDS.topicStatistics, name: FIXTURE_TEXT.topicStatistics },
+] as const;
+
+export function buildTopic(index: number, overrides: Partial<Topic> = {}): Topic {
+  const t = FIXTURE_TOPICS[index];
+  return {
+    topicId: t.topicId,
+    subjectId: CATALOG.subjectId,
+    educationLevelId: CATALOG.levelId,
+    name: t.name,
+    sortOrder: index,
+    archived: false,
+    version: 0,
+    ...overrides,
+  };
+}
+
+export function buildPeriodReport(overrides: Partial<PeriodReport> = {}): PeriodReport {
+  return {
+    reportId: FIXTURE_IDS.report,
+    classId: FIXTURE_IDS.class,
+    periodIndex: 1,
+    periodStart: "2026-09-01",
+    periodEnd: "2026-09-30",
+    onTrackStatus: "ON_TRACK",
+    onTrackExplanation: "Không có cột mốc nào quá hạn",
+    progressPercentage: 40,
+    progressDelta: 20,
+    attendedCount: 7,
+    countedCount: 8,
+    highlight: null,
+    nextFocusTitle: FIXTURE_TEXT.milestoneB,
+    achievedMilestones: [FIXTURE_TEXT.milestoneA],
+    tutorSummary: null,
+    status: "DRAFT",
+    autoSendAt: "2026-10-04T03:00:00Z",
+    sentAt: null,
+    version: 0,
+    ...overrides,
+  };
+}
 
 export function buildMilestone(overrides: Partial<MilestoneResponse> = {}): MilestoneResponse {
   return {
@@ -142,3 +200,34 @@ export function buildStudentDashboard(overrides: Partial<StudentDashboardRespons
     ...overrides,
   };
 }
+
+/** Danh mục môn × khối × mục tiêu dùng cho các màn admin. */
+export const CATALOG = {
+  subjectId: 1,
+  subjectName: "Toán",
+  levelId: 9,
+  levelName: "Lớp 9",
+  goalTagId: 3,
+  goalName: "Luyện thi vào 10",
+} as const;
+
+export const catalog = {
+  educationLevels: [{ levelId: CATALOG.levelId, name: CATALOG.levelName, sortOrder: 9 }],
+  subjects: [{ subjectId: CATALOG.subjectId, name: CATALOG.subjectName }],
+  tracks: [],
+  goalTags: [
+    {
+      goalTagId: CATALOG.goalTagId,
+      code: "EXAM_10",
+      name: CATALOG.goalName,
+      requiresTextbook: false,
+      requiresExamProvince: false,
+      premium: false,
+    },
+  ],
+  goalTagRules: [{ goalTagId: CATALOG.goalTagId, subjectId: CATALOG.subjectId, trackId: null, levelId: CATALOG.levelId }],
+  textbooks: [],
+  provinces: [],
+  districts: [],
+  specializedSchools: [],
+} satisfies LearningCatalog;

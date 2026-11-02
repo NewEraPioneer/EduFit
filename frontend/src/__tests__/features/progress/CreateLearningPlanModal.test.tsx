@@ -6,7 +6,7 @@ import { CreateLearningPlanModal } from "@/features/progress/components/CreateLe
 import { progressApi } from "@/features/progress/api/progressApi";
 import { MAX_PLAN_MILESTONES, MIN_PLAN_MILESTONES } from "@/features/progress/constants/roadmap";
 import type { PlanTemplate } from "@/features/progress/types";
-import { FIXTURE_IDS, FIXTURE_TEXT, buildPlan } from "./progressFixtures";
+import { FIXTURE_IDS, FIXTURE_TEXT, buildPlan, buildTopic } from "./progressFixtures";
 
 vi.mock("@/features/progress/api/progressApi", () => ({
   progressApi: {
@@ -15,6 +15,8 @@ vi.mock("@/features/progress/api/progressApi", () => ({
     listPlanTemplates: vi.fn(),
     createPlanTemplate: vi.fn(),
     deletePlanTemplate: vi.fn(),
+    listTopics: vi.fn(),
+    draftPlan: vi.fn(),
   },
 }));
 
@@ -52,6 +54,7 @@ describe("CreateLearningPlanModal — lộ trình 3–8 cột mốc, hạn cuố
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(progressApi.listPlanTemplates).mockResolvedValue({ success: true, data: [] });
+    vi.mocked(progressApi.listTopics).mockResolvedValue({ success: true, data: [] });
     vi.mocked(progressApi.createPlan).mockResolvedValue({ success: true, data: buildPlan() });
     vi.mocked(progressApi.createPlanTemplate).mockResolvedValue({ success: true, data: template({ mine: true }) });
   });
@@ -179,5 +182,68 @@ describe("CreateLearningPlanModal — lộ trình 3–8 cột mốc, hạn cuố
     await user.click(screen.getByRole("button", { name: /Tạo kế hoạch/i }));
 
     expect(await screen.findByText(/Lớp học này đã có kế hoạch học tập/i)).toBeInTheDocument();
+  });
+
+  it("gợi ý lộ trình bằng AI: điền cột mốc, tiêu chí, số buổi và chủ đề; gia sư vẫn phải đặt hạn cuối", async () => {
+    const user = userEvent.setup();
+    vi.mocked(progressApi.listTopics).mockResolvedValue({ success: true, data: [buildTopic(0), buildTopic(1)] });
+    vi.mocked(progressApi.draftPlan).mockResolvedValue({
+      success: true,
+      data: {
+        milestones: ROADMAP.map((m, idx) => ({
+          title: m.title,
+          weight: 2,
+          suggestedSessions: 4,
+          criteria: [m.criterion],
+          topicId: idx === 0 ? FIXTURE_IDS.topicAlgebra : null,
+        })),
+        unavailableReason: null,
+        remainingQuota: 7,
+      },
+    });
+    render(<CreateLearningPlanModal {...defaultProps} />);
+
+    await user.click(screen.getByRole("button", { name: /Gợi ý lộ trình bằng AI/i }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/còn 7 lượt/);
+    expect(progressApi.draftPlan).toHaveBeenCalledWith(FIXTURE_IDS.class);
+    expect(screen.getByDisplayValue(FIXTURE_TEXT.milestoneA)).toBeInTheDocument();
+    expect(screen.getByLabelText("Chủ đề chuẩn của cột mốc 1")).toHaveValue(FIXTURE_IDS.topicAlgebra);
+    expect(screen.getByLabelText("Số buổi gợi ý của cột mốc 2")).toHaveValue("4");
+
+    fireEvent.change(screen.getByLabelText(/Hạn dự kiến \*/), { target: { value: FIXTURE_TEXT.finalTargetDate } });
+    await user.click(screen.getByRole("button", { name: /Tạo kế hoạch/i }));
+
+    await waitFor(() =>
+      expect(progressApi.createPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          milestones: [
+            expect.objectContaining({ title: FIXTURE_TEXT.milestoneA, suggestedSessions: 4, topicId: FIXTURE_IDS.topicAlgebra }),
+            expect.objectContaining({ title: FIXTURE_TEXT.milestoneB, suggestedSessions: 4, topicId: undefined }),
+            expect.objectContaining({ title: FIXTURE_TEXT.milestoneFinal, targetDate: FIXTURE_TEXT.finalTargetDate }),
+          ],
+        })
+      )
+    );
+  });
+
+  it("AI không khả dụng: hiện lý do gợi ý dùng mẫu, giữ nguyên biểu mẫu", async () => {
+    const user = userEvent.setup();
+    vi.mocked(progressApi.draftPlan).mockResolvedValue({
+      success: true,
+      data: { milestones: [], unavailableReason: FIXTURE_TEXT.aiUnavailable, remainingQuota: 9 },
+    });
+    render(<CreateLearningPlanModal {...defaultProps} />);
+
+    await user.click(screen.getByRole("button", { name: /Gợi ý lộ trình bằng AI/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(FIXTURE_TEXT.aiUnavailable);
+    expect(screen.getAllByPlaceholderText(/Nắm vững Định lý Vi-ét/i)).toHaveLength(MIN_PLAN_MILESTONES);
+  });
+
+  it("không có chủ đề chuẩn cho môn × khối thì ẩn ô chọn chủ đề", async () => {
+    render(<CreateLearningPlanModal {...defaultProps} />);
+    await waitFor(() => expect(progressApi.listTopics).toHaveBeenCalledWith(FIXTURE_IDS.class));
+    expect(screen.queryByLabelText("Chủ đề chuẩn của cột mốc 1")).not.toBeInTheDocument();
   });
 });
