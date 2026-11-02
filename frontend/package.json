@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "vitest run --config tests/e2e/vitest.e2e.config.ts",
+    "test:e2e:record": "vitest run --config tests/e2e/vitest.e2e.config.ts && python tests/e2e/scripts/compile_video.py",
+    "video:compile": "python tests/e2e/scripts/compile_video.py",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
