@@ -1,0 +1,59 @@
+# Profile UAT: Dùng cho kiểm thử tích hợp (SIT) và nghiệm thu người dùng (UAT) trên Render + Supabase.
+# Tuyệt đối KHÔNG nạp db/seed và KHÔNG chứa secret trong file này.
+
+server:
+  port: ${SERVER_PORT:${PORT:8080}}
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
+        http-only: true
+
+spring:
+  datasource:
+    # Supabase session pooler hoặc direct connection với TLS
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}?sslmode=require}
+    username: ${DB_USERNAME:${DB_USER:}}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:8}
+      minimum-idle: ${HIKARI_MIN_IDLE:2}
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: EduFitHikariPool-UAT
+      data-source-properties:
+        options: "-c timezone=Asia/Ho_Chi_Minh"
+
+  flyway:
+    enabled: true
+    # UAT chỉ chạy migration thật, KHÔNG nạp classpath:db/seed
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    baseline-on-migrate: true
+    out-of-order: false
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+
+logging:
+  level:
+    vn.edufit: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN

@@ -1,6 +1,7 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:${PORT:8080}}
   shutdown: graceful
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
   servlet:
     session:
       timeout: 60m # NFR-04: Hết hạn sau 60 phút không hoạt động (sliding inactivity)
