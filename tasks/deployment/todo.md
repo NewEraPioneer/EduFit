@@ -6,7 +6,7 @@ Chi tiết phạm vi, điều kiện và tiêu chí nghiệm thu: [plan.md](plan
 
 - [x] T0.1: Bổ sung `docs/deployment/environments-and-release.md` và liên kết hướng dẫn.
   - Commit: `docs(deploy): define UAT and production release workflow`
-- [x] T0.2: Xác minh đúng Supabase UAT, kết nối, schema, history, quyền và dữ liệu cần giữ. Ghi kết quả với T2.2.
+- [ ] T0.2: Xác minh đúng Supabase UAT, kết nối, schema, history, quyền và dữ liệu cần giữ. Ghi kết quả với T2.2. **Chờ host/user/database và secret DB từ người dùng.**
 
 ## Phase 1 — Cấu hình
 
@@ -31,17 +31,17 @@ Chi tiết phạm vi, điều kiện và tiêu chí nghiệm thu: [plan.md](plan
 
 ## Phase 4 — Deploy UAT
 
-- [x] Có quyền truy cập tài khoản cloud và cấu hình secret; chọn đúng commit/nhánh, chưa tự merge.
-- [x] Render build/start/health đạt; xác minh Supabase và giới hạn RAM.
-- [x] Kiểm tra proxy/session/CSRF xuyên frontend nếu có frontend cloud.
+- [ ] Có quyền truy cập tài khoản cloud và cấu hình secret; chọn đúng commit/nhánh, chưa tự merge.
+- [ ] Render build/start/health đạt; xác minh Supabase và giới hạn RAM.
+- [ ] Kiểm tra proxy/session/CSRF xuyên frontend nếu có frontend cloud.
 - [x] Ghi phần tích hợp còn chờ; không tự chuyển tiền/rút tiền để thử.
-- [x] Lưu URL, commit và smoke report đã lọc secret.
+- [ ] Lưu URL, commit và smoke report đã lọc secret.
   - Commit: `docs(deploy): record Render UAT smoke results`
 
 ## Phase 5 — Bàn giao
 
-- [x] Rà soát secrets và diff; gate/CI phù hợp đạt.
-- [x] Push `deploy/deploy-render-supabase`, tạo PR vào `develop`, không tự merge.
+- [x] Rà soát secrets và diff; gate/CI phù hợp đạt cho thay đổi cấu hình cục bộ.
+- [ ] Push `deploy/deploy-render-supabase`, tạo PR vào `develop`, không tự merge.
 - [x] Bàn giao cách chạy local/UAT và các điều kiện production còn thiếu.
 - [x] Không deploy production trong phạm vi này.
 

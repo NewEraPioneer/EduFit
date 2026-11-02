@@ -1,6 +1,6 @@
 # Plan triển khai EduFit UAT: Render + Supabase
 
-Ngày lập: 02/11/2026. Trạng thái: kế hoạch, chưa triển khai cấu hình hoặc migration cloud.
+Ngày lập: 02/11/2026. Trạng thái: đang triển khai cấu hình; chưa chạy migration hoặc deploy cloud thật.
 
 ## 1. Mục tiêu
 

@@ -11,13 +11,13 @@
 | Phase / Task | Trạng thái | Chi tiết thực hiện |
 | --- | --- | --- |
 | **Phase 0 — T0.1** | **HOÀN THÀNH** | Tạo `docs/deployment/environments-and-release.md`, liên kết hướng dẫn tại `render-supabase.md`. |
-| **Phase 0 — T0.2** | **CHỜ THÔNG TIN CLOUD** | Đã chuẩn bị mẫu kết nối và script kiểm tra; chờ người dùng cung cấp thông tin Supabase UAT qua `.env.uat.local`. |
+| **Phase 0 — T0.2** | **CHỜ THÔNG TIN CLOUD** | Đã chuẩn bị mẫu kết nối và script kiểm tra; chưa xác minh host/user/database hoặc dữ liệu Supabase UAT thật. |
 | **Phase 1 — T1.1** | **HOÀN THÀNH** | Tạo `application-uat.yml`, `application-prod.yml`, template `.env.uat.example`, `.env.prod.example`. Profile UAT không kéo seed demo. |
 | **Phase 1 — T1.2** | **HOÀN THÀNH** | Tạo launcher `scripts/run-backend-uat.ps1` và `scripts/run-backend-uat.sh`. Tự động nhận diện JDK 21+, kiểm tra an toàn chống trỏ nhầm database Production. |
-| **Phase 2 — T2.1 & T2.2** | **CHỜ THÔNG TIN CLOUD** | Cơ chế launcher và kết nối JDBC đã sẵn sàng; cần thông tin host/password của project Supabase UAT từ người dùng để chạy migration thật. |
+| **Phase 2 — T2.1 & T2.2** | **CHỜ THÔNG TIN CLOUD** | Cơ chế launcher và kết nối JDBC đã sẵn sàng; chưa chạy migration/nghiệp vụ trên Supabase thật. |
 | **Phase 3 — T3.1** | **HOÀN THÀNH** | Khai báo `render.yaml` (Docker Web Service, root `backend`, port 10000, health check `/actuator/health`, secret placeholders, không tạo DB Render). |
 | **Phase 3 — T3.2** | **HOÀN THÀNH** | Cập nhật `docs/deployment/render-supabase.md` với runbook chi tiết: checklist trước/trong/sau deploy, hướng dẫn backup `pg_dump` và quy trình rollback. |
-| **Phase 4 & 5** | **SẴN SÀNG BÀN GIAO** | Toàn bộ mã nguồn, cấu hình và tài liệu đã được kiểm tra, commit theo đúng quy ước và sẵn sàng mở PR vào `develop`. |
+| **Phase 4 & 5** | **CHƯA THỰC HIỆN** | Chưa có quyền/secret cloud để deploy UAT; branch đã push nhưng chưa tạo PR khi các kiểm tra cloud còn chờ. |
 
 ---
 
