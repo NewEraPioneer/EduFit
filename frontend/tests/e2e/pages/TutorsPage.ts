@@ -1,5 +1,6 @@
 import { WebDriver, By } from 'selenium-webdriver';
 import { BasePage } from './BasePage';
+import { E2E_ROUTES } from '../config/test-constants';
 
 export class TutorsPage extends BasePage {
   private tutorCards = By.css('[data-testid="tutor-card"], a[href^="/tutors/"]');
@@ -13,11 +14,11 @@ export class TutorsPage extends BasePage {
   }
 
   async navigateDiscovery(): Promise<void> {
-    await this.navigateTo('/tutors');
+    await this.navigateTo(E2E_ROUTES.DISCOVERY);
   }
 
   async navigateStudentTutors(): Promise<void> {
-    await this.navigateTo('/student/tutors');
+    await this.navigateTo(E2E_ROUTES.STUDENT_TUTORS);
   }
 
   async hasTutorCards(): Promise<boolean> {
@@ -29,21 +30,15 @@ export class TutorsPage extends BasePage {
   }
 
   async searchKeyword(keyword: string): Promise<void> {
-    if (await this.isElementVisible(this.filterInput, 3000)) {
-      await this.fill(this.filterInput, keyword);
-    }
+    await this.fill(this.filterInput, keyword);
   }
 
   async clickClearFilter(): Promise<void> {
-    if (await this.isElementVisible(this.clearFilterBtn, 2000)) {
-      await this.click(this.clearFilterBtn);
-    }
+    await this.click(this.clearFilterBtn);
   }
 
   async clickAiMatch(): Promise<void> {
-    if (await this.isElementVisible(this.aiMatchButton, 3000)) {
-      await this.click(this.aiMatchButton);
-    }
+    await this.click(this.aiMatchButton);
   }
 
   async isMatchScoreVisible(): Promise<boolean> {
