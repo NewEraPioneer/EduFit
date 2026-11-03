@@ -148,6 +148,22 @@ describe("authRedirect Unit Tests", () => {
       expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/tutor");
     });
 
+    it("Gia sư chưa có hồ sơ trong database (API ném lỗi) -> bắt buộc chuyển về /onboarding/tutor", async () => {
+      vi.mocked(profileService.getMyTutorProfile).mockRejectedValue(new Error("EntityNotFoundException"));
+      localStorage.setItem("edufit_tutor_onboarding_completed", "true");
+
+      const user: AuthUser = {
+        id: "user-2",
+        email: "tutor@test.com",
+        fullName: "Gia sư test",
+        role: "TUTOR",
+        status: "ACTIVE",
+      };
+
+      await resolvePostLoginRedirect({ user, router: mockRouter });
+      expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/tutor");
+    });
+
     it("Gia sư đã có hồ sơ môn học -> chuyển về /tutor/dashboard", async () => {
       vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({
         tutorId: "tutor-1",

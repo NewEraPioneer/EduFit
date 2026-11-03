@@ -18,14 +18,17 @@ export default function ParentDashboardPage() {
 
     async function checkOnboarding() {
       if (isLoading || !user) return;
+      const userKey = `edufit_parent_onboarding_completed_${user.id}`;
       const hasOnboarded =
         typeof window !== "undefined" &&
-        Boolean(localStorage.getItem("edufit_parent_onboarding_completed"));
+        (Boolean(localStorage.getItem(userKey)) ||
+          Boolean(localStorage.getItem("edufit_parent_onboarding_completed")));
 
       try {
         const links = await connectionApi.getLinks();
         const hasLinks = Array.isArray(links) && links.length > 0;
         if (hasLinks && typeof window !== "undefined") {
+          localStorage.setItem(userKey, "true");
           localStorage.setItem("edufit_parent_onboarding_completed", "true");
         }
         if (!ignore && shouldRedirectParentToOnboarding(hasLinks, hasOnboarded)) {
@@ -33,7 +36,7 @@ export default function ParentDashboardPage() {
           return;
         }
       } catch {
-        if (!ignore && !hasOnboarded) {
+        if (!ignore) {
           router.replace("/onboarding/parent");
           return;
         }

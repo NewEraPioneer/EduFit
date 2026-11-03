@@ -18,9 +18,11 @@ export default function TutorDashboardPage() {
 
     async function checkOnboarding() {
       if (isLoading || !user) return;
+      const userKey = `edufit_tutor_onboarding_completed_${user.id}`;
       const hasOnboarded =
         typeof window !== "undefined" &&
-        Boolean(localStorage.getItem("edufit_tutor_onboarding_completed"));
+        (Boolean(localStorage.getItem(userKey)) ||
+          Boolean(localStorage.getItem("edufit_tutor_onboarding_completed")));
 
       try {
         const profile = await profileService.getMyTutorProfile();
@@ -29,7 +31,8 @@ export default function TutorDashboardPage() {
           return;
         }
       } catch {
-        if (!ignore && !hasOnboarded) {
+        // Nếu backend chưa có hồ sơ gia sư, bắt buộc chuyển về Onboarding
+        if (!ignore) {
           router.replace("/onboarding/tutor");
           return;
         }

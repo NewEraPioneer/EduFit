@@ -56,9 +56,11 @@ export async function resolvePostLoginRedirect({
       return;
     }
   } else if (role === "TUTOR") {
+    const userKey = `edufit_tutor_onboarding_completed_${user.id}`;
     const hasOnboarded =
       typeof window !== "undefined" &&
-      Boolean(localStorage.getItem("edufit_tutor_onboarding_completed"));
+      (Boolean(localStorage.getItem(userKey)) ||
+        Boolean(localStorage.getItem("edufit_tutor_onboarding_completed")));
 
     try {
       const profile = await profileService.getMyTutorProfile();
@@ -67,20 +69,22 @@ export async function resolvePostLoginRedirect({
         return;
       }
     } catch {
-      if (!hasOnboarded) {
-        router.push("/onboarding/tutor");
-        return;
-      }
+      // Backend không có hồ sơ gia sư -> Bắt buộc chuyển sang Onboarding để khởi tạo hồ sơ
+      router.push("/onboarding/tutor");
+      return;
     }
   } else if (role === "PARENT") {
+    const userKey = `edufit_parent_onboarding_completed_${user.id}`;
     const hasOnboarded =
       typeof window !== "undefined" &&
-      Boolean(localStorage.getItem("edufit_parent_onboarding_completed"));
+      (Boolean(localStorage.getItem(userKey)) ||
+        Boolean(localStorage.getItem("edufit_parent_onboarding_completed")));
 
     try {
       const links = await connectionApi.getLinks();
       const hasLinks = Array.isArray(links) && links.length > 0;
       if (hasLinks && typeof window !== "undefined") {
+        localStorage.setItem(userKey, "true");
         localStorage.setItem("edufit_parent_onboarding_completed", "true");
       }
       if (shouldRedirectParentToOnboarding(hasLinks, hasOnboarded)) {
@@ -88,10 +92,9 @@ export async function resolvePostLoginRedirect({
         return;
       }
     } catch {
-      if (!hasOnboarded) {
-        router.push("/onboarding/parent");
-        return;
-      }
+      // Backend chưa có liên kết / lỗi -> Bắt buộc vào Onboarding
+      router.push("/onboarding/parent");
+      return;
     }
   }
 
