@@ -34,35 +34,156 @@ export const DAY_LABELS: Record<number, string> = {
   7: "Chủ Nhật",
 };
 
+export type SlotPresetCategory = "ALL" | "EVENING" | "AFTERNOON" | "MORNING" | "WEEKEND";
+
 export interface SlotPreset {
   id: string;
   label: string;
+  category?: SlotPresetCategory;
   slots: AvailabilitySlotLike[];
 }
 
+export interface CommonTimeBlock {
+  id: string;
+  label: string;
+  startTime: string; // e.g. "08:00:00"
+  endTime: string;   // e.g. "10:00:00"
+}
+
+export const COMMON_TIME_BLOCKS: CommonTimeBlock[] = [
+  { id: "morning-1", label: "08:00 – 10:00", startTime: "08:00:00", endTime: "10:00:00" },
+  { id: "morning-2", label: "09:30 – 11:30", startTime: "09:30:00", endTime: "11:30:00" },
+  { id: "afternoon-1", label: "14:00 – 16:00", startTime: "14:00:00", endTime: "16:00:00" },
+  { id: "afternoon-2", label: "15:30 – 17:30", startTime: "15:30:00", endTime: "17:30:00" },
+  { id: "late-afternoon", label: "17:30 – 19:30", startTime: "17:30:00", endTime: "19:30:00" },
+  { id: "evening-1", label: "18:00 – 20:00", startTime: "18:00:00", endTime: "20:00:00" },
+  { id: "evening-2", label: "19:00 – 21:00", startTime: "19:00:00", endTime: "21:00:00" },
+  { id: "evening-3", label: "19:30 – 21:30", startTime: "19:30:00", endTime: "21:30:00" },
+];
+
 export const SLOT_PRESETS: SlotPreset[] = [
-  {
-    id: "tue-fri-evening",
-    label: "Tối Thứ 3 & Thứ 6 · 19:00–21:00",
-    slots: [
-      { dayOfWeek: 2, startTime: "19:00:00", endTime: "21:00:00" },
-      { dayOfWeek: 5, startTime: "19:00:00", endTime: "21:00:00" },
-    ],
-  },
+  // --- BUỔI TỐI ---
   {
     id: "mon-wed-evening",
     label: "Tối Thứ 2 & Thứ 4 · 19:00–21:00",
+    category: "EVENING",
     slots: [
       { dayOfWeek: 1, startTime: "19:00:00", endTime: "21:00:00" },
       { dayOfWeek: 3, startTime: "19:00:00", endTime: "21:00:00" },
     ],
   },
   {
+    id: "tue-fri-evening",
+    label: "Tối Thứ 3 & Thứ 6 · 19:00–21:00",
+    category: "EVENING",
+    slots: [
+      { dayOfWeek: 2, startTime: "19:00:00", endTime: "21:00:00" },
+      { dayOfWeek: 5, startTime: "19:00:00", endTime: "21:00:00" },
+    ],
+  },
+  {
+    id: "tue-thu-evening",
+    label: "Tối Thứ 3 & Thứ 5 · 19:00–21:00",
+    category: "EVENING",
+    slots: [
+      { dayOfWeek: 2, startTime: "19:00:00", endTime: "21:00:00" },
+      { dayOfWeek: 4, startTime: "19:00:00", endTime: "21:00:00" },
+    ],
+  },
+  {
+    id: "wed-fri-evening",
+    label: "Tối Thứ 4 & Thứ 6 · 19:00–21:00",
+    category: "EVENING",
+    slots: [
+      { dayOfWeek: 3, startTime: "19:00:00", endTime: "21:00:00" },
+      { dayOfWeek: 5, startTime: "19:00:00", endTime: "21:00:00" },
+    ],
+  },
+  {
+    id: "mon-wed-fri-evening",
+    label: "Tối Thứ 2, 4, 6 · 19:30–21:30",
+    category: "EVENING",
+    slots: [
+      { dayOfWeek: 1, startTime: "19:30:00", endTime: "21:30:00" },
+      { dayOfWeek: 3, startTime: "19:30:00", endTime: "21:30:00" },
+      { dayOfWeek: 5, startTime: "19:30:00", endTime: "21:30:00" },
+    ],
+  },
+  {
+    id: "weekend-evening",
+    label: "Tối Thứ 7 & Chủ Nhật · 19:00–21:00",
+    category: "WEEKEND",
+    slots: [
+      { dayOfWeek: 6, startTime: "19:00:00", endTime: "21:00:00" },
+      { dayOfWeek: 7, startTime: "19:00:00", endTime: "21:00:00" },
+    ],
+  },
+
+  // --- BUỔI CHIỀU ---
+  {
+    id: "mon-wed-afternoon",
+    label: "Chiều Thứ 2 & Thứ 4 · 14:00–16:00",
+    category: "AFTERNOON",
+    slots: [
+      { dayOfWeek: 1, startTime: "14:00:00", endTime: "16:00:00" },
+      { dayOfWeek: 3, startTime: "14:00:00", endTime: "16:00:00" },
+    ],
+  },
+  {
+    id: "tue-thu-afternoon",
+    label: "Chiều Thứ 3 & Thứ 5 · 14:00–16:00",
+    category: "AFTERNOON",
+    slots: [
+      { dayOfWeek: 2, startTime: "14:00:00", endTime: "16:00:00" },
+      { dayOfWeek: 4, startTime: "14:00:00", endTime: "16:00:00" },
+    ],
+  },
+  {
+    id: "late-afternoon-mwf",
+    label: "Cuối chiều Thứ 2, 4, 6 · 17:30–19:30",
+    category: "AFTERNOON",
+    slots: [
+      { dayOfWeek: 1, startTime: "17:30:00", endTime: "19:30:00" },
+      { dayOfWeek: 3, startTime: "17:30:00", endTime: "19:30:00" },
+      { dayOfWeek: 5, startTime: "17:30:00", endTime: "19:30:00" },
+    ],
+  },
+  {
+    id: "weekend-afternoon",
+    label: "Chiều Thứ 7 & Chủ Nhật · 14:00–16:00",
+    category: "WEEKEND",
+    slots: [
+      { dayOfWeek: 6, startTime: "14:00:00", endTime: "16:00:00" },
+      { dayOfWeek: 7, startTime: "14:00:00", endTime: "16:00:00" },
+    ],
+  },
+
+  // --- BUỔI SÁNG ---
+  {
     id: "weekend-morning",
     label: "Sáng Thứ 7 & Chủ Nhật · 08:00–10:00",
+    category: "WEEKEND",
     slots: [
       { dayOfWeek: 6, startTime: "08:00:00", endTime: "10:00:00" },
       { dayOfWeek: 7, startTime: "08:00:00", endTime: "10:00:00" },
+    ],
+  },
+  {
+    id: "weekend-morning-late",
+    label: "Sáng Thứ 7 & Chủ Nhật · 09:30–11:30",
+    category: "WEEKEND",
+    slots: [
+      { dayOfWeek: 6, startTime: "09:30:00", endTime: "11:30:00" },
+      { dayOfWeek: 7, startTime: "09:30:00", endTime: "11:30:00" },
+    ],
+  },
+  {
+    id: "tue-thu-morning",
+    label: "Sáng Thứ 3 & Thứ 5 · 08:00–10:00",
+    category: "MORNING",
+    slots: [
+      { dayOfWeek: 2, startTime: "08:00:00", endTime: "10:00:00" },
+      { dayOfWeek: 4, startTime: "08:00:00", endTime: "10:00:00" },
     ],
   },
 ];

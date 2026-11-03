@@ -12,7 +12,7 @@ import {
   type TeachingMode,
   type WeeklySlot,
 } from "@/services/learningNeeds";
-import { SLOT_PRESETS } from "@/shared/lib/dateTime";
+import { LearningNeedSlotPicker } from "./LearningNeedSlotPicker";
 import {
   GIFTED_TAG_CODE,
   MODE_LABELS,
@@ -42,11 +42,6 @@ export interface LearningNeedFormProps {
 }
 
 type FieldErrors = Record<string, string>;
-
-function sameSlot(a: WeeklySlot, b: WeeklySlot) {
-  return a.dayOfWeek === b.dayOfWeek && a.startTime.slice(0, 5) === b.startTime.slice(0, 5)
-    && a.endTime.slice(0, 5) === b.endTime.slice(0, 5);
-}
 
 export function LearningNeedForm({
   catalog,
@@ -99,14 +94,6 @@ export function LearningNeedForm({
   const pickTrack = (value: number) => {
     setTrackId(value);
     if (!goalTagsFor(catalog, levelId, subjectId, value).some((t) => t.goalTagId === goalTagId)) setGoalTagId(null);
-  };
-
-  const togglePreset = (preset: (typeof SLOT_PRESETS)[number]) => {
-    const presetSlots = preset.slots.map((s) => ({ ...s, startTime: s.startTime.slice(0, 5), endTime: s.endTime.slice(0, 5) }));
-    const active = presetSlots.every((ps) => slots.some((s) => sameSlot(s, ps)));
-    setSlots((prev) => active
-      ? prev.filter((s) => !presetSlots.some((ps) => sameSlot(s, ps)))
-      : [...prev, ...presetSlots.filter((ps) => !prev.some((s) => sameSlot(s, ps)))]);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -325,25 +312,11 @@ export function LearningNeedForm({
             <FieldError message={errors.budgetMaxPerSession} />
           </label>
 
-          <fieldset className="space-y-2">
-            <legend className="text-xs font-bold text-neutral-700 dark:text-stone-200">Khung giờ có thể học</legend>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {SLOT_PRESETS.map((preset) => {
-                const active = preset.slots.every((ps) => slots.some((s) => sameSlot(s, ps)));
-                return (
-                  <button key={preset.id} type="button" aria-pressed={active} onClick={() => togglePreset(preset)}
-                    className={`text-left px-3 py-2 rounded-xl border text-xs font-medium transition-colors ${
-                      active
-                        ? "border-[#006DCC] dark:border-sky-400 bg-sky-50/70 dark:bg-sky-950/60 text-[#006DCC] dark:text-sky-300 shadow-2xs"
-                        : "border-stone-200 dark:border-stone-700/80 bg-white dark:bg-stone-800/80 text-neutral-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700/80"
-                    }`}>
-                    {preset.label}
-                  </button>
-                );
-              })}
-            </div>
-            <FieldError message={errors.availabilitySlots} />
-          </fieldset>
+          <LearningNeedSlotPicker
+            slots={slots}
+            onChange={setSlots}
+            error={errors.availabilitySlots}
+          />
         </div>
       )}
 
