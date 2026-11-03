@@ -161,7 +161,7 @@ describe("TutorDashboardView Component", () => {
       reviewCount: 15,
     } as any);
 
-    vi.spyOn(connectionApi, "getTutorClasses").mockResolvedValue(mockClasses);
+    vi.spyOn(connectionApi, "getTutorClasses").mockResolvedValue([]);
     vi.spyOn(connectionApi, "getPendingRequests").mockResolvedValue([]);
     vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({
       success: true,

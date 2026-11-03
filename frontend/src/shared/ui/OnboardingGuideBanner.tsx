@@ -16,12 +16,34 @@ interface OnboardingGuideBannerProps {
   role: "STUDENT" | "TUTOR" | "PARENT" | "ADMIN";
   steps: OnboardingGuideStep[];
   userName: string;
+  autoHideOnComplete?: boolean;
 }
 
-export function OnboardingGuideBanner({ role, steps, userName }: OnboardingGuideBannerProps) {
+export function OnboardingGuideBanner({
+  role,
+  steps,
+  userName,
+  autoHideOnComplete = true,
+}: OnboardingGuideBannerProps) {
+  const storageKey = `edufit_onboarding_guide_dismissed_${role.toLowerCase()}`;
   const [closed, setClosed] = useState(false);
 
-  if (closed) return null;
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem(storageKey) === "true") {
+      setClosed(true);
+    }
+  }, [storageKey]);
+
+  const allCompleted = steps.length > 0 && steps.every((s) => s.completed);
+
+  if (closed || (autoHideOnComplete && allCompleted)) return null;
+
+  const handleClose = () => {
+    setClosed(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(storageKey, "true");
+    }
+  };
 
   const roleMeta = {
     STUDENT: {
@@ -68,7 +90,7 @@ export function OnboardingGuideBanner({ role, steps, userName }: OnboardingGuide
     >
       <button
         type="button"
-        onClick={() => setClosed(true)}
+        onClick={handleClose}
         className="absolute top-4 right-4 p-1.5 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-white/60 transition-colors cursor-pointer"
         title="Đóng hướng dẫn"
       >
