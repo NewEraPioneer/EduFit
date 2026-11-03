@@ -32,7 +32,7 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     expect(hasSubmit).toBe(true);
   });
 
-  it('TC_UI_02: Điều hướng mượt mà sang màn hình Đăng ký tài khoản và hiển thị chọn 3 vai trò', async () => {
+  it('TC_UI_02: Điều hướng mượt mà sang màn hình Đăng ký tài khoản và hiển thị chọn các vai trò', async () => {
     await authPage.navigateLogin();
     await authPage.clickGoToRegister();
 
@@ -64,11 +64,8 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     const invalidCase = testData.invalidCredentials[0];
 
     await authPage.login(invalidCase.email, invalidCase.password);
-
-    // Chụp ảnh màn hình lưu bằng chứng báo cáo UI test
     await authPage.takeScreenshot('TC_UI_04_invalid_credentials_alert');
 
-    // Chờ thông báo lỗi hoặc alert xuất hiện
     const errorMsg = await authPage.getGeneralErrorMessage();
     expect(errorMsg.length).toBeGreaterThan(0);
   });
@@ -128,6 +125,19 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     expect(currentUrl).toContain('/student');
   });
 
+  it('TC_UI_09: Phụ huynh (Parent) đăng nhập thành công điều hướng vào đúng khu vực phụ huynh', async () => {
+    await authPage.clearSession();
+    await authPage.navigateLogin();
+    const parent = testData.validAccounts.find((a) => a.role === 'parent')!;
+
+    await authPage.login(parent.email, parent.password);
+    await authPage.waitForUrlContains('/parent');
+    await authPage.takeScreenshot('TC_UI_09_parent_login');
+
+    const currentUrl = await authPage.getCurrentUrl();
+    expect(currentUrl).toContain('/parent');
+  });
+
   it('TC_UI_10: Khách vãng lai chưa đăng nhập truy cập /admin/dashboard bị chặn và chuyển về /login', async () => {
     await authPage.clearSession();
     await authPage.navigateTo('/admin/dashboard');
@@ -146,12 +156,19 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     await authPage.login(student.email, student.password);
     await authPage.waitForUrlContains('/student');
 
-    // Thử truy cập trang Admin Dashboard
     await authPage.navigateTo('/admin/dashboard');
     await authPage.waitForUrlContains('/student/dashboard');
     await authPage.takeScreenshot('TC_UI_11_student_blocked');
 
     const currentUrl = await authPage.getCurrentUrl();
     expect(currentUrl).toContain('/student/dashboard');
+  });
+
+  it('TC_UI_12: Đăng xuất người dùng thành công chuyển hướng an toàn về trang đăng nhập', async () => {
+    await authPage.performLogout();
+    await authPage.takeScreenshot('TC_UI_12_logout_success');
+
+    const currentUrl = await authPage.getCurrentUrl();
+    expect(currentUrl).toContain('/login');
   });
 });

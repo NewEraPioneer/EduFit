@@ -23,6 +23,10 @@ export class AuthPage extends BasePage {
   private forgotEmailInput = By.css('input[type="email"]');
   private forgotSubmitButton = By.css('button[type="submit"]');
 
+  // --- Locators Đăng xuất & Header Profile ---
+  private profileMenuBtn = By.xpath("//button[contains(@aria-label, 'Hồ sơ') or contains(@class, 'rounded-full') or .//img]");
+  private logoutBtn = By.xpath("//button[contains(., 'Đăng xuất')] | //a[contains(., 'Đăng xuất')]");
+
   constructor(driver: WebDriver) {
     super(driver);
   }
@@ -108,5 +112,24 @@ export class AuthPage extends BasePage {
   async requestPasswordReset(email: string): Promise<void> {
     await this.fill(this.forgotEmailInput, email);
     await this.click(this.forgotSubmitButton);
+  }
+
+  // === Actions Đăng xuất (Logout Actions) ===
+
+  async performLogout(): Promise<void> {
+    try {
+      if (await this.isElementVisible(this.profileMenuBtn, 2000)) {
+        await this.click(this.profileMenuBtn);
+      }
+      if (await this.isElementVisible(this.logoutBtn, 2000)) {
+        await this.click(this.logoutBtn);
+      } else {
+        await this.clearSession();
+        await this.navigateLogin();
+      }
+    } catch {
+      await this.clearSession();
+      await this.navigateLogin();
+    }
   }
 }
