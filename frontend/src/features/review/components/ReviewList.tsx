@@ -41,6 +41,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
         return (
           <div
             key={review.reviewId}
+            data-testid="review-item"
             className="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-sm space-y-3"
           >
             <div className="flex items-start justify-between gap-4">
@@ -50,7 +51,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-neutral-900">
+                    <span data-testid="reviewer-name" className="text-sm font-bold text-neutral-900">
                       {review.reviewerName || "Người dùng"}
                     </span>
                     <span
@@ -64,7 +65,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="flex items-center gap-0.5 text-amber-500">
+                    <div role="img" aria-label={`${review.rating} trên 5 sao`} className="flex items-center gap-0.5 text-amber-500">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
@@ -101,7 +102,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
               )}
             </div>
 
-            <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed whitespace-pre-line pl-13">
+            <p data-testid="review-comment" className="text-xs sm:text-sm text-neutral-700 leading-relaxed whitespace-pre-line pl-13">
               {review.comment}
             </p>
           </div>

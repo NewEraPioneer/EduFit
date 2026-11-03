@@ -121,8 +121,8 @@ export async function fetchApi<T = unknown>(
       if (response.status === 403) {
         clearCsrfCache();
       }
-      // Global 401 Interceptor: Điều hướng về /login khi hết hạn phiên, tránh infinite loop nếu đang ở /login
-      if (response.status === 401 && typeof window !== "undefined") {
+      // Global 401 Interceptor: Điều hướng về /login khi hết hạn phiên (ngoại trừ /auth/me phục vụ session probe cho guest), tránh infinite loop nếu đang ở /login
+      if (response.status === 401 && typeof window !== "undefined" && !endpoint.includes("/auth/me")) {
         const pathname = window.location.pathname || "";
         if (pathname !== "/login" && !pathname.startsWith("/login")) {
           const currentPath = pathname + (window.location.search || "");

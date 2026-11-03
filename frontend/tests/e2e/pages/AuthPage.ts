@@ -1,4 +1,4 @@
-import { WebDriver, By, until } from 'selenium-webdriver';
+import { WebDriver, By } from 'selenium-webdriver';
 import { BasePage } from './BasePage';
 
 export class AuthPage extends BasePage {
@@ -69,6 +69,19 @@ export class AuthPage extends BasePage {
 
   async isLoginButtonVisible(): Promise<boolean> {
     return await this.isElementVisible(this.loginSubmitButton);
+  }
+
+  async submitLogin(): Promise<void> {
+    await this.click(this.loginSubmitButton);
+  }
+
+  async getEmailInputValidationMessage(): Promise<string> {
+    const element = await this.waitForVisible(this.emailInput);
+    return (await element.getAttribute('validationMessage')) ?? '';
+  }
+
+  async isFieldValidationErrorVisible(): Promise<boolean> {
+    return (await this.isElementVisible(this.emailFieldError)) || (await this.getEmailInputValidationMessage()).length > 0;
   }
 
   // === Actions Trang Đăng ký (Register Actions) ===

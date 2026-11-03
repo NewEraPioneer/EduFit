@@ -27,6 +27,28 @@ export class BasePage {
   }
 
   /**
+   * Chờ URL trên thanh địa chỉ chứa chuỗi tương ứng.
+   */
+  async waitForUrlContains(subUrl: string, timeoutMs = this.timeoutMs): Promise<boolean> {
+    return await this.driver.wait(until.urlContains(subUrl), timeoutMs);
+  }
+
+  /**
+   * Xóa sạch cookies và storage để reset phiên người dùng giữa các test.
+   */
+  async clearSession(): Promise<void> {
+    try {
+      await this.driver.manage().deleteAllCookies();
+      await this.driver.executeScript(`
+        try { localStorage.clear(); } catch(e){}
+        try { sessionStorage.clear(); } catch(e){}
+      `);
+    } catch {
+      // Ignore context errors if on empty page
+    }
+  }
+
+  /**
    * Chờ phần tử xuất hiện trong DOM và hiển thị (visible).
    */
   async waitForVisible(locator: By, timeoutMs = this.timeoutMs): Promise<WebElement> {

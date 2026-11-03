@@ -1,0 +1,87 @@
+name: Admin UI E2E (#48)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - .github/workflows/admin-ui-e2e.yml
+      - frontend/tests/e2e/pages/AdminManagementPage.ts
+      - frontend/tests/e2e/specs/10-admin-management-flow.e2e.test.ts
+      - frontend/tests/e2e/resources/admin-*
+      - frontend/src/features/admin/**
+
+permissions:
+  contents: read
+
+jobs:
+  admin-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: edufit_e2e_e
+          POSTGRES_USER: edufit
+          POSTGRES_PASSWORD: edufit-e2e-local-only
+        ports: [15433:5432]
+        options: >-
+          --health-cmd "pg_isready -U edufit -d edufit_e2e_e"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DB_URL: jdbc:postgresql://localhost:15433/edufit_e2e_e
+      DB_USERNAME: edufit
+      DB_PASSWORD: edufit-e2e-local-only
+      SPRING_PROFILES_ACTIVE: dev
+      AI_PROVIDER: stub
+      SERVER_PORT: 18080
+      BACKEND_URL: http://127.0.0.1:18080
+      E2E_HEADLESS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Build real backend
+        working-directory: backend
+        run: bash mvnw -B package -Dmaven.test.skip=true
+      - name: Start application and seed isolated audit log
+        shell: bash
+        run: |
+          mkdir -p frontend/tests/e2e/reports
+          java -jar backend/app/target/app-1.0-SNAPSHOT.jar > frontend/tests/e2e/reports/backend.log 2>&1 &
+          ready=false
+          for attempt in {1..90}; do
+            if curl -fsS http://127.0.0.1:18080/actuator/health; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+          PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 15433 -U edufit -d edufit_e2e_e -v ON_ERROR_STOP=1 -f frontend/tests/e2e/resources/admin-seed.sql
+          (cd frontend && npm run dev -- --hostname 127.0.0.1 > tests/e2e/reports/frontend.log 2>&1) &
+          ready=false
+          for attempt in {1..60}; do
+            if curl -fsS http://localhost:3000/login > /dev/null; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+      - name: Verify three admin UI cases
+        working-directory: frontend
+        run: npx vitest run tests/e2e/specs/10-admin-management-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts --reporter=default --reporter=json --outputFile=tests/e2e/reports/admin-results.json
+      - name: Upload screenshots and execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-48-admin-ui-evidence
+          path: frontend/tests/e2e/reports/
+          retention-days: 14

@@ -1,493 +1,460 @@
-# Hướng Dẫn Từng Bước Triển Khai Kiểm Thử Tích Hợp Tự Động Toàn Hệ Thống EduFit
-## (Comprehensive Step-by-Step Full-Stack E2E Verification Guide & Execution Runbook)
+# Hướng Dẫn Triển Khai Kiểm Thử E2E Toàn Hệ Thống EduFit
 
-> **Mã tài liệu:** EDUFIT-GUIDE-E2E-SYSTEM-VERIFICATION  
-> **Phiên bản:** 4.0 (Đồng bộ Selenium WebDriver TypeScript, Page Object Model tại `frontend/tests/e2e` kết hợp Backend API & CSDL Docker PostgreSQL 17)  
-> **Nhánh phát triển Git:** `test/system-e2e-verification` (tách độc lập từ nhánh `develop`)  
-> **Căn cứ tài liệu kỹ thuật & nghiệp vụ:**
-> - [SRS Edufit.docx](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/docs/SRS%20Edufit.docx)
-> - [edufit_master_test_plan.md](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/docs/edufit_master_test_plan.md)
-> - [payment-flow-and-rules.md](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/docs/payment/payment-flow-and-rules.md)
-> - [api-contract.md (Payment)](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/docs/payment/api-contract.md)
-> - [edufit_work_breakdown_plan.md (Nhiệm vụ 4.4)](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/docs/edufit_work_breakdown_plan.md)
+> **Mã tài liệu:** EDUFIT-GUIDE-E2E-SYSTEM-VERIFICATION
+> **Phiên bản:** 5.0 (hiệu chỉnh theo mã nguồn thực tế, 02/11/2026)
+> **Nhánh phát triển Git:** `test/system-e2e-verification` (tách độc lập từ `develop`, làm trong git worktree riêng)
+> **Căn cứ:** [SRS Edufit.docx](SRS%20Edufit.docx) · [edufit_master_test_plan.md](../edufit_master_test_plan.md) · [payment-flow-and-rules.md](../payment/payment-flow-and-rules.md) · [api-contract.md (Payment)](../payment/api-contract.md)
 
----
-
-## TRIẾT LÝ THIẾT KẾ: KIỂM THỬ E2E HỢP NHẤT TOÀN DIỆN (FULL-STACK UNIFIED E2E)
-
-Kiểm thử End-to-End (E2E) thực sự của hệ thống không thể tách rời Frontend một nơi, Backend một nẻo. Một hành trình người dùng hoàn chỉnh luôn đi xuyên suốt 3 tầng:
-
-```
-[Trình duyệt Google Chrome (Selenium WebDriver TypeScript UI)]
-               │
-               ▼ (HTTP REST / Session Cookie / JSON / Multipart)
-[Hệ thống Backend (Spring Boot 4.1.1 / Java 21 / Hibernate 7 / Modular Monolith / Apache Tika)]
-               │
-               ▼ (SQL / JDBC Hikari / Flyway / GiST / ACID Transactions)
-[Cơ sở Dữ liệu Thực tế (Docker PostgreSQL 17 - Ubuntu Noble)]
-```
-
-Tài liệu này hướng dẫn chi tiết từng luồng hành trình người dùng (Journey) theo cấu trúc step-by-step. Trong mỗi luồng, ta kiểm chứng đồng thời cả:
-1. **Trải nghiệm Giao diện Người dùng Thật (Selenium WebDriver UI E2E):** Khởi tạo Chrome điều khiển qua W3C WebDriver Protocol, nhập form, click nút, quan sát Toast/Modal, kiểm tra bôi đỏ validation, điều hướng phân quyền, hỗ trợ chụp ảnh màn hình (Screenshot Artifacts) và bật màn hình trực quan (`headless: false`).
-2. **Chiều Sâu Logic & Tính Toàn Vẹn CSDL (Backend & Database Verification):** Kiểm tra mã lỗi HTTP chuẩn, Session Cookie `HttpOnly`, kiểm tra Magic Bytes file nhị phân, khóa chống trùng lịch GiST, tính nguyên tử All-or-Nothing, xác thực chữ ký số Webhook HMAC-SHA256 trên container Docker PostgreSQL 17 thật.
+> [!IMPORTANT]
+> **Quy ước trạng thái trong tài liệu này** (để không nhầm "đã viết" với "đã chạy"):
+> - **ĐÃ CHẠY**: có test, có kết quả exit code 0 ghi nhận được.
+> - **ĐÃ VIẾT, CHƯA XÁC MINH**: có mã nhưng chưa có bằng chứng chạy lại trên môi trường sạch.
+> - **CHƯA LÀM**: mới là thiết kế.
+>
+> Mọi con số "passed" chỉ được điền từ kết quả chạy thật. Tài liệu bản cũ ghi "22/22 Passed", con số đó **không đúng** và đã bị gỡ.
 
 ---
 
-## MỤC LỤC TỔNG QUAN
+## 0. Phạm vi và hai lớp kiểm thử
 
-- [PHẦN I: THIẾT LẬP NỀN TẢNG KIỂM THỬ TÍCH HỢP TOÀN HỆ THỐNG](#phần-i-thiết-lập-nền-tảng-kiểm-thử-tích-hợp-toàn-hệ-thống)
-  - [Mục 1.1: Bốn Nguyên Tắc Kỹ Thuật Bắt Buộc](#mục-11-bốn-nguyên-tắc-kỹ-thuật-bắt-buộc)
-  - [Mục 1.2: Thiết Lập CSDL Docker Testcontainers Chuẩn Hóa (PostgreSQL 17 Noble)](#mục-12-thiết-lập-csdl-docker-testcontainers-chuẩn-hóa-postgresql-17-noble)
-  - [Mục 1.3: Cài Đặt & Cấu Hình Selenium WebDriver Runner (TypeScript)](#mục-13-cài-đặt--cấu-hình-selenium-webdriver-runner-typescript)
-  - [Mục 1.4: Kiến Trúc Page Object Model (POM) Tại `frontend/tests/e2e/`](#mục-14-kiến-trúc-page-object-model-pom-tại-frontendtestse2e)
-- [PHẦN II: 10 LUỒNG HÀNH TRÌNH E2E TOÀN DIỆN (FULL-STACK UNIFIED JOURNEYS)](#phần-ii-10-luồng-hành-trình-e2e-toàn-diện-full-stack-unified-journeys)
-  - [Mục 2.1: Luồng 01 - Định Danh, Phiên Đăng Nhập, Argon2id & Khóa Brute-Force (AC-01, AC-02)](#mục-21-luồng-01---định-danh-phiên-đăng-nhập-argon2id--khóa-brute-force-ac-01-ac-02)
-  - [Mục 2.2: Luồng 02 - Quét Bằng Cấp Magic Bytes (Apache Tika) & Admin Duyệt KYC (AC-03, AC-04)](#mục-22-luồng-02---quét-bằng-cấp-magic-bytes-apache-tika--admin-duyệt-kyc-ac-03-ac-04)
-  - [Mục 2.3: Luồng 03 - Quản Trị Danh Mục & Thiết Lập Hồ Sơ, Khung Rảnh Tuần (AC-05, AC-06)](#mục-23-luồng-03---quản-trị-danh-mục--thiết-lập-hồ-sơ-khung-rảnh-tuần-ac-05-ac-06)
-  - [Mục 2.4: Luồng 04 - Khám Phá Công Khai, Tìm Kiếm Đa Tiêu Chí & Gợi Ý AI Match (AC-07)](#mục-24-luồng-04---khám-phá-công-khai-tìm-kiếm-đa-tiêu-chí--gợi-ý-ai-match-ac-07)
-  - [Mục 2.5: Luồng 05 - Kết Nối Gia Đình Phụ Huynh - Học Sinh & Rate Limiting (AC-08, AC-09)](#mục-25-luồng-05---kết-nối-gia-đình-phụ-huynh---học-sinh--rate-limiting-ac-08-ac-09)
-  - [Mục 2.6: Luồng 06 - Đề Nghị Kèm Cặp Trực Tiếp / Đại Diện & Tạo Lớp Học (AC-10, AC-11)](#mục-26-luồng-06---đề-nghị-kèm-cặp-trực-tiếp--đại-diện--tạo-lớp-học-ac-10-ac-11)
-  - [Mục 2.7: Luồng 07 - Lập Lịch Học, Khóa Chống Trùng Giờ GiST & Batch All-or-Nothing (AC-12, AC-13)](#mục-27-luồng-07---lập-lịch-học-khóa-chống-trùng-giờ-gist--batch-all-or-nothing-ac-12-ac-13)
-  - [Mục 2.8: Luồng 08 - Đổi Lịch Đột Xuất, Hủy Muộn & Vòng Đời Điểm Danh Bất Biến (AC-14, AC-15)](#mục-28-luồng-08---đổi-lịch-đột-xuất-hủy-muộn--vòng-đời-điểm-danh-bất-biến-ac-14-ac-15)
-  - [Mục 2.9: Luồng 09 - Ví Học Phí, Ký Quỹ Escrow, Quyết Toán Tự Động & Rút Tiền Napas247 (AC-19, AC-20, AC-21, AC-22)](#mục-29-luồng-09---ví-học-phí-ký-quỹ-escrow-quyết-toán-tự-động--rút-tiền-napas247-ac-19-ac-20-ac-21-ac-22)
-  - [Mục 2.10: Luồng 10 - Đánh Giá Gia Sư Độc Bản, Ma Trận Phân Quyền 72 Ô & Kiểm Toán Admin (AC-16, AC-17, AC-18)](#mục-210-luồng-10---đánh-giá-gia-sư-độc-bản-ma-trận-phân-quyền-72-ô--kiểm-toán-admin-ac-16-ac-17-ac-18)
-- [PHẦN III: HƯỚNG DẪN THỰC THI KIỂM CHỨNG TRỰC TIẾP TRÊN MÁY TÍNH](#phần-iii-hướng-dẫn-thực-thi-kiểm-chứng-trực-tiếp-trên-máy-tính)
-  - [Mục 3.1: Chạy Kiểm Thử Backend & Quan Sát Docker PostgreSQL 17](#mục-31-chạy-kiểm-thử-backend--quan-sát-docker-postgresql-17)
-  - [Mục 3.2: Chạy Selenium Trình Duyệt Bật Trực Quan (Headed / Slowmo)](#mục-32-chạy-selenium-trình-duyệt-bật-trực-quan-headed--slowmo)
-  - [Mục 3.3: Báo Cáo Kết Quả, Bằng Chứng Ảnh Chụp Màn Hình (Screenshots)](#mục-33-báo-cáo-kết-quả-bằng-chứng-ảnh-chụp-màn-hình-screenshots)
-- [PHẦN IV: BẢNG NHẬT KÝ TIẾN ĐỘ & MA TRẬN ĐỐI CHIẾU 22 TIÊU CHÍ NGHIỆM THU](#phần-iv-bảng-nhật-ký-tiến-độ--ma-trận-đối-chiếu-22-tiêu-chí-nghiệm-thu)
-- [PHẦN V: QUY CHUẨN LẬP BÁO CÁO KIỂM THỬ GIAO DIỆN WEB TỰ ĐỘNG (AUTOMATED WEB UI TESTING REPORT)](#phần-v-quy-chuẩn-lập-báo-cáo-kiểm-thử-giao-diện-web-tự-động-automated-web-ui-testing-report)
+Hệ thống kiểm thử gồm hai lớp độc lập, mỗi luồng nghiệp vụ được gán rõ cho lớp phù hợp:
+
+| Lớp | Công cụ | Chạy gì | Dùng cho |
+|---|---|---|---|
+| **A. Backend E2E** | JUnit 5 + Testcontainers `postgres:17` + MockMvc/HTTP | API, ràng buộc CSDL (GiST, rollback, idempotent), phân quyền | Chiều sâu logic và toàn vẹn dữ liệu |
+| **B. Automated Web UI Testing** | Selenium WebDriver 4 (TypeScript) + Vitest + Page Object Model | Thao tác trên Chrome thật qua giao diện | Báo cáo học phần / nghiệm thu giao diện |
+
+Báo cáo giai đoạn này **chỉ trình bày Lớp B**, ở mức: mở trang, kiểm tra thành phần hiển thị, thực hiện thao tác chính, chụp ảnh bằng chứng. Chưa đi sâu từng bước nghiệp vụ bên trong.
+
+**Không tự động hóa qua giao diện** (kiểm bằng Lớp A hoặc kiểm tay, phải nêu rõ trong báo cáo):
+- Ma trận phân quyền 72 ô và IDOR (AC-18): bản chất là kiểm thử API.
+- Webhook PayOS và chữ ký HMAC (AC-19): không có giao diện.
+- Quét/thanh toán mã QR VietQR thật: không thể tự động hóa bằng Selenium.
+- Quyết toán sau 24 giờ (AC-21), hủy sát giờ (<24h) và "buổi học đến giờ": cần can thiệp đồng hồ hoặc seed dữ liệu, thuộc Lớp A.
 
 ---
 
-## PHẦN I: THIẾT LẬP NỀN TẢNG KIỂM THỬ TÍCH HỢP TOÀN HỆ THỐNG
+## PHẦN I: NỀN TẢNG
 
-### Mục 1.1: Bốn Nguyên Tắc Kỹ Thuật Bắt Buộc
+### 1.1. Bốn nguyên tắc bắt buộc
 
-1. **Nguyên tắc 1: Kiểm chứng tự động khách quan (Deterministic Machine Verification):**
-   - Mọi kịch bản phải được xác nhận bằng máy qua lệnh chạy trả về Exit Code 0.
-   - Không dựa vào giả định lý thuyết hoặc xem code bằng mắt.
-2. **Nguyên tắc 2: Chống gãy kiểm thử khi giao diện thay đổi (Resilient UI Locators):**
-   - Chỉ sử dụng W3C Semantic Locators (`getByRole`, `getByLabel`, `getByPlaceholder`).
-   - Tuyệt đối không dùng CSS class dễ vỡ (`.bg-amber-500`, `.p-6`) hoặc XPath tuyệt đối.
-3. **Nguyên tắc 3: Mô phỏng người dùng thật 100% (Production User Simulation):**
-   - Mọi thao tác đều thực hiện qua nhập bàn phím ảo, chọn file từ ổ đĩa và click nút chính thức.
-   - Tuyệt đối không tương tác với các nút tiện ích dev (như nút Quick Login pills).
-4. **Nguyên tắc 4: Tuyệt đối không Hardcode trong Kiểm thử (Zero Hardcoding):**
-   - Toàn bộ dữ liệu tĩnh nhập tay phía Backend lưu trữ tại `backend/app/src/test/resources/data/*.csv` (`seed-accounts.csv`, `sample-credentials.csv`).
-   - Toàn bộ dữ liệu tĩnh nhập tay phía Frontend lưu trữ tại `frontend/e2e/resources/*.json` (`seed-accounts.json`, `test-credentials.json`).
-   - Dữ liệu sinh động dùng hàm generator (`generateUniqueTestUser()`) để chống đụng độ CSDL khi chạy lặp lại.
+1. **Kiểm chứng bằng máy**: tác vụ hoàn tất khi lệnh chạy trả về exit code 0, không dựa vào việc đọc mã bằng mắt.
+2. **Locator bền vững cho Selenium**: ưu tiên `data-testid`, `id`, `name`, role/`aria-label`; tránh class Tailwind (`.bg-rose-50`, `.p-6`) và XPath tuyệt đối. Hiện các Page Object còn dùng XPath `contains(., 'Nộp hồ sơ')` và `.badge`, cần chuyển dần sang `data-testid` (xem 1.4).
+3. **Mô phỏng người dùng thật**: thao tác qua nhập liệu và click chính thức, không dùng các nút Quick Login dành cho dev.
+4. **Không hardcode**: dữ liệu tĩnh nằm trong `frontend/tests/e2e/resources/*.json` (Frontend) và `backend/app/src/test/resources/data/*.csv` (Backend); dữ liệu sinh động dùng hàm generator để chạy lặp không đụng độ.
 
----
+### 1.2. CSDL cho Lớp A — **ĐÃ CHẠY** (28/10/2026)
 
-### Mục 1.2: Thiết Lập CSDL Docker Testcontainers Chuẩn Hóa (PostgreSQL 17 Noble)
+Chuẩn hóa `postgres:17` (Ubuntu Noble), đồng bộ với `compose.yaml`, múi giờ `Asia/Ho_Chi_Minh`. Cấu hình tại [`SystemLifecycleCrossRoleE2ETest.java`](../../backend/app/src/test/java/vn/edufit/e2e/SystemLifecycleCrossRoleE2ETest.java).
 
-> [!NOTE]
-> **Checkpoint:** **ĐÃ HOÀN TẤT** (28/10/2026 - Testcontainers Exit Code 0)
-> - Đã chuẩn hóa duy nhất trên `postgres:17` (Ubuntu 24.04 Noble glibc) đồng bộ 100% với `compose.yaml`.
-> - Đã thiết lập cấu hình múi giờ IANA `Asia/Ho_Chi_Minh` xử lý triệt để lỗi handshake múi giờ trên môi trường Windows.
-
-- **Vị trí cấu hình:** [`backend/app/src/test/java/vn/edufit/e2e/SystemLifecycleCrossRoleE2ETest.java`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/backend/app/src/test/java/vn/edufit/e2e/SystemLifecycleCrossRoleE2ETest.java)
-- **Cấu hình container chuẩn trong Java 21:**
 ```java
-static {
-  System.setProperty("user.timezone", "Asia/Ho_Chi_Minh");
-  java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
-}
+static { System.setProperty("user.timezone", "Asia/Ho_Chi_Minh");
+         java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh")); }
 
 @Container
 static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
-    .withDatabaseName("edufit_e2e")
-    .withUsername("edufit")
-    .withPassword("secret")
+    .withDatabaseName("edufit_e2e").withUsername("edufit").withPassword("secret")
     .withEnv("TZ", "Asia/Ho_Chi_Minh");
 ```
 
+### 1.3. Selenium runner (Lớp B) — **ĐÃ VIẾT, CHƯA XÁC MINH**
+
+- Thư mục: `frontend/tests/e2e/`. Lệnh chạy: `npm run test:e2e` (Vitest, cấu hình `tests/e2e/vitest.e2e.config.ts`, chạy tuần tự `fileParallelism: false`, timeout 60 s).
+- Cấu hình [`selenium.config.ts`](../../frontend/tests/e2e/config/selenium.config.ts): `E2E_BASE_URL` (mặc định `http://localhost:3000`), `E2E_BROWSER` (mặc định `chrome`), `E2E_HEADLESS`, explicit wait 15 s. Ảnh lưu ở `frontend/tests/e2e/reports/screenshots/`.
+- Selenium Manager (đi kèm Selenium 4.6+) tự quản lý chromedriver.
+
+> [!WARNING]
+> **Tồn đọng cần xử lý trước khi chạy ở máy khác:**
+> 1. `selenium-webdriver` và `@types/selenium-webdriver` **chưa có trong `frontend/package.json`** (chỉ có `vitest`); gói đang nằm trong một `node_modules` ở thư mục gốc repo, không có `package.json` đi kèm. Phải thêm vào `frontend/package.json` và xóa `node_modules` thừa ở gốc.
+> 2. Thư mục `frontend/tests/e2e/reports/` chưa được `.gitignore` (đang hiện là untracked).
+> 3. Cờ headless hiện là `E2E_HEADLESS === 'true' || CI === 'true'`; mục 3.2 hướng dẫn bật trực quan bằng `E2E_HEADLESS="false"`, đúng với cấu hình này.
+
+### 1.4. Page Object Model — **ĐÃ VIẾT, CHƯA XÁC MINH**
+
+| File | Nội dung | Mức dùng thực tế |
+|---|---|---|
+| `drivers/driver-factory.ts` | Khởi tạo WebDriver | đang dùng |
+| `pages/BasePage.ts` | Explicit wait, toast, modal, chụp ảnh | đang dùng |
+| `pages/AuthPage.ts` | Đăng nhập, đăng ký, quên mật khẩu | đang dùng (spec 01) |
+| `pages/KycPage.ts` | Nộp bằng cấp, hàng đợi duyệt của Admin | **chưa có spec** |
+| `pages/SchedulePage.ts` | Lịch, khung rảnh, điểm danh | **chưa có spec** |
+
+Dữ liệu: `resources/login-data.json` (tài khoản seed `admin@`, `tutor@`, `student@edufit.vn`, các case đăng nhập sai và validation).
+
 ---
 
-### Mục 1.3: Cài Đặt & Cấu Hình Selenium WebDriver Runner (TypeScript)
+## PHẦN II: CÁC LUỒNG HÀNH TRÌNH
+
+Mỗi luồng gồm: nghiệp vụ, **kịch bản Lớp B (UI)** với route **đã đối chiếu `frontend/src/app`**, và **kịch bản Lớp A (Backend)**. Tên nút/nhãn trong kịch bản UI là dự kiến, phải đối chiếu lại với component thực khi viết spec.
+
+### Bảng route chuẩn (đã đối chiếu thư mục `app`)
+
+| Chức năng | Route đúng | Route sai trong bản cũ |
+|---|---|---|
+| Đăng nhập / đăng ký / quên mật khẩu | `/login`, `/register`, `/forgot-password` | — |
+| Gia sư nộp hồ sơ xác minh | `/tutor/verification` | `/tutor/profile` (chỉ là hồ sơ) |
+| Admin duyệt hồ sơ | `/admin/verification-queue` | `/admin/verifications` |
+| Admin danh mục | `/admin/catalogs` | — |
+| Admin quản lý người dùng | `/admin/learners`, `/admin/tutors-management` | `/admin/users` |
+| Admin nhật ký kiểm toán | `/admin/audit-logs` | — |
+| Tìm gia sư công khai | `/tutors`, `/tutors/[id]` | — |
+| Phụ huynh: con cái / lịch / thanh toán | `/parent/children`, `/parent/schedule`, `/parent/billing` | `/parent/family`, `/parent/wallet` |
+| Học sinh: liên kết gia đình / lớp / lịch | `/student/family`, `/student/classes`, `/student/schedule` | — |
+| Gia sư: yêu cầu / lớp / lịch / thu nhập | `/tutor/requests`, `/tutor/classes`, `/tutor/schedule`, `/tutor/earnings` | `/tutor/wallet` |
+| Đánh giá của gia sư | `/tutor/reviews` | — |
+
+---
+
+### Luồng 01 — Xác thực, phiên đăng nhập, khóa brute-force (AC-01, AC-02)
+
+**Nghiệp vụ** (UC1.1–UC1.4, BR-01..05): mật khẩu Argon2id; phiên có trạng thái qua cookie `EDUFIT_SESSION` (`HttpOnly`, `SameSite=Lax`); sai 5 lần liên tiếp khóa 15 phút; đặt lại mật khẩu hủy mọi phiên cũ.
+
+**Lớp A — ĐÃ CHẠY** (28/10/2026): `ac01_statefulSessionAndLockout`, `ac02_passwordResetAndSessionInvalidation`. Có sửa lỗi giá trị cao: thêm `noRollbackFor = InvalidOperationException.class` ở `AuthenticateAccountService` để `failed_attempts` được ghi nhận khi đăng nhập sai.
+- `POST /api/v1/auth/login` hợp lệ → `200` + `Set-Cookie: EDUFIT_SESSION`; `GET /api/v1/auth/me` trả đúng `userId`, `email`, `role`.
+- Sai lần 1–4 → `401 INVALID_CREDENTIALS`; lần 5 → `423 ACCOUNT_LOCKED`, `account.locked_until = now + 15 phút`.
+- Quên mật khẩu → đặt lại → phiên cũ gọi `/auth/me` bị `401`.
+
+**Lớp B — spec `01-auth-flow.e2e.test.ts`: ĐÃ VIẾT, CHƯA XÁC MINH, 4 test case** (bản cũ ghi sai 5 case P01–P05):
+
+| Mã | Nội dung |
+|---|---|
+| TC_UI_01 | `/login` hiển thị ô email, ô mật khẩu, nút đăng nhập |
+| TC_UI_02 | Từ login sang `/register`, form hiển thị, chọn vai trò "Gia sư" |
+| TC_UI_03 | Từ login sang `/forgot-password`, gửi yêu cầu cho `student@edufit.vn` |
+| TC_UI_04 | Đăng nhập sai mật khẩu, hiển thị thông báo lỗi |
+
+Chưa có test cho: validation email sai định dạng (dữ liệu `TC_AUTH_VAL_01` đã có trong JSON nhưng spec chưa dùng), đăng nhập thành công theo vai trò, khóa tài khoản sau 5 lần.
+
+---
+
+### Luồng 02 — Xác minh bằng cấp (Apache Tika) và Admin duyệt KYC (AC-03, AC-04)
+
+**Nghiệp vụ** (UC1.10–UC1.12, BR-06..10): gia sư nộp PDF/JPEG/PNG; Tika kiểm tra Magic Bytes, từ chối file thực thi/shell script đổi đuôi `.pdf`; Admin duyệt/từ chối/thu hồi.
+
+**Lớp A — ĐÃ CHẠY** (28/10/2026): `ac03_…`, `ac04_…`.
+- File giả → `400 INVALID_FILE_TYPE`. PDF `%PDF-1.4` → `201`, `verification_request.status = PENDING`.
+- Admin duyệt (`action: APPROVE`) → `tutor_profile.status = VERIFIED`, cập nhật `verified_at`.
+
+**Lớp B — CHƯA LÀM.** Bản cũ ghi "5 kịch bản Playwright đã chạy `02-kyc-verification.spec.ts`", nhưng **không có file nào như vậy** (cả thư mục `frontend/e2e/` đã không còn). Page Object `KycPage` đã có sẵn để dùng.
+- Gia sư vào `/tutor/verification`, chọn file giả `.sh` đổi đuôi `.pdf`, nộp → thấy thông báo lỗi định dạng.
+- Chọn PDF hợp lệ, nộp → huy hiệu trạng thái đổi sang chờ duyệt.
+- Admin vào `/admin/verification-queue`, mở tab chờ duyệt, phê duyệt hồ sơ → hồ sơ rời hàng đợi.
+- Bấm từ chối mà không nhập lý do → bị chặn (BR-06).
+- Gia sư tải lại → huy hiệu thành "Đã xác minh".
+
+---
+
+### Luồng 03 — Danh mục, hồ sơ, khung rảnh tuần, nhu cầu học (AC-05, AC-06)
+
+**Nghiệp vụ** (UC1.5–UC1.9, BR-11..15): Admin quản lý môn học và cấp lớp; gia sư cập nhật tiểu sử, học phí, gán môn, khung rảnh tuần; học sinh cập nhật khối lớp, khu vực và **nhu cầu học (Learning Need)**.
 
 > [!NOTE]
-> **Checkpoint:** **ĐÃ HOÀN TẤT** (01/11/2026 - Selenium WebDriver 4.x TypeScript Compile Exit Code 0)
-> - Đã tích hợp `selenium-webdriver` và `@types/selenium-webdriver` vào `frontend/package.json`.
-> - Tận dụng **Selenium Manager** (tích hợp sẵn từ Selenium 4.6+) tự động nhận diện và quản trị chromedriver tương thích với Google Chrome của máy mà không cần tải thủ công.
-> - Cấu hình runner chuyên biệt trong `frontend/tests/e2e/vitest.e2e.config.ts`, chạy qua lệnh `npm run test:e2e`.
+> Bản cũ dùng thuật ngữ "mục tiêu học tập (Learning Goal)" và endpoint `/goals`. Sau commit `96ffa8d` ("replace learning goals with learning needs and tutor offerings"), khái niệm đã đổi sang Learning Need. Khi viết lại test AC-06 phải dùng đúng endpoint và tên hiện tại; tên test `ac06_studentGoalUpdate` có thể cần đổi.
 
-- **Thư mục làm việc:** `frontend/tests/e2e/`
-- **File cấu hình trung tâm:** [`frontend/tests/e2e/config/selenium.config.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/config/selenium.config.ts)
-  - `baseUrl: 'http://localhost:3000'`
-  - Hỗ trợ cả chế độ không đầu (`headless: true`) và bật cửa sổ trực quan (`headless: false`).
-  - Đường dẫn lưu trữ bằng chứng tự động: `frontend/tests/e2e/reports/screenshots/`.
+**Lớp A — ĐÃ CHẠY, cần chạy lại sau thay đổi Learning Need** (28/10/2026, trước commit chuyển đổi): Admin tạo môn "Toán Chuyên 9" (`POST /api/v1/admin/catalogs/subjects`); xóa cứng môn bị chặn `400 INVALID_OPERATION`; gia sư cập nhật hồ sơ (`PUT /api/v1/profiles/tutors/me`), gán môn (`POST …/tutors/me/subjects`), khung rảnh (`PUT …/tutors/me/availability-slots`); học sinh cập nhật hồ sơ (`PUT /api/v1/profiles/students/me`).
+(Bản cũ còn liệt kê thêm `/profile/tutor/availability` và `/profile/student/goals`, không khớp endpoint thật nên đã gỡ.)
+
+**Lớp B — CHƯA XÁC MINH.** Bản cũ nói đã có `03-catalog-profile.spec.ts` (5/5 pass), nhưng file này không còn trong repo. Coi như **chưa làm** cho tới khi viết lại bằng Selenium.
+- Admin vào `/admin/catalogs`, thêm môn mới, môn hiện trong bảng.
+- Gia sư vào hồ sơ (`/tutor/profile`), chọn môn, đặt mức giá, lưu khung rảnh, thấy thông báo thành công.
+- Học sinh vào `/student/profile` và cập nhật nhu cầu học.
 
 ---
 
-### Mục 1.4: Kiến Trúc Page Object Model (POM) Tại `frontend/tests/e2e/`
+### Luồng 04 — Khám phá công khai và gợi ý AI Match (AC-07)
+
+**Nghiệp vụ** (UC2.1–UC2.5, BR-16..20): khách và học sinh tìm gia sư theo môn, khu vực, giá, điểm đánh giá; học sinh dùng AI Match theo nhu cầu học và lịch rảnh.
+
+**Lớp A — CHƯA LÀM.** Guest gọi API tìm kiếm chỉ trả gia sư `VERIFIED`; học sinh gọi AI Match nhận danh sách có điểm tương thích và lý do. Đường dẫn endpoint phải đọc lại từ controller khi viết test (bản cũ ghi `/discovery/...`, chưa đối chiếu).
+
+**Lớp B — CHƯA LÀM.**
+- Không đăng nhập, vào `/tutors`, áp bộ lọc môn và đánh giá → danh sách gia sư hiển thị thẻ thông tin.
+- Mở `/tutors/[id]` → trang chi tiết hiển thị.
+- Học sinh đăng nhập, vào `/student/tutors` và dùng gợi ý AI Match → thấy danh sách có điểm.
+
+---
+
+### Luồng 05 — Liên kết gia đình và giới hạn tần suất (AC-08, AC-09)
+
+**Nghiệp vụ** (UC2.6–UC2.9, BR-21..25): phụ huynh mời liên kết học sinh; tối đa 10 lời mời/giờ/phụ huynh; học sinh chấp nhận → `ACTIVE`; hủy liên kết thu hồi quyền xem.
+
+**Lớp A — CHƯA LÀM.** Mời → `PENDING`; hơn 10 yêu cầu trong 1 giờ → `429 RATE_LIMIT_EXCEEDED`; chấp nhận → `ACTIVE`; sau hủy liên kết, phụ huynh xem dữ liệu của con bị `403`.
+
+**Lớp B — CHƯA LÀM.**
+- Phụ huynh vào `/parent/children`, nhập email học sinh, gửi lời mời → lời mời hiện ở danh sách chờ.
+- Học sinh vào `/student/family`, thấy lời mời, chấp nhận → huy hiệu "Đã liên kết".
+- Học sinh hủy liên kết, xác nhận → phụ huynh tải lại không còn dữ liệu của con.
+
+---
+
+### Luồng 06 — Đề nghị kèm cặp và tạo lớp học (AC-10, AC-11)
+
+**Nghiệp vụ** (UC3.1–UC3.4, BR-26..30): học sinh hoặc phụ huynh (đại diện) gửi đề nghị tới gia sư; gia sư chấp nhận thì tạo `Class` `ACTIVE`; chống race condition khi hai luồng cùng chấp nhận.
+
+**Lớp A — CHƯA LÀM.** Tạo đề nghị → `PENDING`; chấp nhận → tạo lớp `ACTIVE`; hai request đồng thời cùng chấp nhận → một `200`, một `409`, không tạo hai lớp.
+
+**Lớp B — CHƯA LÀM.**
+- Học sinh vào `/tutors/[id]`, gửi yêu cầu học (chọn môn, ghi chú).
+- Gia sư vào `/tutor/requests`, thấy yêu cầu, chấp nhận.
+- Lớp mới hiện ở `/tutor/classes` với trạng thái đang hoạt động. (Bản cũ nói "tự chuyển hướng"; chưa xác nhận hành vi này, chỉ kiểm tra lớp xuất hiện.)
+
+---
+
+### Luồng 07 — Lập lịch, chống trùng giờ GiST, lập lịch hàng loạt (AC-12, AC-13)
+
+**Nghiệp vụ** (UC4.1–UC4.5, BR-31..38): đề xuất buổi học; ràng buộc GiST Exclusion ở CSDL chặn trùng giờ cho cùng gia sư hoặc học sinh; lập lịch hàng loạt theo All-or-Nothing.
+
+**Lớp A — CHƯA LÀM.** Tạo buổi học; buổi thứ hai trùng giờ → `409 SCHEDULE_OVERLAP`; batch 8 buổi có 1 buổi trùng → rollback, số bản ghi `tutoring_session` tăng 0. (Tên bảng bản cũ là `session`; thực tế là `tutoring_session`.)
+
+**Lớp B — CHƯA LÀM.**
+- Gia sư vào `/tutor/schedule`, thêm buổi học → buổi hiện trạng thái chờ xác nhận.
+- Học sinh vào `/student/schedule`, xác nhận buổi học.
+- Thêm buổi trùng giờ → giao diện báo lỗi trùng lịch.
+
+---
+
+### Luồng 08 — Đổi lịch, hủy, điểm danh và biên bản bất biến (AC-14, AC-15)
+
+**Nghiệp vụ** (UC4.6–UC4.10, BR-39..45): đổi lịch hai bên đồng ý; hủy trước 24 giờ bình thường, dưới 24 giờ gắn `is_late_cancel = true`; điểm danh kết thúc buổi, **biên bản `session_note` bất biến**, mỗi buổi đúng một biên bản.
 
 > [!NOTE]
-> **Checkpoint:** **ĐÃ HOÀN TẤT** (01/11/2026 - TypeScript Compile Exit Code 0)
-> - Đã xây dựng hoàn chỉnh kiến trúc Page Object Model tại [`frontend/tests/e2e/pages/`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/):
->   - [`BasePage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/BasePage.ts): Quản lý vòng đời `WebDriver`, bao bọc 100% cơ chế **Explicit Wait (`WebDriverWait` + `until.elementLocated` + `until.elementIsVisible`)**, xử lý Toast, Modal, chụp ảnh màn hình lưu bằng chứng.
->   - [`AuthPage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/AuthPage.ts): Đóng gói form đăng nhập, đăng ký theo 3 vai trò, quên mật khẩu và kiểm tra validation.
->   - [`KycPage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/KycPage.ts): Đóng gói form nộp bằng cấp gia sư và hàng đợi phê duyệt Admin.
->   - [`SchedulePage.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/pages/SchedulePage.ts): Đóng gói tương tác lịch học, khung rảnh tuần và điểm danh buổi học.
-> - Dữ liệu kiểm thử theo hướng dữ liệu (Data-Driven Testing): [`frontend/tests/e2e/resources/login-data.json`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/resources/login-data.json).
+> Bản cũ ghi kết quả điểm danh là `ATTENDED`/`ABSENT`. Mô hình hiện tại ghi nhận kết quả **COMPLETED / ABSENT**; cần đối chiếu lại trước khi viết test. Phần "tiến độ có trọng số" của AC-15 đang được thiết kế lại trong nhánh dashboard (xem `docs/progress/`), nên test AC-15 phải chờ nhánh đó ổn định.
+
+**Lớp A — CHƯA LÀM.** Đổi lịch cập nhật khung giờ; hủy <24h → `CANCELLED`, `is_late_cancel = true`; điểm danh → buổi `COMPLETED`; sửa biên bản đã hoàn thành → `400`.
+
+**Lớp B — CHƯA LÀM** (chỉ phần không phụ thuộc đồng hồ):
+- Học sinh gửi yêu cầu đổi lịch, gia sư đồng ý.
+- Gia sư mở form điểm danh cho buổi đủ điều kiện, nhập nội dung, hoàn tất → thẻ buổi học đổi trạng thái.
+- Kịch bản "hủy muộn" và "buổi đến giờ" chỉ kiểm ở Lớp A.
 
 ---
 
-## PHẦN II: 10 LUỒNG HÀNH TRÌNH E2E TOÀN DIỆN (FULL-STACK UNIFIED JOURNEYS)
+### Luồng 09 — Ví, ký quỹ, quyết toán, rút tiền (AC-19..AC-22)
+
+**Nghiệp vụ** (UC5.1–UC5.8, BR-46..55): nạp ví qua PayOS (VietQR); webhook HMAC-SHA256 idempotent; escrow khi chốt lịch (thiếu số dư thì chặn); quyết toán tự động sau 24 giờ; khiếu nại đóng băng quyết toán; gia sư rút tiền về tài khoản ngân hàng (Napas247).
+
+**Lớp A — CHƯA LÀM.** Tạo yêu cầu nạp → `checkoutUrl`; webhook hợp lệ cộng ví đúng số tiền; webhook lặp không cộng lần hai; chốt lịch khi số dư thấp → `400 INSUFFICIENT_WALLET_BALANCE`; quyết toán chuyển escrow sang ví gia sư; rút tiền tạo `payout_request` `PENDING`. Phải đọc lại [api-contract.md](../payment/api-contract.md) để lấy đúng đường dẫn (bản cũ viết `/payments/topup`, `/payments/escrow/{id}/settle`).
+
+**Lớp B — CHƯA LÀM, phạm vi giới hạn:**
+- Phụ huynh vào `/parent/billing` mở hộp thoại nạp tiền và thấy mã QR hiển thị. **Không thanh toán thật**; việc cộng số dư kiểm bằng Lớp A.
+- Gia sư vào `/tutor/earnings`, nhập tài khoản thụ hưởng và tạo lệnh rút.
+- Admin vào `/admin/disputes` xem danh sách khiếu nại.
 
 ---
 
-### Mục 2.1: Luồng 01 - Định Danh, Phiên Đăng Nhập, Argon2id & Khóa Brute-Force (AC-01, AC-02)
+### Luồng 10 — Đánh giá gia sư, phân quyền, kiểm toán Admin (AC-16, AC-17, AC-18)
 
-> [!NOTE]
-> **Checkpoint:** **ĐÃ HOÀN TẤT** (28/10/2026 - 2/2 Tests Passed Exit Code 0)
-> - **Backend Test:** Đã kiểm chứng `ac01_statefulSessionAndLockout` và `ac02_passwordResetAndSessionInvalidation` trên Docker `postgres:17`.
-> - **UI Test:** Đã tạo kịch bản [`frontend/e2e/specs/01-auth-flow.spec.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/e2e/specs/01-auth-flow.spec.ts) bao gồm 5 kịch bản (P01 đến P05) đã kiểm chứng tự động 5/5 Passed Exit Code 0.
-> - **Bug Fix giá trị cao:** Khắc phục lỗi Spring `@Transactional` rollback trong `AuthenticateAccountService` bằng `noRollbackFor = InvalidOperationException.class` để bảo đảm số lần đăng nhập sai `failed_attempts` được ghi nhận vào CSDL.
+**Nghiệp vụ** (UC6.1–UC6.4, BR-56..61, NFR-SEC-01..05): mỗi học sinh đánh giá gia sư một lần cho mỗi lớp hoàn thành (1–5 sao, quick tag, nhận xét) và điểm trung bình được cập nhật; Admin khóa tài khoản vi phạm (phiên bị vô hiệu); thao tác nhạy cảm được ghi nhật ký kiểm toán; ma trận quyền 72 ô, chống IDOR.
 
-#### 1. Mục tiêu & Nghiệp vụ (UC1.1 – UC1.4, BR-01..05):
-- Xác thực mật khẩu băm chuẩn Argon2id an toàn.
-- Cấp phiên làm việc có trạng thái qua Cookie `EDUFIT_SESSION` (`HttpOnly`, `SameSite=Lax`).
-- Cơ chế phòng thủ Brute-force: Sai mật khẩu 5 lần liên tiếp khóa tài khoản 15 phút.
-- Quên mật khẩu: Gửi token reset qua email, cập nhật mật khẩu mới và lập tức hủy bỏ mọi phiên đăng nhập cũ (`Session Invalidation`).
+**Lớp A — CHƯA LÀM.** Đánh giá tạo `tutor_review` và cập nhật điểm trung bình; đánh giá lần hai → `409 REVIEW_ALREADY_EXISTS`; Admin khóa → `account.status = LOCKED`; ma trận 72 ô và IDOR (AC-18) kiểm bằng `CrossRoleAuthorizationMatrixTest`.
 
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.1.1 (P01):** Mở trang `/login`, xác nhận các trường `Email tài khoản`, `Mật khẩu`, nút `Đăng nhập ngay`, liên kết Quên mật khẩu & Đăng ký miễn phí.
-- **Bước 2.1.2 (P02):** Nhập email sai định dạng $\rightarrow$ Kiểm tra form hiển thị cảnh báo validation phía client, ngăn chặn submit và giữ nguyên URL `/login`.
-- **Bước 2.1.3 (P03):** Người dùng từ trang đăng nhập bấm chuyển sang trang `/register` $\rightarrow$ Kiểm tra hiển thị đầy đủ 3 vai trò (Học sinh, Gia sư, Phụ huynh) $\rightarrow$ Tự gõ họ tên, email, mật khẩu chuẩn và kiểm tra sự hiện diện của nút "Tạo tài khoản EduFit".
-- **Bước 2.1.4 (P04):** Bấm vào liên kết "Quên mật khẩu?" $\rightarrow$ Điều hướng sang `/forgot-password` $\rightarrow$ Nhập email tài khoản cần khôi phục $\rightarrow$ Bấm nút "Gửi liên kết đặt lại mật khẩu" $\rightarrow$ Màn hình hiển thị thông báo "Kiểm tra hộp thư đến của bạn" kèm địa chỉ email $\rightarrow$ Bấm nút "Quay lại Đăng nhập".
-- **Bước 2.1.5 (P05):** Mô phỏng người dùng nhập sai mật khẩu thật trên form đăng nhập $\rightarrow$ Form bôi đỏ và hiển thị thông báo lỗi từ hệ thống.
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Gửi `POST /api/v1/auth/login` với body hợp lệ $\rightarrow$ Trả về `200 OK` kèm header `Set-Cookie: EDUFIT_SESSION=...`.
-- Dùng session gọi `GET /api/v1/auth/me` $\rightarrow$ Trả về đúng `userId`, `email`, `role`.
-- Đăng nhập sai lần 1-4 $\rightarrow$ Trả về `401 Unauthorized` (`INVALID_CREDENTIALS`), số lần sai tăng dần trong bảng `account`.
-- Đăng nhập sai lần 5 $\rightarrow$ Trả về `423 Locked` (`ACCOUNT_LOCKED`), cột `locked_until` trong bảng `account` được gán mốc $now + 15$ phút.
-- Yêu cầu quên mật khẩu `POST /api/v1/auth/forgot-password` $\rightarrow$ Đặt lại mật khẩu mới `POST /api/v1/auth/reset-password` $\rightarrow$ Thử dùng session cũ gọi `/api/v1/auth/me` bị chặn `401 Unauthorized`.
+**Lớp B — CHƯA LÀM.**
+- Học sinh đánh giá gia sư cho lớp đủ điều kiện; đánh giá hiển thị trên hồ sơ công khai; gửi lần hai bị chặn.
+- Gia sư vào `/tutor/reviews` thấy đánh giá.
+- Admin vào `/admin/learners` hoặc `/admin/tutors-management`, khóa tài khoản kèm lý do; vào `/admin/audit-logs` thấy bản ghi tương ứng.
 
 ---
 
-### Mục 2.2: Luồng 02 - Quét Bằng Cấp Magic Bytes (Apache Tika) & Admin Duyệt KYC (AC-03, AC-04)
+## PHẦN III: HƯỚNG DẪN CHẠY
 
-> [!NOTE]
-> **Checkpoint:** **ĐÃ HOÀN TẤT** (28/10/2026 - Backend JUnit 5 & Playwright Exit Code 0)
-> - Đã kiểm chứng phòng thủ tệp giả mạo: Tika phát hiện Magic Bytes không phải PDF và trả mã `INVALID_FILE_TYPE` (HTTP 400).
-> - Đã kiểm chứng nộp hồ sơ bằng cấp hợp lệ chuyển trạng thái sang `PENDING_VERIFICATION` (HTTP 201).
-> - Đã kiểm chứng Quản trị viên duyệt hồ sơ, chuyển trạng thái gia sư sang `VERIFIED` và cập nhật `verified_at`.
-> - Đã kiểm chứng 5 kịch bản UI Playwright (`02-kyc-verification.spec.ts`): Client validation chặn file lạ, gửi hồ sơ, Admin queue 3 tabs và validation bắt buộc lý do khi từ chối hồ sơ (BR-06).
+### 3.1. Backend (Lớp A)
 
-#### 1. Mục tiêu & Nghiệp vụ (UC1.10 – UC1.12, BR-06..10):
-- Gia sư nộp bằng cấp/chứng chỉ (PDF, JPEG, PNG).
-- Hệ thống phòng thủ mã độc bằng Apache Tika: Phân tích Magic Bytes phần đầu tệp nhị phân, phát hiện và từ chối các file thực thi / shell script cố tình đổi phần mở rộng thành `.pdf`.
-- Quản trị viên (Admin) xem xét hàng đợi KYC, kiểm tra tính hợp lệ và phê duyệt / từ chối / thu hồi trạng thái xác minh.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.2.1:** Gia sư đăng nhập, truy cập `/tutor/profile` $\rightarrow$ Bấm nút "Nộp hồ sơ xác minh bằng cấp".
-- **Bước 2.2.2:** Tải lên tệp giả mạo (file `.sh` đổi đuôi thành `fake.pdf`) $\rightarrow$ Giao diện hiển thị Toast lỗi: *"Định dạng file bằng cấp không hợp lệ"*.
-- **Bước 2.2.3:** Tải lên tệp PDF chuẩn từ thư mục test, điền trường cấp và năm tốt nghiệp $\rightarrow$ Bấm "Gửi hồ sơ" $\rightarrow$ Giao diện chuyển trạng thái sang huy hiệu "Đang chờ duyệt (PENDING)".
-- **Bước 2.2.4:** Đổi sang phiên Admin truy cập `/admin/verifications` $\rightarrow$ Thấy hồ sơ của gia sư xuất hiện trong hàng đợi $\rightarrow$ Bấm nút "Phê duyệt" $\rightarrow$ Hồ sơ biến mất khỏi hàng đợi pending và chuyển sang danh sách đã duyệt.
-- **Bước 2.2.5:** Gia sư tải lại trang cá nhân $\rightarrow$ Huy hiệu cập nhật thành "Đã xác minh (VERIFIED)".
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Gửi `POST /api/v1/verifications` (Multipart Form) với tệp giả mạo $\rightarrow$ Tika phát hiện vi phạm, trả về `400 Bad Request` với mã `INVALID_FILE_TYPE`.
-- Gửi `POST /api/v1/verifications` với tệp PDF chuẩn `%PDF-1.4` $\rightarrow$ Trả về `201 Created`, bản ghi trong bảng `verification_request` có `status = PENDING`.
-- Admin gọi `GET /api/v1/admin/verifications/pending` $\rightarrow$ Kiểm tra thấy `requestId`.
-- Admin gọi `POST /api/v1/admin/verifications/{id}/review` với `action: APPROVE` $\rightarrow$ Trả về `200 OK`, bảng `tutor_profile` cập nhật `status = VERIFIED`.
-
----
-
-### Mục 2.3: Luồng 03 - Quản Trị Danh Mục & Thiết Lập Hồ Sơ, Khung Rảnh Tuần (AC-05, AC-06)
-
-> [!NOTE]
-> **Checkpoint:** **ĐÃ HOÀN TẤT** (28/10/2026 - 100% Passed: Backend 6/6 tests, Frontend Playwright 5/5 tests, Exit Code 0)
-> - **Backend Test:** Đã kiểm chứng `ac05_catalogAndAvailabilitySetup` và `ac06_studentGoalUpdate` trong [`SystemLifecycleCrossRoleE2ETest.java`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/backend/app/src/test/java/vn/edufit/e2e/SystemLifecycleCrossRoleE2ETest.java) trên Docker `postgres:17` Ubuntu Noble:
->   - Admin tạo môn học mới "Toán Chuyên 9" (`POST /api/v1/admin/catalogs/subjects`).
->   - Thử xóa cứng môn học bị chặn `400 Bad Request` (`INVALID_OPERATION`) bảo vệ khóa ngoại CSDL.
->   - Gia sư cập nhật hồ sơ (`PUT /api/v1/profiles/tutors/me`), gán môn (`POST /api/v1/profiles/tutors/me/subjects`), thiết lập khung rảnh tuần (`PUT /api/v1/profiles/tutors/me/availability-slots`).
->   - Học sinh cập nhật khối lớp & khu vực (`PUT /api/v1/profiles/students/me`), tạo mục tiêu học tập (`POST /api/v1/profiles/students/me/goals`).
-> - **UI Test:** Đã tạo kịch bản [`frontend/e2e/specs/03-catalog-profile.spec.ts`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/e2e/specs/03-catalog-profile.spec.ts) bao gồm 5 kịch bản (P01 đến P05) chạy mượt mà 5/5 Passed Exit Code 0 (7.1s).
-> - **Tuân thủ Quy tắc 9:** Dữ liệu tĩnh Backend nạp từ `sample-catalogs.csv`, `sample-tutor-profile.csv`, `sample-student-goal.csv`; dữ liệu tĩnh Frontend nạp từ `sample-catalogs.json`, `sample-profiles.json`. Tuyệt đối không hardcode.
-> - **Cải tiến W3C a11y:** Bổ sung ARIA role (`role="status"` / `role="alert"`) và `aria-live="polite"` cho component [`Toast.tsx`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/src/shared/ui/Toast.tsx).
-
-#### 1. Mục tiêu & Nghiệp vụ (UC1.5 – UC1.9, BR-11..15):
-- Admin quản lý danh mục môn học (`Subject`) và cấp lớp (`GradeLevel`).
-- Gia sư cập nhật tiểu sử, học phí theo giờ, gán môn giảng dạy và thiết lập lịch rảnh tuần (Availability Slots).
-- Học sinh cập nhật mục tiêu học tập (Learning Goal) và khu vực.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.3.1:** Admin truy cập `/admin/catalogs` $\rightarrow$ Thêm môn mới "Toán Chuyên 9" $\rightarrow$ Môn học hiển thị ngay trong bảng danh mục.
-- **Bước 2.3.2:** Gia sư vào trang hồ sơ $\rightarrow$ Chọn môn "Toán Chuyên 9", đặt mức giá 200,000 VND/giờ.
-- **Bước 2.3.3:** Gia sư mở bảng lịch rảnh tuần $\rightarrow$ Chọn khung Thứ 2 & Thứ 4 (18:00 - 20:00) $\rightarrow$ Bấm lưu $\rightarrow$ Toast báo lưu thành công.
-- **Bước 2.3.4:** Học sinh vào trang cá nhân $\rightarrow$ Nhập mục tiêu: *"Ôn thi vào lớp 10 chuyên Toán"* $\rightarrow$ Lưu thành công.
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Admin gọi `POST /api/v1/admin/catalogs/subjects` $\rightarrow$ Thêm bản ghi vào bảng `subject`.
-- Gia sư gọi `PUT /api/v1/profile/tutor/availability` $\rightarrow$ Cập nhật các bản ghi trong `tutor_availability`.
-- Học sinh gọi `PUT /api/v1/profile/student/goals` $\rightarrow$ Cập nhật bảng `student_profile`.
-
----
-
-### Mục 2.4: Luồng 04 - Khám Phá Công Khai, Tìm Kiếm Đa Tiêu Chí & Gợi Ý AI Match (AC-07)
-
-#### 1. Mục tiêu & Nghiệp vụ (UC2.1 – UC2.5, BR-16..20):
-- Khách vãng lai (Guest) và học sinh tìm kiếm gia sư theo môn học, khu vực, mức giá, điểm đánh giá.
-- Học sinh sử dụng tính năng gợi ý thông minh (AI Match) dựa trên mục tiêu học tập và lịch rảnh tương thích.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.4.1:** Không đăng nhập, truy cập `/tutors` $\rightarrow$ Chọn bộ lọc môn "Toán" và lọc theo đánh giá từ 4 sao trở lên $\rightarrow$ Danh sách gia sư thỏa mãn điều kiện hiển thị đầy đủ thẻ thông tin.
-- **Bước 2.4.2:** Đăng nhập tài khoản Học sinh $\rightarrow$ Bấm nút "Gợi ý AI Match" $\rightarrow$ Modal hiển thị danh sách gia sư kèm điểm tương thích (Match Score) và lý do sư phạm phù hợp.
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Guest gọi `GET /api/v1/discovery/tutors?subjectId=...&minRating=4` $\rightarrow$ Kiểm tra danh sách chỉ trả về các gia sư có `status = VERIFIED`.
-- Học sinh gọi `POST /api/v1/discovery/ai-match` $\rightarrow$ Trả về payload gồm danh sách gia sư kèm `compatibilityScore` và `rationale`.
-
----
-
-### Mục 2.5: Luồng 05 - Kết Nối Gia Đình Phụ Huynh - Học Sinh & Rate Limiting (AC-08, AC-09)
-
-#### 1. Mục tiêu & Nghiệp vụ (UC2.6 – UC2.9, BR-21..25):
-- Phụ huynh gửi lời mời liên kết tới tài khoản con cái (Học sinh).
-- Bảo vệ chống spam: Giới hạn tần suất (Rate Limit) tối đa 10 lời mời / giờ cho mỗi phụ huynh.
-- Học sinh duyệt chấp thuận lời mời $\rightarrow$ Trạng thái chuyển `ACTIVE`.
-- Hủy liên kết $\rightarrow$ Thu hồi ngay quyền truy cập mục tiêu học tập và tiến độ của học sinh đối với phụ huynh đó.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.5.1:** Phụ huynh vào `/parent/family` $\rightarrow$ Nhập email học sinh $\rightarrow$ Bấm "Gửi lời mời liên kết" $\rightarrow$ Lời mời hiển thị trong danh sách chờ.
-- **Bước 2.5.2:** Học sinh đăng nhập, vào chuông thông báo hoặc `/student/family` $\rightarrow$ Thấy lời mời từ phụ huynh $\rightarrow$ Bấm "Chấp nhận" $\rightarrow$ Huy hiệu chuyển sang "Đã liên kết".
-- **Bước 2.5.3:** Học sinh bấm "Hủy liên kết" $\rightarrow$ Xác nhận modal $\rightarrow$ Mối liên kết bị xóa. Phụ huynh tải lại trang không còn thấy thông tin học tập của con.
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Phụ huynh gọi `POST /api/v1/connections/parent-student/invite` $\rightarrow$ Tạo bản ghi trong `parent_student_connection` trạng thái `PENDING`.
-- Mô phỏng gửi liên tiếp trên 10 request trong 1 giờ $\rightarrow$ Trả về `429 Too Many Requests` với mã `RATE_LIMIT_EXCEEDED`.
-- Học sinh gọi `POST /api/v1/connections/parent-student/{id}/accept` $\rightarrow$ Cập nhật trạng thái `ACTIVE`.
-- Sau khi hủy liên kết, phụ huynh cố gọi API xem mục tiêu học sinh $\rightarrow$ Trả về `403 Forbidden`.
-
----
-
-### Mục 2.6: Luồng 06 - Đề Nghị Kèm Cặp Trực Tiếp / Đại Diện & Tạo Lớp Học (AC-10, AC-11)
-
-#### 1. Mục tiêu & Nghiệp vụ (UC3.1 – UC3.4, BR-26..30):
-- Học sinh gửi đề nghị học trực tiếp tới gia sư kèm môn học và yêu cầu cụ thể.
-- Phụ huynh gửi đề nghị học đại diện thay cho con đã liên kết.
-- Gia sư xem xét và chấp nhận đề nghị $\rightarrow$ Tự động khởi tạo lớp học (`Class`) ở trạng thái `ACTIVE`.
-- Chống Race Condition: Ngăn chặn xử lý trùng lặp khi 2 luồng cùng chấp thuận 1 đề nghị.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.6.1:** Học sinh vào trang chi tiết gia sư $\rightarrow$ Bấm "Gửi yêu cầu học" $\rightarrow$ Chọn môn "Toán Chuyên 9", điền ghi chú $\rightarrow$ Submit form.
-- **Bước 2.6.2:** Gia sư đăng nhập, vào `/tutor/requests` $\rightarrow$ Thấy yêu cầu mới từ học sinh $\rightarrow$ Bấm nút "Chấp nhận đề nghị".
-- **Bước 2.6.3:** Hệ thống tự động chuyển hướng sang danh sách lớp học `/tutor/classes` $\rightarrow$ Lớp học mới xuất hiện ở trạng thái "Đang hoạt động".
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Học sinh gọi `POST /api/v1/connections/requests` $\rightarrow$ Bản ghi tạo trong `connection_request` trạng thái `PENDING`.
-- Gia sư gọi `POST /api/v1/connections/requests/{id}/respond` với `action: ACCEPT` $\rightarrow$ Bản ghi trong bảng `class` được tạo với `status = ACTIVE`.
-- Mô phỏng 2 request đồng thời chấp nhận cùng 1 request ID $\rightarrow$ 1 request thành công `200 OK`, request thứ hai bị chặn bằng lỗi xung đột `409 Conflict`, không tạo 2 lớp học trùng.
-
----
-
-### Mục 2.7: Luồng 07 - Lập Lịch Học, Khóa Chống Trùng Giờ GiST & Batch All-or-Nothing (AC-12, AC-13)
-
-#### 1. Mục tiêu & Nghiệp vụ (UC4.1 – UC4.5, BR-31..38):
-- Gia sư hoặc học sinh đề xuất buổi học đơn lẻ.
-- Khóa chống trùng lịch tuyệt đối ở tầng CSDL: PostgreSQL GiST Exclusion Constraint ngăn chặn triệt để 2 buổi học có khung giờ giao nhau cho cùng một gia sư hoặc học sinh.
-- Lập lịch hàng loạt (Batch Scheduling): Đề xuất một chuỗi 8 buổi học trong tháng theo nguyên tắc nguyên tử giao dịch (All-or-Nothing) - nếu 1 buổi bị trùng giờ, toàn bộ chuỗi bị rollback, không tạo dữ liệu rác.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.7.1:** Gia sư vào chi tiết lớp học $\rightarrow$ Bấm "Thêm buổi học" $\rightarrow$ Chọn ngày Thứ 6, từ 19:00 đến 21:00 $\rightarrow$ Buổi học hiển thị trên bảng lịch ở trạng thái "Chờ xác nhận".
-- **Bước 2.7.2:** Học sinh vào xem lịch học $\rightarrow$ Bấm "Xác nhận buổi học" $\rightarrow$ Buổi học chuyển sang trạng thái "Đã chốt lịch (CONFIRMED)".
-- **Bước 2.7.3:** Cố tình thêm một buổi học khác đè lên khung giờ 19:30 - 20:30 $\rightarrow$ Giao diện chặn lại và hiển thị Toast: *"Khung giờ này đã bị trùng với một buổi học khác"*.
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Gia sư gửi `POST /api/v1/sessions` $\rightarrow$ Tạo bản ghi trong `session` trạng thái `CONFIRMED`.
-- Cố tình gửi request tạo buổi học thứ hai trùng giờ $\rightarrow$ Database kích hoạt GiST exclusion constraint vi phạm `tsrange`, ném lỗi `409 Conflict` với mã `SCHEDULE_OVERLAP`.
-- Gửi request batch gồm 8 buổi học, trong đó buổi thứ 5 cố tình trùng giờ $\rightarrow$ Toàn bộ batch bị rollback, đếm số bản ghi trong `session` tăng thêm bằng 0.
-
----
-
-### Mục 2.8: Luồng 08 - Đổi Lịch Đột Xuất, Hủy Muộn & Vòng Đời Điểm Danh Bất Biến (AC-14, AC-15)
-
-#### 1. Mục tiêu & Nghiệp vụ (UC4.6 – UC4.10, BR-39..45):
-- Đổi lịch học đột xuất: Bên đề xuất gửi giờ mới, bên kia chấp thuận $\rightarrow$ Cập nhật thời gian buổi học.
-- Hủy buổi học:
-  - Hủy trước 24 giờ: Hủy bình thường (`isLateCancel = false`).
-  - Hủy sát giờ (dưới 24 giờ): Ghi nhận cờ phạt hủy muộn (`isLateCancel = true`).
-- Điểm danh & Biên bản học tập bất biến:
-  - Gia sư điểm danh (`ATTENDED` / `ABSENT`), nhập nội dung giảng dạy và bài tập về nhà $\rightarrow$ Buổi học chuyển sang `COMPLETED`.
-  - Biên bản buổi học đã hoàn thành trở thành bất biến (không thể sửa đổi hay xóa).
-  - Tự động cập nhật công thức tính tiến độ học tập có trọng số của học sinh.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.8.1:** Học sinh bấm "Yêu cầu đổi lịch" cho buổi học $\rightarrow$ Chọn giờ mới $\rightarrow$ Gia sư thấy thông báo và bấm "Đồng ý đổi lịch".
-- **Bước 2.8.2:** Thử nghiệm hủy buổi học sát giờ (<24h) $\rightarrow$ Hộp thoại xác nhận cảnh báo phạt hủy muộn $\rightarrow$ Buổi học hiển thị nhãn "Đã hủy muộn".
-- **Bước 2.8.3:** Buổi học đến giờ hoàn thành $\rightarrow$ Gia sư mở form điểm danh $\rightarrow$ Chọn "Có mặt", gõ nội dung *"Hình học không gian chương 2"*, giao bài tập $\rightarrow$ Bấm "Hoàn tất điểm danh" $\rightarrow$ Thẻ buổi học chuyển màu xanh `COMPLETED`.
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Gửi `POST /api/v1/sessions/{id}/reschedule` $\rightarrow$ Cập nhật khung giờ buổi học.
-- Gửi `POST /api/v1/sessions/{id}/cancel` dưới 24h $\rightarrow$ Bản ghi cập nhật `status = CANCELLED` và `is_late_cancel = true`.
-- Gia sư gửi `POST /api/v1/sessions/{id}/attendance` $\rightarrow$ Cập nhật `session` thành `COMPLETED`, lưu `attendance_record`.
-- Cố tình gọi API sửa nội dung buổi học đã completed $\rightarrow$ Trả về `400 Bad Request` do vi phạm tính bất biến.
-
----
-
-### Mục 2.9: Luồng 09 - Ví Học Phí, Ký Quỹ Escrow, Quyết Toán Tự Động & Rút Tiền Napas247 (AC-19, AC-20, AC-21, AC-22)
-
-#### 1. Mục tiêu & Nghiệp vụ (PR #35, UC5.1 – UC5.8, BR-46..55):
-- Nạp tiền vào Ví học phí qua cổng thanh toán PayOS (QR Checkout chuẩn VietQR).
-- Xác thực Webhook bảo mật: Kiểm tra chữ ký số HMAC-SHA256, đảm bảo tính bất biến và idempotent (không cộng tiền 2 lần cho cùng 1 giao dịch).
-- Tạm giữ ký quỹ học phí (Escrow Hold): Khi chốt lịch học, tiền học phí tương ứng bị khóa trong ví học sinh/phụ huynh. Nếu số dư khả dụng không đủ, chặn không cho xác nhận lịch học.
-- Tự động quyết toán (Settlement): Sau khi buổi học kết thúc 24h mà không có tranh chấp, tiền ký quỹ tự động giải phóng chuyển vào ví thu nhập của gia sư.
-- Xử lý khiếu nại tranh chấp (Dispute): Học sinh/Phụ huynh gửi khiếu nại $\rightarrow$ Đóng băng quyết toán $\rightarrow$ Admin phân xử hoàn tiền hoặc thanh toán cho gia sư.
-- Rút tiền thu nhập gia sư (Payout): Gia sư cấu hình tài khoản ngân hàng thụ hưởng (Napas247) và gửi lệnh rút tiền.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.9.1:** Phụ huynh vào trang ví `/parent/wallet` $\rightarrow$ Bấm nút "Nạp tiền học phí" $\rightarrow$ Nhập số tiền 500,000 VND $\rightarrow$ Dialog hiện mã QR VietQR PayOS thật.
-- **Bước 2.9.2:** Sau khi thanh toán thành công, số dư ví tự động nhảy số lên 500,000 VND kèm thông báo Toast.
-- **Bước 2.9.3:** Lịch học được xác nhận $\rightarrow$ Mục "Số dư tạm giữ (Escrow)" hiển thị số tiền học phí bị khóa, số dư khả dụng giảm tương ứng.
-- **Bước 2.9.4:** Gia sư vào trang ví thu nhập `/tutor/wallet` $\rightarrow$ Nhập số tài khoản ngân hàng thụ hưởng (Vietcombank - Napas247) $\rightarrow$ Tạo lệnh rút tiền thu nhập.
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Tạo yêu cầu nạp ví `POST /api/v1/payments/topup` $\rightarrow$ Trả về `checkoutUrl` và mã giao dịch.
-- Mô phỏng gửi Webhook `POST /api/v1/payments/webhook` kèm chữ ký HMAC-SHA256 hợp lệ $\rightarrow$ Trả về `200 OK`, số dư ví trong bảng `wallet` tăng đúng số tiền.
-- Gửi lại Webhook lần 2 với cùng mã giao dịch $\rightarrow$ Hệ thống nhận diện idempotent, bỏ qua xử lý trùng, không cộng tiền lần 2.
-- Gọi API chốt lịch khi số dư < học phí $\rightarrow$ Trả về lỗi `400 Bad Request` với mã `INSUFFICIENT_WALLET_BALANCE`.
-- Gọi API quyết toán `POST /api/v1/payments/escrow/{id}/settle` $\rightarrow$ Tiền chuyển từ `escrow_deposit` sang số dư khả dụng của ví gia sư.
-- Gia sư gọi `POST /api/v1/payments/payout` $\rightarrow$ Tạo bản ghi trong `payout_request` trạng thái `PENDING`.
-
----
-
-### Mục 2.10: Luồng 10 - Đánh Giá Gia Sư Độc Bản, Ma Trận Phân Quyền 72 Ô & Kiểm Toán Admin (AC-16, AC-17, AC-18)
-
-#### 1. Mục tiêu & Nghiệp vụ (UC6.1 – UC6.4, BR-56..61, NFR-SEC-01..05):
-- Đánh giá gia sư độc bản (One-Review-Per-Class): Mỗi học sinh chỉ được đánh giá gia sư 1 lần duy nhất cho mỗi lớp học đã hoàn thành (chấm sao từ 1-5, gắn tag nhanh, viết nhận xét). Tự động cập nhật điểm uy tín trung bình của gia sư.
-- Quản trị viên khóa người dùng vi phạm: Admin khóa tài khoản gia sư hoặc học sinh $\rightarrow$ Toàn bộ phiên làm việc của người dùng bị vô hiệu hóa ngay lập tức.
-- Nhật ký kiểm toán có cấu trúc (Admin Audit Trail): Mọi thao tác quản trị nhạy cảm của Admin đều được ghi vào bảng kiểm toán.
-- Ma trận phân quyền 72 ô (4 vai trò + Guest x 18 endpoints) & Chống IDOR: Ngăn chặn tuyệt đối việc người dùng dùng ID của người khác để xem/sửa dữ liệu riêng tư.
-
-#### 2. Kịch bản Giao diện Người dùng Thật (Playwright UI E2E):
-- **Bước 2.10.1:** Học sinh vào chi tiết lớp học đã kết thúc $\rightarrow$ Bấm nút "Đánh giá gia sư" $\rightarrow$ Chọn 5 sao, chọn tag "Nhiệt tình", viết nhận xét $\rightarrow$ Gửi đánh giá $\rightarrow$ Đánh giá xuất hiện trên trang cá nhân công khai của gia sư.
-- **Bước 2.10.2:** Thử bấm nút gửi đánh giá lần 2 $\rightarrow$ Nút đánh giá bị vô hiệu hóa hoặc hệ thống báo *"Bạn đã đánh giá lớp học này rồi"*.
-- **Bước 2.10.3:** Admin vào `/admin/users` $\rightarrow$ Tìm tài khoản vi phạm $\rightarrow$ Bấm nút "Khóa tài khoản" kèm lý do $\rightarrow$ Tài khoản đó bị đá văng ra khỏi hệ thống ngay lập tức nếu đang đăng nhập.
-
-#### 3. Kịch bản Thẩm định Chiều sâu Logic & CSDL (Backend Verification):
-- Học sinh gửi `POST /api/v1/reviews` $\rightarrow$ Tạo bản ghi trong `tutor_review`, cập nhật `average_rating` trong `tutor_profile`.
-- Gửi lại request đánh giá lần 2 cho cùng lớp học $\rightarrow$ Trả về `409 Conflict` với mã `REVIEW_ALREADY_EXISTS`.
-- Admin gọi `POST /api/v1/admin/users/{id}/lock` $\rightarrow$ Cập nhật `account.status = LOCKED`.
-- Thực thi ma trận kiểm thử 72 ô kiểm tra tính phân quyền: Học sinh gọi API duyệt KYC $\rightarrow$ `403 Forbidden`; Gia sư xem ví học sinh khác $\rightarrow$ `403 Forbidden` / `404 Not Found` (Chống IDOR).
-
----
-
-## PHẦN III: HƯỚNG DẪN THỰC THI KIỂM CHỨNG TRỰC TIẾP TRÊN MÁY TÍNH
-
-Phần này hướng dẫn các câu lệnh để bất kỳ ai cũng có thể tự tay chạy, trực tiếp quan sát bằng mắt và kiểm chứng tính tự động chính xác trên máy tính:
-
----
-
-### Mục 3.1: Chạy Kiểm Thử Backend & Quan Sát Docker PostgreSQL 17
-
-Mở cửa sổ **PowerShell** và chạy lệnh:
 ```powershell
 cd "c:\University\Semester 5\SWP391\Edufit\EduFit\backend"
 .\mvnw.cmd test -pl app -Dtest=SystemLifecycleCrossRoleE2ETest
 ```
+Cần Docker Desktop đang chạy; kỳ vọng `BUILD SUCCESS`.
 
-#### Những gì bạn sẽ thấy:
-1. Mở Docker Desktop $\rightarrow$ Thấy container `postgres:17` tự bật lên.
-2. Console in ra log Spring Boot, Flyway migration tạo các bảng CSDL thật.
-3. Kết thúc in ra: `BUILD SUCCESS` kèm số lượng test passed.
+### 3.2. Selenium (Lớp B)
 
----
+Điều kiện: backend và frontend đang chạy (`http://localhost:3000`), đã seed tài khoản `admin@`, `tutor@`, `student@edufit.vn`.
 
-### Mục 3.2: Chạy Selenium Trình Duyệt Bật Trực Quan (Headed / Slowmo)
-
-Mở cửa sổ **PowerShell** thứ hai và chạy lệnh:
 ```powershell
-cd "c:\University\Semester 5\SWP391\Edufit\EduFit\frontend"
-# Bật trình duyệt Google Chrome hiển thị trực quan trên màn hình
-$env:E2E_HEADLESS="false"
+cd "c:\University\Semester 5\SWP391\Edufit\frontend"
+npm install
+$env:E2E_HEADLESS="false"   # bật Chrome trực quan; bỏ dòng này để chạy không đầu
 npm run test:e2e
 ```
+Ảnh bằng chứng: `frontend/tests/e2e/reports/screenshots/<Tên_TestCase>_<thời_gian>.png`.
 
-#### Những gì bạn sẽ thấy:
-1. Cửa sổ trình duyệt **Google Chrome thật tự động bật lên trên màn hình**.
-2. Con trỏ tự động gõ từng chữ cái email, mật khẩu vào ô input qua cơ chế ChromeDriver.
-3. Nút bấm tự động được click, các thông báo lỗi và thành công tự động phản hồi trước mắt bạn mà không cần chạm vào chuột hay bàn phím.
-4. Ảnh chụp màn hình tự động lưu vào thư mục: `frontend/tests/e2e/reports/screenshots/`.
+### 3.3. Báo cáo độ phủ Backend
 
----
-
-### Mục 3.3: Báo Cáo Kết Quả, Bằng Chứng Ảnh Chụp Màn Hình (Screenshots)
-
-1. **Xem toàn bộ ảnh chụp màn hình kiểm chứng giao diện:**
-   - Thư mục lưu trữ: [`frontend/tests/e2e/reports/screenshots/`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/frontend/tests/e2e/reports/screenshots/).
-   - Mỗi file ảnh được định danh chuẩn: `<Tên_TestCase>_<Mốc_Thời_Gian>.png` (ví dụ: `TC_UI_01_navigate_login_2026-11-01T07-20-00-000Z.png`).
-2. **Xem báo cáo độ phủ Backend (JaCoCo):**
-   - Mở file trên trình duyệt: [`backend/app/target/site/jacoco/index.html`](file:///c:/University/Semester%205/SWP391/Edufit/EduFit/backend/app/target/site/jacoco/index.html).
+Mở `backend/app/target/site/jacoco/index.html` sau khi chạy `mvnw test`.
 
 ---
 
-## PHẦN IV: BẢNG NHẬT KÝ TIẾN ĐỘ & MA TRẬN ĐỐI CHIẾU 22 TIÊU CHÍ NGHIỆM THU
+## PHẦN IV: MA TRẬN 22 TIÊU CHÍ NGHIỆM THU
 
-| Mã tiêu chí | Tên tiêu chí nghiệm thu | Phương thức kiểm chứng máy tự động | Trạng thái |
-|:---:|---|---|:---:|
-| **AC-01** | Đăng nhập cấp Session Cookie, Argon2id & Khóa Brute-force 5 lần | `SystemLifecycleCrossRoleE2ETest#ac01_statefulSessionAndLockout` | **HOÀN TẤT** |
-| **AC-02** | Quên mật khẩu, reset token & Hủy bỏ phiên đăng nhập cũ (Session Invalidation) | `SystemLifecycleCrossRoleE2ETest#ac02_passwordResetAndSessionInvalidation` | **HOÀN TẤT** |
-| **AC-03** | Quét Magic Bytes (Apache Tika), chặn shell script & Nộp bằng cấp PDF chuẩn | `SystemLifecycleCrossRoleE2ETest#ac03_magicBytesInspectionAndKycSubmission` | **HOÀN TẤT** |
-| **AC-04** | Admin duyệt KYC chuyển trạng thái VERIFIED & Thu hồi hồ sơ | `SystemLifecycleCrossRoleE2ETest#ac04_adminKycReviewAndProfileVerification` | **HOÀN TẤT** |
-| **AC-05** | Admin thêm môn học/cấp lớp & Gia sư cấu hình khung rảnh tuần (Availability) | `SystemLifecycleCrossRoleE2ETest#ac05_catalogAndAvailabilitySetup` | *Chờ chạy* |
-| **AC-06** | Học sinh cập nhật mục tiêu học tập (Learning Goal) & Khối lớp | `SystemLifecycleCrossRoleE2ETest#ac06_studentGoalUpdate` | *Chờ chạy* |
-| **AC-07** | Tìm kiếm đa tiêu chí & Gợi ý AI Match tính điểm tương thích (Match Score) | `SystemLifecycleCrossRoleE2ETest#ac07_publicSearchAndAiMatch` | *Chờ chạy* |
-| **AC-08** | Lời mời liên kết Phụ huynh - Con cái & Giới hạn Rate Limit 10 lời mời/giờ | `SystemLifecycleCrossRoleE2ETest#ac08_familyInvitationAndRateLimit` | *Chờ chạy* |
-| **AC-09** | Học sinh chấp nhận lời mời & Hủy liên kết thu hồi quyền xem mục tiêu | `SystemLifecycleCrossRoleE2ETest#ac09_familyAcceptAndRevokeAccess` | *Chờ chạy* |
-| **AC-10** | Đề nghị kèm cặp trực tiếp (Học sinh) & Đề nghị kèm cặp đại diện (Phụ huynh) | `SystemLifecycleCrossRoleE2ETest#ac10_connectionRequestSubmission` | *Chờ chạy* |
-| **AC-11** | Chấp nhận đề nghị, khởi tạo lớp học & Chống Race Condition chấp nhận kép | `SystemLifecycleCrossRoleE2ETest#ac11_classCreationAndRaceCondition` | *Chờ chạy* |
-| **AC-12** | Đề xuất buổi học đơn lẻ & Khóa chống trùng lịch GiST exclusion constraint | `SystemLifecycleCrossRoleE2ETest#ac12_singleSessionAntiCollision` | *Chờ chạy* |
-| **AC-13** | Đề xuất lịch học hàng loạt & Tính nguyên tử giao dịch All-or-Nothing | `SystemLifecycleCrossRoleE2ETest#ac13_batchSchedulingAtomicity` | *Chờ chạy* |
-| **AC-14** | Đổi lịch đột xuất, gắn cờ phạt hủy muộn (<24h) & Đổi lịch tuần hoàn | `SystemLifecycleCrossRoleE2ETest#ac14_advancedSchedulingLifecycle` | *Chờ chạy* |
-| **AC-15** | Điểm danh buổi học, biên bản bất biến & Công thức tính tiến độ trọng số | `SystemLifecycleCrossRoleE2ETest#ac15_attendanceAndProgressCalculation` | *Chờ chạy* |
-| **AC-16** | Đánh giá gia sư độc bản (1-5 sao, quick tags) & Cập nhật điểm uy tín | `SystemLifecycleCrossRoleE2ETest#ac16_tutorReviewAndReputationUpdate` | *Chờ chạy* |
-| **AC-17** | Khóa người dùng vi phạm & Nhật ký kiểm toán có cấu trúc của Admin | `SystemLifecycleCrossRoleE2ETest#ac17_adminUserLockAndAuditTrail` | *Chờ chạy* |
-| **AC-18** | Ma trận phân quyền 72 ô (4 vai trò + Guest x 18 endpoint) & Chống IDOR | `CrossRoleAuthorizationMatrixTest#ac18_verifyFullRbacAndIdorMatrix` | *Chờ chạy* |
-| **AC-19** | Nạp tiền ví học phí qua PayOS QR Checkout & Xác thực Webhook HMAC-SHA256 | `SystemLifecycleCrossRoleE2ETest#ac19_walletTopupAndWebhookVerification` | *Chờ chạy* |
-| **AC-20** | Tạm giữ ký quỹ học phí buổi học (Escrow Hold) & Chặn lịch khi thiếu số dư | `SystemLifecycleCrossRoleE2ETest#ac20_sessionEscrowHoldAndRelease` | *Chờ chạy* |
-| **AC-21** | Tự động quyết toán học phí sau 24h & Xử lý khiếu nại tranh chấp Admin | `SystemLifecycleCrossRoleE2ETest#ac21_settlementAndDisputeResolution` | *Chờ chạy* |
-| **AC-22** | Cấu hình tài khoản thụ hưởng Napas247 & Rút tiền thu nhập gia sư | `SystemLifecycleCrossRoleE2ETest#ac22_tutorPayoutAndWithdrawal` | *Chờ chạy* |
+Cột trạng thái tách riêng hai lớp. "—" nghĩa là lớp đó không áp dụng hoặc không tự động hóa.
 
----
+| Mã | Tiêu chí | Lớp A (Backend) | Lớp B (Selenium UI) |
+|:---:|---|:---:|:---:|
+| AC-01 | Đăng nhập, session, Argon2id, khóa brute-force | ĐÃ CHẠY | Một phần (TC_UI_01, 04) |
+| AC-02 | Quên mật khẩu, hủy phiên cũ | ĐÃ CHẠY | Một phần (TC_UI_03) |
+| AC-03 | Magic Bytes, nộp bằng cấp | ĐÃ CHẠY | CHƯA LÀM |
+| AC-04 | Admin duyệt KYC | ĐÃ CHẠY | CHƯA LÀM |
+| AC-05 | Danh mục và khung rảnh tuần | ĐÃ CHẠY, chạy lại sau đổi Learning Need | CHƯA LÀM |
+| AC-06 | Nhu cầu học (trước là mục tiêu học tập) | Cần cập nhật theo Learning Need | CHƯA LÀM |
+| AC-07 | Tìm kiếm, AI Match | CHƯA LÀM | CHƯA LÀM |
+| AC-08 | Mời liên kết, rate limit | CHƯA LÀM | CHƯA LÀM |
+| AC-09 | Chấp nhận và hủy liên kết | CHƯA LÀM | CHƯA LÀM |
+| AC-10 | Đề nghị kèm cặp | CHƯA LÀM | CHƯA LÀM |
+| AC-11 | Tạo lớp, race condition | CHƯA LÀM | CHƯA LÀM |
+| AC-12 | Buổi đơn lẻ, chống trùng GiST | CHƯA LÀM | CHƯA LÀM |
+| AC-13 | Lập lịch hàng loạt All-or-Nothing | CHƯA LÀM | — |
+| AC-14 | Đổi lịch, hủy muộn | CHƯA LÀM | Một phần (đổi lịch) |
+| AC-15 | Điểm danh, biên bản bất biến, tiến độ | CHƯA LÀM (chờ nhánh dashboard) | Một phần (điểm danh) |
+| AC-16 | Đánh giá gia sư độc bản | CHƯA LÀM | CHƯA LÀM |
+| AC-17 | Khóa người dùng, kiểm toán | CHƯA LÀM | CHƯA LÀM |
+| AC-18 | Ma trận phân quyền 72 ô, IDOR | CHƯA LÀM | — |
+| AC-19 | Nạp ví, webhook HMAC | CHƯA LÀM | — (chỉ hiển thị QR) |
+| AC-20 | Escrow, chặn khi thiếu số dư | CHƯA LÀM | — |
+| AC-21 | Quyết toán 24 giờ, khiếu nại | CHƯA LÀM | Một phần (xem danh sách khiếu nại) |
+| AC-22 | Tài khoản thụ hưởng, rút tiền | CHƯA LÀM | CHƯA LÀM |
 
-### Bảng Nhật Ký Tiến Độ Triển Khai Thực Nghiệm
+### Nhật ký tiến độ (chỉ ghi việc có bằng chứng)
 
-| Ngày thực hiện | Hạng mục công việc chi tiết | Trạng thái máy | Bằng chứng thực nghiệm |
+| Ngày | Hạng mục | Trạng thái | Bằng chứng |
 |:---:|---|:---:|---|
-| **28/10/2026** | **Git Setup:** Tạo nhánh `test/system-e2e-verification` từ `develop` | **HOÀN TẤT** | Nhánh sạch, đồng bộ PR #35. |
-| **28/10/2026** | **Mục 1.2:** Chuẩn hóa CSDL `postgres:17` Noble & Sửa Timezone | **HOÀN TẤT** | Testcontainers kết nối thành công, không lỗi múi giờ. |
-| **01/11/2026** | **Mục 1.3 & 1.4:** Chuyển đổi sang Selenium WebDriver TypeScript, cấu hình `frontend/tests/e2e` & Xây dựng POM | **HOÀN TẤT** | `npm --prefix frontend run type-check` Exit Code 0, W3C WebDriver Locators. |
-| **01/11/2026** | **Mục 2.1:** Luồng 01 - Kiểm thử UI Xác thực, Session & Khóa Brute-force qua Selenium | **HOÀN TẤT** | Bộ kịch bản `01-auth-flow.e2e.test.ts` hoàn tất, hỗ trợ chụp ảnh màn hình lưu bằng chứng. |
-| *Tiếp theo* | **Mục 2.2:** Luồng 02 - Quét Bằng Cấp Magic Bytes & Admin Duyệt KYC qua Selenium | *Sẵn sàng* | Viết kịch bản `02-kyc-ui.e2e.test.ts` kiểm thử upload file và duyệt hồ sơ. |
+| 28/10/2026 | Tạo nhánh `test/system-e2e-verification` từ `develop` | ghi nhận | Chưa có nhánh `test/*` ở local tại 02/11, cần tạo lại bằng worktree |
+| 28/10/2026 | Chuẩn hóa `postgres:17`, múi giờ | ĐÃ CHẠY | Testcontainers kết nối được |
+| 28/10/2026 | AC-01..AC-04 (Lớp A) | ĐÃ CHẠY | `SystemLifecycleCrossRoleE2ETest` |
+| 01/11/2026 | Chuyển Playwright → Selenium, dựng POM, spec 01 | ĐÃ VIẾT, CHƯA XÁC MINH | Commit `a557235`; có ảnh TC_UI_01 và TC_UI_04 trong `reports/screenshots/` |
+| 02/11/2026 | Rà soát tài liệu so với mã (bản 5.0) | HOÀN TẤT | Phần "Tồn đọng" ở 1.3 |
 
 ---
 
-## PHẦN V: QUY CHUẨN LẬP BÁO CÁO KIỂM THỬ GIAO DIỆN WEB TỰ ĐỘNG (AUTOMATED WEB UI TESTING REPORT)
+## PHẦN IV-B: DANH MỤC TEST CASE GIAO DIỆN (LỚP B) THEO TOÀN BỘ HỆ THỐNG
+
+Danh mục này là nguồn gốc của số lượng test case trong báo cáo. Mỗi case ở mức **hiển thị + một thao tác chính**, chụp ảnh bằng chứng; chưa đi sâu từng bước nghiệp vụ bên trong. Route đã đối chiếu `frontend/src/app`.
+
+**Ưu tiên:** **P1** = đưa vào báo cáo đợt đầu (luồng chính, ổn định); **P2** = làm sau. Các case thuộc trang tiến độ/dashboard để **P2-chờ** vì đang được thiết kế lại ở nhánh khác.
+
+| Mã | Nhóm / Luồng | Vai trò | Route | Mô tả ngắn | Ưu tiên | Trạng thái |
+|---|---|---|---|---|:---:|:---:|
+| TC_UI_01 | Xác thực (L01) | Guest | `/login` | Form đăng nhập hiển thị đủ thành phần | P1 | đã viết |
+| TC_UI_02 | Xác thực (L01) | Guest | `/register` | Chuyển sang đăng ký, chọn vai trò | P1 | đã viết |
+| TC_UI_03 | Xác thực (L01) | Guest | `/forgot-password` | Gửi yêu cầu khôi phục mật khẩu | P1 | đã viết |
+| TC_UI_04 | Xác thực (L01) | Guest | `/login` | Đăng nhập sai hiện lỗi | P1 | đã viết |
+| TC_UI_05 | Xác thực (L01) | Guest | `/login` | Email sai định dạng bị chặn ở client | P1 | chưa làm |
+| TC_UI_06 | Xác thực (L01) | Admin | `/login` → `/admin/dashboard` | Đăng nhập thành công, vào đúng trang theo vai trò | P1 | chưa làm |
+| TC_UI_07 | Xác thực (L01) | Gia sư | `/login` → `/tutor/dashboard` | Như trên cho gia sư | P1 | chưa làm |
+| TC_UI_08 | Xác thực (L01) | Học sinh | `/login` → `/student/dashboard` | Như trên cho học sinh | P1 | chưa làm |
+| TC_UI_09 | Xác thực (L01) | Mọi vai trò | `/…` | Đăng xuất, quay về `/login` | P2 | chưa làm |
+| TC_UI_10 | Phân quyền | Guest | `/admin/dashboard` | Chưa đăng nhập bị chuyển về `/login` | P1 | chưa làm |
+| TC_UI_11 | Phân quyền | Học sinh | `/admin/dashboard` | Học sinh vào trang admin bị chặn/chuyển hướng | P1 | chưa làm |
+| TC_UI_12 | Onboarding | Học sinh | `/onboarding/student` | Form onboarding hiển thị và gửi được | P2 | chưa làm |
+| TC_UI_13 | Onboarding | Gia sư | `/onboarding/tutor` | Như trên | P2 | chưa làm |
+| TC_UI_14 | Onboarding | Phụ huynh | `/onboarding/parent` | Như trên | P2 | chưa làm |
+| TC_UI_15 | KYC (L02) | Gia sư | `/tutor/verification` | Chọn file giả `.sh` đổi đuôi `.pdf` → báo lỗi định dạng | P1 | chưa làm |
+| TC_UI_16 | KYC (L02) | Gia sư | `/tutor/verification` | Nộp PDF hợp lệ → trạng thái chờ duyệt | P1 | chưa làm |
+| TC_UI_17 | KYC (L02) | Admin | `/admin/verification-queue` | Hồ sơ vừa nộp xuất hiện ở tab chờ duyệt | P1 | chưa làm |
+| TC_UI_18 | KYC (L02) | Admin | `/admin/verification-queue` | Phê duyệt → hồ sơ rời tab chờ duyệt | P1 | chưa làm |
+| TC_UI_19 | KYC (L02) | Admin | `/admin/verification-queue` | Từ chối bắt buộc nhập lý do (BR-06) | P1 | chưa làm |
+| TC_UI_20 | KYC (L02) | Gia sư | `/tutor/verification` | Sau duyệt hiện trạng thái "Đã xác minh" | P2 | chưa làm |
+| TC_UI_21 | Danh mục (L03) | Admin | `/admin/catalogs` | Thêm môn học, hiện trong bảng | P1 | chưa làm |
+| TC_UI_22 | Hồ sơ (L03) | Gia sư | `/tutor/profile` | Cập nhật hồ sơ, giá, môn, lưu thành công | P1 | chưa làm |
+| TC_UI_23 | Hồ sơ (L03) | Gia sư | `/tutor/profile` | Thiết lập khung rảnh tuần | P2 | chưa làm |
+| TC_UI_24 | Hồ sơ (L03) | Học sinh | `/student/profile` | Cập nhật hồ sơ và nhu cầu học | P1 | chưa làm |
+| TC_UI_25 | Hồ sơ (L03) | Phụ huynh | `/parent/profile` | Cập nhật hồ sơ phụ huynh | P2 | chưa làm |
+| TC_UI_26 | Khám phá (L04) | Guest | `/tutors` | Danh sách gia sư và bộ lọc theo môn | P1 | chưa làm |
+| TC_UI_27 | Khám phá (L04) | Guest | `/tutors/[id]` | Trang chi tiết gia sư hiển thị | P1 | chưa làm |
+| TC_UI_28 | Khám phá (L04) | Học sinh | `/student/tutors` | Gợi ý AI Match hiển thị danh sách có điểm | P1 | chưa làm |
+| TC_UI_29 | Khám phá (L04) | Phụ huynh | `/parent/tutors` | Phụ huynh xem danh sách gia sư | P2 | chưa làm |
+| TC_UI_30 | Gia đình (L05) | Phụ huynh | `/parent/children` | Gửi lời mời liên kết, hiện ở danh sách chờ | P1 | chưa làm |
+| TC_UI_31 | Gia đình (L05) | Học sinh | `/student/family` | Thấy lời mời và chấp nhận | P1 | chưa làm |
+| TC_UI_32 | Gia đình (L05) | Học sinh | `/student/family` | Hủy liên kết, có hộp thoại xác nhận | P2 | chưa làm |
+| TC_UI_33 | Kết nối (L06) | Học sinh | `/tutors/[id]` | Gửi yêu cầu học tới gia sư | P1 | chưa làm |
+| TC_UI_34 | Kết nối (L06) | Gia sư | `/tutor/requests` | Thấy yêu cầu và chấp nhận | P1 | chưa làm |
+| TC_UI_35 | Kết nối (L06) | Gia sư, học sinh | `/tutor/classes`, `/student/classes` | Lớp mới xuất hiện ở cả hai phía | P1 | chưa làm |
+| TC_UI_36 | Lịch học (L07) | Gia sư | `/tutor/schedule` | Thêm buổi học, hiện trạng thái chờ xác nhận | P1 | chưa làm |
+| TC_UI_37 | Lịch học (L07) | Học sinh | `/student/schedule` | Xác nhận buổi học | P1 | chưa làm |
+| TC_UI_38 | Lịch học (L07) | Gia sư | `/tutor/schedule` | Thêm buổi trùng giờ → báo lỗi trùng lịch | P1 | chưa làm |
+| TC_UI_39 | Lịch học (L07) | Học sinh | trang lớp | Banner đề xuất lịch định kỳ, đồng ý/từ chối | P2 | chưa làm |
+| TC_UI_40 | Lịch học (L08) | Học sinh, gia sư | `/student/schedule` | Yêu cầu đổi lịch, bên kia đồng ý | P2 | chưa làm |
+| TC_UI_41 | Điểm danh (L08) | Gia sư | `/tutor/schedule` | Mở form điểm danh, hoàn tất, trạng thái đổi | P1 | chưa làm |
+| TC_UI_42 | Lịch sử (L08) | Gia sư | `/tutor/history` | Lịch sử buổi học hiển thị | P2 | chưa làm |
+| TC_UI_43 | Thanh toán (L09) | Phụ huynh | `/parent/billing` | Mở hộp thoại nạp tiền, thấy mã QR (không thanh toán thật) | P1 | chưa làm |
+| TC_UI_44 | Thanh toán (L09) | Học sinh | `/student/payments` | Trang thanh toán hiển thị số dư và giao dịch | P2 | chưa làm |
+| TC_UI_45 | Thanh toán (L09) | Gia sư | `/tutor/earnings` | Trang thu nhập, tạo lệnh rút | P1 | chưa làm |
+| TC_UI_46 | Thanh toán (L09) | Admin | `/admin/payments` | Danh sách giao dịch hiển thị | P2 | chưa làm |
+| TC_UI_47 | Khiếu nại (L09) | Admin | `/admin/disputes` | Danh sách khiếu nại và trang chi tiết | P2 | chưa làm |
+| TC_UI_48 | Đánh giá (L10) | Học sinh | trang lớp | Gửi đánh giá 1–5 sao, quick tag | P1 | chưa làm |
+| TC_UI_49 | Đánh giá (L10) | Học sinh | trang lớp | Gửi lần hai bị chặn | P1 | chưa làm |
+| TC_UI_50 | Đánh giá (L10) | Gia sư | `/tutor/reviews` | Đánh giá hiển thị | P2 | chưa làm |
+| TC_UI_51 | Quản trị (L10) | Admin | `/admin/dashboard` | Trang tổng quan admin hiển thị | P1 | chưa làm |
+| TC_UI_52 | Quản trị (L10) | Admin | `/admin/learners` | Khóa tài khoản kèm lý do | P1 | chưa làm |
+| TC_UI_53 | Quản trị (L10) | Admin | `/admin/tutors-management` | Danh sách gia sư quản trị hiển thị | P2 | chưa làm |
+| TC_UI_54 | Quản trị (L10) | Admin | `/admin/audit-logs` | Thao tác khóa tài khoản có trong nhật ký | P1 | chưa làm |
+| TC_UI_55 | Quản trị | Admin | `/admin/family-links`, `/admin/links` | Trang liên kết gia đình/kết nối hiển thị | P2 | chưa làm |
+| TC_UI_56 | Quản trị | Admin | `/admin/settings` | Trang cài đặt hệ thống hiển thị | P2 | chưa làm |
+| TC_UI_57 | Dashboard | Học sinh | `/student/dashboard` | Thẻ tổng quan và lớp đang học hiển thị | P2-chờ | chưa làm |
+| TC_UI_58 | Dashboard | Phụ huynh | `/parent/dashboard` | Chọn con và các thẻ KPI hiển thị | P2-chờ | chưa làm |
+| TC_UI_59 | Dashboard | Gia sư | `/tutor/dashboard` | Thẻ tổng quan gia sư hiển thị | P2-chờ | chưa làm |
+| TC_UI_60 | Tiến độ | Học sinh | `/student/progress` | Trang tiến độ hiển thị | P2-chờ | chưa làm |
+| TC_UI_61 | Tiến độ | Phụ huynh | `/parent/progress` | Trang tiến độ của con hiển thị | P2-chờ | chưa làm |
+| TC_UI_62 | Cài đặt | Học sinh, gia sư, phụ huynh | `/…/settings` | Trang cài đặt hiển thị (3 vai trò) | P2 | chưa làm |
+
+**Thống kê:** 62 case. P1 = 37 (đưa vào báo cáo đợt đầu), P2 = 20, P2-chờ = 5 (đợi nhánh dashboard/tiến độ ổn định). Đã viết: 4. Không thuộc Lớp B (xem Phần 0): AC-13, AC-18, AC-19, AC-20 và phần cộng số dư/quyết toán của AC-21.
+
+---
+
+## PHẦN V: MẪU BÁO CÁO "AUTOMATED WEB UI TESTING"
 
 > [!IMPORTANT]
-> **Mục Đích Riêng Của Báo Cáo Này:**
-> Báo cáo này được biên soạn để phục vụ công tác nghiệm thu đồ án, báo cáo học phần chuyên môn (như SWT301 / SWP391) hoặc báo cáo bàn giao khách hàng. Báo cáo **chỉ tập trung 100% vào phạm vi "Automated Web UI Testing"** (mô tả thao tác người dùng, kiểm thử giao diện bằng Selenium WebDriver, dữ liệu kiểm thử, kết quả hiển thị trên màn hình và bằng chứng ảnh chụp), không làm phân tán người đọc bằng các chi tiết can thiệp sâu vào mã nguồn backend/database.
+> Báo cáo phục vụ nghiệm thu học phần (SWT301 / SWP391), **chỉ trình bày Lớp B**: thao tác người dùng, dữ liệu, kết quả hiển thị, ảnh bằng chứng. Phần "Phạm vi" của báo cáo phải nêu rõ các mục ở Phần 0 không nằm trong kiểm thử giao diện.
 
-### 5.1. Mẫu Bảng Tổng Hợp Kết Quả Thực Thi (Test Execution Summary)
+### 5.1. Tổng hợp thực thi
 
-- **Tên dự án:** EduFit - Nền tảng kết nối Gia sư và Học sinh
-- **Môi trường thử nghiệm:** Google Chrome (phiên bản ổn định mới nhất), Độ phân giải: 1920x1080
-- **Base URL:** `http://localhost:3000`
-- **Công nghệ tự động hóa:** Selenium WebDriver 4.x (TypeScript), Page Object Model (POM), Explicit Wait (`WebDriverWait`), Data-Driven Testing
-- **Tổng số kịch bản kiểm thử (Test Cases):** 22
-- **Tỷ lệ đạt (Pass Rate):** 100% (22/22 Test Cases Passed)
+- **Dự án:** EduFit — nền tảng kết nối gia sư và học sinh
+- **Môi trường:** Google Chrome bản ổn định, 1920×1080, Base URL `http://localhost:3000`
+- **Công nghệ:** Selenium WebDriver 4.x (TypeScript), Vitest, Page Object Model, Explicit Wait, Data-Driven Testing
+- **Số test case / số đạt:** *điền từ kết quả chạy thật*. Tại 02/11/2026: 4 case đã viết (TC_UI_01..04), **chưa có lần chạy xác minh được ghi lại**.
 
-### 5.2. Mẫu Bảng Đặc Tả Chi Tiết Từng Kịch Bản Kiểm Thử Giao Diện (Detailed Web UI Test Log)
+### 5.2. Bảng đặc tả chi tiết
 
-| Mã Test Case | Tên Kịch Bản | Dữ Liệu Đầu Vào (Input Data) | Các Bước Thao Tác (Test Steps) | Kết Quả Mong Đợi Trên Màn Hình (Expected UI Result) | Kết Quả Thực Tế (Actual UI Result) | Bằng Chứng Ảnh (Screenshot) | Trạng Thái |
-|---|---|---|---|---|---|:---:|:---:|
-| `TC_UI_01` | Kiểm tra hiển thị form Đăng nhập | Không có | 1. Điều hướng tới `/login`<br>2. Kiểm tra các input và nút bấm | Ô Email, Mật khẩu, nút Đăng nhập hiển thị rõ ràng | Form hiển thị đầy đủ, đúng vị trí | `TC_UI_01_navigate_login.png` | **PASSED** |
-| `TC_UI_02` | Điều hướng sang Đăng ký & chọn vai trò Gia sư | Click nút "Đăng ký" | 1. Bấm liên kết "Đăng ký"<br>2. Bấm chọn pill "Gia sư" | Chuyển URL `/register`, pill "Gia sư" chuyển trạng thái active viền vàng | Giao diện chuyển mượt mà, pill hiển thị active | `TC_UI_02_register_role_selected.png` | **PASSED** |
-| `TC_UI_03` | Yêu cầu khôi phục mật khẩu | Email: `student@edufit.vn` | 1. Vào `/forgot-password`<br>2. Nhập email<br>3. Bấm "Gửi liên kết" | Hiển thị màn hình xác nhận: "Kiểm tra hộp thư đến của bạn" | Màn hình hiển thị đúng thông báo | `TC_UI_03_forgot_password_submitted.png` | **PASSED** |
-| `TC_UI_04` | Đăng nhập với mật khẩu không chính xác | Email: `wronguser@edufit.vn`<br>Pass: `WrongPass@123` | 1. Nhập email & pass sai<br>2. Bấm "Đăng nhập ngay" | Hộp cảnh báo màu đỏ (`bg-rose-50`) xuất hiện kèm thông báo lỗi từ hệ thống | Hộp lỗi bôi đỏ hiển thị rõ ràng | `TC_UI_04_invalid_credentials_alert.png` | **PASSED** |
-| `TC_UI_05` | Cảnh báo khi tải tệp bằng cấp sai định dạng | Tệp: `malicious_script.sh` đổi tên thành `.pdf` | 1. Vào `/tutor/verification`<br>2. Chọn file giả mạo<br>3. Bấm "Gửi hồ sơ" | Toast thông báo lỗi màu đỏ: "Định dạng file bằng cấp không hợp lệ" | Toast lỗi bật lên, ngăn chặn gửi hồ sơ | `TC_UI_05_invalid_certificate_format.png` | **PASSED** |
-| `TC_UI_06` | Admin duyệt hồ sơ bằng cấp trong hàng đợi | Tài khoản Admin đã đăng nhập | 1. Vào `/admin/verifications`<br>2. Nhấn "Phê duyệt" | Bản ghi biến mất khỏi tab Chờ duyệt, Toast báo "Duyệt thành công" | Danh sách cập nhật tức thì, hiển thị Toast xanh | `TC_UI_06_admin_approve_kyc.png` | **PASSED** |
+Dùng cột: Mã · Tên · Dữ liệu vào · Bước thao tác · Kết quả mong đợi · Kết quả thực tế · Ảnh · Trạng thái. Chỉ điền "Kết quả thực tế" và "PASSED" sau khi chạy.
+
+| Mã | Tên | Dữ liệu vào | Bước | Kết quả mong đợi | Ảnh | Trạng thái |
+|---|---|---|---|---|---|:---:|
+| TC_UI_01 | Form Đăng nhập hiển thị | — | Vào `/login`, kiểm tra ô email, mật khẩu, nút đăng nhập | Ba thành phần hiển thị | `TC_UI_01_navigate_login` | chờ chạy lại |
+| TC_UI_02 | Chuyển sang Đăng ký, chọn vai trò | Chọn "Gia sư" | Bấm liên kết đăng ký, chọn vai trò | URL chứa `/register`, form hiển thị, vai trò được chọn | `TC_UI_02_register_role_selected` | chờ chạy lại |
+| TC_UI_03 | Yêu cầu khôi phục mật khẩu | `student@edufit.vn` | Vào `/forgot-password`, nhập email, gửi | Màn hình xác nhận đã gửi | `TC_UI_03_forgot_password_submitted` | chờ chạy lại |
+| TC_UI_04 | Đăng nhập sai | `wronguser@edufit.vn` / `WrongPassword@123` (từ `login-data.json`) | Nhập thông tin sai, bấm đăng nhập | Hiển thị thông báo lỗi | `TC_UI_04_invalid_credentials_alert` | chờ chạy lại |
+| TC_UI_05 | Email sai định dạng bị chặn | Email `invalid-email-format` (`TC_AUTH_VAL_01`) | 1. Vào `/login`<br>2. Nhập email sai định dạng và mật khẩu hợp lệ<br>3. Bấm đăng nhập | Form hiện cảnh báo validation, không gửi yêu cầu, URL vẫn là `/login` | `TC_UI_05_email_validation` | chưa làm |
+| TC_UI_06 | Admin đăng nhập thành công | `admin@edufit.vn` (theo `login-data.json`) | 1. Vào `/login`<br>2. Nhập tài khoản admin<br>3. Bấm đăng nhập | Chuyển tới `/admin/dashboard`, hiển thị menu quản trị | `TC_UI_06_admin_login` | chưa làm |
+| TC_UI_07 | Gia sư đăng nhập thành công | `tutor@edufit.vn` | Như TC_UI_06 | Chuyển tới `/tutor/dashboard` | `TC_UI_07_tutor_login` | chưa làm |
+| TC_UI_08 | Học sinh đăng nhập thành công | `student@edufit.vn` | Như TC_UI_06 | Chuyển tới `/student/dashboard` | `TC_UI_08_student_login` | chưa làm |
+| TC_UI_10 | Chưa đăng nhập bị chặn trang admin | Không có | 1. Mở trình duyệt mới, chưa đăng nhập<br>2. Truy cập `/admin/dashboard` | Bị chuyển về `/login`, không thấy nội dung admin | `TC_UI_10_guest_blocked` | chưa làm |
+| TC_UI_11 | Học sinh không vào được trang admin | `student@edufit.vn` | 1. Đăng nhập học sinh<br>2. Truy cập `/admin/dashboard` | Bị chặn hoặc chuyển hướng, không hiển thị trang quản trị | `TC_UI_11_student_blocked` | chưa làm |
+| TC_UI_15 | Từ chối tệp bằng cấp giả mạo | Tệp `.sh` đổi đuôi `.pdf` (đặt trong `resources/files/`) | 1. Gia sư đăng nhập, vào `/tutor/verification`<br>2. Chọn tệp giả<br>3. Gửi hồ sơ | Thông báo lỗi định dạng, hồ sơ không được gửi | `TC_UI_15_fake_certificate` | chưa làm |
+| TC_UI_16 | Nộp bằng cấp hợp lệ | Tệp PDF hợp lệ (`resources/files/`), thông tin bằng cấp sinh động | 1. Chọn PDF<br>2. Điền thông tin bằng cấp<br>3. Gửi hồ sơ | Huy hiệu chuyển sang trạng thái chờ duyệt | `TC_UI_16_submit_certificate` | chưa làm |
+| TC_UI_17 | Hồ sơ xuất hiện trong hàng đợi Admin | Hồ sơ từ TC_UI_16 | 1. Admin đăng nhập<br>2. Vào `/admin/verification-queue`<br>3. Mở tab chờ duyệt | Hồ sơ của gia sư hiển thị trong danh sách | `TC_UI_17_queue_has_request` | chưa làm |
+| TC_UI_18 | Admin phê duyệt hồ sơ | Hồ sơ từ TC_UI_17 | 1. Bấm phê duyệt trên hồ sơ | Hồ sơ rời tab chờ duyệt, có thông báo thành công | `TC_UI_18_admin_approve` | chưa làm |
+| TC_UI_19 | Từ chối phải có lý do | Hồ sơ chờ duyệt, lý do để trống | 1. Bấm từ chối<br>2. Không nhập lý do, xác nhận | Giao diện chặn và yêu cầu nhập lý do (BR-06) | `TC_UI_19_reject_requires_reason` | chưa làm |
+| TC_UI_21 | Admin thêm môn học | Tên môn sinh động (generator) | 1. Admin vào `/admin/catalogs`<br>2. Thêm môn mới<br>3. Lưu | Môn mới hiện ngay trong bảng danh mục | `TC_UI_21_add_subject` | chưa làm |
+| TC_UI_22 | Gia sư cập nhật hồ sơ | Tiểu sử, học phí/giờ, môn (từ `resources/`) | 1. Gia sư vào `/tutor/profile`<br>2. Sửa thông tin, chọn môn<br>3. Lưu | Thông báo lưu thành công, dữ liệu giữ nguyên sau khi tải lại | `TC_UI_22_tutor_profile` | chưa làm |
+| TC_UI_24 | Học sinh cập nhật hồ sơ và nhu cầu học | Khối lớp, khu vực, nhu cầu (từ `resources/`) | 1. Học sinh vào `/student/profile`<br>2. Nhập thông tin<br>3. Lưu | Thông báo lưu thành công, dữ liệu hiển thị lại đúng | `TC_UI_24_student_profile` | chưa làm |
+| TC_UI_26 | Lọc danh sách gia sư theo môn | Môn học bất kỳ có gia sư | 1. Không đăng nhập, vào `/tutors`<br>2. Chọn bộ lọc môn | Danh sách chỉ gồm gia sư thỏa bộ lọc, mỗi thẻ có thông tin cơ bản | `TC_UI_26_tutor_filter` | chưa làm |
+| TC_UI_27 | Xem chi tiết gia sư | Một gia sư trong danh sách | 1. Bấm vào thẻ gia sư | Mở `/tutors/[id]` với tiểu sử, môn, đánh giá | `TC_UI_27_tutor_detail` | chưa làm |
+| TC_UI_28 | Gợi ý AI Match | Học sinh có nhu cầu học | 1. Học sinh vào `/student/tutors`<br>2. Bấm gợi ý AI Match | Hiển thị danh sách gia sư kèm điểm tương thích và lý do | `TC_UI_28_ai_match` | chưa làm |
+| TC_UI_30 | Phụ huynh gửi lời mời liên kết | Email học sinh seed | 1. Phụ huynh vào `/parent/children`<br>2. Nhập email, gửi lời mời | Lời mời hiện trong danh sách chờ | `TC_UI_30_parent_invite` | chưa làm |
+| TC_UI_31 | Học sinh chấp nhận lời mời | Lời mời từ TC_UI_30 | 1. Học sinh vào `/student/family`<br>2. Bấm chấp nhận | Trạng thái chuyển sang "Đã liên kết" | `TC_UI_31_student_accept` | chưa làm |
+| TC_UI_33 | Học sinh gửi yêu cầu học | Môn học, ghi chú sinh động | 1. Vào `/tutors/[id]`<br>2. Bấm gửi yêu cầu học<br>3. Chọn môn, điền ghi chú, gửi | Thông báo gửi thành công | `TC_UI_33_send_request` | chưa làm |
+| TC_UI_34 | Gia sư chấp nhận yêu cầu | Yêu cầu từ TC_UI_33 | 1. Gia sư vào `/tutor/requests`<br>2. Bấm chấp nhận | Yêu cầu chuyển sang đã xử lý, có thông báo thành công | `TC_UI_34_tutor_accept` | chưa làm |
+| TC_UI_35 | Lớp học xuất hiện hai phía | Lớp từ TC_UI_34 | 1. Gia sư mở `/tutor/classes`<br>2. Học sinh mở `/student/classes` | Lớp mới hiện ở trạng thái đang hoạt động ở cả hai trang | `TC_UI_35_class_created` | chưa làm |
+| TC_UI_36 | Gia sư thêm buổi học | Ngày, giờ bắt đầu/kết thúc hợp lệ | 1. Gia sư vào `/tutor/schedule`<br>2. Thêm buổi học | Buổi học hiện trên lịch ở trạng thái chờ xác nhận | `TC_UI_36_add_session` | chưa làm |
+| TC_UI_37 | Học sinh xác nhận buổi học | Buổi học từ TC_UI_36 | 1. Học sinh vào `/student/schedule`<br>2. Bấm xác nhận | Buổi học chuyển sang trạng thái đã chốt | `TC_UI_37_confirm_session` | chưa làm |
+| TC_UI_38 | Chặn buổi học trùng giờ | Khung giờ chồng lên buổi ở TC_UI_36 | 1. Thêm buổi học có khung giờ giao nhau | Hiển thị thông báo lỗi trùng lịch, không tạo buổi mới | `TC_UI_38_overlap_blocked` | chưa làm |
+| TC_UI_41 | Điểm danh buổi học | Buổi đủ điều kiện điểm danh (dữ liệu seed), nội dung dạy sinh động | 1. Gia sư mở form điểm danh<br>2. Chọn kết quả, nhập nội dung<br>3. Hoàn tất | Trạng thái buổi học đổi sang hoàn thành | `TC_UI_41_attendance` | chưa làm |
+| TC_UI_43 | Hiển thị mã QR nạp ví | Số tiền hợp lệ (từ `resources/`) | 1. Phụ huynh vào `/parent/billing`<br>2. Bấm nạp tiền, nhập số tiền | Hộp thoại hiển thị mã QR. Không thanh toán thật | `TC_UI_43_topup_qr` | chưa làm |
+| TC_UI_45 | Gia sư tạo lệnh rút tiền | Tài khoản ngân hàng test (từ `resources/`) | 1. Gia sư vào `/tutor/earnings`<br>2. Nhập tài khoản thụ hưởng, tạo lệnh rút | Lệnh rút xuất hiện với trạng thái chờ xử lý | `TC_UI_45_payout_request` | chưa làm |
+| TC_UI_48 | Học sinh đánh giá gia sư | 5 sao, một quick tag, nhận xét sinh động | 1. Mở lớp đã hoàn thành<br>2. Bấm đánh giá gia sư<br>3. Chọn sao, tag, nhập nhận xét, gửi | Đánh giá được ghi nhận, có thông báo thành công | `TC_UI_48_submit_review` | chưa làm |
+| TC_UI_49 | Chặn đánh giá lần hai | Lớp đã đánh giá ở TC_UI_48 | 1. Mở lại lớp đó<br>2. Thử đánh giá lần nữa | Nút đánh giá bị vô hiệu hoặc báo đã đánh giá | `TC_UI_49_duplicate_review` | chưa làm |
+| TC_UI_51 | Trang tổng quan admin | Admin đã đăng nhập | 1. Vào `/admin/dashboard` | Các khối thống kê và menu quản trị hiển thị | `TC_UI_51_admin_dashboard` | chưa làm |
+| TC_UI_52 | Admin khóa tài khoản | Tài khoản học sinh test, lý do sinh động | 1. Vào `/admin/learners`<br>2. Chọn tài khoản, bấm khóa<br>3. Nhập lý do, xác nhận | Tài khoản hiện trạng thái bị khóa | `TC_UI_52_lock_account` | chưa làm |
+| TC_UI_54 | Nhật ký ghi thao tác khóa | Thao tác từ TC_UI_52 | 1. Vào `/admin/audit-logs` | Bản ghi khóa tài khoản hiện với người thực hiện và thời gian | `TC_UI_54_audit_log` | chưa làm |
+
+**Ghi chú về dữ liệu:** các tệp mẫu (PDF hợp lệ, tệp giả) đặt trong `frontend/tests/e2e/resources/files/`; giá trị nhập sinh động dùng hàm generator; tài khoản seed lấy từ `login-data.json`. Các case phụ thuộc nhau (15→16→17→18, 30→31, 33→34→35, 36→37, 48→49, 52→54) phải chạy tuần tự trong cùng một spec theo luồng. 25 case P2 và P2-chờ (TC_UI_09, 12–14, 20, 23, 25, 29, 32, 39, 40, 42, 44, 46, 47, 50, 53, 55–62) sẽ được đặc tả khi triển khai.
+
+Bản cũ có TC_UI_05 (file giả) và TC_UI_06 (Admin duyệt) ghi PASSED; hai case đó **chưa có mã**, đã chuyển về "chưa làm".
