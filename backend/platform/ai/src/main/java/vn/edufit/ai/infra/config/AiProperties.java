@@ -21,13 +21,13 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  *       đối khi nạp cấu hình trong môi trường đa luồng.
  * </ul>
  *
- * @param provider Tên nhà cung cấp AI muốn kích hoạt ("gemini" hoặc "stub", mặc định là "stub").
+ * @param provider Tên nhà cung cấp AI muốn kích hoạt ("gemini" hoặc "stub"), bắt buộc đặt qua AI_PROVIDER, không có giá trị mặc định.
  * @param timeout Thời gian chờ tối đa cho mỗi cuộc gọi LLM (mặc định 15 giây theo NFR-10).
  * @param gemini Các thông số kết nối chi tiết tới Google Gemini API.
  */
 @ConfigurationProperties(prefix = "edufit.ai")
 public record AiProperties(
-    @DefaultValue("stub") String provider,
+    String provider,
     @DefaultValue("15s") Duration timeout,
     @DefaultValue GeminiProperties gemini) {
 
@@ -35,20 +35,20 @@ public record AiProperties(
    * Cấu hình chi tiết dành riêng cho nhà cung cấp Google Gemini.
    *
    * @param apiKey Khóa bí mật API của Google Gemini (đọc từ biến môi trường GEMINI_API_KEY).
-   * @param model Model ID, có thể ghi đè qua GEMINI_MODEL.
+   * @param model Model ID, đặt qua GEMINI_MODEL; không có giá trị mặc định và bắt buộc khi provider là gemini.
    * @param baseUrl Địa chỉ gốc của Google Generative Language API.
    */
   public record GeminiProperties(
       @DefaultValue("") String apiKey,
-      @DefaultValue("gemini-3.5-flash-lite") String model,
+      String model,
       @DefaultValue("https://generativelanguage.googleapis.com") String baseUrl) {
 
     public GeminiProperties {
       if (apiKey == null) {
         apiKey = "";
       }
-      if (model == null || model.isBlank()) {
-        model = "gemini-3.5-flash-lite";
+      if (model == null) {
+        model = "";
       }
       if (baseUrl == null || baseUrl.isBlank()) {
         baseUrl = "https://generativelanguage.googleapis.com";
@@ -63,7 +63,7 @@ public record AiProperties(
 
   public AiProperties {
     if (provider == null) {
-      provider = "stub";
+      throw new IllegalArgumentException("AI_PROVIDER is required (stub or gemini)");
     }
     if (!provider.equals("stub") && !provider.equals("gemini")) {
       throw new IllegalArgumentException("AI_PROVIDER must be stub or gemini");
@@ -72,9 +72,7 @@ public record AiProperties(
       timeout = Duration.ofSeconds(15);
     }
     if (gemini == null) {
-      gemini =
-          new GeminiProperties(
-              "", "gemini-3.5-flash-lite", "https://generativelanguage.googleapis.com");
+      gemini = new GeminiProperties("", "", "");
     }
     if (provider.equals("gemini")) {
       if (gemini.apiKey().isBlank()) {
