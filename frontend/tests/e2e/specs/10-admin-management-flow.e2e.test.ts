@@ -1,3 +1,10 @@
+/**
+ * Luồng 10/11 - Automated Web UI Testing: Quản Trị Hệ Thống, Quản Lý Người Học & Nhật Ký Kiểm Toán
+ * - MF_10.1: Dashboard tải đầy đủ các thẻ KPI với số liệu hệ thống (TC_UI_51)
+ * - MF_10.2: Quản lý người học hiển thị đúng thông tin và trạng thái tài khoản (TC_UI_52)
+ * - MF_10.3: Nhật ký kiểm toán hiển thị hành động, actor, thời gian và lý do bản ghi (TC_UI_54)
+ */
+
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { WebDriver } from 'selenium-webdriver';
 import type { Driver as ChromeDriver } from 'selenium-webdriver/chrome';
