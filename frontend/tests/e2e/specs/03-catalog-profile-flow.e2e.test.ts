@@ -1,3 +1,10 @@
+/**
+ * Luồng 03 - Automated Web UI Testing: Thiết Lập Hồ Sơ Chuyên Môn & Quản Lý Danh Mục
+ * - MF_03.1: Admin mở form và tạo môn học mới (TC_UI_21)
+ * - MF_03.2: Gia sư cập nhật tiểu sử và gói dạy có học phí riêng (TC_UI_22)
+ * - MF_03.3: Học sinh lưu hồ sơ và nhu cầu học tập (TC_UI_24)
+ */
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { WebDriver } from 'selenium-webdriver';
