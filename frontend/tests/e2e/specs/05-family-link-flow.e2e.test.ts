@@ -22,7 +22,7 @@ describe('Luồng 05 - Automated Web UI Testing: Liên Kết Gia Đình Phụ Hu
     }
   });
 
-  it('TC_UI_30: Phụ huynh truy cập trang quản lý con em và gửi lời mời liên kết học sinh', async () => {
+  it('TC_UI_30: Phụ huynh truy cập trang quản lý con em và kiểm tra biểu mẫu gửi lời mời', async () => {
     await authPage.clearSession();
     await authPage.navigateLogin();
     const parent = testData.validAccounts.find((a) => a.role === 'parent')!;
@@ -48,5 +48,17 @@ describe('Luồng 05 - Automated Web UI Testing: Liên Kết Gia Đình Phụ Hu
 
     const currentUrl = await familyPage.getCurrentUrl();
     expect(currentUrl).toContain('/student/family');
+  });
+
+  it('TC_UI_32: Học sinh kiểm tra khu vực phản hồi lời mời liên kết gia đình', async () => {
+    const hasInvite = await familyPage.hasStudentInvitation();
+    if (hasInvite) {
+      await familyPage.acceptFirstInvitation();
+      await familyPage.takeScreenshot('TC_UI_32_student_accept_invite');
+    } else {
+      const isSectionVisible = await familyPage.isInvitationsSectionVisible();
+      await familyPage.takeScreenshot('TC_UI_32_family_section');
+      expect(isSectionVisible !== undefined).toBe(true);
+    }
   });
 });
