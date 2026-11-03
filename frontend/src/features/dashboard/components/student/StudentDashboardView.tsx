@@ -234,7 +234,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       title: "Cài đặt hồ sơ học tập",
       description: "Chọn khối lớp và khu vực cư trú để hệ thống ghép cặp gia sư lân cận.",
       href: "/student/profile",
-      actionText: "Thiết lập ngay",
+      actionText: profile?.profileComplete === true ? "Xem hồ sơ" : "Thiết lập ngay",
       completed: profile?.profileComplete === true,
     },
     {
