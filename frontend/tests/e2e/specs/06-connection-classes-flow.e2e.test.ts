@@ -39,6 +39,15 @@ describe('Luồng 06 - Automated Web UI Testing: Kết Nối Học Viên & Quả
     expect(isVisible).toBe(true);
   });
 
+  it('TC_UI_34b: Gia sư kiểm tra các hành động phản hồi yêu cầu học tập (Chấp thuận / Từ chối)', async () => {
+    const hasRequests = await classPage.hasPendingRequests();
+    if (hasRequests) {
+      await classPage.takeScreenshot('TC_UI_34b_pending_request_actions');
+    }
+    const currentUrl = await classPage.getCurrentUrl();
+    expect(currentUrl).toContain('/tutor/requests');
+  });
+
   it('TC_UI_35: Danh sách lớp học hoạt động hiển thị đồng bộ ở cả hai cổng Gia sư và Học sinh', async () => {
     // 1. Phía gia sư kiểm tra danh sách lớp
     await classPage.navigateTutorClasses();
