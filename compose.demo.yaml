@@ -1,0 +1,20 @@
+# Lớp demo: thêm frontend vào compose.yaml + compose.dev.yaml để chạy cả hệ thống bằng một lệnh.
+#   docker compose -f compose.yaml -f compose.dev.yaml -f compose.demo.yaml up --build
+# Mở http://localhost:3000. Tài khoản demo: xem README (mật khẩu chung Password123@).
+# Giá trị NEXT_PUBLIC_* và BACKEND_URL bị nhúng lúc build nên truyền qua build.args.
+name: edufit
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8080
+        NEXT_PUBLIC_ENABLE_DEMO_LOGIN: "true"
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

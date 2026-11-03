@@ -10,7 +10,13 @@ export interface StudentGoalItem {
   grade: string;
   title: string;
   roadmapDesc: string;
-  progressPercent: number;
+  /**
+   * true: các bước lấy từ lộ trình (milestone) gia sư lập, % do backend tính.
+   * false: chưa có lộ trình, chỉ hiện các bước khởi đầu thực tế (có mục tiêu, có lớp, đã học buổi đầu).
+   */
+  hasPlan: boolean;
+  /** % tiến độ theo trọng số milestone từ backend; null khi chưa có lộ trình. */
+  progressPercent: number | null;
   completedMilestones: number;
   totalMilestones: number;
   milestones?: Array<{ label: string; completed: boolean }>;
@@ -55,6 +61,7 @@ export function StudentGoalProgressCard({ goal }: StudentGoalProgressCardProps) 
   }
 
   const remaining = Math.max(0, goal.totalMilestones - goal.completedMilestones);
+  const unit = goal.hasPlan ? "cột mốc" : "bước";
 
   return (
     <div className="bg-white dark:bg-stone-900 p-6 sm:p-7 rounded-3xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex flex-col justify-between gap-5">
@@ -64,9 +71,11 @@ export function StudentGoalProgressCard({ goal }: StudentGoalProgressCardProps) 
             <Sparkles className="size-3.5 text-amber-500" />
             <span>Mục tiêu đang tập trung</span>
           </div>
-          <span className="px-2.5 py-0.5 bg-amber-200 dark:bg-amber-950/80 text-amber-950 dark:text-amber-300 rounded-full text-xs font-bold">
-            {goal.grade}
-          </span>
+          {goal.grade && (
+            <span className="px-2.5 py-0.5 bg-amber-200 dark:bg-amber-950/80 text-amber-950 dark:text-amber-300 rounded-full text-xs font-bold">
+              {goal.grade}
+            </span>
+          )}
         </div>
 
         <h3 className="font-heading text-lg sm:text-xl font-bold text-neutral-900 dark:text-stone-100 mb-1">
@@ -80,18 +89,30 @@ export function StudentGoalProgressCard({ goal }: StudentGoalProgressCardProps) 
       <div className="space-y-3">
         <div className="space-y-1.5">
           <div className="flex justify-between items-center text-xs font-semibold">
-            <span className="text-neutral-600">Tiến độ 3 bước khởi đầu</span>
-            <span className="text-emerald-600 font-bold text-sm">{goal.progressPercent}%</span>
+            <span className="text-neutral-600">
+              {goal.hasPlan ? "Tiến độ theo lộ trình của gia sư" : "Các bước khởi đầu"}
+            </span>
+            {goal.progressPercent !== null && (
+              <span className="text-emerald-600 font-bold text-sm">{goal.progressPercent}%</span>
+            )}
           </div>
-          <div className="w-full h-2.5 bg-stone-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-700"
-              style={{ width: `${goal.progressPercent}%` }}
-            />
-          </div>
+          {goal.progressPercent !== null && (
+            <div className="w-full h-2.5 bg-stone-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                style={{ width: `${goal.progressPercent}%` }}
+              />
+            </div>
+          )}
           <div className="flex justify-between items-center text-[11px] text-neutral-400 font-medium">
-            <span>{goal.completedMilestones} / {goal.totalMilestones} bước đã hoàn thành</span>
-            <span>{remaining > 0 ? `Còn ${remaining} bước quan trọng` : "Đã hoàn tất lộ trình khởi đầu"}</span>
+            <span>{goal.completedMilestones} / {goal.totalMilestones} {unit} đã hoàn thành</span>
+            <span>
+              {remaining > 0
+                ? `Còn ${remaining} ${unit}`
+                : goal.hasPlan
+                  ? "Đã đạt toàn bộ cột mốc"
+                  : "Chờ gia sư lập lộ trình học"}
+            </span>
           </div>
         </div>
 

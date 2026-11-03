@@ -23,6 +23,7 @@ import vn.edufit.progress.application.dto.ProgressViews.ParentDashboardView;
 import vn.edufit.progress.application.dto.ProgressViews.StudentDashboardView;
 import vn.edufit.progress.application.dto.ProgressViews.TeachingHistoryItemView;
 import vn.edufit.progress.application.service.ProgressDashboardService;
+import vn.edufit.progress.application.service.TutorTodoService;
 import vn.edufit.progress.web.response.ProgressDashboardResponses.ParentDashboardResponse;
 import vn.edufit.progress.web.response.ProgressDashboardResponses.StudentDashboardResponse;
 import vn.edufit.progress.web.response.ProgressDashboardResponses.TeachingHistoryItem;
@@ -47,7 +48,7 @@ class ProgressDashboardControllerTest {
     mockUser = mock(CurrentUser.class);
     when(mockUser.getUserId()).thenReturn(UUID.randomUUID());
     when(currentUserProvider.getIfAvailable()).thenReturn(mockUser);
-    controller = new ProgressDashboardController(dashboardService, currentUserProvider);
+    controller = new ProgressDashboardController(dashboardService, mock(TutorTodoService.class), currentUserProvider);
   }
 
   @Test
@@ -56,12 +57,12 @@ class ProgressDashboardControllerTest {
     UUID studentId = UUID.randomUUID();
     StudentDashboardView viewData = new StudentDashboardView(
         studentId, "Student Name", List.of(), null, null, null, null, null,
-        null, null, null, List.of(), List.of(), false
+        null, null, null, List.of(), false
     );
 
-    when(dashboardService.getStudentDashboard(eq(mockUser), eq(studentId), any(), eq("30D"))).thenReturn(viewData);
+    when(dashboardService.getStudentDashboard(eq(mockUser), eq(studentId), any())).thenReturn(viewData);
 
-    ResponseEntity<ApiResponse<StudentDashboardResponse>> resp = controller.getStudentDashboard(studentId, null, "30D");
+    ResponseEntity<ApiResponse<StudentDashboardResponse>> resp = controller.getStudentDashboard(studentId, null);
 
     assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(resp.getBody()).isNotNull();

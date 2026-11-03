@@ -97,11 +97,11 @@ edufit:
         location: 10
         rating: 15
   ai:
-    provider: ${AI_PROVIDER:gemini} # 'stub' cho offline/test, 'gemini' cho gọi thật
+    provider: ${AI_PROVIDER} # Bắt buộc, không có mặc định: 'stub' cho offline/test, 'gemini' cho gọi thật
     timeout: 15s                 # NFR-10: khống chế timeout 15 giây
     gemini:
       api-key: ${GEMINI_API_KEY:}
-      model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
+      model: ${GEMINI_MODEL:} # Không có mặc định; bắt buộc khi AI_PROVIDER=gemini
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
   storage:
     credentials:

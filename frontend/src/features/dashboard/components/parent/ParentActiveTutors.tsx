@@ -8,8 +8,7 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 interface ActiveTutorItem {
   name: string;
   subject: string;
-  rating: string;
-  recentNote: string;
+  scheduleStatus: string;
   progress: string;
 }
 
@@ -75,8 +74,6 @@ export function ParentActiveTutors({ tutors = [] }: ParentActiveTutorsProps) {
                   <h4 className="text-xs sm:text-sm font-bold text-neutral-900">{tutor.name}</h4>
                   <div className="flex items-center gap-2 text-xs text-neutral-500">
                     <span className="font-semibold text-neutral-700">{tutor.subject}</span>
-                    <span>·</span>
-                    <span className="text-amber-600 font-medium">{tutor.rating}</span>
                     {tutor.progress && (
                       <>
                         <span>·</span>
@@ -101,9 +98,9 @@ export function ParentActiveTutors({ tutors = [] }: ParentActiveTutorsProps) {
 
             <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/60 text-xs text-neutral-600 space-y-1">
               <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">
-                Nhận xét gần nhất từ gia sư
+                Lịch học
               </span>
-              <p className="italic font-sans">{`"${tutor.recentNote}"`}</p>
+              <p>{tutor.scheduleStatus}</p>
             </div>
           </div>
         ))}

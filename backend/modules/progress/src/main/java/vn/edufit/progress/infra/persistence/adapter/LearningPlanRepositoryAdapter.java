@@ -57,4 +57,9 @@ public class LearningPlanRepositoryAdapter implements LearningPlanDomainReposito
         .map(mapper::toDomain)
         .toList();
   }
+
+  @Override
+  public List<UUID> findAllClassIds() {
+    return springDataRepository.findAllClassIds();
+  }
 }

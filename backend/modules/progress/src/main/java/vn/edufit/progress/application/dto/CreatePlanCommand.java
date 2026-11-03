@@ -13,6 +13,9 @@ public record CreatePlanCommand(
       String title,
       String description,
       LocalDate targetDate,
-      Integer weight
+      Integer weight,
+      List<String> criteria,
+      Integer suggestedSessions,
+      UUID topicId
   ) {}
 }

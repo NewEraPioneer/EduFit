@@ -25,4 +25,7 @@ public interface LearningPlanDomainRepository {
    * Batch query kế hoạch học tập theo danh sách mã lớp học (chống N+1 query).
    */
   List<LearningPlan> findByClassIdIn(Collection<UUID> classIds);
+
+  /** Mã lớp của mọi lộ trình, dùng cho job lập báo cáo kỳ. */
+  List<UUID> findAllClassIds();
 }

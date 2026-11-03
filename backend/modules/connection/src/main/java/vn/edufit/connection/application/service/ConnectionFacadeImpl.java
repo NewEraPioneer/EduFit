@@ -1,5 +1,6 @@
 package vn.edufit.connection.application.service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -88,6 +89,14 @@ public class ConnectionFacadeImpl implements ConnectionFacade {
       return java.util.List.of();
     }
     return classes.findByTutorId(tutorId).stream().map(this::toClassDetailView).toList();
+  }
+
+  @Override
+  public List<ClassDetailView> findClassesByIds(Collection<UUID> classIds) {
+    if (classIds == null || classIds.isEmpty()) {
+      return java.util.List.of();
+    }
+    return classes.findAllById(classIds).stream().map(this::toClassDetailView).toList();
   }
 
   @Override

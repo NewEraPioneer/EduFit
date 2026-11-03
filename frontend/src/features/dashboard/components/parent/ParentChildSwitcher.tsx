@@ -8,11 +8,14 @@ export interface ChildInfo {
   id: number;
   studentId?: string;
   name: string;
-  grade: string;
+  grade: string | null;
   tutorsCount: number;
   completedLessons: string;
-  avgScore: string;
-  nextSession: string;
+  /** Tỉ lệ chuyên cần (%) = buổi hoàn thành / (hoàn thành + vắng), null khi chưa có buổi nào kết thúc. */
+  attendanceRate: number | null;
+  progressPercent: number | null;
+  goalTitle: string | null;
+  nextSessionStart: string | null;
 }
 
 interface ParentChildSwitcherProps {
@@ -43,7 +46,8 @@ export function ParentChildSwitcher({
           >
             <span className={`size-2 rounded-full ${isActive ? "bg-white" : "bg-emerald-500"}`} />
             <span>
-              {child.name} ({child.grade})
+              {child.name}
+              {child.grade ? ` (${child.grade})` : ""}
             </span>
             <span className={`text-[10px] ${isActive ? "text-emerald-100" : "text-neutral-400"}`}>
               · {child.tutorsCount} gia sư

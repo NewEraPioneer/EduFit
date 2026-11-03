@@ -2,6 +2,7 @@ package vn.edufit.progress.web.response;
 
 import java.time.Instant;
 import java.util.UUID;
+import vn.edufit.progress.application.dto.SessionFeedbackView;
 import vn.edufit.progress.application.dto.SessionNoteTimelineView;
 
 public record SessionNoteTimelineResponse(
@@ -11,7 +12,9 @@ public record SessionNoteTimelineResponse(
     Instant endAt,
     String status,
     String noteText,
-    Instant recordedAt
+    Instant recordedAt,
+    SessionFeedbackView feedback,
+    Integer selfRating
 ) {
   public static SessionNoteTimelineResponse from(SessionNoteTimelineView v) {
     if (v == null) return null;
@@ -22,7 +25,9 @@ public record SessionNoteTimelineResponse(
         v.endAt(),
         v.status(),
         v.noteText(),
-        v.recordedAt()
+        v.recordedAt(),
+        v.feedback(),
+        v.selfRating()
     );
   }
 }
