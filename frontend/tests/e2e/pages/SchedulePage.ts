@@ -1,45 +1,48 @@
 import { WebDriver, By } from 'selenium-webdriver';
 import { BasePage } from './BasePage';
+import { E2E_ROUTES, E2E_TIMEOUTS } from '../config/test-constants';
 
 export class SchedulePage extends BasePage {
-  // Định vị các phần tử trên trang Lịch học
-  private calendarTitle = By.xpath("//h1[contains(., 'Lịch học')] | //*[contains(., 'Lịch học & Điều phối thời gian')]");
-  private calendarGrid = By.xpath("//button[contains(., 'Lưới tuần')] | //*[contains(., 'Múi giờ Việt Nam')]");
-  private todayButton = By.xpath("//button[contains(., 'Hôm nay')]");
-  private nextWeekBtn = By.xpath("//button[contains(@aria-label, 'tiếp') or contains(@title, 'tiếp') or .//*[contains(@class, 'lucide-chevron-right')]]");
+  // Elements on schedule pages
+  private calendarTitle = By.xpath("//h1[contains(., 'Lịch')] | //h2[contains(., 'Lịch')] | //*[contains(., 'Múi giờ Việt Nam') or contains(., 'Lưới tuần')]");
+  private todayButton = By.xpath("//button[normalize-space()='Hôm nay']");
+  private nextWeekBtn = By.xpath("//button[@aria-label='Tuần sau']");
+  private prevWeekBtn = By.xpath("//button[@aria-label='Tuần trước']");
+  private dateRangeLabel = By.xpath("//div[contains(@class, 'flex')]/span[contains(@class, 'min-w-32')]");
 
   constructor(driver: WebDriver) {
     super(driver);
   }
 
   async navigateTutorSchedule(): Promise<void> {
-    await this.navigateTo('/tutor/schedule');
+    await this.navigateTo(E2E_ROUTES.TUTOR_SCHEDULE);
   }
 
   async navigateStudentSchedule(): Promise<void> {
-    await this.navigateTo('/student/schedule');
+    await this.navigateTo(E2E_ROUTES.STUDENT_SCHEDULE);
   }
 
   async isCalendarVisible(): Promise<boolean> {
-    return (
-      (await this.isElementVisible(this.calendarTitle, 5000)) ||
-      (await this.isElementVisible(this.calendarGrid, 5000))
-    );
+    return await this.isElementVisible(this.calendarTitle, E2E_TIMEOUTS.MEDIUM);
   }
 
   async isTodayButtonVisible(): Promise<boolean> {
-    return await this.isElementVisible(this.todayButton, 3000);
+    return await this.isElementVisible(this.todayButton, E2E_TIMEOUTS.MEDIUM);
   }
 
   async clickTodayButton(): Promise<void> {
-    if (await this.isTodayButtonVisible()) {
-      await this.click(this.todayButton);
-    }
+    await this.click(this.todayButton);
   }
 
   async navigateNextWeek(): Promise<void> {
-    if (await this.isElementVisible(this.nextWeekBtn, 3000)) {
-      await this.click(this.nextWeekBtn);
-    }
+    await this.click(this.nextWeekBtn);
+  }
+
+  async navigatePrevWeek(): Promise<void> {
+    await this.click(this.prevWeekBtn);
+  }
+
+  async getDateRangeText(): Promise<string> {
+    return await this.getText(this.dateRangeLabel);
   }
 }
