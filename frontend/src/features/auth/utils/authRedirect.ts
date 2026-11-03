@@ -43,64 +43,66 @@ export async function resolvePostLoginRedirect({
   returnUrl,
 }: ResolveRedirectOptions): Promise<void> {
   const role = user.role?.toUpperCase();
+  const safeReturnUrl =
+    returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")
+      ? returnUrl
+      : null;
+  const onboardingQuery = safeReturnUrl
+    ? `?returnUrl=${encodeURIComponent(safeReturnUrl)}`
+    : "";
 
   if (role === "STUDENT") {
     try {
       const profile = await profileService.getMyStudentProfile();
       if (!profile.profileComplete) {
-        router.push("/onboarding/student");
+        router.push(`/onboarding/student${onboardingQuery}`);
         return;
       }
     } catch {
-      router.push("/onboarding/student");
+      router.push(`/onboarding/student${onboardingQuery}`);
       return;
     }
   } else if (role === "TUTOR") {
     const userKey = `edufit_tutor_onboarding_completed_${user.id}`;
     const hasOnboarded =
-      typeof window !== "undefined" &&
-      (Boolean(localStorage.getItem(userKey)) ||
-        Boolean(localStorage.getItem("edufit_tutor_onboarding_completed")));
+      typeof window !== "undefined" && Boolean(localStorage.getItem(userKey));
 
     try {
       const profile = await profileService.getMyTutorProfile();
       if (shouldRedirectTutorToOnboarding(profile, hasOnboarded)) {
-        router.push("/onboarding/tutor");
+        router.push(`/onboarding/tutor${onboardingQuery}`);
         return;
       }
     } catch {
       // Backend không có hồ sơ gia sư -> Bắt buộc chuyển sang Onboarding để khởi tạo hồ sơ
-      router.push("/onboarding/tutor");
+      router.push(`/onboarding/tutor${onboardingQuery}`);
       return;
     }
   } else if (role === "PARENT") {
     const userKey = `edufit_parent_onboarding_completed_${user.id}`;
     const hasOnboarded =
-      typeof window !== "undefined" &&
-      (Boolean(localStorage.getItem(userKey)) ||
-        Boolean(localStorage.getItem("edufit_parent_onboarding_completed")));
+      typeof window !== "undefined" && Boolean(localStorage.getItem(userKey));
 
     try {
       const links = await connectionApi.getLinks();
       const hasLinks = Array.isArray(links) && links.length > 0;
       if (hasLinks && typeof window !== "undefined") {
         localStorage.setItem(userKey, "true");
-        localStorage.setItem("edufit_parent_onboarding_completed", "true");
       }
       if (shouldRedirectParentToOnboarding(hasLinks, hasOnboarded)) {
-        router.push("/onboarding/parent");
+        router.push(`/onboarding/parent${onboardingQuery}`);
         return;
       }
     } catch {
       // Backend chưa có liên kết / lỗi -> Bắt buộc vào Onboarding
-      router.push("/onboarding/parent");
+      router.push(`/onboarding/parent${onboardingQuery}`);
       return;
     }
   }
 
   // Ưu tiên returnUrl an toàn nếu đã có
-  if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
-    router.push(returnUrl);
+  if (safeReturnUrl) {
+    router.push(safeReturnUrl);
     return;
   }
 

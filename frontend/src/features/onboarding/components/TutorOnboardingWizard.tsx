@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
@@ -33,8 +33,15 @@ const ALLOWED_CREDENTIAL_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"];
 
 export function TutorOnboardingWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoading, refreshUser } = useAuth();
   const { showToast } = useToast();
+
+  const rawReturnUrl = searchParams.get("returnUrl");
+  const safeReturnUrl =
+    rawReturnUrl && rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//")
+      ? rawReturnUrl
+      : null;
 
   useEffect(() => {
     if (isLoading) return;
@@ -181,9 +188,9 @@ export function TutorOnboardingWizard() {
       }
     }
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && user?.id) {
       localStorage.setItem(
-        "edufit_tutor_onboarding_completed",
+        `edufit_tutor_onboarding_completed_${user.id}`,
         JSON.stringify({
           completedAt: new Date().toISOString(),
           skipped: true,
@@ -194,7 +201,7 @@ export function TutorOnboardingWizard() {
       );
     }
     showToast("Bạn có thể hoàn thiện hồ sơ và gửi duyệt KYC bất cứ lúc nào trong Bảng điều khiển.", "info");
-    router.push("/tutor/dashboard");
+    router.push(safeReturnUrl || "/tutor/dashboard");
   };
 
   const handleNextFromStep2 = () => {
@@ -275,20 +282,22 @@ export function TutorOnboardingWizard() {
         selectedFiles
       );
 
-      // 3. Lưu trạng thái hoàn tất vào Local Storage
-      localStorage.setItem(
-        "edufit_tutor_onboarding_completed",
-        JSON.stringify({
-          completedAt: new Date().toISOString(),
-          displayName,
-          offeringsCount: profile?.offerings.length ?? 0,
-          step: "COMPLETED",
-        })
-      );
+      // 3. Lưu trạng thái hoàn tất vào Local Storage theo user.id
+      if (typeof window !== "undefined" && user?.id) {
+        localStorage.setItem(
+          `edufit_tutor_onboarding_completed_${user.id}`,
+          JSON.stringify({
+            completedAt: new Date().toISOString(),
+            displayName,
+            offeringsCount: profile?.offerings.length ?? 0,
+            step: "COMPLETED",
+          })
+        );
+      }
 
       showToast("Hoàn tất thiết lập hồ sơ gia sư! Hồ sơ đã được gửi để duyệt KYC.", "success");
       await refreshUser?.();
-      router.push("/tutor/dashboard");
+      router.push(safeReturnUrl || "/tutor/dashboard");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu hồ sơ gia sư";
       showToast(message, "error");

@@ -16,6 +16,7 @@ interface OnboardingGuideBannerProps {
   role: "STUDENT" | "TUTOR" | "PARENT" | "ADMIN";
   steps: OnboardingGuideStep[];
   userName: string;
+  userId?: string;
   autoHideOnComplete?: boolean;
 }
 
@@ -23,14 +24,23 @@ export function OnboardingGuideBanner({
   role,
   steps,
   userName,
+  userId,
   autoHideOnComplete = true,
 }: OnboardingGuideBannerProps) {
-  const storageKey = `edufit_onboarding_guide_dismissed_${role.toLowerCase()}`;
-  const [closed, setClosed] = useState(false);
+  const storageKey = userId
+    ? `edufit_onboarding_guide_dismissed_${userId}`
+    : `edufit_onboarding_guide_dismissed_${role.toLowerCase()}`;
+
+  const [closed, setClosed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(storageKey) === "true";
+    }
+    return false;
+  });
 
   React.useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem(storageKey) === "true") {
-      setClosed(true);
+    if (typeof window !== "undefined") {
+      setClosed(localStorage.getItem(storageKey) === "true");
     }
   }, [storageKey]);
 

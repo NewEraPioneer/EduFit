@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, Plus } from "lucide-react";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
@@ -19,12 +19,19 @@ import { useLearningCatalog } from "@/features/learning-needs/hooks/useLearningC
  */
 export function StudentOnboardingWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const { catalog, error } = useLearningCatalog();
   const [created, setCreated] = useState<LearningNeed[]>([]);
   const [formKey, setFormKey] = useState(0);
   const [finishing, setFinishing] = useState(false);
+
+  const rawReturnUrl = searchParams.get("returnUrl");
+  const safeReturnUrl =
+    rawReturnUrl && rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//")
+      ? rawReturnUrl
+      : null;
 
   const handleSaved = async (need: LearningNeed) => {
     if (created.length === 0 && need.educationLevelId) {
@@ -40,7 +47,7 @@ export function StudentOnboardingWizard() {
     setFinishing(true);
     try {
       await refreshUser?.();
-      router.push("/student/dashboard");
+      router.push(safeReturnUrl || "/student/dashboard");
     } finally {
       setFinishing(false);
     }

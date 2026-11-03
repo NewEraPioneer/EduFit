@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, Sparkles, UserCheck } from "lucide-react";
 import { RoleSelector, type RoleType } from "./RoleSelector";
 import { useAuth } from "@/context/AuthContext";
@@ -24,6 +24,7 @@ export function OAuthRoleSelectionModal({
   onboardingData,
 }: OAuthRoleSelectionModalProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { completeOAuthRegistration } = useAuth();
   const { showToast } = useToast();
 
@@ -52,13 +53,20 @@ export function OAuthRoleSelectionModal({
       showToast(`Chào mừng ${user.fullName} gia nhập EduFit!`, "success");
       onClose();
 
+      const rawReturnUrl = searchParams.get("returnUrl");
+      const safeReturnUrl =
+        rawReturnUrl && rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//")
+          ? rawReturnUrl
+          : null;
+      const queryParam = safeReturnUrl ? `?returnUrl=${encodeURIComponent(safeReturnUrl)}` : "";
+
       // Điều hướng người dùng vào màn hình Onboarding theo vai trò vừa đăng ký
       if (selectedRole === "TUTOR") {
-        router.push("/onboarding/tutor");
+        router.push(`/onboarding/tutor${queryParam}`);
       } else if (selectedRole === "PARENT") {
-        router.push("/onboarding/parent");
+        router.push(`/onboarding/parent${queryParam}`);
       } else {
-        router.push("/onboarding/student");
+        router.push(`/onboarding/student${queryParam}`);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Đã có lỗi xảy ra. Vui lòng thử lại.";

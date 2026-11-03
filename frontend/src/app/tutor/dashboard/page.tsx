@@ -20,9 +20,7 @@ export default function TutorDashboardPage() {
       if (isLoading || !user) return;
       const userKey = `edufit_tutor_onboarding_completed_${user.id}`;
       const hasOnboarded =
-        typeof window !== "undefined" &&
-        (Boolean(localStorage.getItem(userKey)) ||
-          Boolean(localStorage.getItem("edufit_tutor_onboarding_completed")));
+        typeof window !== "undefined" && Boolean(localStorage.getItem(userKey));
 
       try {
         const profile = await profileService.getMyTutorProfile();

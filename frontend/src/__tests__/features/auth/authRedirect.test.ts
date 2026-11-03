@@ -269,5 +269,52 @@ describe("authRedirect Unit Tests", () => {
       await resolvePostLoginRedirect({ user, router: mockRouter, returnUrl: "//malicious.com" });
       expect(mockRouter.push).toHaveBeenCalledWith("/student/dashboard");
     });
+
+    it("Chuyển tiếp returnUrl an toàn khi người dùng phải chuyển hướng vào onboarding", async () => {
+      vi.mocked(profileService.getMyStudentProfile).mockResolvedValue({
+        studentId: "student-1",
+        userId: "user-1",
+        educationLevelId: undefined,
+        profileComplete: false,
+      });
+
+      const user: AuthUser = {
+        id: "user-1",
+        email: "student@test.com",
+        fullName: "Học sinh test",
+        role: "STUDENT",
+        status: "ACTIVE",
+      };
+
+      await resolvePostLoginRedirect({ user, router: mockRouter, returnUrl: "/tutors/tut-999" });
+      expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/student?returnUrl=%2Ftutors%2Ftut-999");
+    });
+
+    it("Không dùng chung cờ onboarding giữa các user trên cùng trình duyệt", async () => {
+      // User A đã set cờ hoàn thành onboarding cho riêng mình và cờ cũ global
+      localStorage.setItem("edufit_tutor_onboarding_completed_user-A", "true");
+      localStorage.setItem("edufit_tutor_onboarding_completed", "true");
+
+      // User B đăng nhập trên cùng trình duyệt, chưa có hồ sơ
+      vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({
+        tutorId: "tutor-B",
+        userId: "user-B",
+        subjects: [],
+        bio: null,
+        area: null,
+      } as any);
+
+      const userB: AuthUser = {
+        id: "user-B",
+        email: "userb@test.com",
+        fullName: "Gia sư B",
+        role: "TUTOR",
+        status: "ACTIVE",
+      };
+
+      await resolvePostLoginRedirect({ user: userB, router: mockRouter });
+      // User B không bị ảnh hưởng bởi cờ của User A và vẫn phải vào onboarding
+      expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/tutor");
+    });
   });
 });

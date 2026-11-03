@@ -20,6 +20,7 @@ import { progressApi, type StudentDashboardResponse } from "@/features/progress"
 
 interface StudentDashboardViewProps {
   user: {
+    id?: string;
     fullName: string;
     email: string;
     role: string;
@@ -280,6 +281,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       <OnboardingGuideBanner
         role="STUDENT"
         userName={studentName}
+        userId={user?.id}
         steps={onboardingSteps}
       />
 

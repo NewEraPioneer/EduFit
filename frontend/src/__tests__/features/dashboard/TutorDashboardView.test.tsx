@@ -177,4 +177,62 @@ describe("TutorDashboardView Component", () => {
     // Banner trạng thái hiển thị thông điệp duyệt bằng bổ sung
     expect(screen.getByText("Đang duyệt bằng bổ sung")).toBeInTheDocument();
   });
+
+  it("yêu cầu cả gói dạy và lịch rảnh để hoàn tất Bước 1; nếu chưa có lịch rảnh thì trỏ tới /tutor/schedule", async () => {
+    vi.spyOn(verificationService, "getMyRequest").mockResolvedValue(null);
+
+    vi.spyOn(profileService, "getMyTutorProfile").mockResolvedValue({
+      status: "DRAFT",
+      offerings: [makeOffering()],
+      availabilitySlots: [], // Chưa có lịch rảnh
+      ratingAvg: 0,
+      reviewCount: 0,
+    } as any);
+
+    vi.spyOn(connectionApi, "getTutorClasses").mockResolvedValue([]);
+    vi.spyOn(connectionApi, "getPendingRequests").mockResolvedValue([]);
+    vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({
+      success: true,
+      data: [],
+    });
+
+    render(<TutorDashboardView user={mockUser} />);
+
+    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng 👋")).toBeInTheDocument();
+
+    const scheduleLink = screen.getByRole("link", { name: /Cài lịch rảnh/i });
+    expect(scheduleLink).toBeInTheDocument();
+    expect(scheduleLink).toHaveAttribute("href", "/tutor/schedule");
+  });
+
+  it("không đánh dấu Bước 2 hoàn thành khi KYC chỉ đang ở trạng thái PENDING chờ duyệt", async () => {
+    vi.spyOn(verificationService, "getMyRequest").mockResolvedValue({
+      status: "PENDING",
+    } as any);
+
+    vi.spyOn(profileService, "getMyTutorProfile").mockResolvedValue({
+      status: "DRAFT", // Chưa VERIFIED
+      offerings: [makeOffering()],
+      availabilitySlots: [{ slotId: "s1", dayOfWeek: 1, startTime: "08:00:00", endTime: "10:00:00" }],
+      ratingAvg: 0,
+      reviewCount: 0,
+    } as any);
+
+    vi.spyOn(connectionApi, "getTutorClasses").mockResolvedValue(mockClasses); // có lớp
+    vi.spyOn(connectionApi, "getPendingRequests").mockResolvedValue([]);
+    vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({
+      success: true,
+      data: [],
+    });
+
+    render(<TutorDashboardView user={mockUser} />);
+
+    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng 👋")).toBeInTheDocument();
+
+    // Bước 2 hiển thị nút "Đang chờ duyệt"
+    expect(screen.getByRole("link", { name: /Đang chờ duyệt/i })).toBeInTheDocument();
+
+    // Banner hướng dẫn KHÔNG được tự động ẩn vì Bước 2 chưa hoàn tất
+    expect(screen.getByText(/Lộ trình khởi tạo nhanh/i)).toBeInTheDocument();
+  });
 });

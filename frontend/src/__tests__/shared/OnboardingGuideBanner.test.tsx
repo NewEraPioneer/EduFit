@@ -66,4 +66,31 @@ describe("OnboardingGuideBanner Component", () => {
 
     expect(container.firstChild).toBeNull();
   });
+
+  it("lưu trạng thái đóng theo userId để không ảnh hưởng giữa các tài khoản", () => {
+    render(
+      <OnboardingGuideBanner
+        role="TUTOR"
+        userName="Thầy Hưng"
+        userId="user-tutor-1"
+        steps={sampleSteps}
+      />
+    );
+
+    const closeBtn = screen.getByTitle("Đóng hướng dẫn");
+    fireEvent.click(closeBtn);
+
+    expect(localStorage.getItem("edufit_onboarding_guide_dismissed_user-tutor-1")).toBe("true");
+
+    // Người dùng khác (user-tutor-2) cùng vai trò vẫn nhìn thấy banner
+    const { container: containerUser2 } = render(
+      <OnboardingGuideBanner
+        role="TUTOR"
+        userName="Thầy Minh"
+        userId="user-tutor-2"
+        steps={sampleSteps}
+      />
+    );
+    expect(containerUser2.firstChild).not.toBeNull();
+  });
 });

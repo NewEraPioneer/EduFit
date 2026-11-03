@@ -16,6 +16,7 @@ import type { TutoringClass } from "@/features/connection/types";
 
 interface ParentDashboardViewProps {
   user: {
+    id?: string;
     fullName: string;
     email: string;
     role: string;
@@ -173,6 +174,7 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
       <OnboardingGuideBanner
         role="PARENT"
         userName={parentName}
+        userId={user?.id}
         steps={onboardingSteps}
       />
 

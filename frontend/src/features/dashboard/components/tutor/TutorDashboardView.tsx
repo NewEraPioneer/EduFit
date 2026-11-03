@@ -21,6 +21,7 @@ import type { CalendarItem } from "@/features/scheduling/types";
 
 interface TutorDashboardViewProps {
   user: {
+    id?: string;
     fullName: string;
     email: string;
     role: string;
@@ -160,7 +161,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
 
   const hasOfferings = Boolean(profile && profile.offerings && profile.offerings.length > 0);
   const hasAvailabilitySlots = Boolean(profile && profile.availabilitySlots && profile.availabilitySlots.length > 0);
-  const hasConfiguredTeachingProfile = hasOfferings;
+  const hasConfiguredTeachingProfile = hasOfferings && hasAvailabilitySlots;
 
   const isProfileVerified = profile?.status === "VERIFIED" || Boolean(profile?.verifiedAt);
   const isKycSubmitted =
@@ -173,7 +174,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
       description: "Khai báo môn, lớp, mục tiêu, học phí từng gói và các khung giờ bạn sẵn sàng nhận lớp.",
       href: hasOfferings && !hasAvailabilitySlots ? "/tutor/schedule" : "/tutor/profile",
       actionText: hasOfferings
-        ? (hasAvailabilitySlots ? "Chỉnh sửa gói & lịch" : "Cập nhật lịch rảnh")
+        ? (hasAvailabilitySlots ? "Chỉnh sửa gói & lịch" : "Cài lịch rảnh")
         : "Cài đặt ngay",
       completed: hasConfiguredTeachingProfile,
     },
@@ -191,8 +192,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
       completed:
         verificationStatus === "VERIFIED" ||
         verificationStatus === "APPROVED" ||
-        isProfileVerified ||
-        isKycSubmitted,
+        isProfileVerified,
     },
     {
       title: "Nhận yêu cầu & Bắt đầu dạy",
@@ -242,6 +242,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
       <OnboardingGuideBanner
         role="TUTOR"
         userName={tutorName}
+        userId={user?.id}
         steps={onboardingSteps}
       />
 
