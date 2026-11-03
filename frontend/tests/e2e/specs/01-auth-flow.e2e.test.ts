@@ -2,6 +2,7 @@ import { describe, it, beforeAll, afterAll, expect } from 'vitest';
 import { WebDriver, By } from 'selenium-webdriver';
 import { DriverFactory } from '../drivers/driver-factory';
 import { AuthPage } from '../pages/AuthPage';
+import { E2E_ROUTES } from '../config/test-constants';
 import testData from '../resources/login-data.json';
 
 describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng Tài khoản EduFit', () => {
@@ -36,9 +37,9 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     await authPage.navigateLogin();
     await authPage.clickGoToRegister();
 
-    await authPage.waitForUrlContains('/register');
+    await authPage.waitForUrlContains(E2E_ROUTES.REGISTER);
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/register');
+    expect(currentUrl).toContain(E2E_ROUTES.REGISTER);
 
     const formVisible = await authPage.isRegisterFormVisible();
     expect(formVisible).toBe(true);
@@ -51,9 +52,9 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     await authPage.navigateLogin();
     await authPage.clickForgotPassword();
 
-    await authPage.waitForUrlContains('/forgot-password');
+    await authPage.waitForUrlContains(E2E_ROUTES.FORGOT_PASSWORD);
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/forgot-password');
+    expect(currentUrl).toContain(E2E_ROUTES.FORGOT_PASSWORD);
 
     await authPage.requestPasswordReset('student@edufit.vn');
     await authPage.takeScreenshot('TC_UI_03_forgot_password_submitted');
@@ -83,7 +84,7 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     expect(isInvalid).toBe(true);
 
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/login');
+    expect(currentUrl).toContain(E2E_ROUTES.LOGIN);
   });
 
   it('TC_UI_06: Quản trị viên (Admin) đăng nhập thành công vào trang quản trị', async () => {
@@ -92,11 +93,11 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     const admin = testData.validAccounts.find((a) => a.role === 'admin')!;
 
     await authPage.login(admin.email, admin.password);
-    await authPage.waitForUrlContains('/admin');
+    await authPage.waitForUrlContains(E2E_ROUTES.ADMIN_DASHBOARD);
     await authPage.takeScreenshot('TC_UI_06_admin_login');
 
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/admin');
+    expect(currentUrl).toContain(E2E_ROUTES.ADMIN_DASHBOARD);
   });
 
   it('TC_UI_07: Gia sư (Tutor) đăng nhập thành công điều hướng vào đúng khu vực gia sư', async () => {
@@ -105,11 +106,11 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     const tutor = testData.validAccounts.find((a) => a.role === 'tutor')!;
 
     await authPage.login(tutor.email, tutor.password);
-    await authPage.waitForUrlContains('/tutor');
+    await authPage.waitForUrlContains(E2E_ROUTES.TUTOR_DASHBOARD);
     await authPage.takeScreenshot('TC_UI_07_tutor_login');
 
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/tutor');
+    expect(currentUrl).toContain(E2E_ROUTES.TUTOR_DASHBOARD);
   });
 
   it('TC_UI_08: Học sinh (Student) đăng nhập thành công điều hướng vào đúng khu vực học sinh', async () => {
@@ -118,11 +119,11 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     const student = testData.validAccounts.find((a) => a.role === 'student')!;
 
     await authPage.login(student.email, student.password);
-    await authPage.waitForUrlContains('/student');
+    await authPage.waitForUrlContains(E2E_ROUTES.STUDENT_DASHBOARD);
     await authPage.takeScreenshot('TC_UI_08_student_login');
 
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/student');
+    expect(currentUrl).toContain(E2E_ROUTES.STUDENT_DASHBOARD);
   });
 
   it('TC_UI_09: Phụ huynh (Parent) đăng nhập thành công điều hướng vào đúng khu vực phụ huynh', async () => {
@@ -131,22 +132,22 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     const parent = testData.validAccounts.find((a) => a.role === 'parent')!;
 
     await authPage.login(parent.email, parent.password);
-    await authPage.waitForUrlContains('/parent');
+    await authPage.waitForUrlContains(E2E_ROUTES.PARENT_DASHBOARD);
     await authPage.takeScreenshot('TC_UI_09_parent_login');
 
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/parent');
+    expect(currentUrl).toContain(E2E_ROUTES.PARENT_DASHBOARD);
   });
 
   it('TC_UI_10: Khách vãng lai chưa đăng nhập truy cập /admin/dashboard bị chặn và chuyển về /login', async () => {
     await authPage.clearSession();
-    await authPage.navigateTo('/admin/dashboard');
+    await authPage.navigateTo(E2E_ROUTES.ADMIN_DASHBOARD);
 
-    await authPage.waitForUrlContains('/login');
+    await authPage.waitForUrlContains(E2E_ROUTES.LOGIN);
     await authPage.takeScreenshot('TC_UI_10_guest_blocked');
 
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/login');
+    expect(currentUrl).toContain(E2E_ROUTES.LOGIN);
   });
 
   it('TC_UI_11: Học sinh không có thẩm quyền truy cập /admin/dashboard bị chặn / chuyển hướng', async () => {
@@ -154,21 +155,28 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     await authPage.navigateLogin();
     const student = testData.validAccounts.find((a) => a.role === 'student')!;
     await authPage.login(student.email, student.password);
-    await authPage.waitForUrlContains('/student');
+    await authPage.waitForUrlContains(E2E_ROUTES.STUDENT_DASHBOARD);
 
-    await authPage.navigateTo('/admin/dashboard');
-    await authPage.waitForUrlContains('/student/dashboard');
+    await authPage.navigateTo(E2E_ROUTES.ADMIN_DASHBOARD);
+    await authPage.waitForUrlContains(E2E_ROUTES.STUDENT_DASHBOARD);
     await authPage.takeScreenshot('TC_UI_11_student_blocked');
 
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/student/dashboard');
+    expect(currentUrl).toContain(E2E_ROUTES.STUDENT_DASHBOARD);
   });
 
   it('TC_UI_12: Đăng xuất người dùng thành công chuyển hướng an toàn về trang đăng nhập', async () => {
+    // Tự đăng nhập trước để đảm bảo tính độc lập (Isolation) khi chạy riêng bằng -t
+    await authPage.clearSession();
+    await authPage.navigateLogin();
+    const student = testData.validAccounts.find((a) => a.role === 'student')!;
+    await authPage.login(student.email, student.password);
+    await authPage.waitForUrlContains(E2E_ROUTES.STUDENT_DASHBOARD);
+
     await authPage.performLogout();
     await authPage.takeScreenshot('TC_UI_12_logout_success');
 
     const currentUrl = await authPage.getCurrentUrl();
-    expect(currentUrl).toContain('/login');
+    expect(currentUrl).toContain(E2E_ROUTES.LOGIN);
   });
 });

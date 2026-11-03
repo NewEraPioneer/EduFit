@@ -1,5 +1,6 @@
 import { WebDriver, By } from 'selenium-webdriver';
 import { BasePage } from './BasePage';
+import { E2E_ROUTES } from '../config/test-constants';
 
 export class AuthPage extends BasePage {
   // --- Locators Đăng nhập (Login Locators) ---
@@ -24,8 +25,8 @@ export class AuthPage extends BasePage {
   private forgotSubmitButton = By.css('button[type="submit"]');
 
   // --- Locators Đăng xuất & Header Profile ---
-  private profileMenuBtn = By.xpath("//button[contains(@aria-label, 'Hồ sơ') or contains(@class, 'rounded-full') or .//img]");
-  private logoutBtn = By.xpath("//button[contains(., 'Đăng xuất')] | //a[contains(., 'Đăng xuất')]");
+  private profileMenuBtn = By.xpath("//header//button[.//span[contains(text(), 'Tài khoản') or contains(@class, 'leading-tight')] or .//img]");
+  private logoutBtn = By.xpath("//button[.//span[text()='Đăng xuất']]");
 
   constructor(driver: WebDriver) {
     super(driver);
@@ -34,7 +35,7 @@ export class AuthPage extends BasePage {
   // === Actions Trang Đăng nhập (Login Actions) ===
 
   async navigateLogin(): Promise<void> {
-    await this.navigateTo('/login');
+    await this.navigateTo(E2E_ROUTES.LOGIN);
   }
 
   async login(email: string, pass: string): Promise<void> {
@@ -91,7 +92,7 @@ export class AuthPage extends BasePage {
   // === Actions Trang Đăng ký (Register Actions) ===
 
   async navigateRegister(): Promise<void> {
-    await this.navigateTo('/register');
+    await this.navigateTo(E2E_ROUTES.REGISTER);
   }
 
   async selectRole(roleName: 'Học sinh' | 'Gia sư' | 'Phụ huynh'): Promise<void> {
@@ -106,7 +107,7 @@ export class AuthPage extends BasePage {
   // === Actions Trang Quên mật khẩu (Forgot Password Actions) ===
 
   async navigateForgotPassword(): Promise<void> {
-    await this.navigateTo('/forgot-password');
+    await this.navigateTo(E2E_ROUTES.FORGOT_PASSWORD);
   }
 
   async requestPasswordReset(email: string): Promise<void> {
@@ -117,19 +118,8 @@ export class AuthPage extends BasePage {
   // === Actions Đăng xuất (Logout Actions) ===
 
   async performLogout(): Promise<void> {
-    try {
-      if (await this.isElementVisible(this.profileMenuBtn, 2000)) {
-        await this.click(this.profileMenuBtn);
-      }
-      if (await this.isElementVisible(this.logoutBtn, 2000)) {
-        await this.click(this.logoutBtn);
-      } else {
-        await this.clearSession();
-        await this.navigateLogin();
-      }
-    } catch {
-      await this.clearSession();
-      await this.navigateLogin();
-    }
+    await this.click(this.profileMenuBtn);
+    await this.click(this.logoutBtn);
+    await this.waitForUrlContains(E2E_ROUTES.LOGIN);
   }
 }
