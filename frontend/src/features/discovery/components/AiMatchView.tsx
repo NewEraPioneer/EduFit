@@ -67,7 +67,7 @@ export function AiMatchView({ matching, parent = false, onViewDetail, onRequestC
     <div className="space-y-6">
       <NeedSelector matching={matching} parent={parent} />
 
-      <div className="p-4 sm:p-5 rounded-2xl bg-[#F7F6F3] border border-stone-200/80 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#F7F6F3] dark:bg-stone-800/80 border border-stone-200/80 dark:border-stone-700/80 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3.5 min-w-0">
           <div className="size-11 rounded-full bg-[#006DCC] text-white flex items-center justify-center shrink-0 shadow-2xs">
             <Target className="size-5.5 text-white" />
@@ -82,13 +82,13 @@ export function AiMatchView({ matching, parent = false, onViewDetail, onRequestC
         <div className="flex flex-wrap gap-2 shrink-0">
           {need && (
             <button type="button" onClick={() => setDialog({ kind: "edit", need })}
-              className="px-4 py-2 rounded-full bg-white hover:bg-stone-50 border border-stone-200 text-neutral-800 text-xs font-semibold shadow-2xs">
+              className="px-4 py-2 rounded-full bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700 text-neutral-800 dark:text-stone-100 text-xs font-semibold shadow-2xs">
               Sửa nhu cầu
             </button>
           )}
           {(!parent || matching.studentId) && (
             <button type="button" onClick={() => setDialog({ kind: "create" })}
-              className="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white hover:bg-stone-50 border border-stone-200 text-neutral-800 text-xs font-semibold shadow-2xs">
+              className="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700 text-neutral-800 dark:text-stone-100 text-xs font-semibold shadow-2xs">
               <Plus className="size-3.5" />Thêm nhu cầu
             </button>
           )}
@@ -141,9 +141,9 @@ export function AiMatchView({ matching, parent = false, onViewDetail, onRequestC
                   <React.Fragment key={item.tutorId}>
                     {idx === 0 && <h3 className="font-heading font-bold text-base text-neutral-900">Gợi ý phù hợp nhất</h3>}
                     {idx === 1 && <h3 className="font-heading font-bold text-sm text-neutral-700 pt-5">Các gia sư khác</h3>}
-                    <div className={`bg-white rounded-2xl border p-4 sm:p-5 flex flex-col lg:flex-row lg:items-start justify-between gap-4 ${idx === 0 ? "border-sky-400 ring-1 ring-sky-100" : "border-stone-200/80"}`}>
+                    <div className={`bg-white dark:bg-stone-900/90 rounded-2xl border p-4 sm:p-5 flex flex-col lg:flex-row lg:items-start justify-between gap-4 ${idx === 0 ? "border-sky-400 dark:border-sky-500/80 ring-1 ring-sky-100 dark:ring-sky-950/60" : "border-stone-200/80 dark:border-stone-700/80"}`}>
                       <div className="flex items-start gap-3.5 flex-1 min-w-0">
-                        <div className="size-7 sm:size-8 rounded-full bg-neutral-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                        <div className="size-7 sm:size-8 rounded-full bg-neutral-900 dark:bg-stone-800 text-white dark:text-stone-100 font-bold text-xs flex items-center justify-center shrink-0 border border-transparent dark:border-stone-700">
                           {String(idx + 1).padStart(2, "0")}
                         </div>
                         <div className="min-w-0 flex-1 space-y-1">
@@ -161,11 +161,11 @@ export function AiMatchView({ matching, parent = false, onViewDetail, onRequestC
                           <p className="text-xs leading-relaxed text-neutral-700 pt-1 break-words">{item.explanation}</p>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0 border-t lg:border-t-0 border-stone-100 shrink-0">
-                        <div className="font-heading font-bold text-sm sm:text-base text-emerald-600">{Math.round(item.matchScore)}% phù hợp</div>
+                      <div className="flex flex-wrap items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0 border-t lg:border-t-0 border-stone-100 dark:border-stone-800 shrink-0">
+                        <div className="font-heading font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400">{Math.round(item.matchScore)}% phù hợp</div>
                         <div className="flex items-center gap-2">
                           <button type="button" onClick={() => setSelectedExplanation(item)}
-                            className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-neutral-700 bg-stone-100 hover:bg-stone-200">
+                            className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-neutral-700 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-transparent dark:border-stone-700">
                             Xem lý do
                           </button>
                           <button type="button" onClick={() => onRequestConnect?.(item.tutorId)}
@@ -199,28 +199,28 @@ export function AiMatchView({ matching, parent = false, onViewDetail, onRequestC
       {selectedExplanation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/50 backdrop-blur-xs overflow-y-auto">
           <div role="dialog" aria-modal="true" aria-labelledby="match-explanation-title"
-            className="bg-white rounded-3xl max-w-md w-full border border-stone-200 shadow-2xl p-6 space-y-5 my-auto">
-            <div className="flex items-center justify-between gap-3 border-b border-stone-100 pb-3">
+            className="bg-white dark:bg-stone-900 rounded-3xl max-w-md w-full border border-stone-200 dark:border-stone-700 shadow-2xl p-6 space-y-5 my-auto">
+            <div className="flex items-center justify-between gap-3 border-b border-stone-100 dark:border-stone-800 pb-3">
               <div className="flex items-center gap-2 min-w-0">
-                <Sparkles className="size-4.5 text-purple-600 shrink-0" />
+                <Sparkles className="size-4.5 text-purple-600 dark:text-purple-400 shrink-0" />
                 <h4 id="match-explanation-title" className="font-heading font-bold text-base text-neutral-900">
                   Tại sao phù hợp {Math.round(selectedExplanation.matchScore)}%?
                 </h4>
               </div>
               <button type="button" aria-label="Đóng" onClick={() => setSelectedExplanation(null)}
-                className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-full">
+                className="p-1.5 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded-full">
                 <X className="size-4" />
               </button>
             </div>
 
-            <div className="p-3 bg-stone-50 rounded-2xl min-w-0">
+            <div className="p-3 bg-stone-50 dark:bg-stone-800/80 rounded-2xl min-w-0">
               <p className="font-heading font-bold text-sm text-neutral-900 break-words">{selectedExplanation.tutorInfo.displayName}</p>
               <p className="text-xs text-neutral-500 break-words">
                 {selectedExplanation.tutorInfo.fit?.offeringName ?? selectedExplanation.tutorInfo.headline}
               </p>
             </div>
 
-            <p className="text-xs text-neutral-700 leading-relaxed bg-purple-50/60 p-3.5 rounded-2xl border border-purple-100 break-words">
+            <p className="text-xs text-neutral-700 dark:text-purple-200 leading-relaxed bg-purple-50/60 dark:bg-purple-950/40 p-3.5 rounded-2xl border border-purple-100 dark:border-purple-800/50 break-words">
               {selectedExplanation.explanation}
             </p>
 
@@ -234,7 +234,7 @@ export function AiMatchView({ matching, parent = false, onViewDetail, onRequestC
             <div className="pt-2 flex flex-wrap justify-end gap-2">
               <button type="button"
                 onClick={() => { const id = selectedExplanation.tutorId; setSelectedExplanation(null); onViewDetail?.(id); }}
-                className="px-4 py-2 rounded-full text-xs font-semibold text-neutral-700 bg-stone-100 hover:bg-stone-200">
+                className="px-4 py-2 rounded-full text-xs font-semibold text-neutral-700 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-transparent dark:border-stone-700">
                 Xem toàn bộ hồ sơ
               </button>
               <button type="button"
