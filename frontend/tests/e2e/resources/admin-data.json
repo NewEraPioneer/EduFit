@@ -1,0 +1,10 @@
+{
+  "kpiLabels": ["tổng người dùng", "lớp học hoạt động", "buổi học hoàn tất", "hồ sơ kyc chờ duyệt"],
+  "learnerHeaders": ["người dùng", "vai trò", "trạng thái", "ngày tham gia", "thao tác"],
+  "studentName": "Trần Minh Anh",
+  "studentRole": "Học sinh",
+  "studentStatus": "Hoạt động",
+  "auditAction": "E2E_ADMIN_DISPLAY",
+  "auditActorId": "44444444-4444-4444-4444-444444444444",
+  "auditReason": "E2E #48: bản ghi mẫu để xác minh giao diện nhật ký kiểm toán."
+}

@@ -2,10 +2,10 @@ import { WebDriver, By } from 'selenium-webdriver';
 import { BasePage } from './BasePage';
 
 export class SchedulePage extends BasePage {
-  private calendarView = By.css('[data-testid="schedule-calendar"], .calendar-grid');
-  private createSlotButton = By.xpath("//button[contains(., 'Thêm khung giờ') or contains(., 'Tạo lịch')]");
-  private attendanceCheckinButton = By.xpath("//button[contains(., 'Điểm danh')]");
-  private sessionStatusBadge = By.css('[data-testid="session-status"]');
+  // Định vị các phần tử trên trang Lịch học
+  private calendarTitle = By.xpath("//h1[contains(., 'Lịch học')] | //*[contains(., 'Lịch học & Điều phối thời gian')]");
+  private calendarGrid = By.xpath("//button[contains(., 'Lưới tuần')] | //*[contains(., 'Múi giờ Việt Nam')]");
+  private todayButton = By.xpath("//button[contains(., 'Hôm nay')]");
 
   constructor(driver: WebDriver) {
     super(driver);
@@ -20,14 +20,13 @@ export class SchedulePage extends BasePage {
   }
 
   async isCalendarVisible(): Promise<boolean> {
-    return await this.isElementVisible(this.calendarView);
+    return (
+      (await this.isElementVisible(this.calendarTitle, 5000)) ||
+      (await this.isElementVisible(this.calendarGrid, 5000))
+    );
   }
 
-  async clickCheckin(): Promise<void> {
-    await this.click(this.attendanceCheckinButton);
-  }
-
-  async getSessionStatus(): Promise<string> {
-    return await this.getText(this.sessionStatusBadge);
+  async isTodayButtonVisible(): Promise<boolean> {
+    return await this.isElementVisible(this.todayButton, 3000);
   }
 }

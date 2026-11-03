@@ -15,6 +15,19 @@ export class DriverFactory {
     options.addArguments('--disable-dev-shm-usage');
     options.addArguments('--disable-gpu');
 
+    // Chỉ định đích danh Google Chrome binary trên Windows để tránh mở nhầm Microsoft Edge
+    const commonChromePaths = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Google\\Chrome\\Application\\chrome.exe') : '',
+    ];
+    for (const chromePath of commonChromePaths) {
+      if (chromePath && fs.existsSync(chromePath)) {
+        options.setChromeBinaryPath(chromePath);
+        break;
+      }
+    }
+
     if (seleniumConfig.headless) {
       options.addArguments('--headless=new');
     }
