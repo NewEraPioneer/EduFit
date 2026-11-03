@@ -19,15 +19,15 @@ export function TutorKpiGrid({
   ratingAverage,
   reviewCount,
 }: TutorKpiGridProps) {
-  const monthlyProgress = plannedSessions > 0
+  const completionRate = plannedSessions > 0
     ? Math.round((completedSessions / plannedSessions) * 100)
-    : 0;
+    : null;
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between text-neutral-400">
-          <span className="text-xs font-bold uppercase tracking-wider">Số buổi tháng này</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Buổi đã dạy</span>
           <Calendar className="size-4 text-sky-600" />
         </div>
         <div className="mt-3">
@@ -35,7 +35,9 @@ export function TutorKpiGrid({
             {completedSessions} / {plannedSessions}
           </div>
           <div className="text-[11px] text-neutral-500 font-semibold mt-0.5">
-            {monthlyProgress}% kế hoạch tháng
+            {completionRate !== null
+              ? `${completionRate}% tổng số buổi của các lớp`
+              : "Chưa có buổi học nào"}
           </div>
         </div>
       </div>
@@ -75,10 +77,12 @@ export function TutorKpiGrid({
         </div>
         <div className="mt-3">
           <div className="text-2xl font-extrabold font-heading text-neutral-900">
-            {ratingAverage.toFixed(1)} / 5.0
+            {reviewCount > 0 ? `${ratingAverage.toFixed(1)} / 5.0` : "—"}
           </div>
           <div className="text-[11px] text-neutral-500 font-semibold mt-0.5">
-            Từ {reviewCount} đánh giá phụ huynh & học sinh
+            {reviewCount > 0
+              ? `Từ ${reviewCount} đánh giá phụ huynh & học sinh`
+              : "Chưa có đánh giá nào"}
           </div>
         </div>
       </div>

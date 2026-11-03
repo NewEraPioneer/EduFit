@@ -30,7 +30,7 @@ import {
 } from "../types";
 import type { UserRole } from "@/shared/ui/Sidebar";
 import { formatLocalDateToIso, formatLocalTime } from "@/shared/utils/dateTime";
-import { SessionOutcomeModal, progressApi, type PlanResponse } from "@/features/progress";
+import { PlannedMilestonesPicker, SessionOutcomeModal, progressApi, type PlanResponse } from "@/features/progress";
 
 export interface SessionDetailModalProps {
   sessionId: string | null;
@@ -89,6 +89,7 @@ export function SessionDetailModal({
   const [rejectReason, setRejectReason] = useState("");
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [classPlan, setClassPlan] = useState<PlanResponse | null>(null);
+  const [plannedMilestoneIds, setPlannedMilestoneIds] = useState<string[]>([]);
 
   // Track session ID during render to avoid cascading renders in useEffect (React 19 pattern)
   const [prevSessionId, setPrevSessionId] = useState<string | null>(null);
@@ -577,6 +578,16 @@ export function SessionDetailModal({
                 </div>
               </div>
 
+              {/* Cột mốc dự kiến/thực tế của buổi (module Progress) */}
+              {["PROPOSED", "SCHEDULED", "COMPLETED"].includes(session.status) && (
+                <PlannedMilestonesPicker
+                  sessionId={session.sessionId}
+                  plan={classPlan}
+                  editable={role === "TUTOR" && ["PROPOSED", "SCHEDULED"].includes(session.status)}
+                  onChange={setPlannedMilestoneIds}
+                />
+              )}
+
               {(["STUDENT", "PARENT", "TUTOR"] as string[]).includes(role) && ["SCHEDULED", "COMPLETED", "ABSENT", "CANCELLED"].includes(session.status) && <SessionBillingPanel sessionId={session.sessionId} role={role as "STUDENT" | "PARENT" | "TUTOR"} />}
 
               {/* Banner đề xuất dời lịch học (UC4.4) */}
@@ -1025,6 +1036,7 @@ export function SessionDetailModal({
             endAt: session.endAt,
           }}
           plan={classPlan}
+          plannedMilestoneIds={plannedMilestoneIds}
           onSuccess={() => {
             setShowOutcomeModal(false);
             onUpdated();

@@ -4,169 +4,151 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SessionOutcomeModal } from "@/features/progress/components/SessionOutcomeModal";
 import { progressApi } from "@/features/progress/api/progressApi";
-import type { PlanResponse } from "@/features/progress/types";
+import { FIXTURE_IDS, FIXTURE_TEXT, buildPlan } from "./progressFixtures";
 
 vi.mock("@/features/progress/api/progressApi", () => ({
   progressApi: {
     recordSessionOutcome: vi.fn(),
-    updateMilestoneStatus: vi.fn(),
+    submitSessionFeedback: vi.fn(),
   },
 }));
 
-describe("SessionOutcomeModal Component", () => {
-  const mockPlan: PlanResponse = {
-    planId: "plan-1",
-    classId: "class-1",
-    summary: "Kế hoạch Toán",
-    version: 1,
-    progressPercentage: 30,
-    milestones: [
-      {
-        milestoneId: "22222222-2222-2222-2222-222222222222",
-        title: "Cột mốc 1: Đại số nâng cao",
-        description: "Phương trình vô tỉ",
-        targetDate: "2026-11-01",
-        weight: 3,
-        status: "IN_PROGRESS",
-        achievedDate: null,
-        isArchived: false,
-        sortOrder: 0,
-      },
-      {
-        milestoneId: "33333333-3333-3333-3333-333333333333",
-        title: "Cột mốc 2: Hình học không gian",
-        description: "Khối đa diện",
-        targetDate: "2026-11-15",
-        weight: 4,
-        status: "NOT_STARTED",
-        achievedDate: null,
-        isArchived: false,
-        sortOrder: 1,
-      },
-    ],
-    createdAt: "2026-10-17T00:00:00Z",
-    updatedAt: "2026-10-17T00:00:00Z",
-  };
+const session = {
+  sessionId: FIXTURE_IDS.session,
+  classId: FIXTURE_IDS.class,
+  startAt: "2026-10-30T11:00:00Z",
+  endAt: "2026-10-30T12:30:00Z",
+  studentName: FIXTURE_TEXT.studentName,
+};
 
-  const defaultProps = {
-    isOpen: true,
-    onClose: vi.fn(),
-    session: {
-      sessionId: "11111111-1111-1111-1111-111111111111",
-      classId: "class-1",
-      startAt: "2026-10-17T08:00:00Z",
-      endAt: "2026-10-17T10:00:00Z",
-      studentName: "Trần Minh",
-    },
-    plan: mockPlan,
-    onSuccess: vi.fn(),
-  };
+function renderModal(overrides: Partial<React.ComponentProps<typeof SessionOutcomeModal>> = {}) {
+  const props = { isOpen: true, onClose: vi.fn(), onSuccess: vi.fn(), session, plan: buildPlan(), ...overrides };
+  render(<SessionOutcomeModal {...props} />);
+  return props;
+}
 
+describe("SessionOutcomeModal — biểu mẫu phản hồi 10 giây", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(progressApi.recordSessionOutcome).mockResolvedValue({ success: true, data: {} });
+    vi.mocked(progressApi.submitSessionFeedback).mockResolvedValue({
+      success: true,
+      data: { homeworkStatus: "ASSIGNED", attitudeChips: [], assessments: [], createdAt: session.endAt },
+    });
   });
 
-  it("không hiển thị gì nếu isOpen là false", () => {
+  it("không render khi isOpen=false", () => {
     const { container } = render(
-      <SessionOutcomeModal {...defaultProps} isOpen={false} />
+      <SessionOutcomeModal isOpen={false} onClose={vi.fn()} session={session} plan={buildPlan()} />
     );
     expect(container.firstChild).toBeNull();
   });
 
-  it("render modal với thông tin buổi học, 2 lựa chọn điểm danh và các cột mốc", () => {
-    render(<SessionOutcomeModal {...defaultProps} />);
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Ghi nhận biên bản buổi học & Điểm danh/i)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Trần Minh/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Có mặt & Hoàn thành \(Attended\)/i)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Vắng mặt \(Absent \/ No-Show\)/i)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Cột mốc 1: Đại số nâng cao/i)).toBeInTheDocument();
+  it("mặc định chọn cột mốc đang học (1 chạm) và hiện 4 nút mức tự lập", () => {
+    renderModal();
+    expect(screen.getByRole("button", { name: FIXTURE_TEXT.milestoneA })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: FIXTURE_TEXT.milestoneB })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getAllByRole("radio")).toHaveLength(4);
   });
 
-  it("cho phép chuyển đổi lựa chọn điểm danh sang Vắng mặt (ABSENT)", async () => {
+  it("chặn gửi khi chưa chọn mức tự lập hoặc chip việc về nhà", async () => {
     const user = userEvent.setup();
-    render(<SessionOutcomeModal {...defaultProps} />);
+    renderModal();
 
-    const absentBtn = screen.getByText(/Vắng mặt \(Absent \/ No-Show\)/i);
-    await user.click(absentBtn);
+    await user.click(screen.getByRole("button", { name: /Lưu buổi học/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Cần chọn mức tự lập");
 
-    expect(
-      screen.getByText(/Trạng thái: Vắng mặt/i)
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /3\. Tự làm đúng/i }));
+    await user.click(screen.getByRole("button", { name: /Lưu buổi học/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Cần chọn chip việc về nhà");
+    expect(progressApi.recordSessionOutcome).not.toHaveBeenCalled();
   });
 
-  it("cho phép nhập nhận xét và chọn cột mốc đạt được để submit thành công", async () => {
+  it("chỉ cho chốt đạt khi tick đủ tiêu chí", async () => {
     const user = userEvent.setup();
-    vi.mocked(progressApi.recordSessionOutcome).mockResolvedValue({
-      success: true,
-      data: {},
-    });
-    vi.mocked(progressApi.updateMilestoneStatus).mockResolvedValue({
-      success: true,
-      data: {
-        ...mockPlan,
-        version: 2,
-      },
-    });
+    renderModal();
+    const achieve = screen.getByRole("checkbox", { name: /Chốt đạt cột mốc này/i });
+    expect(achieve).toBeDisabled();
 
-    render(<SessionOutcomeModal {...defaultProps} />);
+    await user.click(screen.getByRole("checkbox", { name: FIXTURE_TEXT.criterionA1 }));
+    expect(achieve).toBeDisabled();
+    await user.click(screen.getByRole("checkbox", { name: FIXTURE_TEXT.criterionA2 }));
+    expect(achieve).toBeEnabled();
+  });
 
-    // Nhập nhận xét
-    const textarea = screen.getByPlaceholderText(/Học sinh nắm tốt phần lý thuyết/i);
-    await user.type(textarea, "Học sinh hiểu bài và làm đúng 100% bài tập.");
+  it("gửi điểm danh rồi phản hồi có cấu trúc đúng hợp đồng API", async () => {
+    const user = userEvent.setup();
+    const props = renderModal();
 
-    // Chọn cột mốc 1
-    const milestoneItem = screen.getByText(/Cột mốc 1: Đại số nâng cao/i);
-    await user.click(milestoneItem);
-
-    // Bấm lưu biên bản
-    const submitBtn = screen.getByRole("button", { name: /Lưu biên bản buổi học/i });
-    await user.click(submitBtn);
+    await user.click(screen.getByRole("radio", { name: /2\. Cần gợi ý/i }));
+    await user.click(screen.getByRole("checkbox", { name: FIXTURE_TEXT.criterionA1 }));
+    await user.type(screen.getByLabelText(new RegExp(`Số bài đúng — ${FIXTURE_TEXT.milestoneA}`)), "7");
+    await user.type(screen.getByLabelText(new RegExp(`Tổng số bài — ${FIXTURE_TEXT.milestoneA}`)), "10");
+    await user.click(screen.getByRole("button", { name: "Có giao bài về nhà" }));
+    await user.click(screen.getByRole("button", { name: "Tập trung tốt" }));
+    await user.type(screen.getByLabelText(/Một câu nhận xét/i), "Con tiến bộ rõ.");
+    await user.click(screen.getByRole("button", { name: /Lưu buổi học/i }));
 
     await waitFor(() => {
-      expect(progressApi.recordSessionOutcome).toHaveBeenCalledWith(
-        defaultProps.session.sessionId,
-        {
-          outcome: "COMPLETED",
-          noteContent: "Học sinh hiểu bài và làm đúng 100% bài tập.",
-        }
-      );
-      expect(progressApi.updateMilestoneStatus).toHaveBeenCalledWith(
-        "22222222-2222-2222-2222-222222222222",
-        expect.objectContaining({
-          status: "ACHIEVED",
-          version: 1,
-        })
-      );
-      expect(defaultProps.onSuccess).toHaveBeenCalled();
-      expect(defaultProps.onClose).toHaveBeenCalled();
+      expect(progressApi.recordSessionOutcome).toHaveBeenCalledWith(FIXTURE_IDS.session, {
+        outcome: "COMPLETED",
+        noteContent: "Con tiến bộ rõ.",
+      });
+      expect(progressApi.submitSessionFeedback).toHaveBeenCalledWith(FIXTURE_IDS.session, {
+        homeworkStatus: "ASSIGNED",
+        attitudeChips: ["FOCUSED"],
+        milestones: [
+          {
+            milestoneId: FIXTURE_IDS.milestoneA,
+            level: 2,
+            correctCount: 7,
+            totalCount: 10,
+            checkedCriterionIds: [FIXTURE_IDS.criterionA1],
+            markAchieved: false,
+          },
+        ],
+      });
+      expect(props.onSuccess).toHaveBeenCalled();
+      expect(props.onClose).toHaveBeenCalled();
     });
   });
 
-  it("hiển thị thông báo lỗi khi ghi nhận biên bản thất bại", async () => {
+  it("vắng mặt: chỉ ghi điểm danh, không gửi phản hồi", async () => {
     const user = userEvent.setup();
-    vi.mocked(progressApi.recordSessionOutcome).mockResolvedValue({
-      success: false,
-      message: "Buổi học chưa đến giờ kết thúc",
-    });
+    renderModal();
+    await user.click(screen.getByRole("button", { name: /Vắng mặt/i }));
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
 
-    render(<SessionOutcomeModal {...defaultProps} />);
+    await user.click(screen.getByRole("button", { name: /Lưu buổi học/i }));
+    await waitFor(() => expect(progressApi.recordSessionOutcome).toHaveBeenCalled());
+    expect(progressApi.submitSessionFeedback).not.toHaveBeenCalled();
+  });
 
-    const submitBtn = screen.getByRole("button", { name: /Lưu biên bản buổi học/i });
-    await user.click(submitBtn);
+  it("phản hồi lỗi sau khi đã điểm danh: giữ modal, gửi lại chỉ phản hồi", async () => {
+    const user = userEvent.setup();
+    vi.mocked(progressApi.submitSessionFeedback)
+      .mockResolvedValueOnce({ success: false, message: "Xung đột phiên bản" })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { homeworkStatus: "NONE", attitudeChips: [], assessments: [], createdAt: session.endAt },
+      });
+    const props = renderModal();
 
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toBeInTheDocument();
-      expect(
-        screen.getByText(/Buổi học chưa đến giờ kết thúc/i)
-      ).toBeInTheDocument();
-    });
+    await user.click(screen.getByRole("radio", { name: /1\. Chưa làm được/i }));
+    await user.click(screen.getByRole("button", { name: "Không có bài về nhà" }));
+    await user.click(screen.getByRole("button", { name: /Lưu buổi học/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Đã ghi nhận điểm danh");
+    expect(props.onClose).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /Gửi lại phản hồi/i }));
+    await waitFor(() => expect(props.onSuccess).toHaveBeenCalled());
+    expect(progressApi.recordSessionOutcome).toHaveBeenCalledTimes(1);
+    expect(progressApi.submitSessionFeedback).toHaveBeenCalledTimes(2);
+  });
+
+  it("lớp chưa có lộ trình: báo chỉ ghi điểm danh", () => {
+    renderModal({ plan: null });
+    expect(screen.getByText(/Lớp chưa có lộ trình nên chỉ ghi điểm danh/i)).toBeInTheDocument();
   });
 });

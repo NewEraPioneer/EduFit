@@ -109,23 +109,6 @@ export function ParentOnboardingWizard() {
       // Đánh dấu phụ huynh đã hoàn tất onboarding
       localStorage.setItem("edufit_parent_onboarding_completed", "true");
 
-      // Đồng bộ danh sách học sinh đã xác nhận nếu có
-      if (links.length > 0) {
-        const syncedChildren = links.map((link, idx) => ({
-          id: idx + 1,
-          code: link.studentId,
-          name: `Học sinh ${link.studentId.slice(0, 8)}`,
-          grade: "Lớp học kèm",
-          school: "EduFit Platform",
-          subjects: "Đang cập nhật",
-          goal: "Đồng hành học tập",
-        }));
-        localStorage.setItem(
-          "edufit_parent_linked_students",
-          JSON.stringify(syncedChildren)
-        );
-      }
-
       showToast("Thiết lập tài khoản phụ huynh thành công! Chào mừng bạn đến với EduFit.", "success");
       await refreshUser?.();
       router.push("/parent/dashboard");

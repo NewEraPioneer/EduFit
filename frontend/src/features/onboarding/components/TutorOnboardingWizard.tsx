@@ -53,7 +53,7 @@ export function TutorOnboardingWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [lastSaved, setLastSaved] = useState<string>("Vừa cập nhật");
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
 
   const { catalog } = useLearningCatalog();
 
@@ -325,10 +325,12 @@ export function TutorOnboardingWizard() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 text-xs text-neutral-400">
-            <Clock className="size-3.5" />
-            <span>Đã lưu nháp lúc {lastSaved}</span>
-          </div>
+          {lastSaved && (
+            <div className="hidden md:flex items-center gap-2 text-xs text-neutral-400">
+              <Clock className="size-3.5" />
+              <span>Đã lưu nháp lúc {lastSaved}</span>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleSkipToDashboard}

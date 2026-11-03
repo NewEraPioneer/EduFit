@@ -31,11 +31,17 @@ import vn.edufit.progress.application.dto.ProgressViews.TeachingHistoryItemView;
 import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.model.Milestone;
 import vn.edufit.progress.domain.model.MilestoneStatus;
+import vn.edufit.progress.domain.model.SessionMilestoneLink;
 import vn.edufit.progress.domain.model.SessionNote;
 import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
+import vn.edufit.progress.domain.repository.PlanHistoryDomainRepository;
+import vn.edufit.progress.domain.repository.TopicDomainRepository;
+import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
+import vn.edufit.progress.domain.repository.SessionMilestoneLinkDomainRepository;
+import vn.edufit.progress.domain.repository.SessionSelfRatingDomainRepository;
 import vn.edufit.progress.domain.repository.SessionNoteDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
-import vn.edufit.scheduling.api.dto.ClassSessionStatsView;
+import vn.edufit.scheduling.api.dto.SessionAttendanceView;
 import vn.edufit.scheduling.api.dto.SessionTimelineView;
 import vn.edufit.shared.auth.CurrentUser;
 
@@ -48,6 +54,7 @@ class ProgressDashboardServiceTest {
   private IamFacade iamFacade;
   private SessionFacade sessionFacade;
   private Clock fixedClock;
+  private SessionMilestoneLinkDomainRepository linkRepository;
   private ProgressDashboardService dashboardService;
 
   private final Instant fixedInstant = Instant.parse("2026-10-20T10:00:00Z");
@@ -62,13 +69,25 @@ class ProgressDashboardServiceTest {
     sessionFacade = mock(SessionFacade.class);
     fixedClock = Clock.fixed(fixedInstant, ZoneId.of("UTC"));
 
+    SessionFeedbackDomainRepository feedbackRepository = mock(SessionFeedbackDomainRepository.class);
+    linkRepository = mock(SessionMilestoneLinkDomainRepository.class);
     dashboardService = new ProgressDashboardService(
-        planRepository, noteRepository, connectionFacade, profileFacade, iamFacade, sessionFacade, fixedClock
+        planRepository,
+        connectionFacade,
+        profileFacade,
+        new ProgressDisplayNames(profileFacade, iamFacade),
+        sessionFacade,
+        new SessionNoteTimelineAssembler(noteRepository, feedbackRepository, mock(SessionSelfRatingDomainRepository.class)),
+        new ProgressOverviewService(
+            feedbackRepository, linkRepository, mock(PlanHistoryDomainRepository.class),
+            mock(TopicDomainRepository.class), sessionFacade, profileFacade,
+            connectionFacade, fixedClock),
+        new ProgressAccessGuard(connectionFacade, profileFacade)
     );
   }
 
   @Test
-  @DisplayName("getStudentDashboard: Tra ve thong tin tien do, bieu do series va ghi chu")
+  @DisplayName("getStudentDashboard: Trả về tiến độ, 3 thẻ tổng quan và sổ liên lạc")
   void getStudentDashboard_Success() {
     UUID studentId = UUID.randomUUID();
     UUID studentUserId = UUID.randomUUID();
@@ -95,11 +114,11 @@ class ProgressDashboardServiceTest {
 
     Milestone m1 = new Milestone(
         UUID.randomUUID(), UUID.randomUUID(), "M1", "Desc", LocalDate.parse("2026-10-15"),
-        2, MilestoneStatus.ACHIEVED, LocalDate.parse("2026-10-15"), false, 0, fixedInstant
+        2, MilestoneStatus.ACHIEVED, LocalDate.parse("2026-10-15"), false, 0, fixedInstant, List.of()
     );
     Milestone m2 = new Milestone(
         UUID.randomUUID(), UUID.randomUUID(), "M2", "Desc", LocalDate.parse("2026-10-25"),
-        2, MilestoneStatus.IN_PROGRESS, null, false, 1, fixedInstant
+        2, MilestoneStatus.IN_PROGRESS, null, false, 1, fixedInstant, List.of()
     );
     LearningPlan plan = new LearningPlan(
         UUID.randomUUID(), classId, "Plan Summary", 0, fixedInstant, fixedInstant, List.of(m1, m2)
@@ -121,17 +140,22 @@ class ProgressDashboardServiceTest {
     when(tutorUserSummary.fullName()).thenReturn("Tran Thi C");
     when(iamFacade.findUserSummaryById(tutorUserId)).thenReturn(Optional.of(tutorUserSummary));
 
-    ClassSessionStatsView stats = new ClassSessionStatsView(classId, 5, 0, 0, 2, fixedInstant.plusSeconds(86400), fixedInstant.minusSeconds(86400));
-    when(sessionFacade.getSessionStatsByClassIds(eq(List.of(classId)), any(), any())).thenReturn(Map.of(classId, stats));
-
     UUID sessionId = UUID.randomUUID();
+    Instant nextStart = fixedInstant.plusSeconds(86400);
+    UUID nextSessionId = UUID.randomUUID();
+    when(sessionFacade.findAttendanceByClassId(classId)).thenReturn(List.of(
+        new SessionAttendanceView(sessionId, fixedInstant.minusSeconds(7200), "COMPLETED", null, false),
+        new SessionAttendanceView(nextSessionId, nextStart, "SCHEDULED", null, false),
+        new SessionAttendanceView(UUID.randomUUID(), fixedInstant.minusSeconds(90000), "CANCELLED", tutorUserId, true)
+    ));
+
     SessionTimelineView sessView = new SessionTimelineView(sessionId, classId, fixedInstant.minusSeconds(7200), fixedInstant.minusSeconds(3600), "COMPLETED");
     when(sessionFacade.findSessionsByClassId(classId, null, null)).thenReturn(List.of(sessView));
 
     SessionNote note = new SessionNote(UUID.randomUUID(), sessionId, tutorId, "Ghi chu hoc tap", fixedInstant.minusSeconds(3500));
     when(noteRepository.findBySessionIdIn(List.of(sessionId))).thenReturn(List.of(note));
 
-    StudentDashboardView response = dashboardService.getStudentDashboard(actor, studentId, classId, "30D");
+    StudentDashboardView response = dashboardService.getStudentDashboard(actor, studentId, classId);
 
     assertThat(response).isNotNull();
     assertThat(response.studentId()).isEqualTo(studentId);
@@ -140,7 +164,25 @@ class ProgressDashboardServiceTest {
     assertThat(response.progressPercentage()).isEqualTo(50); // 2/4 = 50%
     assertThat(response.recentNotes()).hasSize(1);
     assertThat(response.recentNotes().getFirst().noteText()).isEqualTo("Ghi chu hoc tap");
-    assertThat(response.progressSeries()).isNotEmpty();
+    assertThat(response.overview().stage()).isEqualTo("PLAN_NO_SESSIONS");
+    assertThat(response.overview().onTrack().status()).isEqualTo("ON_TRACK");
+    assertThat(response.overview().onTrack().explanation()).contains("M2").contains("25/10/2026");
+    assertThat(response.overview().goalProgress().progressPercentage()).isEqualTo(50);
+    assertThat(response.overview().goalProgress().progressDelta()).isNull();
+    assertThat(response.overview().goalProgress().highlight()).isEqualTo("Buổi đầu: đánh giá điểm xuất phát");
+    assertThat(response.overview().attendance().attendedCount()).isEqualTo(1);
+    assertThat(response.overview().attendance().countedCount()).isEqualTo(1);
+    assertThat(response.overview().attendance().tutorCancelCount()).isEqualTo(1);
+    assertThat(response.overview().attendance().nextSessionStart()).isEqualTo(nextStart);
+    assertThat(response.overview().attendance().focusMilestoneTitle()).isEqualTo("M2");
+    assertThat(response.overview().attendance().nextSessionPlanned()).isFalse();
+
+    // Gia sư gắn cột mốc dự kiến cho buổi tới: thẻ 3 hiện cột mốc dự kiến thay cho cột mốc đang học
+    when(linkRepository.findBySessionIdIn(List.of(nextSessionId))).thenReturn(List.of(
+        new SessionMilestoneLink(nextSessionId, m1.getMilestoneId(), SessionMilestoneLink.Type.PLANNED)));
+    StudentDashboardView planned = dashboardService.getStudentDashboard(actor, studentId, classId);
+    assertThat(planned.overview().attendance().focusMilestoneTitle()).isEqualTo("M1");
+    assertThat(planned.overview().attendance().nextSessionPlanned()).isTrue();
   }
 
   @Test

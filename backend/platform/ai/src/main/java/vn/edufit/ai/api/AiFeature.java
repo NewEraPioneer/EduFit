@@ -24,5 +24,11 @@ public enum AiFeature {
    * Tính năng giải thích lý do đề xuất gia sư Top 1 trong kết quả Matching (UC2.4).
    * <p>Áp dụng nguyên tắc chỉ dùng sự thật có sẵn theo BR-24 và giới hạn theo BR-25.
    */
-  MATCH_EXPLANATION
+  MATCH_EXPLANATION,
+
+  /**
+   * Bản nháp lộ trình học tập (3–8 cột mốc) cho gia sư lập lộ trình của lớp (Progress, Giai đoạn 3).
+   * <p>Chỉ gửi môn, khối, mục tiêu và danh mục chủ đề — không có dữ liệu cá nhân. Giới hạn 10 lần/giờ/gia sư.
+   */
+  LEARNING_PLAN_DRAFT
 }

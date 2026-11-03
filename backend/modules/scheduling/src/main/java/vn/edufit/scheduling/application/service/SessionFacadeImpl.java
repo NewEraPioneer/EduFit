@@ -26,19 +26,39 @@ public class SessionFacadeImpl implements SessionFacade {
 
   @Override
   public Optional<SessionSummaryView> findSessionById(UUID sessionId) {
-    return sessionRepository.findById(sessionId)
-        .map(s -> new SessionSummaryView(
-            s.getSessionId(),
-            s.getClassId(),
-            s.getTutorId(),
-            s.getStudentId(),
-            s.getStartAt(),
-            s.getEndAt(),
-            s.getMode().name(),
-            s.getStatus().name(),
-            s.isLateCancel(),
-            s.getCreatedAt(), s.getOutcomeRecordedAt()
-        ));
+    return sessionRepository.findById(sessionId).map(SessionFacadeImpl::toSummary);
+  }
+
+  @Override
+  public List<SessionSummaryView> findCompletedSessionsEndedBetween(Instant from, Instant to) {
+    return sessionRepository.findCompletedEndedBetween(from, to).stream().map(SessionFacadeImpl::toSummary).toList();
+  }
+
+  @Override
+  public List<SessionSummaryView> findSessionsByIds(java.util.Collection<UUID> sessionIds) {
+    return sessionRepository.findByIds(sessionIds).stream().map(SessionFacadeImpl::toSummary).toList();
+  }
+
+  @Override
+  public List<SessionSummaryView> findSessionSummariesByClassIds(
+      java.util.Collection<UUID> classIds, Instant from, Instant to) {
+    return sessionRepository.findByClassIds(classIds, from, to).stream().map(SessionFacadeImpl::toSummary).toList();
+  }
+
+  private static SessionSummaryView toSummary(vn.edufit.scheduling.domain.model.TutoringSession s) {
+    return new SessionSummaryView(
+        s.getSessionId(),
+        s.getClassId(),
+        s.getTutorId(),
+        s.getStudentId(),
+        s.getStartAt(),
+        s.getEndAt(),
+        s.getMode().name(),
+        s.getStatus().name(),
+        s.isLateCancel(),
+        s.getCreatedAt(),
+        s.getOutcomeRecordedAt()
+    );
   }
 
   @Override
@@ -83,6 +103,21 @@ public class SessionFacadeImpl implements SessionFacade {
             s.getStartAt(),
             s.getEndAt(),
             s.getStatus().name(), s.getOutcomeRecordedAt()
+        ))
+        .toList();
+  }
+
+  @Override
+  public List<vn.edufit.scheduling.api.dto.SessionAttendanceView> findAttendanceByClassId(UUID classId) {
+    if (classId == null) return List.of();
+    return sessionRepository.findByClassId(classId, null, null)
+        .stream()
+        .map(s -> new vn.edufit.scheduling.api.dto.SessionAttendanceView(
+            s.getSessionId(),
+            s.getStartAt(),
+            s.getStatus().name(),
+            s.getCancelledBy(),
+            s.isLateCancel()
         ))
         .toList();
   }

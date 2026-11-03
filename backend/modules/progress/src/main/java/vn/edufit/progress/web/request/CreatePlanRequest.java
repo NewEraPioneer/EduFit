@@ -1,6 +1,7 @@
 package vn.edufit.progress.web.request;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -8,6 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import vn.edufit.progress.application.dto.CreatePlanCommand;
+import vn.edufit.progress.domain.policy.RoadmapShapePolicy;
 
 public record CreatePlanRequest(
     @NotNull(message = "classId không được để trống")
@@ -17,7 +19,7 @@ public record CreatePlanRequest(
     String summary,
 
     @NotEmpty(message = "Danh sách cột mốc không được để trống")
-    @Size(min = 1, max = 20, message = "Kế hoạch phải có từ 1 đến 20 cột mốc")
+    @Size(min = RoadmapShapePolicy.MIN_MILESTONES, max = RoadmapShapePolicy.MAX_MILESTONES, message = "Lộ trình phải có từ 3 đến 8 cột mốc")
     @Valid
     List<CreateMilestoneItem> milestones
 ) {
@@ -30,7 +32,18 @@ public record CreatePlanRequest(
 
       LocalDate targetDate,
 
-      Integer weight
+      Integer weight,
+
+      @NotEmpty(message = "Mỗi cột mốc cần ít nhất 1 tiêu chí đạt")
+      @Size(max = 4, message = "Mỗi cột mốc có tối đa 4 tiêu chí đạt")
+      List<@NotBlank(message = "Nội dung tiêu chí đạt không được để trống")
+          @Size(max = 200, message = "Nội dung tiêu chí đạt tối đa 200 ký tự") String> criteria,
+
+      /** Số buổi gợi ý 2–6 (tùy chọn), dùng cho dự báo "còn X buổi". */
+      Integer suggestedSessions,
+
+      /** Chủ đề chuẩn của môn × khối (tùy chọn), trục của radar năng lực. */
+      UUID topicId
   ) {}
 
   public CreatePlanCommand toCommand() {
@@ -39,7 +52,8 @@ public record CreatePlanRequest(
         summary,
         milestones != null
             ? milestones.stream()
-                .map(m -> new CreatePlanCommand.CreateMilestoneItem(m.title(), m.description(), m.targetDate(), m.weight()))
+                .map(m -> new CreatePlanCommand.CreateMilestoneItem(m.title(), m.description(), m.targetDate(), m.weight(),
+                    m.criteria(), m.suggestedSessions(), m.topicId()))
                 .toList()
             : List.of()
     );

@@ -18,6 +18,9 @@ import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.progress.application.dto.SessionNoteTimelineView;
 import vn.edufit.progress.domain.model.SessionNote;
+import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
+import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
+import vn.edufit.progress.domain.repository.SessionSelfRatingDomainRepository;
 import vn.edufit.progress.domain.repository.SessionNoteDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
 import vn.edufit.scheduling.api.dto.SessionTimelineView;
@@ -38,7 +41,13 @@ class SessionNoteServiceTest {
     sessionFacade = mock(SessionFacade.class);
     connectionFacade = mock(ConnectionFacade.class);
     profileFacade = mock(ProfileFacade.class);
-    sessionNoteService = new SessionNoteService(noteRepository, sessionFacade, connectionFacade, profileFacade);
+    sessionNoteService = new SessionNoteService(
+        sessionFacade,
+        mock(LearningPlanDomainRepository.class),
+        new ProgressAccessGuard(connectionFacade, profileFacade),
+        new SessionNoteTimelineAssembler(
+            noteRepository, mock(SessionFeedbackDomainRepository.class), mock(SessionSelfRatingDomainRepository.class))
+    );
   }
 
   @Test
@@ -80,6 +89,7 @@ class SessionNoteServiceTest {
     SessionNoteTimelineView item2 = page.getContent().get(1);
     assertThat(item2.sessionId()).isEqualTo(s2);
     assertThat(item2.noteText()).isNull();
+    assertThat(item2.feedback()).isNull();
   }
 
   @Test

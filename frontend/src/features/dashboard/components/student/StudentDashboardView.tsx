@@ -16,6 +16,7 @@ import { connectionApi } from "@/features/connection/api/connectionApi";
 import { schedulingApi } from "@/features/scheduling";
 import type { TutoringClass } from "@/features/connection/types";
 import type { CalendarItem } from "@/features/scheduling/types";
+import { progressApi, type StudentDashboardResponse } from "@/features/progress";
 
 interface StudentDashboardViewProps {
   user: {
@@ -26,13 +27,15 @@ interface StudentDashboardViewProps {
 }
 
 export function StudentDashboardView({ user }: StudentDashboardViewProps) {
-  const studentName = user.fullName || "Minh Anh";
+  const studentName = user.fullName || "bạn";
 
   const [profile, setProfile] = useState<StudentProfileData | null>(null);
   const [rawClasses, setRawClasses] = useState<TutoringClass[]>([]);
   const [activeClasses, setActiveClasses] = useState<any[]>([]);
   const [nextSession, setNextSession] = useState<any | null>(null);
   const [activeGoal, setActiveGoal] = useState<StudentGoalItem | null>(null);
+  const [progressDashboard, setProgressDashboard] = useState<StudentDashboardResponse | null>(null);
+  const [upcomingWeekCount, setUpcomingWeekCount] = useState<number>(0);
 
   useEffect(() => {
     let ignore = false;
@@ -61,62 +64,74 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
         const classList: TutoringClass[] = classesRes.status === "fulfilled" ? classesRes.value || [] : [];
         setRawClasses(classList);
 
-        // Nhu cầu chính: ưu tiên nhu cầu đã đủ thông tin để ghép gia sư
-        const primaryNeed = needs.find((need) => need.status === "ACTIVE") || needs[0];
+        // Tiến độ thật theo lộ trình (milestone) do backend tính cho lớp đang học
+        let dashboard: StudentDashboardResponse | null = null;
+        if (studentProf?.studentId && classList.length > 0) {
+          try {
+            const res = await progressApi.getStudentDashboard(studentProf.studentId);
+            dashboard = res.success && res.data ? res.data : null;
+          } catch {
+            dashboard = null;
+          }
+        }
+        if (ignore) return;
+        setProgressDashboard(dashboard);
+
+        // Nhu cầu chính: ưu tiên nhu cầu gắn với lớp đang có tiến độ, sau đó tới nhu cầu ACTIVE đầu tiên
+        const primaryNeed =
+          needs.find((need) => dashboard?.needId && need.needId === dashboard.needId) ||
+          needs.find((need) => need.status === "ACTIVE") ||
+          needs[0];
 
         if (primaryNeed) {
           const needClasses = classList.filter((c) => c.needId === primaryNeed.needId);
           const totalCompletedSessions = needClasses.reduce((acc, c) => acc + (c.completedCount ?? 0), 0);
-          const totalPlannedSessions = needClasses.reduce((acc, c) => acc + (c.totalCount ?? c.sessionCount ?? 0), 0);
-          const goalGrade = primaryNeed.educationLevelName || studentProf?.educationLevelName || "THCS";
+          const goalGrade = primaryNeed.educationLevelName || studentProf?.educationLevelName || "";
           const goalTitle = needTitle(primaryNeed);
           const roadmapDesc = primaryNeed.mode
             ? `Hình thức: ${MODE_LABELS[primaryNeed.mode]}`
             : "Chưa chọn hình thức học, hãy bổ sung khi tìm gia sư";
 
-          const hasClasses = needClasses.length > 0;
-          let milestones: Array<{ label: string; completed: boolean }>;
-          let completedMilestonesCount: number;
-          let totalMilestonesCount: number;
-          let progressPercent: number;
+          const planMilestones = (dashboard?.plan?.milestones ?? [])
+            .filter((m) => !m.isArchived)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
 
-          if (hasClasses && totalPlannedSessions > 0) {
-            completedMilestonesCount = totalCompletedSessions;
-            totalMilestonesCount = totalPlannedSessions;
-            progressPercent = Math.min(100, Math.round((totalCompletedSessions / totalPlannedSessions) * 100));
-            milestones = [
-              { label: "Bắt đầu khóa học kèm 1-1", completed: true },
-              {
-                label: `Đã học ${totalCompletedSessions}/${totalPlannedSessions} buổi`,
-                completed: totalCompletedSessions > 0,
-              },
-              {
-                label: "Hoàn tất toàn bộ chu kỳ học",
-                completed: totalCompletedSessions >= totalPlannedSessions,
-              },
-            ];
+          if (planMilestones.length > 0) {
+            const achieved = planMilestones.filter((m) => m.status === "ACHIEVED").length;
+            setActiveGoal({
+              id: primaryNeed.needId,
+              grade: goalGrade,
+              title: goalTitle,
+              roadmapDesc,
+              hasPlan: true,
+              progressPercent: dashboard?.progressPercentage ?? null,
+              completedMilestones: achieved,
+              totalMilestones: planMilestones.length,
+              milestones: planMilestones.slice(0, 6).map((m) => ({
+                label: m.title,
+                completed: m.status === "ACHIEVED",
+              })),
+            });
           } else {
+            const hasClasses = needClasses.length > 0;
             const hasCompleted = totalCompletedSessions > 0;
-            milestones = [
+            const steps = [
               { label: "Thêm nhu cầu học", completed: true },
               { label: "Ghép nối gia sư", completed: hasClasses },
-              { label: "Hoàn thành buổi học", completed: hasCompleted },
+              { label: "Hoàn thành buổi học đầu", completed: hasCompleted },
             ];
-            completedMilestonesCount = 1 + (hasClasses ? 1 : 0) + (hasCompleted ? 1 : 0);
-            totalMilestonesCount = 3;
-            progressPercent = Math.round((completedMilestonesCount / 3) * 100);
+            setActiveGoal({
+              id: primaryNeed.needId,
+              grade: goalGrade,
+              title: goalTitle,
+              roadmapDesc,
+              hasPlan: false,
+              progressPercent: null,
+              completedMilestones: steps.filter((st) => st.completed).length,
+              totalMilestones: steps.length,
+              milestones: steps,
+            });
           }
-
-          setActiveGoal({
-            id: primaryNeed.needId,
-            grade: goalGrade,
-            title: goalTitle,
-            roadmapDesc,
-            progressPercent,
-            completedMilestones: completedMilestonesCount,
-            totalMilestones: totalMilestonesCount,
-            milestones,
-          });
         } else {
           setActiveGoal(null);
         }
@@ -141,7 +156,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
           borderColor: borderColors[idx % borderColors.length],
           frequency: c.scheduleStatus === "SCHEDULED" ? "Đã chốt lịch" : "Chờ thống nhất lịch",
           title: `${c.subjectName || "Môn học kèm"}${c.educationLevelName ? ` - ${c.educationLevelName}` : ""}`,
-          tutor: c.tutorDisplayName || "Gia sư EduFit",
+          tutor: c.tutorDisplayName || "Gia sư",
           progress: `Đã học ${c.completedCount ?? 0} / ${c.totalCount ?? c.sessionCount} buổi`,
         }));
         setActiveClasses(mappedActive);
@@ -159,6 +174,8 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
               new Date(s.endAt).getTime() >= Date.now()
           )
           .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+
+        setUpcomingWeekCount(validUpcoming.filter((s) => s.status === "SCHEDULED").length);
 
         if (validUpcoming.length > 0) {
           const earliest = validUpcoming[0];
@@ -203,14 +220,14 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
     };
   }, []);
 
-  const totalCompleted = rawClasses.reduce(
-    (acc, c) => acc + (c.completedCount ?? c.sessionCount ?? 0),
-    0
-  );
+  const totalCompleted = rawClasses.reduce((acc, c) => acc + (c.completedCount ?? 0), 0);
   const totalPlanned = rawClasses.reduce(
     (acc, c) => acc + (c.totalCount ?? c.sessionCount ?? 0),
     0
   );
+
+  // Tỉ lệ chuyên cần do backend tính (không trừ buổi hủy sớm hoặc do gia sư dời)
+  const attendanceRate = progressDashboard?.overview?.attendance.attendanceRate ?? null;
 
   const onboardingSteps = [
     {
@@ -228,8 +245,8 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       completed: rawClasses.length > 0,
     },
     {
-      title: "Gửi yêu cầu học thử 1-1",
-      description: "Đăng ký buổi trao đổi đầu tiên để thống nhất lịch học và mục tiêu điểm số.",
+      title: "Gửi yêu cầu kết nối gia sư",
+      description: "Gửi yêu cầu kèm khung giờ mong muốn để thống nhất lịch học với gia sư.",
       href: "/student/tutors",
       actionText: "Khám phá môn học",
       completed: rawClasses.length > 0,
@@ -284,9 +301,9 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
                 <CheckCircle2 className="size-5" />
               </div>
               <div>
-                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Cột mốc hoàn thành</div>
+                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Buổi học đã hoàn thành</div>
                 <div className="text-xl font-extrabold font-heading text-neutral-900 dark:text-stone-100">
-                  {totalPlanned > 0 ? `${totalCompleted} / ${totalPlanned}` : "0 / 0"}
+                  {`${totalCompleted} / ${totalPlanned}`}
                 </div>
               </div>
             </div>
@@ -296,9 +313,9 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
                 <TrendingUp className="size-5" />
               </div>
               <div>
-                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Điểm bài tập trung bình</div>
+                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Chuyên cần</div>
                 <div className="text-xl font-extrabold font-heading text-neutral-900 dark:text-stone-100">
-                  -- <span className="text-xs font-normal text-neutral-400 dark:text-stone-400">/ 10</span>
+                  {attendanceRate !== null ? `${attendanceRate}%` : "—"}
                 </div>
               </div>
             </div>
@@ -308,9 +325,9 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
                 <Calendar className="size-5" />
               </div>
               <div>
-                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Chuỗi ngày học tập</div>
+                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Buổi đã chốt trong 7 ngày tới</div>
                 <div className="text-xl font-extrabold font-heading text-neutral-900 dark:text-stone-100">
-                  {activeClasses.length > 0 ? "6 ngày" : "0 ngày"} <span className="text-xs font-bold text-amber-600 dark:text-amber-400">khởi đầu ✨</span>
+                  {upcomingWeekCount} buổi
                 </div>
               </div>
             </div>

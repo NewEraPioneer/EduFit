@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import vn.edufit.progress.application.dto.TutorTodoView;
 import vn.edufit.progress.application.service.ProgressDashboardService;
+import vn.edufit.progress.application.service.TutorTodoService;
 import vn.edufit.progress.web.response.ProgressDashboardResponses.ParentDashboardResponse;
 import vn.edufit.progress.web.response.ProgressDashboardResponses.StudentDashboardResponse;
 import vn.edufit.progress.web.response.ProgressDashboardResponses.TeachingHistoryItem;
 import vn.edufit.shared.auth.CurrentUser;
-import vn.edufit.shared.exception.ErrorCode;
-import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.response.ApiResponse;
 
 /**
@@ -29,18 +29,25 @@ import vn.edufit.shared.response.ApiResponse;
 public class ProgressDashboardController {
 
   private final ProgressDashboardService dashboardService;
+  private final TutorTodoService tutorTodoService;
   private final ObjectProvider<CurrentUser> currentUserProvider;
 
   @GetMapping("/dashboard/student/{studentId}")
   public ResponseEntity<ApiResponse<StudentDashboardResponse>> getStudentDashboard(
       @PathVariable("studentId") UUID studentId,
-      @RequestParam(value = "classId", required = false) UUID classId,
-      @RequestParam(value = "range", defaultValue = "30D") String range
+      @RequestParam(value = "classId", required = false) UUID classId
   ) {
     StudentDashboardResponse response = StudentDashboardResponse.from(
-        dashboardService.getStudentDashboard(currentUser(), studentId, classId, range)
+        dashboardService.getStudentDashboard(currentUser(), studentId, classId)
     );
     return ResponseEntity.ok(ApiResponse.success(response, "Lấy dữ liệu dashboard tiến độ học tập thành công"));
+  }
+
+  /** Ngăn "Việc cần làm" của gia sư: buổi chưa phản hồi, lớp chưa có lộ trình, cột mốc quá hạn, thiếu ngày cuối. */
+  @GetMapping("/dashboard/tutor/todos")
+  public ResponseEntity<ApiResponse<TutorTodoView>> getTutorTodos() {
+    return ResponseEntity.ok(ApiResponse.success(
+        tutorTodoService.getTodos(currentUser()), "Lấy danh sách việc cần làm thành công"));
   }
 
   @GetMapping("/dashboard/parent")
@@ -67,10 +74,6 @@ public class ProgressDashboardController {
   }
 
   private CurrentUser currentUser() {
-    CurrentUser user = currentUserProvider.getIfAvailable();
-    if (user == null || user.getUserId() == null) {
-      throw new InvalidOperationException(ErrorCode.UNAUTHORIZED, "Phiên làm việc chưa được xác thực hoặc đã hết hạn");
-    }
-    return user;
+    return ProgressWebSupport.currentUser(currentUserProvider);
   }
 }
