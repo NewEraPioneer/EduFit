@@ -52,13 +52,13 @@ export function OAuthRoleSelectionModal({
       showToast(`Chào mừng ${user.fullName} gia nhập EduFit!`, "success");
       onClose();
 
-      // Điều hướng người dùng theo vai trò
+      // Điều hướng người dùng vào màn hình Onboarding theo vai trò vừa đăng ký
       if (selectedRole === "TUTOR") {
-        router.push("/tutor/dashboard");
+        router.push("/onboarding/tutor");
       } else if (selectedRole === "PARENT") {
-        router.push("/parent/dashboard");
+        router.push("/onboarding/parent");
       } else {
-        router.push("/student/dashboard");
+        router.push("/onboarding/student");
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Đã có lỗi xảy ra. Vui lòng thử lại.";
