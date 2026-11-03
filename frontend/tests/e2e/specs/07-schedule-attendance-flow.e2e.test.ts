@@ -39,6 +39,16 @@ describe('Luồng 07 - Automated Web UI Testing: Lập Lịch Học & Thời Kh�
     expect(isVisible).toBe(true);
   });
 
+  it('TC_UI_36b: Gia sư điều hướng lịch tuần và thao tác nút Hôm nay', async () => {
+    await schedulePage.navigateNextWeek();
+    await schedulePage.takeScreenshot('TC_UI_36b_next_week');
+    await schedulePage.clickTodayButton();
+    await schedulePage.takeScreenshot('TC_UI_36b_back_to_today');
+
+    const isVisible = await schedulePage.isCalendarVisible();
+    expect(isVisible).toBe(true);
+  });
+
   it('TC_UI_37: Học sinh truy cập trang lịch học và hiển thị thời khóa biểu', async () => {
     await authPage.clearSession();
     await authPage.navigateLogin();

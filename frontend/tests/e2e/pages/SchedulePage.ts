@@ -6,6 +6,7 @@ export class SchedulePage extends BasePage {
   private calendarTitle = By.xpath("//h1[contains(., 'Lịch học')] | //*[contains(., 'Lịch học & Điều phối thời gian')]");
   private calendarGrid = By.xpath("//button[contains(., 'Lưới tuần')] | //*[contains(., 'Múi giờ Việt Nam')]");
   private todayButton = By.xpath("//button[contains(., 'Hôm nay')]");
+  private nextWeekBtn = By.xpath("//button[contains(@aria-label, 'tiếp') or contains(@title, 'tiếp') or .//*[contains(@class, 'lucide-chevron-right')]]");
 
   constructor(driver: WebDriver) {
     super(driver);
@@ -28,5 +29,17 @@ export class SchedulePage extends BasePage {
 
   async isTodayButtonVisible(): Promise<boolean> {
     return await this.isElementVisible(this.todayButton, 3000);
+  }
+
+  async clickTodayButton(): Promise<void> {
+    if (await this.isTodayButtonVisible()) {
+      await this.click(this.todayButton);
+    }
+  }
+
+  async navigateNextWeek(): Promise<void> {
+    if (await this.isElementVisible(this.nextWeekBtn, 3000)) {
+      await this.click(this.nextWeekBtn);
+    }
   }
 }
