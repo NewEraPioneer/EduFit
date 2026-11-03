@@ -5,7 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.TimeZone;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -31,13 +35,27 @@ public class WebConfig implements WebMvcConfigurer {
   /** Múi giờ chuẩn hóa toàn hệ thống theo yêu cầu NFR-18. */
   public static final ZoneId VIETNAM_ZONE_ID = ZoneId.of("Asia/Ho_Chi_Minh");
 
+  @Value("${edufit.frontend.base-url:http://localhost:3000}")
+  private String frontendBaseUrl;
+
+  @Value("${edufit.cors.allowed-origin-patterns:http://localhost:3000,http://127.0.0.1:3000,https://*.vercel.app}")
+  private String[] allowedOriginPatterns;
+
   /**
    * Thiết lập chính sách CORS cho phép ứng dụng Next.js kết nối an toàn.
    */
   @Override
   public void addCorsMappings(CorsRegistry registry) {
+    List<String> origins = new ArrayList<>(Arrays.asList(allowedOriginPatterns));
+    if (frontendBaseUrl != null && !frontendBaseUrl.isBlank()) {
+      String trimmed = frontendBaseUrl.trim().replaceAll("/+$", "");
+      if (!origins.contains(trimmed)) {
+        origins.add(trimmed);
+      }
+    }
+
     registry.addMapping("/**")
-        .allowedOriginPatterns("http://localhost:3000", "http://127.0.0.1:3000")
+        .allowedOriginPatterns(origins.toArray(new String[0]))
         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         .allowedHeaders("*")
         .allowCredentials(true)
