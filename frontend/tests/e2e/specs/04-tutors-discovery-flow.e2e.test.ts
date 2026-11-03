@@ -22,13 +22,25 @@ describe('Luồng 04 - Automated Web UI Testing: Khám Phá Công Khai & Gợi �
     }
   });
 
-  it('TC_UI_26: Khách vãng lai truy cập /tutors điều hướng hoặc hiển thị giao diện tìm kiếm gia sư', async () => {
+  it('TC_UI_26: Khách vãng lai truy cập /tutors điều hướng hoặc hiển thị danh sách gia sư', async () => {
     await authPage.clearSession();
     await tutorsPage.navigateDiscovery();
     await tutorsPage.takeScreenshot('TC_UI_26_tutor_filter');
 
     const currentUrl = await tutorsPage.getCurrentUrl();
     expect(currentUrl).toMatch(/\/tutors|\/login.*returnUrl.*tutors/);
+  });
+
+  it('TC_UI_27: Người dùng tìm kiếm gia sư theo từ khóa và đặt lại bộ lọc', async () => {
+    await tutorsPage.navigateDiscovery();
+    await tutorsPage.searchKeyword('Toán');
+    await tutorsPage.takeScreenshot('TC_UI_27_filter_keyword');
+
+    await tutorsPage.clickClearFilter();
+    await tutorsPage.takeScreenshot('TC_UI_27_clear_filter');
+
+    const currentUrl = await tutorsPage.getCurrentUrl();
+    expect(currentUrl).toContain('/tutors');
   });
 
   it('TC_UI_28: Học sinh đăng nhập và truy cập trang tìm kiếm gia sư kèm gợi ý AI Match', async () => {
@@ -39,6 +51,7 @@ describe('Luồng 04 - Automated Web UI Testing: Khám Phá Công Khai & Gợi �
     await authPage.waitForUrlContains('/student');
 
     await tutorsPage.navigateStudentTutors();
+    await tutorsPage.clickAiMatch();
     await tutorsPage.takeScreenshot('TC_UI_28_ai_match');
 
     const currentUrl = await tutorsPage.getCurrentUrl();
