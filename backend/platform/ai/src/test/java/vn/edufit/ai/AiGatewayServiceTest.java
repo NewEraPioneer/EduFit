@@ -56,7 +56,7 @@ class AiGatewayServiceTest {
             requestLogger,
             logRepository,
             executor,
-            new vn.edufit.ai.infra.config.AiProperties(null, null, null),
+            new vn.edufit.ai.infra.config.AiProperties("stub", null, null),
             matchQuota);
   }
 

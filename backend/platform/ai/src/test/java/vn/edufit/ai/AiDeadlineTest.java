@@ -34,7 +34,7 @@ class AiDeadlineTest {
       }
       return new LlmProvider.LlmResult("Too late", 0);
     };
-    try (var context = context(Map.of("edufit.ai.timeout", "100ms"), slowProvider)) {
+    try (var context = context(Map.of("edufit.ai.provider", "stub", "edufit.ai.timeout", "100ms"), slowProvider)) {
       var gateway = context.getBean(AiGateway.class);
       var actor = UUID.randomUUID();
       long start = System.nanoTime();
@@ -50,7 +50,7 @@ class AiDeadlineTest {
 
   @Test
   void defaultTimeoutIsFifteenSecondsInActualSpringWiring() {
-    try (var context = context(Map.of(), (s, u, t) -> new LlmProvider.LlmResult("Response", 1))) {
+    try (var context = context(Map.of("edufit.ai.provider", "stub"), (s, u, t) -> new LlmProvider.LlmResult("Response", 1))) {
       assertEquals(Duration.ofSeconds(15), context.getBean(AiProperties.class).timeout());
       assertNotNull(context.getBean(AiGateway.class));
     }

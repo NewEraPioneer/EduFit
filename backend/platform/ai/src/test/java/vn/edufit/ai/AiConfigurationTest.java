@@ -1,6 +1,7 @@
 package vn.edufit.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -20,20 +21,43 @@ class AiConfigurationTest {
               AiClientConfig.class, GeminiLlmProvider.class, StubLlmProvider.class);
 
   @Test
-  void defaultsToOfflineWithoutKey() {
+  void missingProviderFailsAtStartupWithoutAnyHardcodedDefault() {
     runner.run(
         context -> {
-          assertThat(context).hasNotFailed().hasSingleBean(LlmProvider.class);
-          assertThat(context.getBean(LlmProvider.class)).isInstanceOf(StubLlmProvider.class);
-          assertThat(context.getBean(AiProperties.class).gemini().model())
-              .isEqualTo("gemini-3.5-flash-lite");
+          assertThat(context).hasFailed();
+          assertThat(context.getStartupFailure())
+              .hasRootCauseMessage("AI_PROVIDER is required (stub or gemini)");
         });
+  }
+
+  @Test
+  void stubProviderNeedsNoKeyAndNoModel() {
+    runner
+        .withPropertyValues("edufit.ai.provider=stub")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed().hasSingleBean(LlmProvider.class);
+              assertThat(context.getBean(LlmProvider.class)).isInstanceOf(StubLlmProvider.class);
+              assertThat(context.getBean(AiProperties.class).gemini().model()).isEmpty();
+            });
+  }
+
+  @Test
+  void geminiWithoutModelFailsAtStartup() {
+    runner
+        .withPropertyValues("edufit.ai.provider=gemini", "edufit.ai.gemini.api-key=test-key")
+        .run(
+            context -> {
+              assertThat(context).hasFailed();
+              assertThat(context.getStartupFailure())
+                  .hasRootCauseMessage("GEMINI_MODEL must be a model ID without a path or query");
+            });
   }
 
   @Test
   void keyAloneDoesNotEnableGeminiOrExposeSecretInProperties() {
     runner
-        .withPropertyValues("edufit.ai.gemini.api-key=configuration-secret")
+        .withPropertyValues("edufit.ai.provider=stub", "edufit.ai.gemini.api-key=configuration-secret")
         .run(
             context -> {
               assertThat(context).hasNotFailed();
@@ -64,7 +88,7 @@ class AiConfigurationTest {
   @Test
   void geminiWithoutKeyFailsAtStartupWithSafeMessage() {
     runner
-        .withPropertyValues("edufit.ai.provider=gemini")
+        .withPropertyValues("edufit.ai.provider=gemini", "edufit.ai.gemini.model=any-model")
         .run(
             context -> {
               assertThat(context).hasFailed();
@@ -102,12 +126,13 @@ class AiConfigurationTest {
   }
 
   @Test
-  void directConfigurationDefaultsRemainSafeForOfflineCallers() {
-    var properties = new AiProperties(null, null, null);
+  void directConfigurationHasNoDefaultProviderOrModel() {
+    assertThrows(IllegalArgumentException.class, () -> new AiProperties(null, null, null));
+    var properties = new AiProperties("stub", null, null);
     assertThat(properties.provider()).isEqualTo("stub");
     assertThat(properties.timeout()).isEqualTo(Duration.ofSeconds(15));
     assertThat(properties.gemini().apiKey()).isEmpty();
-    assertThat(properties.gemini().model()).isEqualTo("gemini-3.5-flash-lite");
+    assertThat(properties.gemini().model()).isEmpty();
     assertThat(properties.gemini().baseUrl())
         .isEqualTo("https://generativelanguage.googleapis.com");
   }
@@ -121,12 +146,12 @@ class AiConfigurationTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"", "   "})
-  void emptyOptionalGeminiSettingsUseDocumentedDefaults(String empty) {
+  void emptyOptionalGeminiSettingsKeepModelEmptyAndDefaultBaseUrl(String empty) {
     var settings = new AiProperties.GeminiProperties(null, empty, empty);
     var properties = new AiProperties("stub", Duration.ofSeconds(3), settings);
     assertThat(properties.timeout()).isEqualTo(Duration.ofSeconds(3));
     assertThat(settings.apiKey()).isEmpty();
-    assertThat(settings.model()).isEqualTo("gemini-3.5-flash-lite");
+    assertThat(settings.model()).isEqualTo(empty);
     assertThat(settings.baseUrl()).isEqualTo("https://generativelanguage.googleapis.com");
   }
 }
