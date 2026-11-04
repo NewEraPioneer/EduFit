@@ -1,6 +1,9 @@
 package vn.edufit.notification.application.listener;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +22,8 @@ import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.review.api.event.ReviewSubmittedEvent;
 import vn.edufit.scheduling.api.event.SessionCancelledEvent;
 import vn.edufit.scheduling.api.event.SessionProposedEvent;
+import vn.edufit.scheduling.api.event.SessionRescheduleProposedEvent;
+import vn.edufit.scheduling.api.event.SessionRescheduleRejectedEvent;
 import vn.edufit.scheduling.api.event.SessionRescheduledEvent;
 import vn.edufit.scheduling.api.event.SessionScheduledEvent;
 import vn.edufit.scheduling.api.event.SessionUpcomingReminderEvent;
@@ -193,6 +198,97 @@ public class NotificationEventListener {
   public void onSessionRescheduled(SessionRescheduledEvent event) {
     if (event == null) return;
     notifyBoth(event.tutorId(), event.studentId(), "Lịch học đã thay đổi", "Thời gian buổi học đã được cập nhật lại", "SESSION", event.sessionId());
+
+    if (connectionFacade != null && profileFacade != null) {
+      Set<UUID> alreadyNotified = new HashSet<>();
+      profileFacade.findTutorById(event.tutorId()).map(t -> t.userId()).ifPresent(alreadyNotified::add);
+      profileFacade.findStudentById(event.studentId()).map(s -> s.userId()).ifPresent(alreadyNotified::add);
+
+      List<UUID> parentUserIds = connectionFacade.findConfirmedParentUserIds(event.studentId());
+      if (parentUserIds != null) {
+        for (UUID parentUserId : parentUserIds) {
+          if (parentUserId != null && alreadyNotified.add(parentUserId)) {
+            repository.save(new Notification(
+                parentUserId,
+                event.studentId(),
+                "SESSION_UPDATE",
+                "Lịch học đã thay đổi",
+                "Thời gian buổi học đã được cập nhật lại",
+                "SESSION",
+                event.sessionId(),
+                event.occurredAt()
+            ));
+          }
+        }
+      }
+    }
+  }
+
+  @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = false)
+  @Transactional
+  public void onSessionRescheduleProposed(SessionRescheduleProposedEvent event) {
+    if (event == null || profileFacade == null) return;
+    Set<UUID> notifiedUserIds = new HashSet<>();
+    if (event.proposedBy() != null) {
+      notifiedUserIds.add(event.proposedBy());
+    }
+
+    profileFacade.findTutorById(event.tutorId()).ifPresent(tutor -> {
+      profileFacade.findStudentById(event.studentId()).ifPresent(student -> {
+        UUID counterpartyUserId = Objects.equals(event.proposedBy(), tutor.userId())
+            ? student.userId()
+            : tutor.userId();
+        if (counterpartyUserId != null && notifiedUserIds.add(counterpartyUserId)) {
+          repository.save(new Notification(
+              counterpartyUserId,
+              event.studentId(),
+              "SESSION_RESCHEDULE_PROPOSED",
+              "Đề xuất đổi lịch học",
+              "Có đề xuất dời buổi học sang khung giờ mới, cần xác nhận",
+              "SESSION",
+              event.sessionId(),
+              event.occurredAt()
+          ));
+        }
+      });
+    });
+
+    if (connectionFacade != null) {
+      List<UUID> parentUserIds = connectionFacade.findConfirmedParentUserIds(event.studentId());
+      if (parentUserIds != null) {
+        for (UUID parentUserId : parentUserIds) {
+          if (parentUserId != null && notifiedUserIds.add(parentUserId)) {
+            repository.save(new Notification(
+                parentUserId,
+                event.studentId(),
+                "SESSION_RESCHEDULE_PROPOSED",
+                "Đề xuất đổi lịch học",
+                "Có đề xuất dời buổi học sang khung giờ mới, cần xác nhận",
+                "SESSION",
+                event.sessionId(),
+                event.occurredAt()
+            ));
+          }
+        }
+      }
+    }
+  }
+
+  @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = false)
+  @Transactional
+  public void onSessionRescheduleRejected(SessionRescheduleRejectedEvent event) {
+    if (event == null || event.proposedBy() == null) return;
+    String detail = event.reason() != null && !event.reason().isBlank() ? ": " + event.reason() : "";
+    repository.save(new Notification(
+        event.proposedBy(),
+        event.studentId(),
+        "SESSION_RESCHEDULE_REJECTED",
+        "Đề xuất đổi lịch bị từ chối",
+        "Đề xuất đổi lịch buổi học đã bị từ chối" + detail,
+        "SESSION",
+        event.sessionId(),
+        event.occurredAt()
+    ));
   }
 
   @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = false)
