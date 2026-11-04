@@ -4,6 +4,7 @@ import React, { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
+import { useNotification } from "@/features/notification";
 import {
   LayoutDashboard,
   Search,
@@ -65,6 +66,7 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
   badge?: string | null;
+  notificationCategory?: string;
 }
 
 interface NavSection {
@@ -80,7 +82,7 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         title: "TỔNG QUAN",
         items: [
           { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
-          { label: "Liên kết phụ huynh", href: "/student/family", icon: HeartHandshake },
+          { label: "Liên kết phụ huynh", href: "/student/family", icon: HeartHandshake, notificationCategory: "LINK" },
           { label: "Tiến độ học tập", href: "/student/progress", icon: TrendingUp },
         ],
       },
@@ -89,20 +91,20 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         items: [
           { label: "Tìm gia sư", href: "/student/tutors", icon: Search },
           { label: "Gợi ý AI Match", href: "/student/tutors?tab=matches", icon: Sparkles, badge: "AI" },
-          { label: "Yêu cầu kết nối", href: "/student/tutors?tab=requests", icon: UserCheck },
+          { label: "Yêu cầu kết nối", href: "/student/tutors?tab=requests", icon: UserCheck, notificationCategory: "CONNECTION" },
         ],
       },
       {
         title: "HỌC TẬP",
         items: [
-          { label: "Lớp của tôi", href: "/student/classes", icon: BookOpen },
-          { label: "Lịch học tuần", href: "/student/schedule", icon: Calendar },
+          { label: "Lớp của tôi", href: "/student/classes", icon: BookOpen, notificationCategory: "CONNECTION" },
+          { label: "Lịch học tuần", href: "/student/schedule", icon: Calendar, notificationCategory: "SCHEDULE" },
         ],
       },
       {
         title: "TÀI CHÍNH",
         items: [
-          { label: "Ví & Học phí", href: "/student/payments", icon: CreditCard },
+          { label: "Ví & Học phí", href: "/student/payments", icon: CreditCard, notificationCategory: "PAYMENT" },
         ],
       },
       {
@@ -120,23 +122,23 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         title: "TỔNG QUAN",
         items: [
           { label: "Dashboard", href: "/tutor/dashboard", icon: LayoutDashboard },
-          { label: "Xác minh bằng cấp", href: "/tutor/verification", icon: FileCheck2, badge: "KYC" },
+          { label: "Xác minh bằng cấp", href: "/tutor/verification", icon: FileCheck2, badge: "KYC", notificationCategory: "VERIFICATION" },
         ],
       },
       {
         title: "GIẢNG DẠY",
         items: [
-          { label: "Lịch dạy", href: "/tutor/schedule", icon: Calendar },
-          { label: "Lớp học 1-1", href: "/tutor/classes", icon: BookOpen },
+          { label: "Lịch dạy", href: "/tutor/schedule", icon: Calendar, notificationCategory: "SCHEDULE" },
+          { label: "Lớp học 1-1", href: "/tutor/classes", icon: BookOpen, notificationCategory: "CONNECTION" },
           { label: "Lịch sử giảng dạy", href: "/tutor/history", icon: GraduationCap },
-          { label: "Yêu cầu học viên", href: "/tutor/requests", icon: UserCheck },
-          { label: "Đánh giá", href: "/tutor/reviews", icon: Star },
+          { label: "Yêu cầu học viên", href: "/tutor/requests", icon: UserCheck, notificationCategory: "CONNECTION" },
+          { label: "Đánh giá", href: "/tutor/reviews", icon: Star, notificationCategory: "REVIEW" },
         ],
       },
       {
         title: "THU NHẬP",
         items: [
-          { label: "Thu nhập & Rút tiền", href: "/tutor/earnings", icon: DollarSign },
+          { label: "Thu nhập & Rút tiền", href: "/tutor/earnings", icon: DollarSign, notificationCategory: "PAYMENT" },
         ],
       },
       {
@@ -154,21 +156,21 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         title: "TỔNG QUAN",
         items: [
           { label: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
-          { label: "Liên kết con em", href: "/parent/children", icon: HeartHandshake },
+          { label: "Liên kết con em", href: "/parent/children", icon: HeartHandshake, notificationCategory: "LINK" },
         ],
       },
       {
         title: "THEO DÕI",
         items: [
           { label: "Tiến độ học tập", href: "/parent/progress", icon: BarChart3 },
-          { label: "Lịch học gia đình", href: "/parent/schedule", icon: Calendar },
+          { label: "Lịch học gia đình", href: "/parent/schedule", icon: Calendar, notificationCategory: "SCHEDULE" },
           { label: "Gia sư đồng hành", href: "/parent/tutors", icon: GraduationCap },
         ],
       },
       {
         title: "TÀI CHÍNH",
         items: [
-          { label: "Ví & Học phí", href: "/parent/billing", icon: CreditCard },
+          { label: "Ví & Học phí", href: "/parent/billing", icon: CreditCard, notificationCategory: "PAYMENT" },
         ],
       },
       {
@@ -186,8 +188,8 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         title: "HỆ THỐNG",
         items: [
           { label: "Tổng quan", href: "/admin/dashboard", icon: LayoutDashboard },
-          { label: "Duyệt bằng cấp KYC", href: "/admin/verification-queue", icon: ShieldCheck },
-          { label: "Đối soát thanh toán", href: "/admin/payments", icon: CreditCard },
+          { label: "Duyệt bằng cấp KYC", href: "/admin/verification-queue", icon: ShieldCheck, notificationCategory: "VERIFICATION" },
+          { label: "Đối soát thanh toán", href: "/admin/payments", icon: CreditCard, notificationCategory: "PAYMENT" },
           { label: "Nhật ký kiểm toán", href: "/admin/audit-logs", icon: ScrollText },
         ],
       },
@@ -235,6 +237,7 @@ function SidebarNav({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const effectivePathname = pathname || currentPath;
+  const { unreadCategoryMap } = useNotification();
 
   return (
     <nav className="flex flex-col gap-5">
@@ -251,6 +254,7 @@ function SidebarNav({
           {section.items.map((item, itemIdx) => {
             const Icon = item.icon;
             const isActive = isNavItemActive(item.href, effectivePathname, searchParams);
+            const hasDot = Boolean(item.notificationCategory && unreadCategoryMap?.[item.notificationCategory]);
 
             return (
               <Link
@@ -264,13 +268,21 @@ function SidebarNav({
                 title={collapsed ? (item.badge ? `${item.label} (${item.badge})` : item.label) : undefined}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon
-                    className={`size-4.5 shrink-0 transition-transform group-hover:scale-105 ${
-                      isActive
-                        ? "text-amber-600 dark:text-amber-400"
-                        : "text-neutral-400 dark:text-stone-500 group-hover:text-neutral-700 dark:group-hover:text-stone-300"
-                    }`}
-                  />
+                  <div className="relative shrink-0 flex items-center justify-center">
+                    <Icon
+                      className={`size-4.5 shrink-0 transition-transform group-hover:scale-105 ${
+                        isActive
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-neutral-400 dark:text-stone-500 group-hover:text-neutral-700 dark:group-hover:text-stone-300"
+                      }`}
+                    />
+                    {collapsed && hasDot && (
+                      <span
+                        data-testid="sidebar-notification-dot-collapsed"
+                        className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900"
+                      />
+                    )}
+                  </div>
                   <span
                     aria-hidden={collapsed}
                     className={`truncate whitespace-nowrap transition-[max-width,opacity] duration-200 ${
@@ -281,11 +293,19 @@ function SidebarNav({
                   </span>
                 </div>
 
-                {!collapsed && item.badge && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
-                    {item.badge}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {!collapsed && hasDot && (
+                    <span
+                      data-testid="sidebar-notification-dot"
+                      className="size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900 shrink-0"
+                    />
+                  )}
+                  {!collapsed && item.badge && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
               </Link>
             );
           })}
@@ -305,6 +325,7 @@ export function Sidebar({
   const currentConfig = ROLE_NAV_CONFIG[role] || ROLE_NAV_CONFIG.STUDENT;
   const roleBase = role.toLowerCase();
   const effectiveCurrentPath = currentPath || `/${roleBase}/dashboard`;
+  const { unreadCategoryMap } = useNotification();
 
   return (
     <aside
@@ -358,6 +379,7 @@ export function Sidebar({
                   {section.items.map((item, itemIdx) => {
                     const Icon = item.icon;
                     const isActive = isNavItemActive(item.href, effectiveCurrentPath, null);
+                    const hasDot = Boolean(item.notificationCategory && unreadCategoryMap?.[item.notificationCategory]);
                     return (
                       <Link
                         key={itemIdx}
@@ -370,13 +392,21 @@ export function Sidebar({
                         title={collapsed ? (item.badge ? `${item.label} (${item.badge})` : item.label) : undefined}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <Icon
-                            className={`size-4.5 shrink-0 transition-transform group-hover:scale-105 ${
-                              isActive
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-neutral-400 dark:text-stone-500 group-hover:text-neutral-700 dark:group-hover:text-stone-300"
-                            }`}
-                          />
+                          <div className="relative shrink-0 flex items-center justify-center">
+                            <Icon
+                              className={`size-4.5 shrink-0 transition-transform group-hover:scale-105 ${
+                                isActive
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : "text-neutral-400 dark:text-stone-500 group-hover:text-neutral-700 dark:group-hover:text-stone-300"
+                              }`}
+                            />
+                            {collapsed && hasDot && (
+                              <span
+                                data-testid="sidebar-notification-dot-collapsed"
+                                className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900"
+                              />
+                            )}
+                          </div>
                           <span
                             aria-hidden={collapsed}
                             className={`truncate whitespace-nowrap transition-[max-width,opacity] duration-200 ${
@@ -386,11 +416,19 @@ export function Sidebar({
                             {item.label}
                           </span>
                         </div>
-                        {!collapsed && item.badge && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
-                            {item.badge}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {!collapsed && hasDot && (
+                            <span
+                              data-testid="sidebar-notification-dot"
+                              className="size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900 shrink-0"
+                            />
+                          )}
+                          {!collapsed && item.badge && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
                       </Link>
                     );
                   })}
