@@ -1,0 +1,12 @@
+{
+  "password": "Password123@",
+  "newPassword": "BrandNew456@",
+  "wrongCode": "000000",
+  "alternateWrongCode": "111111",
+  "student": { "fullName": "Học sinh OTP E2E", "roleLabel": "Học sinh", "role": "STUDENT" },
+  "tutor": { "fullName": "Gia sư OTP E2E", "roleLabel": "Gia sư", "role": "TUTOR" },
+  "messages": {
+    "invalidCredentials": "Email hoặc mật khẩu không chính xác",
+    "wrongCodeRemaining": "còn 4 lần thử"
+  }
+}

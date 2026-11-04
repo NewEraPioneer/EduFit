@@ -56,7 +56,8 @@ describe('Luồng 01 - Automated Web UI Testing: Xác thực & Điều hướng 
     const currentUrl = await authPage.getCurrentUrl();
     expect(currentUrl).toContain(E2E_ROUTES.FORGOT_PASSWORD);
 
-    await authPage.requestPasswordReset('student@edufit.vn');
+    await authPage.requestPasswordReset(testData.validAccounts[2].email);
+    expect(await authPage.isResetCodeStepVisible()).toBe(true);
     await authPage.takeScreenshot('TC_UI_03_forgot_password_submitted');
   });
 

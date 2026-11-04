@@ -3,6 +3,8 @@ export const E2E_ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
+  VERIFY_EMAIL: '/verify-email',
+  ONBOARDING: '/onboarding/',
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_QUEUE: '/admin/verification-queue',
   ADMIN_CATALOGS: '/admin/catalogs',
@@ -34,7 +36,29 @@ export const E2E_TIMEOUTS = {
   SHORT: 2000,
   MEDIUM: 5000,
   LONG: 15000,
+  /** Thời gian tối đa chờ email OTP tới Mailpit. */
+  OTP_MAIL: 15000,
 } as const;
+
+export const E2E_API_ROUTES = {
+  CSRF: '/api/v1/auth/csrf',
+  ME: '/api/v1/auth/me',
+  REGISTER: '/api/v1/auth/register',
+  REGISTER_VERIFY: '/api/v1/auth/register/verify',
+  LOGIN: '/api/v1/auth/login',
+} as const;
+
+/** Dấu hiệu nhận diện tiêu đề email OTP (khớp OtpEmailTemplates ở backend). */
+export const E2E_OTP_MAIL_SUBJECT = {
+  REGISTRATION: 'Mã xác thực đăng ký',
+  PASSWORD_RESET: 'Mã đặt lại mật khẩu',
+} as const;
+
+/** Sinh email duy nhất cho mỗi lần chạy để test không phụ thuộc dữ liệu cũ trong CSDL/Mailpit. */
+export function generateUniqueTestEmail(prefix: string): string {
+  const unique = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  return `${prefix}-${unique}@example.test`;
+}
 
 export const E2E_TEST_DATA = {
   DEFAULT_SUBJECT: 'Toán',
