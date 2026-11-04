@@ -1,3 +1,8 @@
+/**
+ * Luồng 09/10 - Automated Web UI Testing: Đánh Giá Chất Lượng & Phản Hồi Sau Khóa Học
+ * - MF_09.1: Gia sư xem điểm sao trung bình, phân bổ đánh giá và nhận xét học viên (TC_UI_50)
+ */
+
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { WebDriver } from 'selenium-webdriver';
 import type { Driver as ChromeDriver } from 'selenium-webdriver/chrome';

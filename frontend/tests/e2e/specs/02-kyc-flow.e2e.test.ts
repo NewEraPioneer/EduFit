@@ -1,3 +1,12 @@
+/**
+ * Luồng 02 - Automated Web UI Testing: Xác Minh Bằng Cấp KYC & Phê Duyệt Của Admin
+ * - MF_02.1: Gia sư nộp văn bằng hợp lệ (TC_UI_16)
+ * - MF_02.2: Admin phê duyệt hồ sơ và gia sư nhận trạng thái VERIFIED (TC_UI_18)
+ * - AF_02.1: Admin kiểm tra hàng đợi chờ duyệt (TC_UI_17)
+ * - EF_02.1: Admin từ chối thiếu lý do bị chặn lại (TC_UI_19)
+ * - EF_02.2: Gia sư nộp file giả mạo đuôi PDF bị chặn Magic Bytes (TC_UI_15)
+ */
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
