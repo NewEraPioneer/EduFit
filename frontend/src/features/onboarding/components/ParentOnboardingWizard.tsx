@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
-import { sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
+import { markOnboardingDone, sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
 import { useToast } from "@/shared/ui/Toast";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import type { LinkInvitation, StudentLink } from "@/features/connection/types";
@@ -111,9 +111,7 @@ export function ParentOnboardingWizard() {
     setSubmitting(true);
     try {
       // Đánh dấu phụ huynh đã hoàn tất onboarding theo user.id
-      if (typeof window !== "undefined" && user?.id) {
-        localStorage.setItem(`edufit_parent_onboarding_completed_${user.id}`, "true");
-      }
+      markOnboardingDone("parent", user?.id);
 
       showToast("Thiết lập tài khoản phụ huynh thành công! Chào mừng bạn đến với EduFit.", "success");
       await refreshUser?.();
@@ -144,11 +142,7 @@ export function ParentOnboardingWizard() {
         <div className="flex items-center gap-4">
           <Link
             href={safeReturnUrl || "/parent/dashboard"}
-            onClick={() => {
-              if (typeof window !== "undefined" && user?.id) {
-                localStorage.setItem(`edufit_parent_onboarding_completed_${user.id}`, "true");
-              }
-            }}
+            onClick={() => markOnboardingDone("parent", user?.id)}
             className="text-xs text-neutral-500 hover:text-neutral-900 transition-colors"
           >
             Bỏ qua để vào sau

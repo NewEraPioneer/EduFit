@@ -35,16 +35,19 @@ interface AuthUserResponse extends Omit<AuthUser, "id"> {
   id?: string;
 }
 
+/** Backend trả `accountId`; frontend dùng `id` (khóa cờ onboarding, so khớp người mời...). */
+function normalizeAuthUser(raw: AuthUserResponse): AuthUser {
+  const { accountId, ...user } = raw;
+  return { ...user, id: raw.id || accountId };
+}
+
 function normalizeAuthResponse(response: ApiResponse<AuthUserResponse>): ApiResponse<AuthUser> {
   if (!response.data) return response as ApiResponse<AuthUser>;
-  const { accountId, ...user } = response.data;
-  return {
-    ...response,
-    data: {
-      ...user,
-      id: response.data.id || accountId,
-    },
-  };
+  return { ...response, data: normalizeAuthUser(response.data) };
+}
+
+interface OAuthLoginResultResponse extends Omit<OAuthLoginResult, "user"> {
+  user?: AuthUserResponse | null;
 }
 
 export const authApi = {
@@ -74,10 +77,12 @@ export const authApi = {
    * Xác thực và đăng nhập qua Google OAuth2 (UC1.2)
    */
   async loginWithGoogle(payload: OAuthLoginPayload): Promise<ApiResponse<OAuthLoginResult>> {
-    return fetchApi<OAuthLoginResult>("/api/v1/auth/oauth2/google", {
+    const response = await fetchApi<OAuthLoginResultResponse>("/api/v1/auth/oauth2/google", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    if (!response.data?.user) return response as ApiResponse<OAuthLoginResult>;
+    return { ...response, data: { ...response.data, user: normalizeAuthUser(response.data.user) } };
   },
 
   /**
@@ -86,10 +91,11 @@ export const authApi = {
   async completeOAuthRegistration(
     payload: CompleteOAuthRegistrationPayload
   ): Promise<ApiResponse<AuthUser>> {
-    return fetchApi<AuthUser>("/api/v1/auth/oauth2/complete-registration", {
+    const response = await fetchApi<AuthUserResponse>("/api/v1/auth/oauth2/complete-registration", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    return normalizeAuthResponse(response);
   },
 
   /**

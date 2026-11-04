@@ -4,6 +4,7 @@ import {
   sanitizeReturnUrl,
   buildOnboardingPath,
   resolvePostLoginRedirect,
+  markOnboardingDone,
 } from "@/features/auth/utils/authRedirect";
 import { profileService } from "@/services/profile";
 import { connectionApi } from "@/features/connection/api/connectionApi";
@@ -87,6 +88,20 @@ describe("checkOnboardingStatus", () => {
       expect(await checkOnboardingStatus(tutor)).toBe("NEEDS_ONBOARDING");
     });
 
+    it("đã có gói dạy (bỏ qua ở bước 2/3, chưa có bio) -> READY dù chưa có cờ", async () => {
+      vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({
+        bio: "",
+        offerings: [{ offeringId: "o-1" }],
+      } as never);
+      expect(await checkOnboardingStatus(tutor)).toBe("READY");
+    });
+
+    it("bấm bỏ qua (đã ghi cờ qua markOnboardingDone) -> READY", async () => {
+      markOnboardingDone("tutor", tutor.id);
+      vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({ bio: "", offerings: [] } as never);
+      expect(await checkOnboardingStatus(tutor)).toBe("READY");
+    });
+
     it("hồ sơ có dữ liệu -> READY", async () => {
       vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({ subjects: [], bio: "Bio", area: null } as never);
       expect(await checkOnboardingStatus(tutor)).toBe("READY");
@@ -105,6 +120,11 @@ describe("checkOnboardingStatus", () => {
     it("lỗi mạng -> UNKNOWN", async () => {
       vi.mocked(profileService.getMyStudentProfile).mockRejectedValue(networkError());
       expect(await checkOnboardingStatus(student)).toBe("UNKNOWN");
+    });
+    it("bấm 'Bỏ qua, thiết lập sau' (đã ghi cờ) dù profileComplete=false -> READY", async () => {
+      markOnboardingDone("student", student.id);
+      vi.mocked(profileService.getMyStudentProfile).mockResolvedValue({ profileComplete: false } as never);
+      expect(await checkOnboardingStatus(student)).toBe("READY");
     });
   });
 

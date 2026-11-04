@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, Plus } from "lucide-react";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
-import { sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
+import { markOnboardingDone, sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
 import { useToast } from "@/shared/ui/Toast";
 import { profileService } from "@/services/profile";
 import type { LearningNeed } from "@/services/learningNeeds";
@@ -42,6 +42,9 @@ export function StudentOnboardingWizard() {
 
   const finish = async () => {
     setFinishing(true);
+    // Cả "Hoàn tất" lẫn "Bỏ qua" đều là quyết định rời wizard: dashboard không được đẩy về đây nữa,
+    // kể cả khi lưu khối lớp (profileComplete) thất bại.
+    markOnboardingDone("student", user?.id);
     try {
       await refreshUser?.();
       router.push(safeReturnUrl || "/student/dashboard");

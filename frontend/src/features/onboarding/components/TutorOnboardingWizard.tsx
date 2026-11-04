@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
-import { sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
+import { markOnboardingDone, sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
 import { useToast } from "@/shared/ui/Toast";
 import { profileService, type TutorProfileData, type TutorType } from "@/services/profile";
 import { verificationService } from "@/services/verification";
@@ -185,18 +185,17 @@ export function TutorOnboardingWizard() {
       }
     }
 
-    if (typeof window !== "undefined" && user?.id) {
-      localStorage.setItem(
-        `edufit_tutor_onboarding_completed_${user.id}`,
-        JSON.stringify({
-          completedAt: new Date().toISOString(),
-          skipped: true,
-          displayName,
-          offeringsCount: profile?.offerings.length ?? 0,
-          step: "SKIPPED",
-        })
-      );
-    }
+    markOnboardingDone(
+      "tutor",
+      user?.id,
+      JSON.stringify({
+        completedAt: new Date().toISOString(),
+        skipped: true,
+        displayName,
+        offeringsCount: profile?.offerings.length ?? 0,
+        step: "SKIPPED",
+      })
+    );
     showToast("Bạn có thể hoàn thiện hồ sơ và gửi duyệt KYC bất cứ lúc nào trong Bảng điều khiển.", "info");
     router.push(safeReturnUrl || "/tutor/dashboard");
   };
@@ -280,17 +279,16 @@ export function TutorOnboardingWizard() {
       );
 
       // 3. Lưu trạng thái hoàn tất vào Local Storage theo user.id
-      if (typeof window !== "undefined" && user?.id) {
-        localStorage.setItem(
-          `edufit_tutor_onboarding_completed_${user.id}`,
-          JSON.stringify({
-            completedAt: new Date().toISOString(),
-            displayName,
-            offeringsCount: profile?.offerings.length ?? 0,
-            step: "COMPLETED",
-          })
-        );
-      }
+      markOnboardingDone(
+        "tutor",
+        user?.id,
+        JSON.stringify({
+          completedAt: new Date().toISOString(),
+          displayName,
+          offeringsCount: profile?.offerings.length ?? 0,
+          step: "COMPLETED",
+        })
+      );
 
       showToast("Hoàn tất thiết lập hồ sơ gia sư! Hồ sơ đã được gửi để duyệt KYC.", "success");
       await refreshUser?.();

@@ -71,6 +71,28 @@ describe("OnboardingGate", () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/onboarding/tutor"));
   });
 
+  it("đổi sang tài khoản khác -> không render dashboard cũ trước khi kiểm tra xong", async () => {
+    vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({ bio: "Bio" } as never);
+    const view = renderGate();
+    expect(await screen.findByText("Dashboard của Gia sư")).toBeTruthy();
+
+    let resolveSecond: (value: unknown) => void = () => {};
+    vi.mocked(profileService.getMyTutorProfile).mockReturnValue(
+      new Promise((resolve) => { resolveSecond = resolve; }) as never
+    );
+    const previous = authState.user;
+    authState.user = { ...previous, id: "t-2", fullName: "Gia sư B" };
+    try {
+      view.rerender(<OnboardingGate>{(user) => <div>Dashboard của {user.fullName}</div>}</OnboardingGate>);
+      expect(screen.queryByText(/Dashboard của/)).toBeNull();
+
+      resolveSecond({ bio: "Bio" });
+      expect(await screen.findByText("Dashboard của Gia sư B")).toBeTruthy();
+    } finally {
+      authState.user = previous;
+    }
+  });
+
   it("hồ sơ đầy đủ -> render dashboard", async () => {
     vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({ subjects: [], bio: "Bio", area: null } as never);
 

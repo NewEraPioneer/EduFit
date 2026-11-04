@@ -16,12 +16,17 @@ export interface NavRouter {
 export type OnboardingStatus = "NEEDS_ONBOARDING" | "READY" | "UNKNOWN";
 
 export function shouldRedirectTutorToOnboarding(
-  profile: { subjects?: unknown[]; bio?: string | null; area?: string | null } | null | undefined,
+  profile:
+    | { offerings?: unknown[]; subjects?: unknown[]; bio?: string | null; area?: string | null }
+    | null
+    | undefined,
   hasOnboarded: boolean
 ): boolean {
+  // Có gói dạy = đã xong Bước 1 của wizard (bước bắt buộc); bio chỉ có ở Bước 2.
   const hasBasicProfile = Boolean(
     profile &&
-      ((profile.subjects && profile.subjects.length > 0) ||
+      ((profile.offerings && profile.offerings.length > 0) ||
+        (profile.subjects && profile.subjects.length > 0) ||
         Boolean(profile.bio) ||
         Boolean(profile.area))
   );
@@ -50,16 +55,35 @@ export function buildOnboardingPath(
   return safe ? `${base}?returnUrl=${encodeURIComponent(safe)}` : base;
 }
 
-function onboardingFlagKey(role: "tutor" | "parent", userId: string): string {
+type OnboardingFlagRole = "student" | "tutor" | "parent";
+
+function onboardingFlagKey(role: OnboardingFlagRole, userId: string): string {
   return `edufit_${role}_onboarding_completed_${userId}`;
 }
 
-function readOnboardingFlag(role: "tutor" | "parent", userId: string): boolean {
-  if (typeof window === "undefined") return false;
+function readOnboardingFlag(role: OnboardingFlagRole, userId: string): boolean {
+  if (typeof window === "undefined" || !userId) return false;
   try {
     return Boolean(localStorage.getItem(onboardingFlagKey(role, userId)));
   } catch {
     return false;
+  }
+}
+
+/**
+ * Ghi nhận người dùng đã hoàn tất hoặc chủ động bỏ qua onboarding, để dashboard không đẩy về wizard nữa.
+ * Nguồn ghi duy nhất cho cờ, dùng chung cho mọi wizard.
+ */
+export function markOnboardingDone(
+  role: OnboardingFlagRole,
+  userId: string | null | undefined,
+  value: string = "true"
+): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.setItem(onboardingFlagKey(role, userId), value);
+  } catch {
+    // localStorage không khả dụng: bỏ qua
   }
 }
 
@@ -77,7 +101,9 @@ export async function checkOnboardingStatus(user: AuthUser): Promise<OnboardingS
   if (role === "STUDENT") {
     try {
       const profile = await profileService.getMyStudentProfile();
-      return profile.profileComplete ? "READY" : "NEEDS_ONBOARDING";
+      return profile.profileComplete || readOnboardingFlag("student", user.id)
+        ? "READY"
+        : "NEEDS_ONBOARDING";
     } catch {
       return "UNKNOWN";
     }
@@ -99,13 +125,7 @@ export async function checkOnboardingStatus(user: AuthUser): Promise<OnboardingS
     try {
       const links = await connectionApi.getLinks();
       const hasLinks = Array.isArray(links) && links.length > 0;
-      if (hasLinks && typeof window !== "undefined") {
-        try {
-          localStorage.setItem(onboardingFlagKey("parent", user.id), "true");
-        } catch {
-          // localStorage không khả dụng: bỏ qua
-        }
-      }
+      if (hasLinks) markOnboardingDone("parent", user.id);
       return shouldRedirectParentToOnboarding(hasLinks, readOnboardingFlag("parent", user.id))
         ? "NEEDS_ONBOARDING"
         : "READY";

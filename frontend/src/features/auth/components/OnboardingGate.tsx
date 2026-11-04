@@ -21,17 +21,25 @@ type GateState = "checking" | "ready" | "error";
 export function OnboardingGate({ children }: OnboardingGateProps) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const [state, setState] = useState<GateState>("checking");
   const [attempt, setAttempt] = useState(0);
 
   // Chỉ phụ thuộc id/role: user refresh (object mới, cùng danh tính) không được chạy lại kiểm tra.
-  const userRef = useRef(user);
-  userRef.current = user;
+  // Giữ bản mới nhất của user/router; danh tính tham chiếu của chúng không được kích hoạt kiểm tra lại.
+  const latest = useRef({ user, router });
+  // Khai báo trước effect kiểm tra nên luôn chạy trước nó trong cùng một lần commit.
+  useEffect(() => {
+    latest.current = { user, router };
+  });
   const userId = user?.id;
   const userRole = user?.role;
 
+  // Kết quả gắn với danh tính đã kiểm tra: đổi tài khoản thì kết quả cũ tự vô hiệu (về "checking").
+  const identity = `${userId}|${userRole}|${attempt}`;
+  const [result, setResult] = useState<{ identity: string; state: GateState } | null>(null);
+  const state: GateState = result?.identity === identity ? result.state : "checking";
+
   useEffect(() => {
-    const current = userRef.current;
+    const { user: current, router: nav } = latest.current;
     if (isLoading || !current) return;
     let ignore = false;
 
@@ -40,22 +48,19 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
       if (status === "NEEDS_ONBOARDING") {
         const role = current.role?.toUpperCase();
         if (role === "STUDENT" || role === "TUTOR" || role === "PARENT") {
-          router.replace(buildOnboardingPath(role));
+          nav.replace(buildOnboardingPath(role));
           return;
         }
       }
-      setState(status === "UNKNOWN" ? "error" : "ready");
+      setResult({ identity, state: status === "UNKNOWN" ? "error" : "ready" });
     });
 
     return () => {
       ignore = true;
     };
-  }, [userId, userRole, isLoading, router, attempt]);
+  }, [identity, isLoading]);
 
-  const retry = useCallback(() => {
-    setState("checking");
-    setAttempt((n) => n + 1);
-  }, []);
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   if (isLoading || !user || state === "checking") {
     return (
