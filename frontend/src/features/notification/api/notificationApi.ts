@@ -3,6 +3,7 @@ import type {
   NotificationItem,
   NotificationListResponse,
   UnreadCountResponse,
+  UnreadSummaryResponse,
   MarkReadResponse,
   MarkAllReadResponse,
 } from "../types";
@@ -35,6 +36,17 @@ export const notificationApi = {
   async getUnreadCount(): Promise<ApiResponse<UnreadCountResponse>> {
     return fetchApi<UnreadCountResponse>(
       "/api/v1/notifications/unread-count",
+      { method: "GET" }
+    );
+  },
+
+  /**
+   * Lấy tóm tắt số lượng thông báo chưa đọc theo danh mục phục vụ chấm sidebar
+   * GET /api/v1/notifications/unread-summary
+   */
+  async getUnreadSummary(): Promise<ApiResponse<UnreadSummaryResponse>> {
+    return fetchApi<UnreadSummaryResponse>(
+      "/api/v1/notifications/unread-summary",
       { method: "GET" }
     );
   },

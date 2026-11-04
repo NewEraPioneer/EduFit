@@ -31,3 +31,8 @@ export interface MarkReadResponse {
 export interface MarkAllReadResponse {
   count: number;
 }
+
+export interface UnreadSummaryResponse {
+  total: number;
+  byCategory: Record<string, number>;
+}
