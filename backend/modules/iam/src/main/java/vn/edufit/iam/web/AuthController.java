@@ -34,12 +34,15 @@ import vn.edufit.iam.infra.security.EduFitUserDetails;
 import vn.edufit.iam.web.dto.AuthUserResponse;
 import vn.edufit.iam.web.dto.ChangePasswordRequest;
 import vn.edufit.iam.web.dto.CompleteOAuthRegistrationRequest;
-import vn.edufit.iam.web.dto.ForgotPasswordRequest;
+import vn.edufit.iam.web.dto.EmailRequest;
 import vn.edufit.iam.web.dto.LoginRequest;
 import vn.edufit.iam.web.dto.OAuthLoginRequest;
 import vn.edufit.iam.web.dto.OAuthLoginResult;
 import vn.edufit.iam.web.dto.RegisterRequest;
 import vn.edufit.iam.web.dto.ResetPasswordRequest;
+import vn.edufit.iam.web.dto.VerifyOtpRequest;
+import vn.edufit.iam.application.OtpChallengeView;
+import vn.edufit.iam.application.PasswordResetGrant;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
@@ -65,7 +68,8 @@ import vn.edufit.iam.web.dto.UpdateAvatarUrlRequest;
  *
  * <p>Tuân thủ nghiêm ngặt hợp đồng tại {@code docs/authentication-contract.md}:
  * <ul>
- *   <li>Đăng ký kích hoạt tài khoản trực tiếp (Status: ACTIVE).</li>
+ *   <li>Đăng ký 2 bước: gửi mã OTP tới email, nhập đúng mã mới tạo tài khoản ACTIVE.</li>
+ *   <li>Quên mật khẩu 3 bước: mã OTP → token đặt lại → mật khẩu mới (đăng nhập luôn, thu hồi phiên cũ).</li>
  *   <li>Quản lý phiên stateful với cookie {@code EDUFIT_SESSION} (ADR-001 Decision 5).</li>
  *   <li>Cấu trúc phản hồi bọc chuẩn {@link ApiResponse}.</li>
  * </ul>
@@ -116,24 +120,50 @@ public class AuthController {
   }
 
   /**
-   * Đăng ký tài khoản người dùng mới (UC1.1 - Kích hoạt ngay).
+   * Đăng ký bước 1 (UC1.1): ghi nhận thông tin và gửi mã OTP xác thực email. Chưa tạo tài khoản.
    */
   @PostMapping("/register")
-  public ResponseEntity<ApiResponse<AuthUserResponse>> register(
+  public ResponseEntity<ApiResponse<OtpChallengeView>> register(
       @Valid @RequestBody RegisterRequest request
   ) {
-    Account account = registerAccountService.register(
+    OtpChallengeView challenge = registerAccountService.startRegistration(
         request.email(),
         request.password(),
         request.fullName(),
         request.role()
     );
-    AuthUserResponse responseData = AuthUserResponse.from(account);
-    return ResponseEntity.status(HttpStatus.CREATED)
-        .body(ApiResponse.success(
-            responseData,
-            "Đăng ký thành công. Bạn có thể đăng nhập ngay bây giờ."
-        ));
+    return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(
+        challenge,
+        "Mã xác thực đã được gửi tới email của bạn. Vui lòng nhập mã để hoàn tất đăng ký."
+    ));
+  }
+
+  /**
+   * Gửi lại mã OTP cho đăng ký đang chờ xác thực.
+   */
+  @PostMapping("/register/resend")
+  public ResponseEntity<ApiResponse<OtpChallengeView>> resendRegistrationCode(
+      @Valid @RequestBody EmailRequest request
+  ) {
+    OtpChallengeView challenge = registerAccountService.resendCode(request.email());
+    return ResponseEntity.ok(ApiResponse.success(challenge, "Đã gửi lại mã xác thực tới email của bạn."));
+  }
+
+  /**
+   * Đăng ký bước 2: nhập đúng mã OTP thì tạo tài khoản và đăng nhập luôn để chuyển sang onboarding.
+   */
+  @PostMapping("/register/verify")
+  public ResponseEntity<ApiResponse<AuthUserResponse>> verifyRegistration(
+      @Valid @RequestBody VerifyOtpRequest request,
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse
+  ) {
+    Account account = registerAccountService.completeRegistration(request.email(), request.code());
+    establishSecuritySession(account, httpRequest, httpResponse);
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+        AuthUserResponse.from(account),
+        "Xác thực email thành công. Chào mừng bạn gia nhập EduFit!"
+    ));
   }
 
   /**
@@ -249,28 +279,44 @@ public class AuthController {
   }
 
   /**
-   * Yêu cầu đặt lại mật khẩu khi quên (UC1.3).
+   * Quên mật khẩu bước 1 (UC1.3): yêu cầu (hoặc yêu cầu lại) mã OTP. Phản hồi luôn trung tính (NFR-06).
    */
   @PostMapping("/forgot-password")
-  public ResponseEntity<ApiResponse<Void>> forgotPassword(
-      @Valid @RequestBody ForgotPasswordRequest request
+  public ResponseEntity<ApiResponse<OtpChallengeView>> forgotPassword(
+      @Valid @RequestBody EmailRequest request
   ) {
-    requestPasswordResetService.requestReset(request.email());
-    return ResponseEntity.ok(ApiResponse.ok(
-        "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi."
+    OtpChallengeView challenge = requestPasswordResetService.requestCode(request.email());
+    return ResponseEntity.ok(ApiResponse.success(
+        challenge,
+        "Nếu email đã đăng ký tài khoản EduFit, mã xác thực đã được gửi tới hộp thư của bạn."
     ));
   }
 
   /**
-   * Đặt lại mật khẩu mới qua mã token (UC1.3).
+   * Quên mật khẩu bước 2: nhập đúng mã OTP để nhận token đặt mật khẩu mới (dùng một lần, 30 phút).
+   */
+  @PostMapping("/forgot-password/verify")
+  public ResponseEntity<ApiResponse<PasswordResetGrant>> verifyPasswordResetCode(
+      @Valid @RequestBody VerifyOtpRequest request
+  ) {
+    PasswordResetGrant grant = requestPasswordResetService.verifyCode(request.email(), request.code());
+    return ResponseEntity.ok(ApiResponse.success(grant, "Xác thực thành công. Vui lòng đặt mật khẩu mới."));
+  }
+
+  /**
+   * Quên mật khẩu bước 3: đặt mật khẩu mới, thu hồi các phiên cũ và đăng nhập luôn.
    */
   @PostMapping("/reset-password")
-  public ResponseEntity<ApiResponse<Void>> resetPassword(
-      @Valid @RequestBody ResetPasswordRequest request
+  public ResponseEntity<ApiResponse<AuthUserResponse>> resetPassword(
+      @Valid @RequestBody ResetPasswordRequest request,
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse
   ) {
-    resetPasswordService.resetPassword(request.token(), request.newPassword());
-    return ResponseEntity.ok(ApiResponse.ok(
-        "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại."
+    Account account = resetPasswordService.resetPassword(request.token(), request.newPassword());
+    establishSecuritySession(account, httpRequest, httpResponse);
+    return ResponseEntity.ok(ApiResponse.success(
+        AuthUserResponse.from(account),
+        "Đặt lại mật khẩu thành công. Các phiên đăng nhập cũ đã được đăng xuất."
     ));
   }
 
