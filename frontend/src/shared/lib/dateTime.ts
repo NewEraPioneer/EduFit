@@ -34,39 +34,6 @@ export const DAY_LABELS: Record<number, string> = {
   7: "Chủ Nhật",
 };
 
-export interface SlotPreset {
-  id: string;
-  label: string;
-  slots: AvailabilitySlotLike[];
-}
-
-export const SLOT_PRESETS: SlotPreset[] = [
-  {
-    id: "tue-fri-evening",
-    label: "Tối Thứ 3 & Thứ 6 · 19:00–21:00",
-    slots: [
-      { dayOfWeek: 2, startTime: "19:00:00", endTime: "21:00:00" },
-      { dayOfWeek: 5, startTime: "19:00:00", endTime: "21:00:00" },
-    ],
-  },
-  {
-    id: "mon-wed-evening",
-    label: "Tối Thứ 2 & Thứ 4 · 19:00–21:00",
-    slots: [
-      { dayOfWeek: 1, startTime: "19:00:00", endTime: "21:00:00" },
-      { dayOfWeek: 3, startTime: "19:00:00", endTime: "21:00:00" },
-    ],
-  },
-  {
-    id: "weekend-morning",
-    label: "Sáng Thứ 7 & Chủ Nhật · 08:00–10:00",
-    slots: [
-      { dayOfWeek: 6, startTime: "08:00:00", endTime: "10:00:00" },
-      { dayOfWeek: 7, startTime: "08:00:00", endTime: "10:00:00" },
-    ],
-  },
-];
-
 export function toMinutes(value: string): number {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
