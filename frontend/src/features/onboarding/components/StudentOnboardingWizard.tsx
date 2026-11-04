@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, Plus } from "lucide-react";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
+import { sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
 import { useToast } from "@/shared/ui/Toast";
 import { profileService } from "@/services/profile";
 import type { LearningNeed } from "@/services/learningNeeds";
@@ -27,11 +28,7 @@ export function StudentOnboardingWizard() {
   const [formKey, setFormKey] = useState(0);
   const [finishing, setFinishing] = useState(false);
 
-  const rawReturnUrl = searchParams.get("returnUrl");
-  const safeReturnUrl =
-    rawReturnUrl && rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//")
-      ? rawReturnUrl
-      : null;
+  const safeReturnUrl = sanitizeReturnUrl(searchParams.get("returnUrl"));
 
   const handleSaved = async (need: LearningNeed) => {
     if (created.length === 0 && need.educationLevelId) {

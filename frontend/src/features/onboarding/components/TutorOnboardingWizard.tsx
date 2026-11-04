@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
+import { sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
 import { useToast } from "@/shared/ui/Toast";
 import { profileService, type TutorProfileData, type TutorType } from "@/services/profile";
 import { verificationService } from "@/services/verification";
@@ -37,11 +38,7 @@ export function TutorOnboardingWizard() {
   const { user, isLoading, refreshUser } = useAuth();
   const { showToast } = useToast();
 
-  const rawReturnUrl = searchParams.get("returnUrl");
-  const safeReturnUrl =
-    rawReturnUrl && rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//")
-      ? rawReturnUrl
-      : null;
+  const safeReturnUrl = sanitizeReturnUrl(searchParams.get("returnUrl"));
 
   useEffect(() => {
     if (isLoading) return;

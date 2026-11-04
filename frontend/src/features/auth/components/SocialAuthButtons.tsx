@@ -30,6 +30,12 @@ declare global {
 export function SocialAuthButtons({ label = "Hoặc tiếp tục với" }: SocialAuthButtonsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Giữ returnUrl trong ref để callback OAuth không đổi identity khi query string đổi
+  // (tránh khởi tạo lại Google Identity Services).
+  const returnUrlRef = useRef<string | null>(searchParams.get("returnUrl"));
+  useEffect(() => {
+    returnUrlRef.current = searchParams.get("returnUrl");
+  }, [searchParams]);
   const { loginWithGoogle } = useAuth();
   const { showToast } = useToast();
 
@@ -60,10 +66,9 @@ export function SocialAuthButtons({ label = "Hoặc tiếp tục với" }: Socia
       setRoleModalOpen(true);
     } else if (result.user) {
       showToast(`Đăng nhập ${providerName} thành công! Chào ${result.user.fullName}.`, "success");
-      const returnUrl = searchParams.get("returnUrl");
-      void resolvePostLoginRedirect({ user: result.user, router, returnUrl });
+      void resolvePostLoginRedirect({ user: result.user, router, returnUrl: returnUrlRef.current });
     }
-  }, [router, searchParams, showToast]);
+  }, [router, showToast]);
 
   // Khởi tạo Google Identity Services và render nút trực tiếp trên trang
   const renderGoogleButton = useCallback(() => {

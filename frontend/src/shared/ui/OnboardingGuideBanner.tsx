@@ -31,27 +31,29 @@ export function OnboardingGuideBanner({
     ? `edufit_onboarding_guide_dismissed_${userId}`
     : `edufit_onboarding_guide_dismissed_${role.toLowerCase()}`;
 
-  const [closed, setClosed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(storageKey) === "true";
-    }
-    return false;
-  });
+  // null = chưa đọc localStorage (tránh lệch hydration và nháy banner đã đóng)
+  const [closed, setClosed] = useState<boolean | null>(null);
 
   React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      setClosed(localStorage.getItem(storageKey) === "true");
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(storageKey) === "true";
+    } catch {
+      // localStorage không khả dụng: coi như chưa đóng
     }
+    setClosed(dismissed);
   }, [storageKey]);
 
   const allCompleted = steps.length > 0 && steps.every((s) => s.completed);
 
-  if (closed || (autoHideOnComplete && allCompleted)) return null;
+  if (closed === null || closed || (autoHideOnComplete && allCompleted)) return null;
 
   const handleClose = () => {
     setClosed(true);
-    if (typeof window !== "undefined") {
+    try {
       localStorage.setItem(storageKey, "true");
+    } catch {
+      // bỏ qua
     }
   };
 

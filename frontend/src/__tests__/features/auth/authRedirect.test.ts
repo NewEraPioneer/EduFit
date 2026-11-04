@@ -4,6 +4,7 @@ import {
   shouldRedirectParentToOnboarding,
   resolvePostLoginRedirect,
 } from "@/features/auth/utils/authRedirect";
+import { ApiError } from "@/lib/api";
 import { profileService } from "@/services/profile";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import type { AuthUser } from "@/features/auth/types";
@@ -91,7 +92,7 @@ describe("authRedirect Unit Tests", () => {
       expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/student");
     });
 
-    it("Học sinh khi API profile lỗi -> an toàn chuyển về /onboarding/student", async () => {
+    it("Học sinh khi API profile lỗi tạm thời -> vẫn vào /student/dashboard (không đoán là chưa onboarding)", async () => {
       vi.mocked(profileService.getMyStudentProfile).mockRejectedValue(new Error("Network Error"));
 
       const user: AuthUser = {
@@ -103,7 +104,7 @@ describe("authRedirect Unit Tests", () => {
       };
 
       await resolvePostLoginRedirect({ user, router: mockRouter });
-      expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/student");
+      expect(mockRouter.push).toHaveBeenCalledWith("/student/dashboard");
     });
 
     it("Học sinh đã hoàn tất hồ sơ -> chuyển về /student/dashboard", async () => {
@@ -148,9 +149,11 @@ describe("authRedirect Unit Tests", () => {
       expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/tutor");
     });
 
-    it("Gia sư chưa có hồ sơ trong database (API ném lỗi) -> bắt buộc chuyển về /onboarding/tutor", async () => {
-      vi.mocked(profileService.getMyTutorProfile).mockRejectedValue(new Error("EntityNotFoundException"));
-      localStorage.setItem("edufit_tutor_onboarding_completed", "true");
+    it("Gia sư chưa có hồ sơ trong database (API 404) -> bắt buộc chuyển về /onboarding/tutor", async () => {
+      vi.mocked(profileService.getMyTutorProfile).mockRejectedValue(
+        new ApiError("Chưa có hồ sơ gia sư cho tài khoản này", 404)
+      );
+      localStorage.setItem("edufit_tutor_onboarding_completed_user-2", "true");
 
       const user: AuthUser = {
         id: "user-2",

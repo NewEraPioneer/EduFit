@@ -1,10 +1,19 @@
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import { profileService } from "@/services/profile";
+import { ApiError } from "@/lib/api";
 import type { AuthUser } from "../types";
 
 export interface NavRouter {
   push: (href: string) => void;
 }
+
+/**
+ * Kết quả kiểm tra onboarding:
+ * - NEEDS_ONBOARDING: chắc chắn chưa có hồ sơ/liên kết -> phải vào wizard.
+ * - READY: đã đủ điều kiện vào dashboard.
+ * - UNKNOWN: không xác định được (mạng, 5xx, timeout) -> KHÔNG được đoán là chưa onboarding.
+ */
+export type OnboardingStatus = "NEEDS_ONBOARDING" | "READY" | "UNKNOWN";
 
 export function shouldRedirectTutorToOnboarding(
   profile: { subjects?: unknown[]; bio?: string | null; area?: string | null } | null | undefined,
@@ -26,6 +35,88 @@ export function shouldRedirectParentToOnboarding(
   return !hasLinks && !hasOnboarded;
 }
 
+/** Chỉ chấp nhận đường dẫn nội bộ để tránh open redirect. */
+export function sanitizeReturnUrl(url?: string | null): string | null {
+  return url && url.startsWith("/") && !url.startsWith("//") ? url : null;
+}
+
+/** Đường dẫn wizard onboarding theo vai trò, kèm returnUrl an toàn nếu có. */
+export function buildOnboardingPath(
+  role: "STUDENT" | "TUTOR" | "PARENT",
+  returnUrl?: string | null
+): string {
+  const base = `/onboarding/${role.toLowerCase()}`;
+  const safe = sanitizeReturnUrl(returnUrl);
+  return safe ? `${base}?returnUrl=${encodeURIComponent(safe)}` : base;
+}
+
+function onboardingFlagKey(role: "tutor" | "parent", userId: string): string {
+  return `edufit_${role}_onboarding_completed_${userId}`;
+}
+
+function readOnboardingFlag(role: "tutor" | "parent", userId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return Boolean(localStorage.getItem(onboardingFlagKey(role, userId)));
+  } catch {
+    return false;
+  }
+}
+
+function isNotFound(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 404;
+}
+
+/**
+ * Nguồn sự thật duy nhất cho việc "người dùng đã onboarding chưa", dùng chung cho đăng nhập
+ * và các route guard ở dashboard.
+ */
+export async function checkOnboardingStatus(user: AuthUser): Promise<OnboardingStatus> {
+  const role = user.role?.toUpperCase();
+
+  if (role === "STUDENT") {
+    try {
+      const profile = await profileService.getMyStudentProfile();
+      return profile.profileComplete ? "READY" : "NEEDS_ONBOARDING";
+    } catch {
+      return "UNKNOWN";
+    }
+  }
+
+  if (role === "TUTOR") {
+    try {
+      const profile = await profileService.getMyTutorProfile();
+      return shouldRedirectTutorToOnboarding(profile, readOnboardingFlag("tutor", user.id))
+        ? "NEEDS_ONBOARDING"
+        : "READY";
+    } catch (err) {
+      // Backend trả 404 khi chưa có hồ sơ gia sư -> bắt buộc onboarding để tạo hồ sơ.
+      return isNotFound(err) ? "NEEDS_ONBOARDING" : "UNKNOWN";
+    }
+  }
+
+  if (role === "PARENT") {
+    try {
+      const links = await connectionApi.getLinks();
+      const hasLinks = Array.isArray(links) && links.length > 0;
+      if (hasLinks && typeof window !== "undefined") {
+        try {
+          localStorage.setItem(onboardingFlagKey("parent", user.id), "true");
+        } catch {
+          // localStorage không khả dụng: bỏ qua
+        }
+      }
+      return shouldRedirectParentToOnboarding(hasLinks, readOnboardingFlag("parent", user.id))
+        ? "NEEDS_ONBOARDING"
+        : "READY";
+    } catch {
+      return "UNKNOWN";
+    }
+  }
+
+  return "READY";
+}
+
 export interface ResolveRedirectOptions {
   user: AuthUser;
   router: NavRouter;
@@ -34,8 +125,8 @@ export interface ResolveRedirectOptions {
 
 /**
  * Phân giải điều hướng sau đăng nhập thống nhất cho cả Đăng nhập thường và Google OAuth.
- * Kiểm tra xem người dùng đã hoàn thành onboarding theo vai trò chưa; nếu chưa thì đưa về
- * màn hình onboarding tương ứng thay vì vào thẳng dashboard gây lỗi thiếu hồ sơ.
+ * Chỉ vào onboarding khi chắc chắn chưa onboarding; nếu không xác định được (lỗi tạm thời)
+ * thì vẫn cho vào dashboard và để guard ở dashboard xử lý/thử lại.
  */
 export async function resolvePostLoginRedirect({
   user,
@@ -43,64 +134,16 @@ export async function resolvePostLoginRedirect({
   returnUrl,
 }: ResolveRedirectOptions): Promise<void> {
   const role = user.role?.toUpperCase();
-  const safeReturnUrl =
-    returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")
-      ? returnUrl
-      : null;
-  const onboardingQuery = safeReturnUrl
-    ? `?returnUrl=${encodeURIComponent(safeReturnUrl)}`
-    : "";
 
-  if (role === "STUDENT") {
-    try {
-      const profile = await profileService.getMyStudentProfile();
-      if (!profile.profileComplete) {
-        router.push(`/onboarding/student${onboardingQuery}`);
-        return;
-      }
-    } catch {
-      router.push(`/onboarding/student${onboardingQuery}`);
-      return;
-    }
-  } else if (role === "TUTOR") {
-    const userKey = `edufit_tutor_onboarding_completed_${user.id}`;
-    const hasOnboarded =
-      typeof window !== "undefined" && Boolean(localStorage.getItem(userKey));
-
-    try {
-      const profile = await profileService.getMyTutorProfile();
-      if (shouldRedirectTutorToOnboarding(profile, hasOnboarded)) {
-        router.push(`/onboarding/tutor${onboardingQuery}`);
-        return;
-      }
-    } catch {
-      // Backend không có hồ sơ gia sư -> Bắt buộc chuyển sang Onboarding để khởi tạo hồ sơ
-      router.push(`/onboarding/tutor${onboardingQuery}`);
-      return;
-    }
-  } else if (role === "PARENT") {
-    const userKey = `edufit_parent_onboarding_completed_${user.id}`;
-    const hasOnboarded =
-      typeof window !== "undefined" && Boolean(localStorage.getItem(userKey));
-
-    try {
-      const links = await connectionApi.getLinks();
-      const hasLinks = Array.isArray(links) && links.length > 0;
-      if (hasLinks && typeof window !== "undefined") {
-        localStorage.setItem(userKey, "true");
-      }
-      if (shouldRedirectParentToOnboarding(hasLinks, hasOnboarded)) {
-        router.push(`/onboarding/parent${onboardingQuery}`);
-        return;
-      }
-    } catch {
-      // Backend chưa có liên kết / lỗi -> Bắt buộc vào Onboarding
-      router.push(`/onboarding/parent${onboardingQuery}`);
+  if (role === "STUDENT" || role === "TUTOR" || role === "PARENT") {
+    const status = await checkOnboardingStatus(user);
+    if (status === "NEEDS_ONBOARDING") {
+      router.push(buildOnboardingPath(role, returnUrl));
       return;
     }
   }
 
-  // Ưu tiên returnUrl an toàn nếu đã có
+  const safeReturnUrl = sanitizeReturnUrl(returnUrl);
   if (safeReturnUrl) {
     router.push(safeReturnUrl);
     return;
