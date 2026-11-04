@@ -9,6 +9,9 @@ import {
   type OAuthLoginPayload,
   type OAuthLoginResult,
   type CompleteOAuthRegistrationPayload,
+  type OtpChallenge,
+  type VerifyOtpPayload,
+  type ResetPasswordPayload,
 } from "@/features/auth/api/authApi";
 import { ApiError } from "@/lib/api";
 
@@ -29,8 +32,12 @@ interface AuthContextType {
   error: string | null;
   /** Hàm thực hiện đăng nhập (UC1.2) */
   login: (payload: LoginPayload) => Promise<AuthUser>;
-  /** Hàm thực hiện đăng ký tài khoản mới (UC1.1) */
-  register: (payload: RegisterPayload) => Promise<AuthUser>;
+  /** Đăng ký bước 1 (UC1.1): gửi mã OTP xác thực email, CHƯA tạo tài khoản */
+  register: (payload: RegisterPayload) => Promise<OtpChallenge>;
+  /** Đăng ký bước 2: nhập đúng mã OTP thì tài khoản được tạo và đăng nhập luôn */
+  verifyRegistration: (payload: VerifyOtpPayload) => Promise<AuthUser>;
+  /** Quên mật khẩu bước cuối: đặt mật khẩu mới bằng token và đăng nhập luôn (UC1.3) */
+  resetPassword: (payload: ResetPasswordPayload) => Promise<AuthUser>;
   /** Hàm đăng nhập bằng Google OAuth2 */
   loginWithGoogle?: (payload: OAuthLoginPayload) => Promise<OAuthLoginResult>;
   /** Hàm hoàn tất đăng ký OAuth sau khi chọn vai trò */
@@ -103,19 +110,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Xử lý Đăng ký tài khoản (UC1.1 - BR-01, BR-02, BR-03, BR-04)
-   * Quy tắc nghiệp vụ áp dụng:
+   * Xử lý Đăng ký bước 1 (UC1.1 - BR-01, BR-02, BR-03, BR-04)
    * - BR-01: Email được chuẩn hóa (lowercase, trim).
    * - BR-02: Mật khẩu >= 8 ký tự, có chữ và số.
    * - BR-03: Vai trò đăng ký công khai chỉ gồm STUDENT, PARENT, TUTOR (cấm ADMIN).
-   * - BR-04: Tài khoản được kích hoạt ngay ở trạng thái ACTIVE.
+   * - BR-04: Tài khoản chỉ được tạo sau khi nhập đúng mã OTP gửi tới email.
    */
-  const register = async (payload: RegisterPayload): Promise<AuthUser> => {
+  const register = async (payload: RegisterPayload): Promise<OtpChallenge> => {
     setError(null);
     try {
       const res = await authApi.register(payload);
       if (res.success && res.data) {
-        // Sau khi đăng ký thành công, tài khoản đã sẵn sàng để đăng nhập
         return res.data;
       }
       throw new Error(res.message || "Đăng ký thất bại");
@@ -124,6 +129,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(message);
       throw err;
     }
+  };
+
+  /**
+   * Đăng ký bước 2: backend tạo tài khoản, thiết lập cookie EDUFIT_SESSION và trả về AuthUser.
+   */
+  const verifyRegistration = async (payload: VerifyOtpPayload): Promise<AuthUser> => {
+    setError(null);
+    const res = await authApi.verifyRegistration(payload);
+    if (res.success && res.data) {
+      setUser(res.data);
+      return res.data;
+    }
+    throw new Error(res.message || "Xác thực email thất bại");
+  };
+
+  /**
+   * Quên mật khẩu bước cuối: backend đổi mật khẩu, thu hồi phiên cũ và thiết lập phiên mới.
+   */
+  const resetPassword = async (payload: ResetPasswordPayload): Promise<AuthUser> => {
+    setError(null);
+    const res = await authApi.resetPassword(payload);
+    if (res.success && res.data) {
+      setUser(res.data);
+      return res.data;
+    }
+    throw new Error(res.message || "Đặt lại mật khẩu thất bại");
   };
 
   /**
@@ -190,6 +221,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error,
         login,
         register,
+        verifyRegistration,
+        resetPassword,
         loginWithGoogle,
         completeOAuthRegistration,
         logout,

@@ -1,160 +1,214 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { authApi } from "../api/authApi";
 import {
+  evaluatePasswordCriteria,
   forgotPasswordSchema,
   resetPasswordSchema,
-  evaluatePasswordCriteria,
+  verifyOtpSchema,
 } from "../schemas/authSchemas";
+import { resolvePostLoginRedirect } from "../utils/authRedirect";
+import { useResendCountdown } from "./useResendCountdown";
+
+export type PasswordResetStep = "email" | "code" | "password";
+
+interface PasswordFieldErrors {
+  newPassword?: string;
+  confirmPassword?: string;
+}
+
+function messageOf(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
 
 /**
- * Headless hook xử lý yêu cầu gửi email khôi phục mật khẩu (Forgot Password)
+ * Headless hook luồng Quên mật khẩu 3 bước (UC1.3):
+ * 1. Nhập email → backend gửi mã OTP (phản hồi luôn trung tính, không lộ email có tồn tại hay không).
+ * 2. Nhập mã OTP → nhận token đặt mật khẩu mới (chỉ giữ trong bộ nhớ, không đưa lên URL).
+ * 3. Đặt mật khẩu mới → backend thu hồi phiên cũ, đăng nhập luôn; hook điều hướng theo vai trò.
  */
-export function useForgotPasswordForm() {
-  const [email, setEmail] = useState("");
-  const [fieldError, setFieldError] = useState<string | null>(null);
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+export function usePasswordResetFlow() {
+  const router = useRouter();
+  const { resetPassword } = useAuth();
 
-  const handleEmailChange = useCallback((val: string) => {
-    setEmail(val);
+  const [step, setStep] = useState<PasswordResetStep>("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [passwordErrors, setPasswordErrors] = useState<PasswordFieldErrors>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resendAt, setResendAt] = useState<string | null>(null);
+  const resendSecondsLeft = useResendCountdown(resendAt);
+
+  const passwordCriteria = useMemo(() => evaluatePasswordCriteria(newPassword), [newPassword]);
+
+  const clearMessages = useCallback(() => {
+    setFieldError(null);
+    setGeneralError(null);
+    setNotice(null);
+  }, []);
+
+  const requestCode = useCallback(async () => {
+    const parsed = forgotPasswordSchema.safeParse({ email: email.trim() });
+    if (!parsed.success) {
+      setFieldError(parsed.error.issues[0]?.message ?? "Email không hợp lệ");
+      return false;
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await authApi.forgotPassword(parsed.data);
+      setEmail(parsed.data.email);
+      setResendAt(res.data?.resendAvailableAt ?? null);
+      setStep("code");
+      return true;
+    } catch (err) {
+      setGeneralError(messageOf(err, "Không thể gửi mã xác thực lúc này. Vui lòng thử lại sau."));
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [email]);
+
+  const handleEmailSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      clearMessages();
+      return requestCode();
+    },
+    [clearMessages, requestCode]
+  );
+
+  const handleResend = useCallback(async () => {
+    clearMessages();
+    setCode("");
+    if (await requestCode()) {
+      setNotice("Nếu email đã đăng ký, mã mới đã được gửi. Vui lòng kiểm tra hộp thư (kể cả mục Spam).");
+    }
+  }, [clearMessages, requestCode]);
+
+  const handleCodeSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      clearMessages();
+      const parsed = verifyOtpSchema.safeParse({ email, code });
+      if (!parsed.success) {
+        setFieldError(parsed.error.issues[0]?.message ?? "Mã xác thực không hợp lệ");
+        return false;
+      }
+      setIsSubmitting(true);
+      try {
+        const res = await authApi.verifyPasswordResetCode(parsed.data);
+        if (!res.data?.resetToken) throw new Error(res.message || "Xác thực mã thất bại");
+        setResetToken(res.data.resetToken);
+        setStep("password");
+        return true;
+      } catch (err) {
+        setGeneralError(messageOf(err, "Mã xác thực không đúng hoặc đã hết hạn."));
+        return false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [clearMessages, email, code]
+  );
+
+  const handlePasswordSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      clearMessages();
+      setPasswordErrors({});
+      const parsed = resetPasswordSchema.safeParse({ token: resetToken ?? "", newPassword, confirmPassword });
+      if (!parsed.success) {
+        const errors: PasswordFieldErrors = {};
+        for (const issue of parsed.error.issues) {
+          const field = issue.path[0];
+          if ((field === "newPassword" || field === "confirmPassword") && !errors[field]) {
+            errors[field] = issue.message;
+          } else if (field === "token") {
+            setGeneralError("Phiên đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu mã mới.");
+          }
+        }
+        setPasswordErrors(errors);
+        return false;
+      }
+      setIsSubmitting(true);
+      try {
+        const user = await resetPassword({ token: parsed.data.token, newPassword: parsed.data.newPassword });
+        await resolvePostLoginRedirect({ user, router });
+        return true;
+      } catch (err) {
+        setGeneralError(messageOf(err, "Không thể đặt lại mật khẩu. Vui lòng yêu cầu mã mới."));
+        return false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [clearMessages, resetToken, newPassword, confirmPassword, resetPassword, router]
+  );
+
+  const restart = useCallback(() => {
+    clearMessages();
+    setCode("");
+    setResetToken(null);
+    setNewPassword("");
+    setConfirmPassword("");
+    setStep("email");
+  }, [clearMessages]);
+
+  const handleEmailChange = useCallback((value: string) => {
+    setEmail(value);
     setFieldError(null);
     setGeneralError(null);
   }, []);
 
-  const handleSubmit = useCallback(
-    async (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
-      setFieldError(null);
-      setGeneralError(null);
+  const handleCodeChange = useCallback((value: string) => {
+    setCode(value.replace(/\D/g, "").slice(0, 6));
+    setFieldError(null);
+    setGeneralError(null);
+  }, []);
 
-      const parseResult = forgotPasswordSchema.safeParse({ email: email.trim() });
-      if (!parseResult.success) {
-        setFieldError(parseResult.error.issues[0]?.message || "Email không hợp lệ");
-        return false;
-      }
+  const handleNewPasswordChange = useCallback((value: string) => {
+    setNewPassword(value);
+    setPasswordErrors((prev) => ({ ...prev, newPassword: undefined }));
+    setGeneralError(null);
+  }, []);
 
-      setIsSubmitting(true);
-      try {
-        await authApi.forgotPassword({ email: parseResult.data.email });
-        setSubmitted(true);
-        return true;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setGeneralError(err.message);
-        } else {
-          setGeneralError("Không thể gửi yêu cầu đặt lại mật khẩu. Vui lòng thử lại sau.");
-        }
-        return false;
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [email]
-  );
+  const handleConfirmPasswordChange = useCallback((value: string) => {
+    setConfirmPassword(value);
+    setPasswordErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+    setGeneralError(null);
+  }, []);
 
   return {
+    step,
     email,
     setEmail: handleEmailChange,
-    fieldError,
-    generalError,
-    isSubmitting,
-    submitted,
-    handleSubmit,
-  };
-}
-
-/**
- * Headless hook xử lý đặt lại mật khẩu bằng mã token (Reset Password)
- */
-export function useResetPasswordForm(token: string) {
-  const router = useRouter();
-
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<{ newPassword?: string; confirmPassword?: string }>({});
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-
-  const passwordCriteria = useMemo(() => {
-    return evaluatePasswordCriteria(newPassword);
-  }, [newPassword]);
-
-  const handleNewPasswordChange = useCallback((val: string) => {
-    setNewPassword(val);
-    setFieldErrors((prev) => ({ ...prev, newPassword: undefined }));
-    setGeneralError(null);
-  }, []);
-
-  const handleConfirmPasswordChange = useCallback((val: string) => {
-    setConfirmPassword(val);
-    setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-    setGeneralError(null);
-  }, []);
-
-  const handleSubmit = useCallback(
-    async (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
-      setFieldErrors({});
-      setGeneralError(null);
-
-      const parseResult = resetPasswordSchema.safeParse({
-        token,
-        newPassword,
-        confirmPassword,
-      });
-
-      if (!parseResult.success) {
-        const errors: { newPassword?: string; confirmPassword?: string } = {};
-        for (const issue of parseResult.error.issues) {
-          const field = issue.path[0] as "newPassword" | "confirmPassword";
-          if (field && !errors[field]) {
-            errors[field] = issue.message;
-          }
-        }
-        setFieldErrors(errors);
-        return false;
-      }
-
-      setIsSubmitting(true);
-      try {
-        await authApi.resetPassword({
-          token,
-          newPassword,
-        });
-        setSuccess(true);
-        setTimeout(() => {
-          router.push("/login");
-        }, 3000);
-        return true;
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setGeneralError(err.message);
-        } else {
-          setGeneralError("Mã token không hợp lệ hoặc đã hết hạn (30 phút). Vui lòng yêu cầu lại.");
-        }
-        return false;
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [token, newPassword, confirmPassword, router]
-  );
-
-  return {
+    code,
+    setCode: handleCodeChange,
     newPassword,
-    confirmPassword,
     setNewPassword: handleNewPasswordChange,
+    confirmPassword,
     setConfirmPassword: handleConfirmPasswordChange,
     passwordCriteria,
-    fieldErrors,
+    fieldError,
+    passwordErrors,
     generalError,
+    notice,
     isSubmitting,
-    success,
-    handleSubmit,
+    resendSecondsLeft,
+    handleEmailSubmit,
+    handleCodeSubmit,
+    handlePasswordSubmit,
+    handleResend,
+    restart,
   };
 }

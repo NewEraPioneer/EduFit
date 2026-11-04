@@ -270,6 +270,8 @@ describe("QA R4: Đánh giá Gia sư & Thư mục Công khai (Reviews & Public D
         error: null,
         login: vi.fn(),
         register: vi.fn(),
+        verifyRegistration: vi.fn(),
+        resetPassword: vi.fn(),
         logout: vi.fn(),
         refreshUser: vi.fn(),
       });
@@ -304,6 +306,8 @@ describe("QA R4: Đánh giá Gia sư & Thư mục Công khai (Reviews & Public D
         error: null,
         login: vi.fn(),
         register: vi.fn(),
+        verifyRegistration: vi.fn(),
+        resetPassword: vi.fn(),
         logout: vi.fn(),
         refreshUser: vi.fn(),
       });

@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { registerSchema, evaluatePasswordCriteria } from "../schemas/authSchemas";
 import type { RoleType } from "../components/RoleSelector";
 import type { RegisterInput, AuthFieldErrors } from "../types";
+import { buildVerifyEmailPath } from "./useVerifyEmailForm";
 
 export interface RegisterFormErrors extends AuthFieldErrors<RegisterInput> {
   confirmPassword?: string;
@@ -13,7 +14,7 @@ export interface RegisterFormErrors extends AuthFieldErrors<RegisterInput> {
 
 export function useRegisterForm() {
   const router = useRouter();
-  const { register, login } = useAuth();
+  const { register } = useAuth();
 
   const [role, setRole] = useState<RoleType>("STUDENT");
   const [fullName, setFullName] = useState("");
@@ -92,26 +93,9 @@ export function useRegisterForm() {
 
       setIsSubmitting(true);
       try {
-        await register(parseResult.data);
-        try {
-          await login({
-            email: parseResult.data.email,
-            password: parseResult.data.password,
-          });
-        } catch {
-          router.push("/login");
-          return true;
-        }
-
-        if (role === "STUDENT") {
-          router.push("/onboarding/student");
-        } else if (role === "TUTOR") {
-          router.push("/onboarding/tutor");
-        } else if (role === "PARENT") {
-          router.push("/onboarding/parent");
-        } else {
-          router.push("/admin/verification-queue");
-        }
+        // Tài khoản chỉ được tạo sau khi xác thực email bằng mã OTP (BR-04)
+        const challenge = await register(parseResult.data);
+        router.push(buildVerifyEmailPath(challenge.email, challenge.resendAvailableAt));
         return true;
       } catch (err: unknown) {
         if (err instanceof Error) {
