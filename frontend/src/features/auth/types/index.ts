@@ -30,6 +30,19 @@ export interface CompleteOAuthRegistrationPayload {
   role: UserRole;
 }
 
+/** Mã OTP vừa gửi qua email: hạn mã và thời điểm được bấm "Gửi lại". */
+export interface OtpChallenge {
+  email: string;
+  codeExpiresAt: string;
+  resendAvailableAt: string;
+}
+
+/** Quyền đặt mật khẩu mới cấp sau khi nhập đúng mã OTP quên mật khẩu. */
+export interface PasswordResetGrant {
+  resetToken: string;
+  expiresAt: string;
+}
+
 export type AuthFieldErrors<T> = Partial<Record<keyof T, string>>;
 
 export type {
@@ -37,6 +50,7 @@ export type {
   LoginInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  VerifyOtpInput,
   ChangePasswordInput,
   PasswordCriteriaResult,
 } from "../schemas/authSchemas";

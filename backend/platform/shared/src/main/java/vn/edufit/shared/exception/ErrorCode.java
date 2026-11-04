@@ -74,6 +74,9 @@ public enum ErrorCode {
   /** Mật khẩu mới không được trùng với mật khẩu hiện tại. */
   PASSWORD_REUSE_FORBIDDEN,
 
+  /** Không gửi được email (mã OTP xác thực) do dịch vụ thư tạm thời lỗi. */
+  EMAIL_DELIVERY_FAILED,
+
   // --- Module Verification (Duyệt bằng cấp Gia sư - UC1.10, UC1.12) ---
   /** Gia sư chưa nộp đủ bằng cấp để yêu cầu duyệt hồ sơ. */
   CREDENTIAL_NOT_SUBMITTED,

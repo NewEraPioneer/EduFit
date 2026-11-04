@@ -24,14 +24,22 @@ export const loginSchema = z.object({
 });
 
 /**
- * Schema yêu cầu gửi email khôi phục mật khẩu (UC1.4)
+ * Schema yêu cầu gửi mã OTP quên mật khẩu (UC1.3)
  */
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().email("Email không hợp lệ"),
 });
 
 /**
- * Schema đặt lại mật khẩu với token (UC1.4 - BR-02)
+ * Schema nhập mã OTP 6 số gửi qua email (xác thực đăng ký, quên mật khẩu)
+ */
+export const verifyOtpSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Email không hợp lệ"),
+  code: z.string().trim().regex(/^[0-9]{6}$/, "Mã xác thực gồm đúng 6 chữ số"),
+});
+
+/**
+ * Schema đặt mật khẩu mới bằng token cấp sau khi xác thực mã OTP (UC1.3 - BR-02)
  */
 export const resetPasswordSchema = z
   .object({
@@ -88,4 +96,5 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

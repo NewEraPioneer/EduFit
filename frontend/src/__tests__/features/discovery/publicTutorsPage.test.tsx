@@ -84,6 +84,8 @@ describe("Public Tutors Directory Page (/tutors)", () => {
       error: null,
       login: vi.fn(),
       register: vi.fn(),
+      verifyRegistration: vi.fn(),
+      resetPassword: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
     });
@@ -119,6 +121,8 @@ describe("Public Tutors Directory Page (/tutors)", () => {
       error: null,
       login: vi.fn(),
       register: vi.fn(),
+      verifyRegistration: vi.fn(),
+      resetPassword: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
     });
@@ -160,6 +164,8 @@ describe("Public Tutors Directory Page (/tutors)", () => {
       error: null,
       login: vi.fn(),
       register: vi.fn(),
+      verifyRegistration: vi.fn(),
+      resetPassword: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
     });
@@ -187,6 +193,8 @@ describe("Public Tutors Directory Page (/tutors)", () => {
       error: null,
       login: vi.fn(),
       register: vi.fn(),
+      verifyRegistration: vi.fn(),
+      resetPassword: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
     });

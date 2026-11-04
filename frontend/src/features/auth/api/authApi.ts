@@ -10,6 +10,9 @@ import type {
   OAuthLoginPayload,
   OAuthLoginResult,
   CompleteOAuthRegistrationPayload,
+  OtpChallenge,
+  PasswordResetGrant,
+  VerifyOtpInput,
 } from "../types";
 
 export type {
@@ -19,11 +22,14 @@ export type {
   OAuthLoginPayload,
   OAuthLoginResult,
   CompleteOAuthRegistrationPayload,
+  OtpChallenge,
+  PasswordResetGrant,
 };
 
 export type RegisterPayload = RegisterInput;
 export type LoginPayload = LoginInput;
 export type ForgotPasswordPayload = ForgotPasswordInput;
+export type VerifyOtpPayload = VerifyOtpInput;
 export interface ResetPasswordPayload {
   token: string;
   newPassword: string;
@@ -52,10 +58,30 @@ interface OAuthLoginResultResponse extends Omit<OAuthLoginResult, "user"> {
 
 export const authApi = {
   /**
-   * Đăng ký tài khoản người dùng mới (UC1.1)
+   * Đăng ký bước 1 (UC1.1): gửi mã OTP xác thực email. Tài khoản CHƯA được tạo.
    */
-  async register(payload: RegisterPayload): Promise<ApiResponse<AuthUser>> {
-    const response = await fetchApi<AuthUserResponse>("/api/v1/auth/register", {
+  async register(payload: RegisterPayload): Promise<ApiResponse<OtpChallenge>> {
+    return fetchApi<OtpChallenge>("/api/v1/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * Gửi lại mã OTP cho đăng ký đang chờ xác thực.
+   */
+  async resendRegistrationCode(email: string): Promise<ApiResponse<OtpChallenge>> {
+    return fetchApi<OtpChallenge>("/api/v1/auth/register/resend", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  /**
+   * Đăng ký bước 2: nhập đúng mã OTP thì tài khoản được tạo và đăng nhập luôn.
+   */
+  async verifyRegistration(payload: VerifyOtpPayload): Promise<ApiResponse<AuthUser>> {
+    const response = await fetchApi<AuthUserResponse>("/api/v1/auth/register/verify", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -118,23 +144,34 @@ export const authApi = {
   },
 
   /**
-   * Yêu cầu gửi link đặt lại mật khẩu qua email (UC1.4)
+   * Quên mật khẩu bước 1 (UC1.3): yêu cầu (hoặc yêu cầu lại) mã OTP. Phản hồi luôn trung tính.
    */
-  async forgotPassword(payload: ForgotPasswordPayload): Promise<ApiResponse<null>> {
-    return fetchApi<null>("/api/v1/auth/forgot-password", {
+  async forgotPassword(payload: ForgotPasswordPayload): Promise<ApiResponse<OtpChallenge>> {
+    return fetchApi<OtpChallenge>("/api/v1/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
   /**
-   * Đặt lại mật khẩu bằng mã token 30 phút (UC1.4)
+   * Quên mật khẩu bước 2: đổi mã OTP lấy token đặt mật khẩu mới (dùng một lần).
    */
-  async resetPassword(payload: ResetPasswordPayload): Promise<ApiResponse<null>> {
-    return fetchApi<null>("/api/v1/auth/reset-password", {
+  async verifyPasswordResetCode(payload: VerifyOtpPayload): Promise<ApiResponse<PasswordResetGrant>> {
+    return fetchApi<PasswordResetGrant>("/api/v1/auth/forgot-password/verify", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+  },
+
+  /**
+   * Quên mật khẩu bước 3: đặt mật khẩu mới; backend đăng nhập luôn và thu hồi các phiên cũ.
+   */
+  async resetPassword(payload: ResetPasswordPayload): Promise<ApiResponse<AuthUser>> {
+    const response = await fetchApi<AuthUserResponse>("/api/v1/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return normalizeAuthResponse(response);
   },
 
   /**

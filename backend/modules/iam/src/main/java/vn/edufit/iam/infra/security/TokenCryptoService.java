@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.HexFormat;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,6 +28,24 @@ public class TokenCryptoService {
     byte[] bytes = new byte[32];
     secureRandom.nextBytes(bytes);
     return HexFormat.of().formatHex(bytes);
+  }
+
+  /**
+   * Sinh mã OTP 6 chữ số ngẫu nhiên bảo mật (giữ các số 0 ở đầu).
+   */
+  public String generateOtpCode() {
+    return String.format("%06d", secureRandom.nextInt(1_000_000));
+  }
+
+  /**
+   * Băm mã OTP gắn với một thử thách: {@code SHA-256(challengeId + ":" + code)}.
+   * {@code challengeId} đóng vai trò salt nên cùng một mã ở hai thử thách cho ra hai mã băm khác nhau.
+   */
+  public String hashOtpCode(UUID challengeId, String code) {
+    if (challengeId == null) {
+      throw new IllegalArgumentException("Mã thử thách không được để trống");
+    }
+    return hashToken(challengeId + ":" + (code == null ? "" : code.trim()));
   }
 
   /**

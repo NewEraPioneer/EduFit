@@ -15,46 +15,7 @@ import { DriverFactory } from '../drivers/driver-factory';
 import { seleniumConfig } from '../config/selenium.config';
 import { KycPage } from '../pages/KycPage';
 import testData from '../resources/login-data.json';
-
-type ApiResult = { status: number; message?: string };
-
-/** Provision through the real API; all KYC assertions below use the browser UI. */
-async function requestFromBrowser(
-  driver: WebDriver,
-  method: 'POST' | 'PUT',
-  endpoint: string,
-  body: object
-): Promise<void> {
-  const result = (await driver.executeAsyncScript(
-    (verb: string, url: string, payload: object, done: (result: ApiResult) => void) => {
-      void (async () => {
-        const csrfResponse = await fetch('/api/v1/auth/csrf', { credentials: 'include' });
-        const csrf = await csrfResponse.json();
-        if (!csrfResponse.ok || !csrf.data?.token) {
-          done({ status: csrfResponse.status, message: 'Không lấy được CSRF token' });
-          return;
-        }
-        const response = await fetch(url, {
-          method: verb,
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            [csrf.data.headerName]: csrf.data.token,
-          },
-          body: JSON.stringify(payload),
-        });
-        const data = await response.json();
-        done({ status: response.status, message: data.message });
-      })().catch((error: unknown) => done({ status: 0, message: String(error) }));
-    },
-    method,
-    endpoint,
-    body
-  )) as ApiResult;
-  if (result.status < 200 || result.status >= 300) {
-    throw new Error(`${method} ${endpoint} failed (${result.status}): ${result.message ?? ''}`);
-  }
-}
+import { registerVerifiedAccount, requestFromBrowser } from '../utils/api-provisioning';
 
 describe('Luồng 02 — KYC gia sư và duyệt hồ sơ Admin', () => {
   let driver: WebDriver;
@@ -76,15 +37,11 @@ describe('Luồng 02 — KYC gia sư và duyệt hồ sơ Admin', () => {
     driver = await DriverFactory.createDriver();
     kycPage = new KycPage(driver);
     await driver.get(seleniumConfig.baseUrl);
-    await requestFromBrowser(driver, 'POST', '/api/v1/auth/register', {
+    await registerVerifiedAccount(driver, {
       email: tutorEmail,
       password: tutor.password,
       fullName: tutorName,
       role: 'TUTOR',
-    });
-    await requestFromBrowser(driver, 'POST', '/api/v1/auth/login', {
-      email: tutorEmail,
-      password: tutor.password,
     });
     await requestFromBrowser(driver, 'PUT', '/api/v1/profiles/tutors/me', {
       displayName: tutorName,

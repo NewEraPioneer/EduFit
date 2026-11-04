@@ -52,6 +52,12 @@ spring:
           starttls:
             enable: true
 
+edufit:
+  mail:
+    # Production bắt buộc gửi OTP qua SMTP thật; 'log' bị AccountEmailSenderConfig chặn khi khởi động.
+    delivery: smtp
+    from: ${MAIL_FROM}
+
 logging:
   level:
     vn.edufit: INFO
