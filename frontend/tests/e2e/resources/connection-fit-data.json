@@ -1,0 +1,35 @@
+{
+  "demoTutorProfilePath": "/tutors/22222222-2222-2222-2222-000000000001",
+  "inboxStudentName": "Trần Anh",
+  "freeformSlot": {
+    "dayName": "Thứ 5",
+    "startTime": "15:30",
+    "endTime": "17:00"
+  },
+  "learnerVoice": {
+    "forbiddenPrefixes": [
+      "Học sinh",
+      "Ngân sách học sinh",
+      "Lịch rảnh của bạn",
+      "Bạn chưa khai báo"
+    ]
+  },
+  "tutorVoice": {
+    "forbiddenFragments": [
+      "bạn muốn"
+    ],
+    "forbiddenPrefixes": [
+      "Gia sư ",
+      "Dạy ",
+      "Nhận dạy ",
+      "Chưa dạy ",
+      "Học phí "
+    ],
+    "expectedPrefixes": [
+      "Học sinh",
+      "Ngân sách học sinh",
+      "Lịch rảnh của bạn",
+      "Bạn "
+    ]
+  }
+}

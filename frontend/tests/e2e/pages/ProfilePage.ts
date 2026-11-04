@@ -92,7 +92,10 @@ export class ProfilePage extends BasePage {
     await this.click(By.xpath("//div[@role='dialog']//fieldset[legend[normalize-space(.)='3. Mục tiêu']]//button[contains(., 'Bồi dưỡng HSG & Thi chuyên')]"));
     await this.click(By.xpath("//div[@role='dialog']//fieldset[legend[normalize-space(.)='Hình thức học']]//button[normalize-space(.)='Trực tuyến']"));
     await this.fill(By.css("[role='dialog'] input[placeholder='VD: 250000']"), '250000');
-    await this.click(By.xpath("//div[@role='dialog']//fieldset[legend[normalize-space(.)='Khung giờ có thể học']]//button[contains(., 'Tối Thứ 3 & Thứ 6')]"));
+    await this.click(By.xpath(
+      "//div[@role='dialog']//section[.//h3[normalize-space(.)='Khung giờ có thể học hằng tuần']]" +
+        "//span[normalize-space(.)='Thứ 3']/ancestor::div[contains(@class,'grid')][1]//button[contains(., 'Thêm khoảng')]"
+    ));
     await this.click(By.xpath("//div[@role='dialog']//button[@type='submit' and normalize-space(.)='Tạo nhu cầu học']"));
     await this.driver.wait(async () => (await this.driver.findElements(this.needDialog)).length === 0, this.timeoutMs);
   }

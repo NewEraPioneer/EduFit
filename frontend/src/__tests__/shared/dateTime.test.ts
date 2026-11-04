@@ -4,7 +4,6 @@ import {
   DAYS_OF_WEEK,
   formatMatchingSlots,
   normalizeAvailabilityTime,
-  SLOT_PRESETS,
   sortAvailabilitySlots,
   validateAvailabilitySlots,
   formatLocalDateToIso,
@@ -17,16 +16,6 @@ describe("shared/lib/dateTime", () => {
     expect(DAYS_OF_WEEK).toHaveLength(7);
     expect(DAY_LABELS[1]).toBe("Thứ 2");
     expect(DAY_LABELS[7]).toBe("Chủ Nhật");
-  });
-
-  it("validates built-in slot presets", () => {
-    expect(SLOT_PRESETS.length).toBeGreaterThanOrEqual(3);
-    for (const preset of SLOT_PRESETS) {
-      expect(preset.id).toBeTruthy();
-      expect(preset.label).toBeTruthy();
-      const validation = validateAvailabilitySlots(preset.slots);
-      expect(validation.valid).toBe(true);
-    }
   });
 
   it("sorts availability slots by day of week and start time", () => {

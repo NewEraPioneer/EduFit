@@ -1,27 +1,25 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import { Clock, Plus, Trash2 } from "lucide-react";
-import { TutorAvailabilitySlot } from "@/services/profile";
+import { DAYS_OF_WEEK, type AvailabilitySlotLike } from "@/shared/lib/dateTime";
 import {
   normalizeAvailabilityTime,
   sortAvailabilitySlots,
   validateAvailabilitySlots,
 } from "./availabilitySlotUtils";
 
-export const DAYS_OF_WEEK = [
-  { day: 1, name: "Thứ 2" },
-  { day: 2, name: "Thứ 3" },
-  { day: 3, name: "Thứ 4" },
-  { day: 4, name: "Thứ 5" },
-  { day: 5, name: "Thứ 6" },
-  { day: 6, name: "Thứ 7" },
-  { day: 7, name: "Chủ Nhật" },
-];
+export { DAYS_OF_WEEK };
 
-interface AvailabilitySlotPickerProps {
-  slots: TutorAvailabilitySlot[];
-  onChange: (slots: TutorAvailabilitySlot[]) => void;
+type EditableSlot = AvailabilitySlotLike & { slotId?: string };
+
+interface AvailabilitySlotPickerProps<T extends EditableSlot> {
+  slots: T[];
+  onChange: (slots: T[]) => void;
+  /** Tiêu đề khối; mặc định là lịch rảnh giảng dạy của gia sư. */
+  title?: string;
+  /** Mô tả ngắn dưới tiêu đề. */
+  description?: string;
 }
 
 function toInputTime(value: string): string {
@@ -36,7 +34,13 @@ function addMinutes(value: string, minutesToAdd: number): string {
   ).padStart(2, "0")}`;
 }
 
-export function AvailabilitySlotPicker({ slots, onChange }: AvailabilitySlotPickerProps) {
+export function AvailabilitySlotPicker<T extends EditableSlot>({
+  slots,
+  onChange,
+  title = "Lịch rảnh giảng dạy hằng tuần",
+  description = "Thêm các khoảng bạn có thể nhận lịch. Giờ học chính thức sẽ do hai bên đề xuất và xác nhận sau.",
+}: AvailabilitySlotPickerProps<T>) {
+  const headingId = useId();
   const validation = validateAvailabilitySlots(slots);
 
   const addSlot = (dayOfWeek: number) => {
@@ -52,7 +56,7 @@ export function AvailabilitySlotPicker({ slots, onChange }: AvailabilitySlotPick
           dayOfWeek,
           startTime: normalizeAvailabilityTime(startTime),
           endTime: normalizeAvailabilityTime(endTime),
-        },
+        } as T,
       ])
     );
   };
@@ -76,21 +80,20 @@ export function AvailabilitySlotPicker({ slots, onChange }: AvailabilitySlotPick
   };
 
   return (
-    <section aria-labelledby="availability-heading" className="space-y-5">
+    <section aria-labelledby={headingId} className="space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <Clock className="size-4 text-amber-600" aria-hidden="true" />
             <h3
-              id="availability-heading"
+              id={headingId}
               className="text-xs font-bold uppercase tracking-wider text-neutral-900"
             >
-              Lịch rảnh giảng dạy hằng tuần
+              {title}
             </h3>
           </div>
           <p className="mt-1.5 max-w-2xl text-[11px] leading-relaxed text-neutral-500">
-            Thêm các khoảng bạn có thể nhận lịch. Giờ học chính thức sẽ do hai bên đề xuất và
-            xác nhận sau.
+            {description}
           </p>
         </div>
         <span className="text-[11px] font-medium text-neutral-500">

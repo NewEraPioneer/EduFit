@@ -125,4 +125,44 @@ class NeedFitEvaluatorTest {
     var otherDay = tutor("ONLINE", null, List.of(), List.of(slot(3, 18, 21)), offering().build());
     assertEquals(0, check(fit(need, otherDay), FitCriterion.SCHEDULE).score());
   }
+
+  @Test
+  @DisplayName("Gia sư đọc nhãn theo góc nhìn của mình; điểm và ✔/⚠ giữ nguyên như phía học sinh")
+  void tutorAudienceRewordsLabelsButKeepsScores() {
+    var need = need().slots(List.of(slot(2, 18, 20))).build();
+    var tutor = tutor("ONLINE", null, List.of(), List.of(slot(2, 18, 19)), offering().price(345000L).build());
+
+    var learner = NeedFitEvaluator.evaluate(need, tutor, ADJACENT, FitAudience.LEARNER).orElseThrow();
+    var tutorView = NeedFitEvaluator.evaluate(need, tutor, ADJACENT, FitAudience.TUTOR).orElseThrow();
+
+    assertEquals(learner.checks().size(), tutorView.checks().size());
+    for (int i = 0; i < learner.checks().size(); i++) {
+      var l = learner.checks().get(i);
+      var t = tutorView.checks().get(i);
+      assertEquals(l.criterion(), t.criterion());
+      assertEquals(l.score(), t.score());
+      assertEquals(l.matched(), t.matched());
+      assertFalse(t.label().contains("bạn muốn"), "Nhãn gia sư không được dùng giọng người học: " + t.label());
+      assertFalse(t.label().startsWith("Gia sư"), "Gia sư không tự gọi mình ở ngôi thứ ba: " + t.label());
+    }
+    assertEquals("Trùng 50% thời gian bạn muốn học", check(learner, FitCriterion.SCHEDULE).label());
+    assertEquals("Lịch rảnh của bạn trùng 50% thời gian học sinh muốn học", check(tutorView, FitCriterion.SCHEDULE).label());
+    assertEquals("Học phí 345.000đ/buổi vượt ngân sách 15%", check(learner, FitCriterion.BUDGET).label());
+    assertEquals("Ngân sách học sinh 300.000đ/buổi – học phí 345.000đ của bạn vượt 15%",
+        check(tutorView, FitCriterion.BUDGET).label());
+    assertEquals("Gia sư chỉ dạy trực tuyến", check(learner, FitCriterion.LOCATION).label());
+    assertEquals("Học sinh muốn học trực tiếp – bạn chỉ dạy trực tuyến", check(tutorView, FitCriterion.LOCATION).label());
+  }
+
+  @Test
+  @DisplayName("Mặc định evaluate dùng góc nhìn học sinh/phụ huynh")
+  void defaultAudienceIsLearner() {
+    var tutor = tutor("ONLINE", null, List.of(), List.of(), offering().build());
+    assertEquals(
+        NeedFitEvaluator.evaluate(need().build(), tutor, ADJACENT, FitAudience.LEARNER).orElseThrow().checks(),
+        fit(need().build(), tutor).checks());
+    assertEquals("Bạn chưa khai báo lịch rảnh để so với lịch học sinh",
+        check(NeedFitEvaluator.evaluate(need().build(), tutor, ADJACENT, FitAudience.TUTOR).orElseThrow(),
+            FitCriterion.SCHEDULE).label());
+  }
 }
