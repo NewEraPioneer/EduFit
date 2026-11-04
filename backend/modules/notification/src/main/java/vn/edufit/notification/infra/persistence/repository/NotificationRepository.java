@@ -1,5 +1,6 @@
 package vn.edufit.notification.infra.persistence.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -44,4 +45,26 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   @Modifying
   @Query("UPDATE Notification n SET n.isRead = true WHERE n.userId = :userId AND n.isRead = false")
   int markAllAsReadByUserId(@Param("userId") UUID userId);
+
+  /**
+   * Thống kê số lượng thông báo chưa đọc phân nhóm theo danh mục nghiệp vụ.
+   */
+  @Query("SELECT CASE " +
+         "WHEN n.type LIKE 'SESSION%' OR n.type LIKE 'RESCHEDULE%' THEN 'SCHEDULE' " +
+         "WHEN n.type LIKE 'CONNECTION%' THEN 'CONNECTION' " +
+         "WHEN n.type LIKE 'LINK%' THEN 'LINK' " +
+         "WHEN n.type LIKE 'PAYMENT%' THEN 'PAYMENT' " +
+         "WHEN n.type LIKE 'REVIEW%' THEN 'REVIEW' " +
+         "WHEN n.type LIKE 'KYC%' OR n.type LIKE 'VERIFICATION%' THEN 'VERIFICATION' " +
+         "ELSE 'OTHER' END, COUNT(n) " +
+         "FROM Notification n WHERE n.userId = :userId AND n.isRead = false " +
+         "GROUP BY CASE " +
+         "WHEN n.type LIKE 'SESSION%' OR n.type LIKE 'RESCHEDULE%' THEN 'SCHEDULE' " +
+         "WHEN n.type LIKE 'CONNECTION%' THEN 'CONNECTION' " +
+         "WHEN n.type LIKE 'LINK%' THEN 'LINK' " +
+         "WHEN n.type LIKE 'PAYMENT%' THEN 'PAYMENT' " +
+         "WHEN n.type LIKE 'REVIEW%' THEN 'REVIEW' " +
+         "WHEN n.type LIKE 'KYC%' OR n.type LIKE 'VERIFICATION%' THEN 'VERIFICATION' " +
+         "ELSE 'OTHER' END")
+  List<Object[]> countUnreadByCategory(@Param("userId") UUID userId);
 }

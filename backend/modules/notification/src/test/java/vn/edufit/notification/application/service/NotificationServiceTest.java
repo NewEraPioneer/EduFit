@@ -24,6 +24,7 @@ import vn.edufit.notification.web.response.MarkAllReadResponse;
 import vn.edufit.notification.web.response.MarkReadResponse;
 import vn.edufit.notification.web.response.NotificationListResponse;
 import vn.edufit.notification.web.response.UnreadCountResponse;
+import vn.edufit.notification.web.response.UnreadSummaryResponse;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
@@ -241,5 +242,22 @@ class NotificationServiceTest {
     assertEquals("CLASS_STARTED", result.getType());
     assertFalse(result.isRead());
     verify(notificationRepository).save(any(Notification.class));
+  }
+
+  @Test
+  @DisplayName("getUnreadSummary: Trả về tổng và map theo category")
+  void getUnreadSummary_success() {
+    List<Object[]> queryResults = List.of(
+        new Object[]{"SCHEDULE", 3L},
+        new Object[]{"CONNECTION", 1L}
+    );
+    when(notificationRepository.countUnreadByCategory(testUserId)).thenReturn(queryResults);
+
+    UnreadSummaryResponse summary = notificationService.getUnreadSummary(testUser);
+
+    assertNotNull(summary);
+    assertEquals(4L, summary.total());
+    assertEquals(3L, summary.byCategory().get("SCHEDULE"));
+    assertEquals(1L, summary.byCategory().get("CONNECTION"));
   }
 }

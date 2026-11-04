@@ -1,5 +1,8 @@
 package vn.edufit.notification.application.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,6 +14,7 @@ import vn.edufit.notification.web.response.MarkAllReadResponse;
 import vn.edufit.notification.web.response.MarkReadResponse;
 import vn.edufit.notification.web.response.NotificationListResponse;
 import vn.edufit.notification.web.response.UnreadCountResponse;
+import vn.edufit.notification.web.response.UnreadSummaryResponse;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
@@ -62,6 +66,28 @@ public class NotificationService {
     ensureAuthenticated(currentUser);
     long unreadCount = notificationRepository.countByUserIdAndIsReadFalse(currentUser.getUserId());
     return new UnreadCountResponse(unreadCount);
+  }
+
+  /**
+   * Thống kê số lượng thông báo chưa đọc theo danh mục cho người dùng hiện tại (phục vụ sidebar dots).
+   */
+  @Transactional(readOnly = true)
+  public UnreadSummaryResponse getUnreadSummary(CurrentUser currentUser) {
+    ensureAuthenticated(currentUser);
+    List<Object[]> results = notificationRepository.countUnreadByCategory(currentUser.getUserId());
+    Map<String, Long> byCategory = new HashMap<>();
+    long total = 0;
+    if (results != null) {
+      for (Object[] row : results) {
+        if (row != null && row.length >= 2 && row[0] != null && row[1] != null) {
+          String cat = row[0].toString();
+          long cnt = ((Number) row[1]).longValue();
+          byCategory.put(cat, cnt);
+          total += cnt;
+        }
+      }
+    }
+    return new UnreadSummaryResponse(total, byCategory);
   }
 
   /**
