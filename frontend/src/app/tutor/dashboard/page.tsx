@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { TutorDashboardView } from "@/features/dashboard";
 import { profileService } from "@/services/profile";
-import { shouldRedirectTutorToOnboarding } from "@/features/auth/utils/authRedirect";
+import {
+  shouldRedirectTutorToOnboarding,
+  isProfileNotFoundError,
+} from "@/features/auth/utils/authRedirect";
 import { Loader2 } from "lucide-react";
 
 export default function TutorDashboardPage() {
@@ -24,13 +27,29 @@ export default function TutorDashboardPage() {
 
       try {
         const profile = await profileService.getMyTutorProfile();
+        const profileAny = profile as {
+          offerings?: unknown[];
+          subjects?: unknown[];
+          bio?: string | null;
+          area?: string | null;
+        } | null;
+        const hasBasicProfile = Boolean(
+          profileAny &&
+            ((profileAny.offerings && profileAny.offerings.length > 0) ||
+              (profileAny.subjects && profileAny.subjects.length > 0) ||
+              Boolean(profileAny.bio) ||
+              Boolean(profileAny.area))
+        );
+        if (hasBasicProfile && typeof window !== "undefined") {
+          localStorage.setItem(userKey, "true");
+        }
         if (!ignore && shouldRedirectTutorToOnboarding(profile, hasOnboarded)) {
           router.replace("/onboarding/tutor");
           return;
         }
-      } catch {
-        // Nếu backend chưa có hồ sơ gia sư, bắt buộc chuyển về Onboarding
-        if (!ignore) {
+      } catch (err: unknown) {
+        // API reject lỗi mạng / server và hasOnboarded true: KHÔNG redirect sang onboarding
+        if (!ignore && (isProfileNotFoundError(err) || !hasOnboarded)) {
           router.replace("/onboarding/tutor");
           return;
         }

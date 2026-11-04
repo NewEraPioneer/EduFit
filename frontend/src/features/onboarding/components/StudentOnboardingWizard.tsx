@@ -46,6 +46,9 @@ export function StudentOnboardingWizard() {
   const finish = async () => {
     setFinishing(true);
     try {
+      if (typeof window !== "undefined" && user?.id) {
+        localStorage.setItem(`edufit_student_onboarding_completed_${user.id}`, "true");
+      }
       await refreshUser?.();
       router.push(safeReturnUrl || "/student/dashboard");
     } finally {

@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ParentDashboardView } from "@/features/dashboard";
 import { connectionApi } from "@/features/connection/api/connectionApi";
-import { shouldRedirectParentToOnboarding } from "@/features/auth/utils/authRedirect";
+import {
+  shouldRedirectParentToOnboarding,
+  isProfileNotFoundError,
+} from "@/features/auth/utils/authRedirect";
 import { Loader2 } from "lucide-react";
 
 export default function ParentDashboardPage() {
@@ -32,8 +35,9 @@ export default function ParentDashboardPage() {
           router.replace("/onboarding/parent");
           return;
         }
-      } catch {
-        if (!ignore) {
+      } catch (err: unknown) {
+        // API reject lỗi mạng / server và hasOnboarded true: KHÔNG redirect sang onboarding
+        if (!ignore && (isProfileNotFoundError(err) || !hasOnboarded)) {
           router.replace("/onboarding/parent");
           return;
         }

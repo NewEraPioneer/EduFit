@@ -193,16 +193,18 @@ export function LearningNeedSlotPicker({
   const sortedActiveSlots = sortAvailabilitySlots(slots);
 
   return (
-    <div className="space-y-4 font-sans text-neutral-900 dark:text-stone-100">
+    <fieldset className="space-y-4 font-sans text-neutral-900 dark:text-stone-100 border-0 p-0 m-0">
       {/* 1. Header & Quick Category Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <label className="text-xs font-bold text-neutral-700 dark:text-stone-200 flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5">
           <Clock className="size-3.5 text-[#006DCC] dark:text-sky-400" />
-          <span>Khung giờ có thể học</span>
+          <legend className="text-xs font-bold text-neutral-700 dark:text-stone-200 inline">
+            Khung giờ có thể học
+          </legend>
           <span className="text-[11px] font-normal text-neutral-500 dark:text-stone-400">
             (Có thể chọn nhiều khung giờ)
           </span>
-        </label>
+        </div>
 
         {/* Tab Ca Học */}
         <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
@@ -446,6 +448,6 @@ export function LearningNeedSlotPicker({
           <span>{error}</span>
         </p>
       )}
-    </div>
+    </fieldset>
   );
 }

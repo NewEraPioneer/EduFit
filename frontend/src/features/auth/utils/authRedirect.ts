@@ -6,15 +6,60 @@ export interface NavRouter {
   push: (href: string) => void;
 }
 
+export function isProfileNotFoundError(err: unknown): boolean {
+  if (!err) return false;
+  if (typeof err === "object") {
+    const status =
+      (err as { status?: number }).status ??
+      (err as { response?: { status?: number } }).response?.status;
+    if (status === 404) return true;
+
+    const code = (err as { code?: string }).code;
+    if (
+      code === "NOT_FOUND" ||
+      code === "PROFILE_NOT_FOUND" ||
+      code === "ENTITY_NOT_FOUND"
+    ) {
+      return true;
+    }
+
+    const message = (err as { message?: string }).message || "";
+    if (
+      message.includes("404") ||
+      message.toLowerCase().includes("not found") ||
+      message.includes("EntityNotFoundException")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function shouldRedirectTutorToOnboarding(
-  profile: { subjects?: unknown[]; bio?: string | null; area?: string | null } | null | undefined,
+  profile:
+    | {
+        subjects?: unknown[];
+        bio?: string | null;
+        area?: string | null;
+        offerings?: unknown[];
+      }
+    | null
+    | undefined,
   hasOnboarded: boolean
 ): boolean {
+  const profileAny = profile as {
+    subjects?: unknown[];
+    bio?: string | null;
+    area?: string | null;
+    offerings?: unknown[];
+  } | null | undefined;
+
   const hasBasicProfile = Boolean(
-    profile &&
-      ((profile.subjects && profile.subjects.length > 0) ||
-        Boolean(profile.bio) ||
-        Boolean(profile.area))
+    profileAny &&
+      ((profileAny.offerings && profileAny.offerings.length > 0) ||
+        (profileAny.subjects && profileAny.subjects.length > 0) ||
+        Boolean(profileAny.bio) ||
+        Boolean(profileAny.area))
   );
   return !hasBasicProfile && !hasOnboarded;
 }
@@ -52,15 +97,25 @@ export async function resolvePostLoginRedirect({
     : "";
 
   if (role === "STUDENT") {
+    const userKey = `edufit_student_onboarding_completed_${user.id}`;
+    const hasOnboarded =
+      typeof window !== "undefined" && Boolean(localStorage.getItem(userKey));
+
     try {
       const profile = await profileService.getMyStudentProfile();
-      if (!profile.profileComplete) {
+      if (profile?.profileComplete && typeof window !== "undefined") {
+        localStorage.setItem(userKey, "true");
+      }
+      if (!profile || !profile.profileComplete) {
         router.push(`/onboarding/student${onboardingQuery}`);
         return;
       }
-    } catch {
-      router.push(`/onboarding/student${onboardingQuery}`);
-      return;
+    } catch (err: unknown) {
+      // API reject lỗi mạng / server và hasOnboarded true: KHÔNG redirect sang onboarding
+      if (isProfileNotFoundError(err) || !hasOnboarded) {
+        router.push(`/onboarding/student${onboardingQuery}`);
+        return;
+      }
     }
   } else if (role === "TUTOR") {
     const userKey = `edufit_tutor_onboarding_completed_${user.id}`;
@@ -69,14 +124,32 @@ export async function resolvePostLoginRedirect({
 
     try {
       const profile = await profileService.getMyTutorProfile();
+      const profileAny = profile as {
+        offerings?: unknown[];
+        subjects?: unknown[];
+        bio?: string | null;
+        area?: string | null;
+      } | null;
+      const hasBasicProfile = Boolean(
+        profileAny &&
+          ((profileAny.offerings && profileAny.offerings.length > 0) ||
+            (profileAny.subjects && profileAny.subjects.length > 0) ||
+            Boolean(profileAny.bio) ||
+            Boolean(profileAny.area))
+      );
+      if (hasBasicProfile && typeof window !== "undefined") {
+        localStorage.setItem(userKey, "true");
+      }
       if (shouldRedirectTutorToOnboarding(profile, hasOnboarded)) {
         router.push(`/onboarding/tutor${onboardingQuery}`);
         return;
       }
-    } catch {
-      // Backend không có hồ sơ gia sư -> Bắt buộc chuyển sang Onboarding để khởi tạo hồ sơ
-      router.push(`/onboarding/tutor${onboardingQuery}`);
-      return;
+    } catch (err: unknown) {
+      // API reject lỗi mạng / server và hasOnboarded true: KHÔNG redirect sang onboarding
+      if (isProfileNotFoundError(err) || !hasOnboarded) {
+        router.push(`/onboarding/tutor${onboardingQuery}`);
+        return;
+      }
     }
   } else if (role === "PARENT") {
     const userKey = `edufit_parent_onboarding_completed_${user.id}`;
@@ -93,10 +166,12 @@ export async function resolvePostLoginRedirect({
         router.push(`/onboarding/parent${onboardingQuery}`);
         return;
       }
-    } catch {
-      // Backend chưa có liên kết / lỗi -> Bắt buộc vào Onboarding
-      router.push(`/onboarding/parent${onboardingQuery}`);
-      return;
+    } catch (err: unknown) {
+      // API reject lỗi mạng / server và hasOnboarded true: KHÔNG redirect sang onboarding
+      if (isProfileNotFoundError(err) || !hasOnboarded) {
+        router.push(`/onboarding/parent${onboardingQuery}`);
+        return;
+      }
     }
   }
 

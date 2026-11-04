@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { StudentDashboardView } from "@/features/dashboard";
 import { StudentLinkInvitations } from "@/features/connection/components/StudentLinkInvitations";
 import { profileService } from "@/services/profile";
+import { isProfileNotFoundError } from "@/features/auth/utils/authRedirect";
 import { Loader2 } from "lucide-react";
 
 export default function StudentDashboardPage() {
@@ -18,14 +19,22 @@ export default function StudentDashboardPage() {
 
     async function checkProfile() {
       if (isLoading || !user) return;
+      const userKey = `edufit_student_onboarding_completed_${user.id}`;
+      const hasOnboarded =
+        typeof window !== "undefined" && Boolean(localStorage.getItem(userKey));
+
       try {
         const profile = await profileService.getMyStudentProfile();
-        if (!ignore && !profile.profileComplete) {
+        if (profile?.profileComplete && typeof window !== "undefined") {
+          localStorage.setItem(userKey, "true");
+        }
+        if (!ignore && (!profile || !profile.profileComplete)) {
           router.replace("/onboarding/student");
           return;
         }
-      } catch {
-        if (!ignore) {
+      } catch (err: unknown) {
+        // API reject lỗi mạng / server và hasOnboarded true: KHÔNG redirect sang onboarding
+        if (!ignore && (isProfileNotFoundError(err) || !hasOnboarded)) {
           router.replace("/onboarding/student");
           return;
         }

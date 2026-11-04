@@ -3,6 +3,7 @@ import {
   shouldRedirectTutorToOnboarding,
   shouldRedirectParentToOnboarding,
   resolvePostLoginRedirect,
+  isProfileNotFoundError,
 } from "@/features/auth/utils/authRedirect";
 import { profileService } from "@/services/profile";
 import { connectionApi } from "@/features/connection/api/connectionApi";
@@ -29,6 +30,28 @@ describe("authRedirect Unit Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+  });
+
+  describe("isProfileNotFoundError", () => {
+    it("nhận diện đúng các lỗi 404 hoặc EntityNotFound", () => {
+      expect(isProfileNotFoundError({ status: 404 })).toBe(true);
+      expect(isProfileNotFoundError({ response: { status: 404 } })).toBe(true);
+      expect(isProfileNotFoundError({ code: "NOT_FOUND" })).toBe(true);
+      expect(isProfileNotFoundError({ code: "PROFILE_NOT_FOUND" })).toBe(true);
+      expect(isProfileNotFoundError({ code: "ENTITY_NOT_FOUND" })).toBe(true);
+      expect(isProfileNotFoundError(new Error("404 Not Found"))).toBe(true);
+      expect(isProfileNotFoundError(new Error("EntityNotFoundException: TutorProfile"))).toBe(true);
+      expect(isProfileNotFoundError(new Error("Profile not found"))).toBe(true);
+    });
+
+    it("phân biệt lỗi mạng hoặc server error khác không phải 404", () => {
+      expect(isProfileNotFoundError(new Error("Network Error"))).toBe(false);
+      expect(isProfileNotFoundError(new TypeError("Failed to fetch"))).toBe(false);
+      expect(isProfileNotFoundError({ status: 500 })).toBe(false);
+      expect(isProfileNotFoundError({ code: "INTERNAL_ERROR" })).toBe(false);
+      expect(isProfileNotFoundError(null)).toBe(false);
+      expect(isProfileNotFoundError(undefined)).toBe(false);
+    });
   });
 
   describe("shouldRedirectTutorToOnboarding", () => {
@@ -315,6 +338,229 @@ describe("authRedirect Unit Tests", () => {
       await resolvePostLoginRedirect({ user: userB, router: mockRouter });
       // User B không bị ảnh hưởng bởi cờ của User A và vẫn phải vào onboarding
       expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/tutor");
+    });
+
+    describe("Tiêu chí 3 trạng thái điều hướng cho Student, Tutor, Parent", () => {
+      // 1. STUDENT
+      describe("STUDENT", () => {
+        const studentUser: AuthUser = {
+          id: "student-spec-user",
+          email: "student-spec@test.com",
+          fullName: "Student Spec",
+          role: "STUDENT",
+          status: "ACTIVE",
+        };
+
+        it("API reject lỗi mạng và hasOnboarded true: không redirect sang onboarding, vào dashboard", async () => {
+          localStorage.setItem(
+            `edufit_student_onboarding_completed_${studentUser.id}`,
+            "true"
+          );
+          vi.mocked(profileService.getMyStudentProfile).mockRejectedValue(
+            new Error("Network Error")
+          );
+
+          await resolvePostLoginRedirect({ user: studentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/student/dashboard");
+        });
+
+        it("API reject lỗi mạng và hasOnboarded false: có redirect sang onboarding", async () => {
+          vi.mocked(profileService.getMyStudentProfile).mockRejectedValue(
+            new TypeError("Failed to fetch")
+          );
+
+          await resolvePostLoginRedirect({ user: studentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/student");
+        });
+
+        it("API trả 404: có redirect sang onboarding", async () => {
+          localStorage.setItem(
+            `edufit_student_onboarding_completed_${studentUser.id}`,
+            "true"
+          );
+          vi.mocked(profileService.getMyStudentProfile).mockRejectedValue({
+            status: 404,
+            message: "Student profile not found",
+          });
+
+          await resolvePostLoginRedirect({ user: studentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/student");
+        });
+
+        it("API trả hồ sơ trống (profileComplete: false): có redirect sang onboarding", async () => {
+          vi.mocked(profileService.getMyStudentProfile).mockResolvedValue({
+            studentId: "s-spec",
+            userId: studentUser.id,
+            profileComplete: false,
+          });
+
+          await resolvePostLoginRedirect({ user: studentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/student");
+        });
+
+        it("API trả hồ sơ đầy đủ: vào dashboard và lưu cờ hoàn tất", async () => {
+          vi.mocked(profileService.getMyStudentProfile).mockResolvedValue({
+            studentId: "s-spec",
+            userId: studentUser.id,
+            profileComplete: true,
+          });
+
+          await resolvePostLoginRedirect({ user: studentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/student/dashboard");
+          expect(
+            localStorage.getItem(
+              `edufit_student_onboarding_completed_${studentUser.id}`
+            )
+          ).toBe("true");
+        });
+      });
+
+      // 2. TUTOR
+      describe("TUTOR", () => {
+        const tutorUser: AuthUser = {
+          id: "tutor-spec-user",
+          email: "tutor-spec@test.com",
+          fullName: "Tutor Spec",
+          role: "TUTOR",
+          status: "ACTIVE",
+        };
+
+        it("API reject lỗi mạng và hasOnboarded true: không redirect sang onboarding, vào dashboard", async () => {
+          localStorage.setItem(
+            `edufit_tutor_onboarding_completed_${tutorUser.id}`,
+            "true"
+          );
+          vi.mocked(profileService.getMyTutorProfile).mockRejectedValue(
+            new Error("Network Error")
+          );
+
+          await resolvePostLoginRedirect({ user: tutorUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/tutor/dashboard");
+        });
+
+        it("API reject lỗi mạng và hasOnboarded false: có redirect sang onboarding", async () => {
+          vi.mocked(profileService.getMyTutorProfile).mockRejectedValue(
+            new TypeError("Failed to fetch")
+          );
+
+          await resolvePostLoginRedirect({ user: tutorUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/tutor");
+        });
+
+        it("API trả 404: có redirect sang onboarding", async () => {
+          localStorage.setItem(
+            `edufit_tutor_onboarding_completed_${tutorUser.id}`,
+            "true"
+          );
+          vi.mocked(profileService.getMyTutorProfile).mockRejectedValue({
+            response: { status: 404 },
+            message: "EntityNotFoundException: TutorProfile",
+          });
+
+          await resolvePostLoginRedirect({ user: tutorUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/tutor");
+        });
+
+        it("API trả hồ sơ trống: có redirect sang onboarding", async () => {
+          vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({
+            tutorId: "t-spec",
+            userId: tutorUser.id,
+            subjects: [],
+            bio: null,
+            area: null,
+            offerings: [],
+          } as any);
+
+          await resolvePostLoginRedirect({ user: tutorUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/tutor");
+        });
+
+        it("API trả hồ sơ đầy đủ: vào dashboard và lưu cờ hoàn tất", async () => {
+          vi.mocked(profileService.getMyTutorProfile).mockResolvedValue({
+            tutorId: "t-spec",
+            userId: tutorUser.id,
+            subjects: [{ subjectId: 1, educationLevelId: 2 }],
+            bio: "Gia sư dày dặn kinh nghiệm",
+            offerings: [{ offeringId: "off-1" }],
+          } as any);
+
+          await resolvePostLoginRedirect({ user: tutorUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/tutor/dashboard");
+          expect(
+            localStorage.getItem(
+              `edufit_tutor_onboarding_completed_${tutorUser.id}`
+            )
+          ).toBe("true");
+        });
+      });
+
+      // 3. PARENT
+      describe("PARENT", () => {
+        const parentUser: AuthUser = {
+          id: "parent-spec-user",
+          email: "parent-spec@test.com",
+          fullName: "Parent Spec",
+          role: "PARENT",
+          status: "ACTIVE",
+        };
+
+        it("API reject lỗi mạng và hasOnboarded true: không redirect sang onboarding, vào dashboard", async () => {
+          localStorage.setItem(
+            `edufit_parent_onboarding_completed_${parentUser.id}`,
+            "true"
+          );
+          vi.mocked(connectionApi.getLinks).mockRejectedValue(
+            new Error("Network Error")
+          );
+
+          await resolvePostLoginRedirect({ user: parentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/parent/dashboard");
+        });
+
+        it("API reject lỗi mạng và hasOnboarded false: có redirect sang onboarding", async () => {
+          vi.mocked(connectionApi.getLinks).mockRejectedValue(
+            new TypeError("Failed to fetch")
+          );
+
+          await resolvePostLoginRedirect({ user: parentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/parent");
+        });
+
+        it("API trả 404: có redirect sang onboarding", async () => {
+          localStorage.setItem(
+            `edufit_parent_onboarding_completed_${parentUser.id}`,
+            "true"
+          );
+          vi.mocked(connectionApi.getLinks).mockRejectedValue({
+            status: 404,
+            message: "Parent links not found",
+          });
+
+          await resolvePostLoginRedirect({ user: parentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/parent");
+        });
+
+        it("API trả hồ sơ trống (chưa có liên kết): có redirect sang onboarding", async () => {
+          vi.mocked(connectionApi.getLinks).mockResolvedValue([]);
+
+          await resolvePostLoginRedirect({ user: parentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/onboarding/parent");
+        });
+
+        it("API trả hồ sơ đầy đủ (đã có liên kết): vào dashboard và lưu cờ hoàn tất", async () => {
+          vi.mocked(connectionApi.getLinks).mockResolvedValue([
+            { linkId: "link-spec-1", studentId: "s-1", confirmed: true } as any,
+          ]);
+
+          await resolvePostLoginRedirect({ user: parentUser, router: mockRouter });
+          expect(mockRouter.push).toHaveBeenCalledWith("/parent/dashboard");
+          expect(
+            localStorage.getItem(
+              `edufit_parent_onboarding_completed_${parentUser.id}`
+            )
+          ).toBe("true");
+        });
+      });
     });
   });
 });
