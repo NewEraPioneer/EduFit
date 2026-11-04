@@ -20,6 +20,7 @@ import { progressApi, type StudentDashboardResponse } from "@/features/progress"
 
 interface StudentDashboardViewProps {
   user: {
+    id?: string;
     fullName: string;
     email: string;
     role: string;
@@ -234,7 +235,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       title: "Cài đặt hồ sơ học tập",
       description: "Chọn khối lớp và khu vực cư trú để hệ thống ghép cặp gia sư lân cận.",
       href: "/student/profile",
-      actionText: "Thiết lập ngay",
+      actionText: profile?.profileComplete === true ? "Xem hồ sơ" : "Thiết lập ngay",
       completed: profile?.profileComplete === true,
     },
     {
@@ -280,6 +281,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       <OnboardingGuideBanner
         role="STUDENT"
         userName={studentName}
+        userId={user?.id}
         steps={onboardingSteps}
       />
 

@@ -16,6 +16,7 @@ import type { TutoringClass } from "@/features/connection/types";
 
 interface ParentDashboardViewProps {
   user: {
+    id?: string;
     fullName: string;
     email: string;
     role: string;
@@ -115,7 +116,7 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
       title: "Liên kết tài khoản con em",
       description: "Gửi lời mời qua email tài khoản của con để theo dõi lịch học và tiến độ.",
       href: "/parent/children",
-      actionText: "Liên kết ngay",
+      actionText: childrenList.length > 0 ? "Quản lý con" : "Liên kết ngay",
       completed: childrenList.length > 0,
     },
     {
@@ -173,6 +174,7 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
       <OnboardingGuideBanner
         role="PARENT"
         userName={parentName}
+        userId={user?.id}
         steps={onboardingSteps}
       />
 

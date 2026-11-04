@@ -21,6 +21,7 @@ import type { CalendarItem } from "@/features/scheduling/types";
 
 interface TutorDashboardViewProps {
   user: {
+    id?: string;
     fullName: string;
     email: string;
     role: string;
@@ -158,25 +159,36 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
   const ratingAverage = profile?.ratingAvg || 0;
   const reviewCount = profile?.reviewCount || 0;
 
-  const hasConfiguredTeachingProfile = Boolean(
-    profile && profile.offerings.length > 0 && profile.availabilitySlots.length > 0
-  );
+  const hasOfferings = Boolean(profile && profile.offerings && profile.offerings.length > 0);
+  const hasAvailabilitySlots = Boolean(profile && profile.availabilitySlots && profile.availabilitySlots.length > 0);
+  const hasConfiguredTeachingProfile = hasOfferings && hasAvailabilitySlots;
 
   const isProfileVerified = profile?.status === "VERIFIED" || Boolean(profile?.verifiedAt);
+  const isKycSubmitted =
+    verificationStatus === "PENDING" ||
+    profile?.status === "PENDING_VERIFICATION";
 
   const onboardingSteps = [
     {
       title: "Thiết lập gói dạy & Lịch rảnh",
       description: "Khai báo môn, lớp, mục tiêu, học phí từng gói và các khung giờ bạn sẵn sàng nhận lớp.",
-      href: "/tutor/profile",
-      actionText: "Cài đặt ngay",
+      href: hasOfferings && !hasAvailabilitySlots ? "/tutor/schedule" : "/tutor/profile",
+      actionText: hasOfferings
+        ? (hasAvailabilitySlots ? "Chỉnh sửa gói & lịch" : "Cài lịch rảnh")
+        : "Cài đặt ngay",
       completed: hasConfiguredTeachingProfile,
     },
     {
       title: "Xác minh bằng cấp năng lực (KYC)",
       description: "Tải chứng chỉ sư phạm, bằng đại học để nhận huy hiệu Gia Sư Uy Tín.",
       href: "/tutor/verification",
-      actionText: isProfileVerified ? "Bổ sung bằng cấp" : "Nộp bằng cấp",
+      actionText: isProfileVerified
+        ? "Bổ sung bằng cấp"
+        : isKycSubmitted
+        ? "Đang chờ duyệt"
+        : verificationStatus === "REJECTED"
+        ? "Nộp lại bằng cấp"
+        : "Nộp bằng cấp",
       completed:
         verificationStatus === "VERIFIED" ||
         verificationStatus === "APPROVED" ||
@@ -230,6 +242,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
       <OnboardingGuideBanner
         role="TUTOR"
         userName={tutorName}
+        userId={user?.id}
         steps={onboardingSteps}
       />
 

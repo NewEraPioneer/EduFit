@@ -16,12 +16,46 @@ interface OnboardingGuideBannerProps {
   role: "STUDENT" | "TUTOR" | "PARENT" | "ADMIN";
   steps: OnboardingGuideStep[];
   userName: string;
+  userId?: string;
+  autoHideOnComplete?: boolean;
 }
 
-export function OnboardingGuideBanner({ role, steps, userName }: OnboardingGuideBannerProps) {
-  const [closed, setClosed] = useState(false);
+export function OnboardingGuideBanner({
+  role,
+  steps,
+  userName,
+  userId,
+  autoHideOnComplete = true,
+}: OnboardingGuideBannerProps) {
+  const storageKey = userId
+    ? `edufit_onboarding_guide_dismissed_${userId}`
+    : `edufit_onboarding_guide_dismissed_${role.toLowerCase()}`;
 
-  if (closed) return null;
+  // null = chưa đọc localStorage (tránh lệch hydration và nháy banner đã đóng)
+  const [closed, setClosed] = useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(storageKey) === "true";
+    } catch {
+      // localStorage không khả dụng: coi như chưa đóng
+    }
+    setClosed(dismissed);
+  }, [storageKey]);
+
+  const allCompleted = steps.length > 0 && steps.every((s) => s.completed);
+
+  if (closed === null || closed || (autoHideOnComplete && allCompleted)) return null;
+
+  const handleClose = () => {
+    setClosed(true);
+    try {
+      localStorage.setItem(storageKey, "true");
+    } catch {
+      // bỏ qua
+    }
+  };
 
   const roleMeta = {
     STUDENT: {
@@ -68,7 +102,7 @@ export function OnboardingGuideBanner({ role, steps, userName }: OnboardingGuide
     >
       <button
         type="button"
-        onClick={() => setClosed(true)}
+        onClick={handleClose}
         className="absolute top-4 right-4 p-1.5 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-white/60 transition-colors cursor-pointer"
         title="Đóng hướng dẫn"
       >

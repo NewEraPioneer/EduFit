@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/shared/ui/Toast";
 import { OAuthRoleSelectionModal } from "./OAuthRoleSelectionModal";
+import { resolvePostLoginRedirect } from "../utils/authRedirect";
 import type { OAuthLoginResult } from "../types";
 
 interface SocialAuthButtonsProps {
@@ -28,6 +29,13 @@ declare global {
 
 export function SocialAuthButtons({ label = "Hoặc tiếp tục với" }: SocialAuthButtonsProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Giữ returnUrl trong ref để callback OAuth không đổi identity khi query string đổi
+  // (tránh khởi tạo lại Google Identity Services).
+  const returnUrlRef = useRef<string | null>(searchParams.get("returnUrl"));
+  useEffect(() => {
+    returnUrlRef.current = searchParams.get("returnUrl");
+  }, [searchParams]);
   const { loginWithGoogle } = useAuth();
   const { showToast } = useToast();
 
@@ -58,11 +66,7 @@ export function SocialAuthButtons({ label = "Hoặc tiếp tục với" }: Socia
       setRoleModalOpen(true);
     } else if (result.user) {
       showToast(`Đăng nhập ${providerName} thành công! Chào ${result.user.fullName}.`, "success");
-      const role = result.user.role;
-      if (role === "ADMIN") router.push("/admin/dashboard");
-      else if (role === "TUTOR") router.push("/tutor/dashboard");
-      else if (role === "PARENT") router.push("/parent/dashboard");
-      else router.push("/student/dashboard");
+      void resolvePostLoginRedirect({ user: result.user, router, returnUrl: returnUrlRef.current });
     }
   }, [router, showToast]);
 

@@ -1,11 +1,9 @@
 "use client";
 
 import React from "react";
-import { useAuth } from "@/context/AuthContext";
 import { ParentDashboardView } from "@/features/dashboard";
+import { OnboardingGate } from "@/features/auth/components/OnboardingGate";
 
 export default function ParentDashboardPage() {
-  const { user } = useAuth();
-  if (!user) return null;
-  return <ParentDashboardView user={user} />;
+  return <OnboardingGate>{(user) => <ParentDashboardView user={user} />}</OnboardingGate>;
 }
