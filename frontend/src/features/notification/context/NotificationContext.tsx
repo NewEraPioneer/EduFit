@@ -43,6 +43,7 @@ export interface NotificationProviderProps {
 
 export function NotificationProvider({
   children,
+  role,
 }: NotificationProviderProps) {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
@@ -51,9 +52,15 @@ export function NotificationProvider({
 
   const seenIdsRef = useRef<Set<string>>(new Set());
   const isInitialFetchRef = useRef<boolean>(true);
+  const mutationVersionRef = useRef<number>(0);
   const autoDismissTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
     new Map()
   );
+
+  useEffect(() => {
+    seenIdsRef.current.clear();
+    isInitialFetchRef.current = true;
+  }, [role]);
 
   const dismissToast = useCallback((id: string) => {
     setActiveToasts((prev) => prev.filter((t) => t.notificationId !== id));
@@ -68,7 +75,8 @@ export function NotificationProvider({
     (item: NotificationItem) => {
       setActiveToasts((prev) => {
         if (prev.some((t) => t.notificationId === item.notificationId)) return prev;
-        return [...prev, item];
+        const updated = [...prev, item];
+        return updated.slice(-3); // Tối đa 3 toast nổi đồng thời
       });
 
       // Auto-dismiss after 4.5s
@@ -102,12 +110,16 @@ export function NotificationProvider({
 
   const pollNotifications = useCallback(async () => {
     if (typeof document !== "undefined" && document.hidden) return;
+    const versionAtStart = mutationVersionRef.current;
 
     try {
       await refreshSummary();
+      if (versionAtStart !== mutationVersionRef.current) return;
 
       // Fetch latest unread notifications to detect new arrivals for floating toast
       const listRes = await notificationApi.getNotifications(true, 0, 5);
+      if (versionAtStart !== mutationVersionRef.current) return;
+
       if (listRes.success && listRes.data?.items) {
         const items = listRes.data.items;
 
@@ -136,11 +148,22 @@ export function NotificationProvider({
     const handleFocus = () => {
       void pollNotifications();
     };
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        void pollNotifications();
+      }
+    };
     window.addEventListener("focus", handleFocus);
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
       for (const timer of autoDismissTimersRef.current.values()) {
         clearTimeout(timer);
       }
@@ -150,6 +173,7 @@ export function NotificationProvider({
 
   const markAsRead = useCallback(
     async (id: string) => {
+      mutationVersionRef.current += 1;
       dismissToast(id);
       setUnreadCount((prev) => Math.max(0, prev - 1));
       try {
@@ -163,6 +187,7 @@ export function NotificationProvider({
   );
 
   const markAllAsRead = useCallback(async () => {
+    mutationVersionRef.current += 1;
     setActiveToasts([]);
     setUnreadCount(0);
     setCategoryCounts({});

@@ -2,6 +2,7 @@ package vn.edufit.notification.application.listener;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -156,8 +157,8 @@ class NotificationEventListenerTest {
   }
 
   @Test
-  @DisplayName("onSessionRescheduleRejected: Lưu notification cho người đề xuất")
-  void onSessionRescheduleRejected_notifiesProposer() {
+  @DisplayName("onSessionRescheduleRejected: Lưu notification cho người đề xuất và phụ huynh, loại trừ người từ chối")
+  void onSessionRescheduleRejected_notifiesProposerAndParents() {
     UUID proposalId = UUID.randomUUID();
     UUID sessionId = UUID.randomUUID();
     UUID classId = UUID.randomUUID();
@@ -165,7 +166,11 @@ class NotificationEventListenerTest {
     UUID studentProfileId = UUID.randomUUID();
     UUID tutorUserId = UUID.randomUUID();
     UUID studentUserId = UUID.randomUUID();
+    UUID parentUserId = UUID.randomUUID();
 
+    when(connectionFacade.findConfirmedParentUserIds(studentProfileId)).thenReturn(List.of(parentUserId, studentUserId));
+
+    // Gia sư đề xuất, học sinh từ chối -> Gia sư và phụ huynh nhận, học sinh (người từ chối) bị loại trừ
     SessionRescheduleRejectedEvent event = SessionRescheduleRejectedEvent.of(
         proposalId, sessionId, classId, tutorProfileId, studentProfileId,
         tutorUserId, studentUserId, "Kẹt lịch học ở trường"
@@ -174,11 +179,15 @@ class NotificationEventListenerTest {
     listener.onSessionRescheduleRejected(event);
 
     ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-    verify(repository).save(captor.capture());
+    verify(repository, times(2)).save(captor.capture());
 
-    Notification saved = captor.getValue();
-    assertEquals(tutorUserId, saved.getUserId());
-    assertEquals("SESSION_RESCHEDULE_REJECTED", saved.getType());
+    List<Notification> saved = captor.getAllValues();
+    assertEquals(tutorUserId, saved.get(0).getUserId());
+    assertEquals("SESSION_RESCHEDULE_REJECTED", saved.get(0).getType());
+    assertTrue(saved.get(0).getShortText().contains("Kẹt lịch học ở trường"));
+
+    assertEquals(parentUserId, saved.get(1).getUserId());
+    assertEquals("SESSION_RESCHEDULE_REJECTED", saved.get(1).getType());
   }
 
   @Test

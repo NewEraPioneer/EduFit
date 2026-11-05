@@ -279,8 +279,11 @@ function SidebarNav({
                     {collapsed && hasDot && (
                       <span
                         data-testid="sidebar-notification-dot-collapsed"
+                        title="Có thông báo mới"
                         className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900"
-                      />
+                      >
+                        <span className="sr-only">Có thông báo mới</span>
+                      </span>
                     )}
                   </div>
                   <span
@@ -297,8 +300,11 @@ function SidebarNav({
                   {!collapsed && hasDot && (
                     <span
                       data-testid="sidebar-notification-dot"
+                      title="Có thông báo mới"
                       className="size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900 shrink-0"
-                    />
+                    >
+                      <span className="sr-only">Có thông báo mới</span>
+                    </span>
                   )}
                   {!collapsed && item.badge && (
                     <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
@@ -403,8 +409,11 @@ export function Sidebar({
                             {collapsed && hasDot && (
                               <span
                                 data-testid="sidebar-notification-dot-collapsed"
+                                title="Có thông báo mới"
                                 className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900"
-                              />
+                              >
+                                <span className="sr-only">Có thông báo mới</span>
+                              </span>
                             )}
                           </div>
                           <span
@@ -420,8 +429,11 @@ export function Sidebar({
                           {!collapsed && hasDot && (
                             <span
                               data-testid="sidebar-notification-dot"
+                              title="Có thông báo mới"
                               className="size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900 shrink-0"
-                            />
+                            >
+                              <span className="sr-only">Có thông báo mới</span>
+                            </span>
                           )}
                           {!collapsed && item.badge && (
                             <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">

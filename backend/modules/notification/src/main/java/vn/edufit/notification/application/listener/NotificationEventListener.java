@@ -278,17 +278,51 @@ public class NotificationEventListener {
   @Transactional
   public void onSessionRescheduleRejected(SessionRescheduleRejectedEvent event) {
     if (event == null || event.proposedBy() == null) return;
-    String detail = event.reason() != null && !event.reason().isBlank() ? ": " + event.reason() : "";
-    repository.save(new Notification(
-        event.proposedBy(),
-        event.studentId(),
-        "SESSION_RESCHEDULE_REJECTED",
-        "Đề xuất đổi lịch bị từ chối",
-        "Đề xuất đổi lịch buổi học đã bị từ chối" + detail,
-        "SESSION",
-        event.sessionId(),
-        event.occurredAt()
-    ));
+    String rawReason = event.reason() != null ? event.reason().trim() : "";
+    String detail = "";
+    if (!rawReason.isEmpty()) {
+      detail = rawReason.length() > 200
+          ? ": " + rawReason.substring(0, 197) + "..."
+          : ": " + rawReason;
+    }
+
+    Set<UUID> notifiedUserIds = new HashSet<>();
+    if (event.rejectedBy() != null) {
+      notifiedUserIds.add(event.rejectedBy()); // Loai tru nguoi tu choi, khong tu gui thong bao cho chinh minh
+    }
+
+    if (notifiedUserIds.add(event.proposedBy())) {
+      repository.save(new Notification(
+          event.proposedBy(),
+          event.studentId(),
+          "SESSION_RESCHEDULE_REJECTED",
+          "Đề xuất đổi lịch bị từ chối",
+          "Đề xuất đổi lịch buổi học đã bị từ chối" + detail,
+          "SESSION",
+          event.sessionId(),
+          event.occurredAt()
+      ));
+    }
+
+    if (connectionFacade != null && event.studentId() != null) {
+      List<UUID> parentUserIds = connectionFacade.findConfirmedParentUserIds(event.studentId());
+      if (parentUserIds != null) {
+        for (UUID parentUserId : parentUserIds) {
+          if (parentUserId != null && notifiedUserIds.add(parentUserId)) {
+            repository.save(new Notification(
+                parentUserId,
+                event.studentId(),
+                "SESSION_RESCHEDULE_REJECTED",
+                "Đề xuất đổi lịch bị từ chối",
+                "Đề xuất đổi lịch buổi học đã bị từ chối" + detail,
+                "SESSION",
+                event.sessionId(),
+                event.occurredAt()
+            ));
+          }
+        }
+      }
+    }
   }
 
   @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = false)
