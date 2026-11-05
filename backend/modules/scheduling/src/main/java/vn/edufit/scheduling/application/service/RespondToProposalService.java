@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.edufit.scheduling.api.event.SessionProposalRejectedEvent;
 import vn.edufit.scheduling.api.event.SessionScheduledEvent;
 import vn.edufit.scheduling.domain.model.SessionHistory;
 import vn.edufit.scheduling.domain.model.SessionStatus;
@@ -75,6 +76,16 @@ public class RespondToProposalService {
           now
       ));
 
+      eventPublisher.publishEvent(SessionProposalRejectedEvent.of(
+          sessionId,
+          rejectedSession.getClassId(),
+          rejectedSession.getTutorId(),
+          rejectedSession.getStudentId(),
+          rejectedSession.getProposedBy(),
+          responderId,
+          reason
+      ));
+
       log.info("Đã từ chối đề xuất buổi học: sessionId={}, rejectedBy={}", sessionId, responderId);
       return rejectedSession;
     }
@@ -133,7 +144,8 @@ public class RespondToProposalService {
         scheduledSession.getTutorId(),
         scheduledSession.getStudentId(),
         scheduledSession.getStartAt(),
-        scheduledSession.getEndAt()
+        scheduledSession.getEndAt(),
+        responderId
     ));
 
     log.info(

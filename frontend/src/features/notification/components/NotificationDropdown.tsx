@@ -12,14 +12,16 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { notificationApi } from "../api/notificationApi";
+import { useNotification } from "../context/NotificationContext";
 import type { NotificationItem } from "../types";
 import type { UserRole } from "@/shared/ui/Sidebar";
 
 interface NotificationDropdownProps {
   role?: UserRole;
   onClose?: () => void;
-  onUnreadCountChange?: (count: number) => void;
 }
+
+const PAGE_SIZE = 20;
 
 export function getNotificationRoute(
   item: NotificationItem,
@@ -64,9 +66,16 @@ export function getNotificationRoute(
     targetType === "SESSION" ||
     targetType === "RESCHEDULE_PROPOSAL"
   ) {
-    if (normalizedRole === "TUTOR") return "/tutor/schedule";
-    if (normalizedRole === "PARENT") return "/parent/schedule";
-    return "/student/schedule";
+    const base =
+      normalizedRole === "TUTOR"
+        ? "/tutor/schedule"
+        : normalizedRole === "PARENT"
+          ? "/parent/schedule"
+          : "/student/schedule";
+    // Trang lịch đọc sessionId để mở thẳng chi tiết buổi học (xem ScheduleCalendarView).
+    return targetType === "SESSION" && item.targetId
+      ? `${base}?sessionId=${encodeURIComponent(item.targetId)}`
+      : base;
   }
 
   // 3. Yêu cầu kết nối / Mời học (Connection Requests)
@@ -78,7 +87,7 @@ export function getNotificationRoute(
     }
     if (normalizedRole === "TUTOR") return "/tutor/requests";
     if (normalizedRole === "PARENT") return "/parent/tutors";
-    return "/student/classes";
+    return "/student/tutors?tab=requests";
   }
 
   // 4. Lớp học (Classes)
@@ -100,8 +109,10 @@ export function getNotificationRoute(
   if (
     type.startsWith("MILESTONE_") ||
     type.startsWith("PROGRESS_") ||
+    type.startsWith("PERIOD_REPORT") ||
     targetType === "LEARNING_PLAN" ||
-    targetType === "MILESTONE"
+    targetType === "MILESTONE" ||
+    targetType === "PERIOD_REPORT"
   ) {
     if (normalizedRole === "PARENT") return "/parent/progress";
     if (normalizedRole === "TUTOR") return "/tutor/classes";
@@ -137,20 +148,17 @@ export function getNotificationRoute(
 export function NotificationDropdown({
   role = "STUDENT",
   onClose,
-  onUnreadCountChange,
 }: NotificationDropdownProps) {
+  // Số chưa đọc, đánh dấu đã đọc và toast dùng chung một nguồn (NotificationProvider), dropdown chỉ giữ danh sách.
+  const { unreadCount, markAsRead, markAllAsRead } = useNotification();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [filterUnread, setFilterUnread] = useState<boolean>(false);
+  const [limit, setLimit] = useState<number>(PAGE_SIZE);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const unreadCallback = useRef(onUnreadCountChange);
-  useEffect(() => {
-    unreadCallback.current = onUnreadCountChange;
-  }, [onUnreadCountChange]);
   useEffect(() => {
     let alive = true;
     let running = false;
@@ -159,11 +167,9 @@ export function NotificationDropdown({
       running = true;
       try {
         if (!background) setIsLoading(true);
-        const res = await notificationApi.getNotifications(filterUnread, 0, 20);
+        const res = await notificationApi.getNotifications(filterUnread, 0, limit);
         if (alive && res.success && res.data) {
           setNotifications(res.data.items || []);
-          setUnreadCount(res.data.unreadCount || 0);
-          unreadCallback.current?.(res.data.unreadCount || 0);
           setError(null);
         }
       } catch (err: unknown) {
@@ -187,11 +193,14 @@ export function NotificationDropdown({
       clearInterval(timer);
       window.removeEventListener("focus", refresh);
     };
-  }, [filterUnread]);
+  }, [filterUnread, limit]);
 
   // Click outside listener
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      // Bấm chính nút chuông để đóng: nút tự đóng/mở, không để mousedown đóng rồi click mở lại (F-16).
+      if (target?.closest?.("[data-notification-trigger]")) return;
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
@@ -206,31 +215,16 @@ export function NotificationDropdown({
   // Mark single notification read
   const handleMarkRead = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    try {
-      await notificationApi.markAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n)),
-      );
-      setUnreadCount((prev) => {
-        const next = Math.max(0, prev - 1);
-        onUnreadCountChange?.(next);
-        return next;
-      });
-    } catch {
-      // Ignored for smooth UX
-    }
+    setNotifications((prev) =>
+      prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n)),
+    );
+    await markAsRead(id);
   };
 
   // Mark all read
   const handleMarkAllRead = async () => {
-    try {
-      await notificationApi.markAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-      onUnreadCountChange?.(0);
-    } catch {
-      // Ignored for smooth UX
-    }
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    await markAllAsRead();
   };
 
   const handleNotificationClick = async (item: NotificationItem) => {
@@ -286,7 +280,7 @@ export function NotificationDropdown({
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+      className="absolute right-0 top-full mt-2 w-[min(26rem,calc(100vw-1.5rem))] bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150"
     >
       {/* Header */}
       <div className="p-4 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between bg-stone-50/50 dark:bg-stone-800/40">
@@ -341,7 +335,7 @@ export function NotificationDropdown({
       </div>
 
       {/* Notification List */}
-      <div className="max-h-96 overflow-y-auto divide-y divide-stone-100 dark:divide-stone-800">
+      <div className="max-h-[min(32rem,70vh)] overflow-y-auto divide-y divide-stone-100 dark:divide-stone-800">
         {isLoading ? (
           <div className="py-12 flex flex-col items-center justify-center gap-2 text-neutral-400">
             <div className="size-6 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
@@ -378,9 +372,9 @@ export function NotificationDropdown({
               </div>
 
               <div className="flex-1 min-w-0 space-y-0.5">
-                <div className="flex items-center justify-between gap-1">
+                <div className="flex items-start justify-between gap-2">
                   <h4
-                    className={`text-xs truncate ${
+                    className={`text-[13px] leading-snug line-clamp-2 ${
                       item.isRead
                         ? "font-medium text-neutral-800 dark:text-stone-200"
                         : "font-bold text-neutral-900 dark:text-stone-100"
@@ -393,7 +387,7 @@ export function NotificationDropdown({
                   </span>
                 </div>
 
-                <p className="text-[11px] text-neutral-600 dark:text-stone-400 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-neutral-600 dark:text-stone-400 line-clamp-4 leading-relaxed">
                   {item.shortText}
                 </p>
               </div>
@@ -405,6 +399,15 @@ export function NotificationDropdown({
               )}
             </button>
           ))
+        )}
+        {!isLoading && !error && notifications.length >= limit && (
+          <button
+            type="button"
+            onClick={() => setLimit((current) => current + PAGE_SIZE)}
+            className="w-full py-3 text-xs font-semibold text-amber-600 hover:bg-stone-50 dark:text-amber-400 dark:hover:bg-stone-800/60 cursor-pointer"
+          >
+            Xem thêm
+          </button>
         )}
       </div>
     </div>

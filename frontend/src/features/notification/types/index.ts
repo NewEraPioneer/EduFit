@@ -1,6 +1,7 @@
 export interface NotificationItem {
   notificationId: string;
   type: string;
+  category?: string;
   title: string;
   shortText: string;
   targetType?: string;

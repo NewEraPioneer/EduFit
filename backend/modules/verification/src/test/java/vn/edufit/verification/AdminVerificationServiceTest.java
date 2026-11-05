@@ -63,6 +63,8 @@ class AdminVerificationServiceTest {
   private AdminVerificationService adminVerificationService;
 
   private CurrentUser adminUser;
+  private final org.springframework.context.ApplicationEventPublisher events =
+      org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class);
   private UUID adminId;
 
   @BeforeEach
@@ -71,7 +73,8 @@ class AdminVerificationServiceTest {
         verificationRequestRepository,
         profileFacade,
         auditSink,
-        iamFacade
+        iamFacade,
+        events
     );
 
     adminId = UUID.randomUUID();
@@ -199,6 +202,17 @@ class AdminVerificationServiceTest {
     assertEquals("APPROVED", response.status());
     assertEquals(adminId, response.reviewedBy());
     verify(profileFacade).markTutorVerified(eq(tutorId), any(Instant.class));
+    assertDecisionPublished(requestId, tutorId, "APPROVED", null);
+  }
+
+  private void assertDecisionPublished(UUID requestId, UUID tutorId, String decision, String reason) {
+    ArgumentCaptor<vn.edufit.verification.api.event.VerificationDecidedEvent> captor =
+        ArgumentCaptor.forClass(vn.edufit.verification.api.event.VerificationDecidedEvent.class);
+    verify(events).publishEvent(captor.capture());
+    assertEquals(requestId, captor.getValue().requestId());
+    assertEquals(tutorId, captor.getValue().tutorId());
+    assertEquals(decision, captor.getValue().decision());
+    assertEquals(reason, captor.getValue().reason());
   }
 
   @Test
@@ -227,6 +241,7 @@ class AdminVerificationServiceTest {
     assertEquals("Ảnh chụp văn bằng bị mờ, không rõ con dấu", response.rejectionReason());
     assertEquals(adminId, response.reviewedBy());
     verify(profileFacade).markTutorRejected(tutorId);
+    assertDecisionPublished(requestId, tutorId, "REJECTED", "Ảnh chụp văn bằng bị mờ, không rõ con dấu");
   }
 
   @Test
@@ -284,6 +299,7 @@ class AdminVerificationServiceTest {
 
     // 1. Giáng huy hiệu Profile của gia sư về UNVERIFIED
     verify(profileFacade).markTutorUnverified(tutorId);
+    assertDecisionPublished(requestId, tutorId, "REVOKED", "Bằng cấp phát hiện là bằng giả");
 
     // 2. Kiểm tra ghi nhận sự kiện vào audit_log
     ArgumentCaptor<AuditRecord> auditCaptor = ArgumentCaptor.forClass(AuditRecord.class);

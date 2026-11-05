@@ -83,7 +83,7 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
         items: [
           { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
           { label: "Liên kết phụ huynh", href: "/student/family", icon: HeartHandshake, notificationCategory: "LINK" },
-          { label: "Tiến độ học tập", href: "/student/progress", icon: TrendingUp },
+          { label: "Tiến độ học tập", href: "/student/progress", icon: TrendingUp, notificationCategory: "PROGRESS" },
         ],
       },
       {
@@ -162,7 +162,7 @@ const ROLE_NAV_CONFIG: Record<UserRole, { roleTitle: string; sections: NavSectio
       {
         title: "THEO DÕI",
         items: [
-          { label: "Tiến độ học tập", href: "/parent/progress", icon: BarChart3 },
+          { label: "Tiến độ học tập", href: "/parent/progress", icon: BarChart3, notificationCategory: "PROGRESS" },
           { label: "Lịch học gia đình", href: "/parent/schedule", icon: Calendar, notificationCategory: "SCHEDULE" },
           { label: "Gia sư đồng hành", href: "/parent/tutors", icon: GraduationCap },
         ],

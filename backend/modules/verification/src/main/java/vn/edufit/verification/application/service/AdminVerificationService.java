@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.InvalidOperationException;
+import vn.edufit.verification.api.event.VerificationDecidedEvent;
 import vn.edufit.verification.infra.persistence.entity.Credential;
 import vn.edufit.verification.infra.persistence.entity.VerificationRequest;
 import vn.edufit.verification.infra.persistence.repository.VerificationRequestRepository;
@@ -36,13 +38,16 @@ public class AdminVerificationService {
   private final ProfileFacade profileFacade;
   private final AuditSink auditSink;
   private final IamFacade iamFacade;
+  private final ApplicationEventPublisher events;
 
   public AdminVerificationService(
       VerificationRequestRepository verificationRequestRepository,
       ProfileFacade profileFacade,
       AuditSink auditSink,
-      IamFacade iamFacade
+      IamFacade iamFacade,
+      ApplicationEventPublisher events
   ) {
+    this.events = Objects.requireNonNull(events);
     this.verificationRequestRepository = Objects.requireNonNull(verificationRequestRepository);
     this.profileFacade = Objects.requireNonNull(profileFacade);
     // Quyết định thu hồi của Admin bắt buộc phải được ghi audit, không được là tùy chọn
@@ -165,6 +170,10 @@ public class AdminVerificationService {
     }
 
     VerificationRequest saved = verificationRequestRepository.save(request);
+    boolean approved = reviewRequest.action() == ReviewVerificationRequest.Action.APPROVE;
+    events.publishEvent(VerificationDecidedEvent.of(requestId, request.getTutorId(),
+        approved ? VerificationDecidedEvent.APPROVED : VerificationDecidedEvent.REJECTED,
+        approved ? null : reviewRequest.reason().trim()));
     return VerificationRequestDetailResponse.from(saved);
   }
 
@@ -228,6 +237,9 @@ public class AdminVerificationService {
             "reason", reason
         )
     ));
+
+    events.publishEvent(VerificationDecidedEvent.of(
+        requestId, request.getTutorId(), VerificationDecidedEvent.REVOKED, reason));
 
     return VerificationRequestDetailResponse.from(saved);
   }

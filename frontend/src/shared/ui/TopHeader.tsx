@@ -46,7 +46,7 @@ export function TopHeader({
 }: TopHeaderProps) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const { unreadCount, refreshSummary } = useNotification();
+  const { unreadCount } = useNotification();
   const { theme, setTheme } = useTheme();
 
   const roleLabel = ROLE_LABEL_MAP[role] || "Thành viên";
@@ -92,6 +92,7 @@ export function TopHeader({
           <button
             type="button"
             aria-label="Thông báo"
+            data-notification-trigger
             onClick={() => setNotificationOpen(!notificationOpen)}
             className="relative p-2 rounded-xl border border-stone-200/60 dark:border-stone-700/60 hover:bg-stone-50 dark:hover:bg-stone-800 text-neutral-600 dark:text-stone-300 transition-colors cursor-pointer"
           >
@@ -102,11 +103,7 @@ export function TopHeader({
           </button>
 
           {notificationOpen && (
-            <NotificationDropdown
-              role={role}
-              onClose={() => setNotificationOpen(false)}
-              onUnreadCountChange={() => void refreshSummary()}
-            />
+            <NotificationDropdown role={role} onClose={() => setNotificationOpen(false)} />
           )}
         </div>
 

@@ -28,7 +28,6 @@ import vn.edufit.notification.web.response.UnreadSummaryResponse;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
-import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.exception.InvalidOperationException;
 
 @ExtendWith(MockitoExtension.class)
@@ -158,7 +157,7 @@ class NotificationServiceTest {
     );
     UUID notificationId = UUID.randomUUID();
 
-    when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
+    when(notificationRepository.findByNotificationIdAndUserId(notificationId, testUserId)).thenReturn(Optional.of(notification));
     when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
 
     MarkReadResponse response = notificationService.markAsRead(testUser, notificationId);
@@ -173,7 +172,7 @@ class NotificationServiceTest {
   @DisplayName("markAsRead: Ném EntityNotFoundException khi không tìm thấy thông báo")
   void markAsRead_notFound_throwsEntityNotFound() {
     UUID notFoundId = UUID.randomUUID();
-    when(notificationRepository.findById(notFoundId)).thenReturn(Optional.empty());
+    when(notificationRepository.findByNotificationIdAndUserId(notFoundId, testUserId)).thenReturn(Optional.empty());
 
     assertThrows(
         EntityNotFoundException.class,
@@ -182,26 +181,13 @@ class NotificationServiceTest {
   }
 
   @Test
-  @DisplayName("markAsRead: Ném ForbiddenOperationException khi cố đọc thông báo người khác")
-  void markAsRead_differentUser_throwsForbidden() {
-    UUID otherUserId = UUID.randomUUID();
-    Notification notification = new Notification(
-        otherUserId,
-        null,
-        "LINK_INVITED",
-        "Lời mời",
-        "Nội dung",
-        "LINK_INVITATION",
-        UUID.randomUUID()
-    );
+  @DisplayName("markAsRead: thông báo của người khác trả 404 như không tồn tại, không lộ id")
+  void markAsRead_otherUsersNotification_isIndistinguishableFromMissing() {
     UUID notificationId = UUID.randomUUID();
+    when(notificationRepository.findByNotificationIdAndUserId(notificationId, testUserId)).thenReturn(Optional.empty());
 
-    when(notificationRepository.findById(notificationId)).thenReturn(Optional.of(notification));
-
-    assertThrows(
-        ForbiddenOperationException.class,
-        () -> notificationService.markAsRead(testUser, notificationId)
-    );
+    assertThrows(EntityNotFoundException.class, () -> notificationService.markAsRead(testUser, notificationId));
+    verify(notificationRepository, never()).findById(any());
     verify(notificationRepository, never()).save(any());
   }
 
@@ -245,19 +231,24 @@ class NotificationServiceTest {
   }
 
   @Test
-  @DisplayName("getUnreadSummary: Trả về tổng và map theo category")
-  void getUnreadSummary_success() {
+  @DisplayName("getUnreadSummary: gộp type thành category, kể cả cột mốc/báo cáo và type lạ")
+  void getUnreadSummary_groupsTypesIntoCategories() {
     List<Object[]> queryResults = List.of(
-        new Object[]{"SCHEDULE", 3L},
-        new Object[]{"CONNECTION", 1L}
+        new Object[]{"SESSION_CANCELLED", 2L},
+        new Object[]{"SESSION_RESCHEDULE_PROPOSED", 1L},
+        new Object[]{"CONNECTION_REQUESTED", 1L},
+        new Object[]{"MILESTONE_ACHIEVED", 1L},
+        new Object[]{"SESSION_FEEDBACK_REMINDER", 1L},
+        new Object[]{"SOMETHING_NEW", 4L}
     );
-    when(notificationRepository.countUnreadByCategory(testUserId)).thenReturn(queryResults);
+    when(notificationRepository.countUnreadByType(testUserId)).thenReturn(queryResults);
 
     UnreadSummaryResponse summary = notificationService.getUnreadSummary(testUser);
 
-    assertNotNull(summary);
-    assertEquals(4L, summary.total());
+    assertEquals(10L, summary.total());
     assertEquals(3L, summary.byCategory().get("SCHEDULE"));
     assertEquals(1L, summary.byCategory().get("CONNECTION"));
+    assertEquals(2L, summary.byCategory().get("PROGRESS"));
+    assertEquals(4L, summary.byCategory().get("OTHER"));
   }
 }

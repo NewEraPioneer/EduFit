@@ -70,7 +70,8 @@ class VerificationDecisionMatrixCsvTest {
         verificationRequestRepository,
         profileFacade,
         org.mockito.Mockito.mock(vn.edufit.shared.audit.AuditSink.class),
-        org.mockito.Mockito.mock(vn.edufit.iam.api.IamFacade.class)
+        org.mockito.Mockito.mock(vn.edufit.iam.api.IamFacade.class),
+        org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class)
     );
 
     tutorVerificationService = new TutorVerificationService(

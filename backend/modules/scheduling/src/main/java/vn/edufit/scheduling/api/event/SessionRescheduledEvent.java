@@ -18,7 +18,8 @@ public record SessionRescheduledEvent(
     UUID tutorId,
     UUID studentId,
     Instant newStartAt,
-    Instant newEndAt
+    Instant newEndAt,
+    UUID actorUserId
 ) implements BaseDomainEvent {
 
   public static SessionRescheduledEvent of(
@@ -28,7 +29,8 @@ public record SessionRescheduledEvent(
       UUID tutorId,
       UUID studentId,
       Instant newStartAt,
-      Instant newEndAt
+      Instant newEndAt,
+      UUID actorUserId
   ) {
     return new SessionRescheduledEvent(
         UUID.randomUUID(),
@@ -39,7 +41,8 @@ public record SessionRescheduledEvent(
         tutorId,
         studentId,
         newStartAt,
-        newEndAt
+        newEndAt,
+        actorUserId
     );
   }
 

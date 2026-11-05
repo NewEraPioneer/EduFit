@@ -279,7 +279,8 @@ public class RescheduleSessionService {
         session.getTutorId(),
         session.getStudentId(),
         proposal.getNewStartAt(),
-        proposal.getNewEndAt()
+        proposal.getNewEndAt(),
+        responderId
     ));
 
     log.info(

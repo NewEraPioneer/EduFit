@@ -47,24 +47,9 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   int markAllAsReadByUserId(@Param("userId") UUID userId);
 
   /**
-   * Thống kê số lượng thông báo chưa đọc phân nhóm theo danh mục nghiệp vụ.
+   * Đếm thông báo chưa đọc theo {@code type}; việc gộp type thành category làm ở
+   * {@code NotificationCategory} để query đơn giản, không phụ thuộc cách Hibernate render CASE.
    */
-  @Query("SELECT CASE " +
-         "WHEN n.type LIKE 'SESSION%' OR n.type LIKE 'RESCHEDULE%' THEN 'SCHEDULE' " +
-         "WHEN n.type LIKE 'CONNECTION%' THEN 'CONNECTION' " +
-         "WHEN n.type LIKE 'LINK%' THEN 'LINK' " +
-         "WHEN n.type LIKE 'PAYMENT%' THEN 'PAYMENT' " +
-         "WHEN n.type LIKE 'REVIEW%' THEN 'REVIEW' " +
-         "WHEN n.type LIKE 'KYC%' OR n.type LIKE 'VERIFICATION%' THEN 'VERIFICATION' " +
-         "ELSE 'OTHER' END, COUNT(n) " +
-         "FROM Notification n WHERE n.userId = :userId AND n.isRead = false " +
-         "GROUP BY CASE " +
-         "WHEN n.type LIKE 'SESSION%' OR n.type LIKE 'RESCHEDULE%' THEN 'SCHEDULE' " +
-         "WHEN n.type LIKE 'CONNECTION%' THEN 'CONNECTION' " +
-         "WHEN n.type LIKE 'LINK%' THEN 'LINK' " +
-         "WHEN n.type LIKE 'PAYMENT%' THEN 'PAYMENT' " +
-         "WHEN n.type LIKE 'REVIEW%' THEN 'REVIEW' " +
-         "WHEN n.type LIKE 'KYC%' OR n.type LIKE 'VERIFICATION%' THEN 'VERIFICATION' " +
-         "ELSE 'OTHER' END")
-  List<Object[]> countUnreadByCategory(@Param("userId") UUID userId);
+  @Query("SELECT n.type, COUNT(n) FROM Notification n WHERE n.userId = :userId AND n.isRead = false GROUP BY n.type")
+  List<Object[]> countUnreadByType(@Param("userId") UUID userId);
 }

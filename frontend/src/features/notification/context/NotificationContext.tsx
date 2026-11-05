@@ -34,6 +34,9 @@ const defaultContext: NotificationContextType = {
   refreshSummary: async () => {},
 };
 
+const POLL_PAGE_SIZE = 20;
+const MAX_TOASTS_PER_POLL = 5;
+
 const NotificationContext = createContext<NotificationContextType>(defaultContext);
 
 export interface NotificationProviderProps {
@@ -50,7 +53,9 @@ export function NotificationProvider({
   const [activeToasts, setActiveToasts] = useState<NotificationItem[]>([]);
 
   const seenIdsRef = useRef<Set<string>>(new Set());
-  const isInitialFetchRef = useRef<boolean>(true);
+  // Mốc createdAt (ms) của thông báo mới nhất đã thấy; null = chưa có lần tải đầu.
+  const lastSeenAtRef = useRef<number | null>(null);
+  const aliveRef = useRef<boolean>(false);
   const autoDismissTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
     new Map()
   );
@@ -83,6 +88,7 @@ export function NotificationProvider({
   const refreshSummary = useCallback(async () => {
     try {
       const summaryRes = await notificationApi.getUnreadSummary();
+      if (!aliveRef.current) return;
       if (summaryRes.success && summaryRes.data) {
         const { total, byCategory } = summaryRes.data;
         setUnreadCount(total);
@@ -106,23 +112,32 @@ export function NotificationProvider({
     try {
       await refreshSummary();
 
-      // Fetch latest unread notifications to detect new arrivals for floating toast
-      const listRes = await notificationApi.getNotifications(true, 0, 5);
+      // Thông báo "mới" là thông báo có createdAt sau mốc đã thấy, không phụ thuộc việc người dùng đã đọc
+      // hay chưa đọc thông báo cũ (trước đây dựa vào tập id của 5 mục đầu nên đọc vài cái là toast nhầm).
+      const listRes = await notificationApi.getNotifications(true, 0, POLL_PAGE_SIZE);
+      if (!aliveRef.current) return;
       if (listRes.success && listRes.data?.items) {
         const items = listRes.data.items;
+        const newest = Math.max(0, ...items.map((item) => Date.parse(item.createdAt) || 0));
 
-        if (isInitialFetchRef.current) {
-          for (const item of items) {
-            seenIdsRef.current.add(item.notificationId);
-          }
-          isInitialFetchRef.current = false;
+        if (lastSeenAtRef.current === null) {
+          // Lần tải đầu: mọi thứ đang chưa đọc là "đã biết", không toast. Danh sách rỗng thì mốc là 0 (mọi thông
+          // báo sau đó đều mới) và không dùng đồng hồ máy khách để khỏi lệch giờ với máy chủ.
+          lastSeenAtRef.current = newest;
+          for (const item of items) seenIdsRef.current.add(item.notificationId);
         } else {
-          for (const item of items) {
-            if (!seenIdsRef.current.has(item.notificationId)) {
-              seenIdsRef.current.add(item.notificationId);
-              queueToast(item);
-            }
-          }
+          const since = lastSeenAtRef.current;
+          const fresh = items
+            .filter(
+              (item) =>
+                !seenIdsRef.current.has(item.notificationId) &&
+                (Date.parse(item.createdAt) || 0) > since,
+            )
+            .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+          for (const item of items) seenIdsRef.current.add(item.notificationId);
+          lastSeenAtRef.current = Math.max(since, newest);
+          // Tối đa MAX_TOASTS_PER_POLL toast mới nhất; phần còn lại đã nằm trong số chưa đọc trên chuông.
+          for (const item of fresh.slice(-MAX_TOASTS_PER_POLL)) queueToast(item);
         }
       }
     } catch {
@@ -131,6 +146,10 @@ export function NotificationProvider({
   }, [refreshSummary, queueToast]);
 
   useEffect(() => {
+    // Mỗi lần gắn (hoặc gắn lại) bắt đầu từ trạng thái sạch; phản hồi muộn sau khi gỡ bị bỏ qua.
+    aliveRef.current = true;
+    seenIdsRef.current = new Set();
+    lastSeenAtRef.current = null;
     void pollNotifications();
     const interval = setInterval(pollNotifications, 15000);
     const handleFocus = () => {
@@ -139,6 +158,7 @@ export function NotificationProvider({
     window.addEventListener("focus", handleFocus);
 
     return () => {
+      aliveRef.current = false;
       clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
       for (const timer of autoDismissTimersRef.current.values()) {

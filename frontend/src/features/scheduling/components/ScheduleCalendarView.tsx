@@ -274,6 +274,18 @@ export function ScheduleCalendarView({
     fetchSessions();
   }, [fetchSessions]);
 
+  // Deep link từ thông báo: /…/schedule?sessionId=<id> mở thẳng chi tiết buổi học đó (một lần rồi bỏ tham số).
+  useEffect(() => {
+    const sessionId = new URLSearchParams(window.location.search).get("sessionId");
+    if (!sessionId) return;
+    // Đọc URL (hệ thống bên ngoài React) đúng một lần khi gắn; không thể suy ra lúc render vì SSR không có window.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setSelectedSessionId(sessionId);
+    setIsDetailOpen(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.hash);
+  }, []);
+
   // Listen to Global Event Bus (edufit:schedule-updated) and StorageEvent to auto-reload
   useEffect(() => {
     const handleScheduleUpdated = () => {

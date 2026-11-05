@@ -41,7 +41,6 @@ import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.ResourceConflictException;
-import vn.edufit.shared.notification.NotificationSink;
 
 /**
  * Adversarial Empirical Challenge Suite for SlotConflictDetector
@@ -397,7 +396,6 @@ class SlotConflictStressChallengeTest {
     final IamFacade iam = mock(IamFacade.class);
     final ConnectionFacade facade = mock(ConnectionFacade.class);
     final ConnectionLock lock = mock(ConnectionLock.class);
-    final NotificationSink sink = mock(NotificationSink.class);
     final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
     final TutorScheduleConflictChecker scheduleChecker = mock(TutorScheduleConflictChecker.class);
 
@@ -423,7 +421,7 @@ class SlotConflictStressChallengeTest {
         return c;
       });
 
-      service = new ConnectionRequestService(requests, classes, profile, iam, lock, sink, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), detector, scheduleChecker, ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now, ZoneOffset.UTC));
+      service = new ConnectionRequestService(requests, classes, profile, iam, lock, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), detector, scheduleChecker, ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now, ZoneOffset.UTC));
     }
 
     private CurrentUser tutorActor() {
