@@ -312,6 +312,8 @@ Khi chạy ở profile `dev`, hệ thống được nạp sẵn các tài khoả
 | **Phụ huynh** | Trần Văn Hưng | `parent.demo@edufit.vn` | Quản lý tài khoản con, nạp tiền ví, thanh toán học phí ký quỹ. |
 | **Quản trị viên** | Quản Trị Viên EduFit | `admin.demo@edufit.vn` | Duyệt bằng cấp KYC, đối soát thanh toán, quản lý danh mục và người dùng. |
 
+> 📦 **Dữ liệu demo:** gia sư đa dạng, 3 lớp học, buổi học đủ trạng thái, thanh toán, lộ trình và báo cáo nằm ở `backend/app/src/main/resources/db/seed/V1.34__seed_demo_journeys.sql` (chỉ profile dev, nạp khi tạo CSDL mới). Muốn dữ liệu tươi theo ngày hiện tại: `docker compose down -v` rồi `up` lại.
+
 > 💡 **Mẹo:** Ở trang đăng nhập, khi bật `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true`, giao diện sẽ có sẵn các nút bấm điền nhanh tài khoản demo chỉ với một cú nhấp chuột.
 
 ---
