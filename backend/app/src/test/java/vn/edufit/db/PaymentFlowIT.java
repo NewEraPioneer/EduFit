@@ -57,9 +57,9 @@ class PaymentFlowIT {
         Flyway.configure()
             .dataSource(datasource)
             .schemas(schema)
-            .locations("classpath:db/migration", "classpath:db/seed") // test cần dữ liệu demo (tài khoản, hồ sơ, nhu cầu học)
+            .locations("classpath:db/migration")
             .load();
-    assertEquals(33, flyway.migrate().migrationsExecuted);
+    assertEquals(MigrationScripts.count(MigrationScripts.MIGRATION), flyway.migrate().migrationsExecuted);
     flyway.validate();
     assertEquals(0, flyway.migrate().migrationsExecuted);
   }
@@ -78,14 +78,27 @@ class PaymentFlowIT {
         "truncate"
             + " payment_entry,payment_audit,payment_charge,payment_topup,payment_withdrawal,payment_wallet,payment_payout_account,payment_case_message");
     if (db.queryForObject("select count(*) from class", Long.class) == 0) {
-      UUID student = db.queryForObject("select student_id from learning_need limit 1", UUID.class);
-      UUID tutor = db.queryForObject("select tutor_id from tutor_profile limit 1", UUID.class);
-      UUID goal =
-          db.queryForObject(
-              "select need_id from learning_need where student_id=? limit 1", UUID.class, student);
-      UUID sender =
-          db.queryForObject(
-              "select user_id from student_profile where student_id=?", UUID.class, student);
+      // Chỉ chạy migration thật (không seed demo): tự tạo học sinh, gia sư, nhu cầu học (V1.25) và lớp.
+      UUID sender = UUID.randomUUID();
+      UUID tutorAccount = UUID.randomUUID();
+      UUID student = UUID.randomUUID();
+      UUID tutor = UUID.randomUUID();
+      UUID need = UUID.randomUUID();
+      db.update(
+          "insert into account(user_id,email,full_name,role) values"
+              + " (?,?,'Payment Flow Student','STUDENT'),(?,?,'Payment Flow Tutor','TUTOR'),"
+              + " (gen_random_uuid(),'parent@payment-flow.test','Payment Flow Parent','PARENT'),"
+              + " (gen_random_uuid(),'admin@payment-flow.test','Payment Flow Admin','ADMIN')",
+          sender, sender + "@payment-flow.test", tutorAccount, tutorAccount + "@payment-flow.test");
+      db.update("insert into student_profile(student_id,user_id) values (?,?)", student, sender);
+      db.update(
+          "insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode)"
+              + " values (?,?,'Payment Flow Tutor','ONLINE')",
+          tutor, tutorAccount);
+      db.update(
+          "insert into learning_need(need_id,student_id,created_by,subject_id)"
+              + " values (?,?,?,(select min(subject_id) from subject))",
+          need, student, sender);
       UUID request = UUID.randomUUID();
       db.update(
           "insert into"
@@ -94,14 +107,15 @@ class PaymentFlowIT {
           request,
           student,
           tutor,
-          goal,
+          need,
           sender);
       db.update(
-          "insert into class(connection_request_id,student_id,tutor_id,need_id,price_per_session) values (?,?,?,?,300000)",
+          "insert into class(connection_request_id,student_id,tutor_id,need_id,price_per_session)"
+              + " values (?,?,?,?,300000)",
           request,
           student,
           tutor,
-          goal);
+          need);
     }
     var cls =
         db.queryForMap(
@@ -140,10 +154,10 @@ class PaymentFlowIT {
             Optional.of(
                 new TutorSummaryDto(tutorId, tutorUser, "Tutor", null, null, "ONLINE", null, false, null, null, null, null, "VERIFIED", null, null, 0)));
     when(connections.hasConfirmedParentLink(parentUser, studentId)).thenReturn(true);
-    // Học phí mỗi buổi được chốt trên lớp (SessionPaymentService.classPrice đọc qua ConnectionFacade)
+    // Học phí mỗi buổi chốt trên lớp (SessionPaymentService.classPrice)
     when(connections.findClassById(classId))
         .thenReturn(Optional.of(new ConnectionFacade.ClassDetailView(
-            classId, studentId, tutorId, null, "ACTIVE", Instant.now(), null, 300000L)));
+            classId, studentId, tutorId, null, "ACTIVE", end.minusSeconds(864000), null, 300000)));
     when(sessions.findSessionById(sessionId))
         .thenReturn(
             Optional.of(
@@ -599,10 +613,11 @@ class PaymentFlowIT {
         Flyway.configure()
             .dataSource(ds)
             .schemas(schema)
-            .locations("classpath:db/migration")
+            .locations("classpath:db/migration", "classpath:db/seed")
             .target("1.16")
             .load();
-    assertEquals(13, old.migrate().migrationsExecuted);
+    assertEquals(MigrationScripts.countUpTo("1.16", MigrationScripts.MIGRATION, MigrationScripts.SEED),
+        old.migrate().migrationsExecuted);
     var jdbc = new JdbcTemplate(ds);
     UUID user = account(jdbc, "TUTOR");
     UUID id = UUID.randomUUID();
@@ -617,9 +632,11 @@ class PaymentFlowIT {
         Flyway.configure()
             .dataSource(ds)
             .schemas(schema)
-            .locations("classpath:db/migration")
+            .locations("classpath:db/migration", "classpath:db/seed")
+            .target(MigrationScripts.schemaHead())
             .load();
-    assertEquals(16, upgraded.migrate().migrationsExecuted);
+    assertEquals(MigrationScripts.countAfter("1.16", MigrationScripts.MIGRATION, MigrationScripts.SEED),
+        upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
     assertEquals(
@@ -674,16 +691,19 @@ class PaymentFlowIT {
         datasource.getUrl().replaceAll("currentSchema=[^&]+", "currentSchema=" + schema),
         datasource.getUsername(), datasource.getPassword());
     Flyway old = Flyway.configure().dataSource(ds).schemas(schema)
-        .locations("classpath:db/migration").target("1.17").load();
-    assertEquals(14, old.migrate().migrationsExecuted);
+        .locations("classpath:db/migration", "classpath:db/seed").target("1.17").load();
+    assertEquals(MigrationScripts.countUpTo("1.17", MigrationScripts.MIGRATION, MigrationScripts.SEED),
+        old.migrate().migrationsExecuted);
     var jdbc = new JdbcTemplate(ds);
     UUID owner = account(jdbc, "PARENT");
     UUID id = UUID.randomUUID();
     jdbc.update("insert into payment_topup(id,user_id,amount,provider,status,expires_at)"
         + " values (?,?,100000,'PAYOS','PENDING',now())", id, owner);
     Flyway upgraded = Flyway.configure().dataSource(ds).schemas(schema)
-        .locations("classpath:db/migration").load();
-    assertEquals(15, upgraded.migrate().migrationsExecuted);
+        .locations("classpath:db/migration", "classpath:db/seed")
+        .target(MigrationScripts.schemaHead()).load();
+    assertEquals(MigrationScripts.countAfter("1.17", MigrationScripts.MIGRATION, MigrationScripts.SEED),
+        upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
     var saved = jdbc.queryForMap("select amount,status,provider_account_number from payment_topup where id=?", id);

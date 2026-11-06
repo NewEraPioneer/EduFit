@@ -14,7 +14,10 @@ SELECT t.tutor_id, s.student_id, s.user_id, 'STUDENT', 5,
 FROM tutor_profile t JOIN account ta ON ta.user_id = t.user_id
 CROSS JOIN student_profile s JOIN account sa ON sa.user_id = s.user_id
 WHERE ta.email = 'tutor.demo@edufit.vn' AND sa.email = 'student.demo@edufit.vn'
-ON CONFLICT (tutor_id, student_id) DO UPDATE SET rating = EXCLUDED.rating, comment = EXCLUDED.comment;
+-- Ghi đè toàn bộ bản ghi để fixture không phụ thuộc vào đánh giá có sẵn (ví dụ dữ liệu demo hành trình)
+ON CONFLICT (tutor_id, student_id) DO UPDATE SET reviewer_user_id = EXCLUDED.reviewer_user_id,
+  reviewer_type = EXCLUDED.reviewer_type, rating = EXCLUDED.rating, comment = EXCLUDED.comment,
+  completed_sessions_at_review = EXCLUDED.completed_sessions_at_review;
 UPDATE tutor_profile t SET
   rating_avg = (SELECT avg(rating) FROM review WHERE tutor_id = t.tutor_id),
   review_count = (SELECT count(*) FROM review WHERE tutor_id = t.tutor_id)
