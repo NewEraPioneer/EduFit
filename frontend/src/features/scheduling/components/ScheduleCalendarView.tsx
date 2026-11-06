@@ -20,7 +20,8 @@ import { SessionDetailModal } from "./SessionDetailModal";
 import { ScheduleTimelineView } from "./ScheduleTimelineView";
 import { useAuth } from "@/context/AuthContext";
 import { progressApi, type SessionMilestones } from "@/features/progress";
-import { formatLocalDateToIso, formatSessionTime, formatLocalTime } from "@/shared/utils/dateTime";
+import { formatLocalDateToIso, formatLocalTime } from "@/shared/utils/dateTime";
+import { useDeepLinkParams } from "@/shared/hooks";
 import {
   type CalendarItem,
   type ScheduleViewMode,
@@ -274,17 +275,17 @@ export function ScheduleCalendarView({
     fetchSessions();
   }, [fetchSessions]);
 
-  // Deep link từ thông báo: /…/schedule?sessionId=<id> mở thẳng chi tiết buổi học đó (một lần rồi bỏ tham số).
+  // AC7 & AC8: Deep link từ thông báo /…/schedule?sessionId=<id>&action=<action> qua hook dùng chung useDeepLinkParams
+  // Snapshot đổi định danh ở mỗi lần điều hướng mới, kể cả khi bấm lại cùng một buổi học
+  const deepLink = useDeepLinkParams(["sessionId", "action"]);
+  const [detailAction, setDetailAction] = useState<"outcome" | null>(null);
+
   useEffect(() => {
-    const sessionId = new URLSearchParams(window.location.search).get("sessionId");
-    if (!sessionId) return;
-    // Đọc URL (hệ thống bên ngoài React) đúng một lần khi gắn; không thể suy ra lúc render vì SSR không có window.
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setSelectedSessionId(sessionId);
+    if (!deepLink.sessionId) return;
+    setSelectedSessionId(deepLink.sessionId);
     setIsDetailOpen(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.hash);
-  }, []);
+    setDetailAction(deepLink.action === "outcome" ? "outcome" : null);
+  }, [deepLink]);
 
   // Listen to Global Event Bus (edufit:schedule-updated) and StorageEvent to auto-reload
   useEffect(() => {
@@ -338,10 +339,6 @@ export function ScheduleCalendarView({
       normalized === "COMPLETED" ||
       normalized === "ABSENT"
     );
-  };
-
-  const isCancelledOrInactive = (status?: string): boolean => {
-    return !isValidCalendarGridStatus(status);
   };
 
   // Helper to format date of calendar grid column
@@ -765,9 +762,11 @@ export function ScheduleCalendarView({
       <SessionDetailModal
         sessionId={selectedSessionId}
         isOpen={isDetailOpen}
+        initialAction={detailAction}
         onClose={() => {
           setIsDetailOpen(false);
           setSelectedSessionId(null);
+          setDetailAction(null);
         }}
         onUpdated={() => {
           fetchSessions();

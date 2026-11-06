@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import React, { Suspense, useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowLeft, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -9,10 +9,12 @@ import type { LinkInvitation, StudentLink } from "@/features/connection/types";
 import { RevokeLinkModal } from "@/features/connection/components/RevokeLinkModal";
 import { progressApi } from "@/features/progress";
 import { useToast } from "@/shared/ui/Toast";
+import { useDeepLinkParams } from "@/shared/hooks";
 
-export default function ParentChildrenPage() {
+function ParentChildrenContent() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { invitationId } = useDeepLinkParams(["invitationId"]);
   const [links, setLinks] = useState<StudentLink[]>([]);
   const [invitations, setInvitations] = useState<LinkInvitation[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
@@ -125,13 +127,26 @@ export default function ParentChildrenPage() {
 
           <h2 className="text-sm font-bold text-neutral-900 uppercase tracking-wider pt-3">Lời mời đang chờ ({invitations.length})</h2>
           {!loading && invitations.length === 0 && <p className="text-sm text-neutral-500">Không có lời mời đang chờ.</p>}
-          {invitations.map((item) => <div key={item.invitationId} className="rounded-2xl border border-stone-200 bg-white p-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-neutral-800">Đang chờ học sinh xác nhận</p>
-              <p className="text-xs text-neutral-500">Mã lời mời: {item.invitationId.slice(0, 8)} · Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")}</p>
-            </div>
-            <button type="button" disabled={busyId !== null} onClick={() => void withdraw(item.invitationId)} className="text-xs font-bold text-rose-700 disabled:opacity-50 cursor-pointer">Rút lời mời</button>
-          </div>)}
+          {invitations.map((item) => {
+            const isHighlighted = item.invitationId === invitationId;
+            return (
+              <div
+                key={item.invitationId}
+                data-testid={`invitation-card-${item.invitationId}`}
+                className={`rounded-2xl border p-4 flex items-center justify-between gap-3 transition-all ${
+                  isHighlighted
+                    ? "ring-2 ring-amber-500 bg-amber-50/50 border-amber-400"
+                    : "border-stone-200 bg-white"
+                }`}
+              >
+                <div>
+                  <p className="text-sm font-semibold text-neutral-800">Đang chờ học sinh xác nhận</p>
+                  <p className="text-xs text-neutral-500">Mã lời mời: {item.invitationId.slice(0, 8)} · Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")}</p>
+                </div>
+                <button type="button" disabled={busyId !== null} onClick={() => void withdraw(item.invitationId)} className="text-xs font-bold text-rose-700 disabled:opacity-50 cursor-pointer">Rút lời mời</button>
+              </div>
+            );
+          })}
         </section>
 
         <section className="lg:col-span-5 rounded-2xl border border-stone-200 bg-white p-6 h-fit space-y-4" aria-labelledby="invite-child-title">
@@ -153,5 +168,13 @@ export default function ParentChildrenPage() {
         onConfirm={handleConfirmRevoke}
       />
     </main>
+  );
+}
+
+export default function ParentChildrenPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-neutral-500">Đang tải liên kết gia đình...</div>}>
+      <ParentChildrenContent />
+    </Suspense>
   );
 }

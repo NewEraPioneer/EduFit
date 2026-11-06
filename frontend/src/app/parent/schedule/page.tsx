@@ -144,13 +144,14 @@ export default function ParentSchedulePage() {
       )}
 
       {/* Calendar View with initialStudentId passed */}
-      <ScheduleCalendarView
-        key={activeStudentId || "empty"}
-        role="PARENT"
-        availabilitySlots={[]}
-        classes={classes}
-        initialStudentId={activeStudentId}
-      />
+      <React.Suspense fallback={<div className="p-6 text-sm text-slate-500">Đang tải lịch học...</div>}>
+        <ScheduleCalendarView
+          role="PARENT"
+          availabilitySlots={[]}
+          classes={classes}
+          initialStudentId={activeStudentId}
+        />
+      </React.Suspense>
     </div>
   );
 }

@@ -27,8 +27,10 @@ import {
 } from "./StudentPedagogicalProfileModal";
 import { FitChecks } from "@/features/discovery/components/FitChecks";
 import { formatMoney } from "@/features/learning-needs/catalogRules";
+import { useDeepLinkParams } from "@/shared/hooks";
 
 export function TutorPendingRequests() {
+  const { requestId } = useDeepLinkParams(["requestId"]);
   const [items, setItems] = useState<TutorInboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -251,13 +253,18 @@ export function TutorPendingRequests() {
             const isAccepted = item.status === "ACCEPTED";
             const isRejected = item.status === "REJECTED";
 
+            const isHighlighted = item.requestId === requestId;
+
             return (
               <div
                 key={item.requestId}
+                data-testid={`request-card-${item.requestId}`}
                 className={`relative flex flex-col justify-between rounded-2xl border p-5 shadow-xs transition-all ${
-                  item.hasSlotConflict && isPending
-                    ? "border-amber-300 bg-amber-50/20 dark:border-amber-900/60 dark:bg-amber-950/10"
-                    : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                  isHighlighted
+                    ? "ring-2 ring-blue-500 bg-blue-50/40 border-blue-400"
+                    : item.hasSlotConflict && isPending
+                      ? "border-amber-300 bg-amber-50/20 dark:border-amber-900/60 dark:bg-amber-950/10"
+                      : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
                 }`}
               >
                 <div>

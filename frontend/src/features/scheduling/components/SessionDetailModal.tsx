@@ -1,7 +1,7 @@
 "use client";
 
 import { SessionBillingPanel } from "@/features/payment/components/SessionBillingPanel";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Clock,
@@ -32,6 +32,9 @@ import type { UserRole } from "@/shared/ui/Sidebar";
 import { formatLocalDateToIso, formatLocalTime } from "@/shared/utils/dateTime";
 import { PlannedMilestonesPicker, SessionOutcomeModal, progressApi, type PlanResponse } from "@/features/progress";
 
+export const canRecordSessionOutcome = (status?: string, role?: string): boolean =>
+  status === "SCHEDULED" && role === "TUTOR";
+
 export interface SessionDetailModalProps {
   sessionId: string | null;
   isOpen: boolean;
@@ -40,6 +43,7 @@ export interface SessionDetailModalProps {
   role: UserRole;
   currentUserId?: string;
   classes?: ConnectedClass[];
+  initialAction?: "outcome" | null;
 }
 
 export function SessionDetailModal({
@@ -50,6 +54,7 @@ export function SessionDetailModal({
   role,
   currentUserId,
   classes = [],
+  initialAction,
 }: SessionDetailModalProps) {
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [rescheduleProposal, setRescheduleProposal] = useState<RescheduleProposal | null>(null);
@@ -90,6 +95,7 @@ export function SessionDetailModal({
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [classPlan, setClassPlan] = useState<PlanResponse | null>(null);
   const [plannedMilestoneIds, setPlannedMilestoneIds] = useState<string[]>([]);
+  const handledActionRef = useRef<string | null>(null);
 
   // Track session ID during render to avoid cascading renders in useEffect (React 19 pattern)
   const [prevSessionId, setPrevSessionId] = useState<string | null>(null);
@@ -98,13 +104,21 @@ export function SessionDetailModal({
     setRescheduleProposal(null);
     setShowRescheduleRejectInput(false);
     setRescheduleRejectReason("");
+    setShowOutcomeModal(false);
   } else if (!isOpen && prevSessionId !== null) {
     setPrevSessionId(null);
     setSession(null);
     setRescheduleProposal(null);
     setShowRescheduleRejectInput(false);
     setRescheduleRejectReason("");
+    setShowOutcomeModal(false);
   }
+
+  useEffect(() => {
+    if (!isOpen) {
+      handledActionRef.current = null;
+    }
+  }, [isOpen]);
 
   // Fetch session details on mount / id change
   useEffect(() => {
@@ -116,6 +130,16 @@ export function SessionDetailModal({
           if (!ignore) {
             if (res.success && res.data) {
               setSession(res.data);
+              const canRecord = canRecordSessionOutcome(res.data.status, role);
+              const actionKey = `${sessionId}:${initialAction}`;
+              if (
+                canRecord &&
+                initialAction === "outcome" &&
+                handledActionRef.current !== actionKey
+              ) {
+                handledActionRef.current = actionKey;
+                setShowOutcomeModal(true);
+              }
               const start = new Date(res.data.startAt);
               const end = new Date(res.data.endAt);
               if (!Number.isNaN(start.getTime())) {
@@ -165,7 +189,7 @@ export function SessionDetailModal({
     return () => {
       ignore = true;
     };
-  }, [isOpen, sessionId]);
+  }, [isOpen, sessionId, initialAction, role]);
 
   if (!isOpen || !sessionId) return null;
 
@@ -978,7 +1002,7 @@ export function SessionDetailModal({
                   {/* Trạng thái SCHEDULED: Đổi lịch hoặc Hủy */}
                   {session.status === "SCHEDULED" && (
                     <>
-                      {role === "TUTOR" && (
+                      {canRecordSessionOutcome(session.status, role) && (
                         <button
                           type="button"
                           onClick={() => setShowOutcomeModal(true)}

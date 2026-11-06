@@ -32,5 +32,9 @@ export default function StudentSchedulePage() {
       });
   }, []);
 
-  return <ScheduleCalendarView role="STUDENT" availabilitySlots={[]} classes={classes} />;
+  return (
+    <React.Suspense fallback={<div className="p-6 text-sm text-slate-500">Đang tải lịch học...</div>}>
+      <ScheduleCalendarView role="STUDENT" availabilitySlots={[]} classes={classes} />
+    </React.Suspense>
+  );
 }

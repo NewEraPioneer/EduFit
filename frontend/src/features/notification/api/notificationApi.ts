@@ -1,6 +1,5 @@
 import { fetchApi, ApiResponse } from "@/lib/api";
 import type {
-  NotificationItem,
   NotificationListResponse,
   UnreadCountResponse,
   UnreadSummaryResponse,

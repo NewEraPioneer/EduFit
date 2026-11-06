@@ -11,195 +11,62 @@ import {
   Inbox,
   AlertCircle,
 } from "lucide-react";
-import { notificationApi } from "../api/notificationApi";
 import { useNotification } from "../context/NotificationContext";
 import type { NotificationItem } from "../types";
 import type { UserRole } from "@/shared/ui/Sidebar";
+import { getNotificationRoute } from "../lib/notificationRoute";
+
+export { getNotificationRoute };
 
 interface NotificationDropdownProps {
   role?: UserRole;
   onClose?: () => void;
 }
 
-const PAGE_SIZE = 20;
-
-export function getNotificationRoute(
-  item: NotificationItem,
-  role: UserRole = "STUDENT",
-): string {
-  const type = item.type?.toUpperCase() || "";
-  const targetType = item.targetType?.toUpperCase() || "";
-  const normalizedRole = role.toUpperCase();
-
-  if (targetType === "PAYMENT_SESSION" && item.targetId) {
-    const id = encodeURIComponent(item.targetId);
-    if (normalizedRole === "ADMIN") return `/admin/disputes/${id}`;
-    const base =
-      normalizedRole === "TUTOR"
-        ? "/tutor/earnings"
-        : normalizedRole === "PARENT"
-          ? "/parent/billing"
-          : "/student/payments";
-    return `${base}/sessions/${id}`;
-  }
-  if (type.startsWith("PAYMENT_") || targetType === "PAYMENT_WALLET") {
-    if (normalizedRole === "TUTOR") return "/tutor/earnings";
-    if (normalizedRole === "PARENT") return "/parent/billing";
-    if (normalizedRole === "ADMIN") return "/admin/payments";
-    return "/student/payments";
-  }
-
-  // 1. Liên kết gia đình (Parent-Student Link)
-  if (
-    type.startsWith("LINK_") ||
-    targetType === "PARENT_STUDENT_LINK" ||
-    targetType === "LINK_INVITATION"
-  ) {
-    return normalizedRole === "PARENT" ? "/parent/children" : "/student/family";
-  }
-
-  // 2. Buổi học / Lịch học / Đổi lịch (Sessions & Scheduling)
-  if (
-    type.startsWith("SESSION_") ||
-    type.includes("RESCHEDULE") ||
-    targetType === "TUTORING_SESSION" ||
-    targetType === "SESSION" ||
-    targetType === "RESCHEDULE_PROPOSAL"
-  ) {
-    const base =
-      normalizedRole === "TUTOR"
-        ? "/tutor/schedule"
-        : normalizedRole === "PARENT"
-          ? "/parent/schedule"
-          : "/student/schedule";
-    // Trang lịch đọc sessionId để mở thẳng chi tiết buổi học (xem ScheduleCalendarView).
-    return targetType === "SESSION" && item.targetId
-      ? `${base}?sessionId=${encodeURIComponent(item.targetId)}`
-      : base;
-  }
-
-  // 3. Yêu cầu kết nối / Mời học (Connection Requests)
-  if (type.startsWith("CONNECTION_") || targetType === "CONNECTION_REQUEST") {
-    if (type === "CONNECTION_ACCEPTED") {
-      if (normalizedRole === "TUTOR") return "/tutor/classes";
-      if (normalizedRole === "PARENT") return "/parent/children";
-      return "/student/classes";
-    }
-    if (normalizedRole === "TUTOR") return "/tutor/requests";
-    if (normalizedRole === "PARENT") return "/parent/tutors";
-    return "/student/tutors?tab=requests";
-  }
-
-  // 4. Lớp học (Classes)
-  if (targetType === "CLASS" || type.startsWith("CLASS_")) {
-    if (normalizedRole === "TUTOR") return "/tutor/classes";
-    if (normalizedRole === "PARENT") return "/parent/children";
-    return "/student/classes";
-  }
-
-  // 5. Đánh giá (Reviews)
-  if (type.startsWith("REVIEW_") || targetType === "REVIEW") {
-    if (normalizedRole === "TUTOR") return "/tutor/reviews";
-    return normalizedRole === "PARENT"
-      ? "/parent/dashboard"
-      : "/student/classes";
-  }
-
-  // 6. Cột mốc & Tiến độ học tập (Milestones & Progress)
-  if (
-    type.startsWith("MILESTONE_") ||
-    type.startsWith("PROGRESS_") ||
-    type.startsWith("PERIOD_REPORT") ||
-    targetType === "LEARNING_PLAN" ||
-    targetType === "MILESTONE" ||
-    targetType === "PERIOD_REPORT"
-  ) {
-    if (normalizedRole === "PARENT") return "/parent/progress";
-    if (normalizedRole === "TUTOR") return "/tutor/classes";
-    return "/student/progress";
-  }
-
-  // 7. Xác thực hồ sơ KYC hoặc thẩm định bằng cấp (Verification)
-  if (
-    type.startsWith("KYC_") ||
-    type.startsWith("VERIFICATION_") ||
-    type.startsWith("QUALIFICATION_") ||
-    targetType === "VERIFICATION" ||
-    targetType === "KYC" ||
-    targetType === "QUALIFICATION"
-  ) {
-    if (normalizedRole === "ADMIN") return "/admin/verification-queue";
-    return "/tutor/verification";
-  }
-
-  // Mặc định: về Dashboard của vai trò tương ứng
-  switch (normalizedRole) {
-    case "TUTOR":
-      return "/tutor/dashboard";
-    case "PARENT":
-      return "/parent/dashboard";
-    case "ADMIN":
-      return "/admin/dashboard";
-    default:
-      return "/student/dashboard";
-  }
-}
-
 export function NotificationDropdown({
   role = "STUDENT",
   onClose,
 }: NotificationDropdownProps) {
-  // Số chưa đọc, đánh dấu đã đọc và toast dùng chung một nguồn (NotificationProvider), dropdown chỉ giữ danh sách.
-  const { unreadCount, markAsRead, markAllAsRead } = useNotification();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [filterUnread, setFilterUnread] = useState<boolean>(false);
-  const [limit, setLimit] = useState<number>(PAGE_SIZE);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // Badge unreadCount và danh sách All/Unread dùng chung từ context (AC1, AC4, B3)
+  const {
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    items: contextItems,
+    unreadItems: contextUnreadItems,
+    isLoading: contextLoading,
+    error: contextError,
+    hasMore: contextHasMore,
+    loadMore: contextLoadMore,
+    unreadHasMore,
+    unreadLoading,
+    unreadError,
+    loadUnread,
+    loadMoreUnread,
+  } = useNotification();
+
+  const [activeTab, setActiveTab] = useState<"ALL" | "UNREAD">("ALL");
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // B3 & D1: Khi chuyển sang tab UNREAD thì nạp trang 0 từ server qua Context
   useEffect(() => {
-    let alive = true;
-    let running = false;
-    const load = async (background = false) => {
-      if (running) return;
-      running = true;
-      try {
-        if (!background) setIsLoading(true);
-        const res = await notificationApi.getNotifications(filterUnread, 0, limit);
-        if (alive && res.success && res.data) {
-          setNotifications(res.data.items || []);
-          setError(null);
-        }
-      } catch (err: unknown) {
-        if (alive)
-          setError(
-            err instanceof Error ? err.message : "Không thể tải thông báo",
-          );
-      } finally {
-        running = false;
-        if (alive) setIsLoading(false);
-      }
-    };
-    void load();
-    const refresh = () => {
-      if (!document.hidden) void load(true);
-    };
-    const timer = setInterval(refresh, 15000);
-    window.addEventListener("focus", refresh);
-    return () => {
-      alive = false;
-      clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-    };
-  }, [filterUnread, limit]);
+    if (activeTab === "UNREAD") {
+      void loadUnread();
+    }
+  }, [activeTab, loadUnread]);
+
+  const itemsToDisplay = activeTab === "ALL" ? contextItems : contextUnreadItems;
+  const isLoading = activeTab === "ALL" ? contextLoading : unreadLoading;
+  const error = activeTab === "ALL" ? contextError : unreadError;
+  const hasMore = activeTab === "ALL" ? contextHasMore : unreadHasMore;
 
   // Click outside listener
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element | null;
-      // Bấm chính nút chuông để đóng: nút tự đóng/mở, không để mousedown đóng rồi click mở lại (F-16).
+      // Bấm chính nút chuông để đóng: nút tự đóng/mở, không để mousedown đóng rồi click mở lại
       if (target?.closest?.("[data-notification-trigger]")) return;
       if (
         dropdownRef.current &&
@@ -212,28 +79,30 @@ export function NotificationDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  // Mark single notification read
-  const handleMarkRead = async (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setNotifications((prev) =>
-      prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n)),
-    );
-    await markAsRead(id);
-  };
-
-  // Mark all read
-  const handleMarkAllRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    await markAllAsRead();
-  };
-
-  const handleNotificationClick = async (item: NotificationItem) => {
-    if (!item.isRead) await handleMarkRead(item.notificationId);
+  // AC4 & AC9: router.push trước, markAsRead chạy ngầm không chặn luồng
+  const handleNotificationClick = (item: NotificationItem) => {
     const destination = getNotificationRoute(item, role);
     if (destination) {
       router.push(destination);
     }
     onClose?.();
+    if (!item.isRead) {
+      void markAsRead(item.notificationId);
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    void markAllAsRead();
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore && !isLoading) {
+      if (activeTab === "ALL") {
+        void contextLoadMore();
+      } else {
+        void loadMoreUnread();
+      }
+    }
   };
 
   // Helper relative time
@@ -312,9 +181,9 @@ export function NotificationDropdown({
       <div className="flex border-b border-stone-100 dark:border-stone-800 text-xs px-3 pt-2 gap-2 bg-stone-50/30 dark:bg-stone-800/20">
         <button
           type="button"
-          onClick={() => setFilterUnread(false)}
+          onClick={() => setActiveTab("ALL")}
           className={`pb-2 px-2 font-semibold border-b-2 transition-colors cursor-pointer ${
-            !filterUnread
+            activeTab === "ALL"
               ? "border-amber-500 text-amber-600 dark:text-amber-400"
               : "border-transparent text-neutral-500 dark:text-stone-400 hover:text-neutral-800"
           }`}
@@ -323,9 +192,9 @@ export function NotificationDropdown({
         </button>
         <button
           type="button"
-          onClick={() => setFilterUnread(true)}
+          onClick={() => setActiveTab("UNREAD")}
           className={`pb-2 px-2 font-semibold border-b-2 transition-colors cursor-pointer ${
-            filterUnread
+            activeTab === "UNREAD"
               ? "border-amber-500 text-amber-600 dark:text-amber-400"
               : "border-transparent text-neutral-500 dark:text-stone-400 hover:text-neutral-800"
           }`}
@@ -346,21 +215,21 @@ export function NotificationDropdown({
             <AlertCircle className="size-5 text-rose-500" />
             <span>{error}</span>
           </div>
-        ) : notifications.length === 0 ? (
+        ) : itemsToDisplay.length === 0 ? (
           <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2 text-neutral-400 dark:text-stone-500">
             <Inbox className="size-8 stroke-1" />
             <span className="text-xs">
-              {filterUnread
+              {activeTab === "UNREAD"
                 ? "Không có thông báo chưa đọc"
                 : "Chưa có thông báo nào"}
             </span>
           </div>
         ) : (
-          notifications.map((item) => (
+          itemsToDisplay.map((item) => (
             <button
               type="button"
               key={item.notificationId}
-              onClick={() => void handleNotificationClick(item)}
+              onClick={() => handleNotificationClick(item)}
               className={`w-full p-3.5 flex gap-3 text-left transition-colors cursor-pointer ${
                 item.isRead
                   ? "bg-white dark:bg-stone-900 opacity-80 hover:bg-stone-50 dark:hover:bg-stone-800/60"
@@ -400,10 +269,10 @@ export function NotificationDropdown({
             </button>
           ))
         )}
-        {!isLoading && !error && notifications.length >= limit && (
+        {!isLoading && !error && hasMore && (
           <button
             type="button"
-            onClick={() => setLimit((current) => current + PAGE_SIZE)}
+            onClick={handleLoadMore}
             className="w-full py-3 text-xs font-semibold text-amber-600 hover:bg-stone-50 dark:text-amber-400 dark:hover:bg-stone-800/60 cursor-pointer"
           >
             Xem thêm

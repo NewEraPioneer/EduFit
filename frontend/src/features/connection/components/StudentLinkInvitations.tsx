@@ -5,6 +5,7 @@ import { connectionApi } from "../api/connectionApi";
 import type { LinkInvitation, StudentLink } from "../types";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/shared/ui/Toast";
+import { useDeepLinkParams } from "@/shared/hooks";
 
 import { HeartHandshake } from "lucide-react";
 import { RevokeLinkModal } from "./RevokeLinkModal";
@@ -13,9 +14,15 @@ interface StudentLinkInvitationsProps {
   variant?: "full" | "dashboard-banner";
 }
 
+// Ref ổn định: chỉ cuộn khi thẻ được làm nổi bật gắn vào DOM (không cuộn lại mỗi lần re-render)
+const scrollHighlightedIntoView = (el: HTMLElement | null) => {
+  el?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+};
+
 export function StudentLinkInvitations({ variant = "full" }: StudentLinkInvitationsProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { invitationId } = useDeepLinkParams(["invitationId"]);
   const [invitations, setInvitations] = useState<LinkInvitation[]>([]);
   const [links, setLinks] = useState<StudentLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,51 +99,60 @@ export function StudentLinkInvitations({ variant = "full" }: StudentLinkInvitati
 
     return (
       <div className="space-y-3">
-        {invitations.map((item) => (
-          <div
-            key={item.invitationId}
-            className="rounded-2xl border border-amber-300 bg-linear-to-r from-amber-50 to-orange-50 p-4 sm:p-5 shadow-xs animate-in fade-in slide-in-from-top-2"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3.5">
-                <div className="size-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <HeartHandshake className="size-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold uppercase tracking-wide">
-                      Lời mời liên kết mới
-                    </span>
+        {invitations.map((item) => {
+          const isHighlighted = item.invitationId === invitationId;
+          return (
+            <div
+              key={item.invitationId}
+              ref={isHighlighted ? scrollHighlightedIntoView : undefined}
+              data-testid={`invitation-card-${item.invitationId}`}
+              className={`rounded-2xl border p-4 sm:p-5 shadow-xs animate-in fade-in slide-in-from-top-2 transition-all ${
+                isHighlighted
+                  ? "ring-2 ring-amber-500 bg-amber-50/50 border-amber-400"
+                  : "border-amber-300 bg-linear-to-r from-amber-50 to-orange-50"
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="size-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <HeartHandshake className="size-5" />
                   </div>
-                  <h3 className="font-heading text-sm sm:text-base font-bold text-neutral-900 mt-1">
-                    {item.inviterName || "Phụ huynh"} mời bạn liên kết
-                  </h3>
-                  <p className="text-xs text-neutral-600 mt-0.5">
-                    Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")} · Khi đồng ý, phụ huynh có thể theo dõi tiến độ và lịch học của bạn.
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold uppercase tracking-wide">
+                        Lời mời liên kết mới
+                      </span>
+                    </div>
+                    <h3 className="font-heading text-sm sm:text-base font-bold text-neutral-900 mt-1">
+                      {item.inviterName || "Phụ huynh"} mời bạn liên kết
+                    </h3>
+                    <p className="text-xs text-neutral-600 mt-0.5">
+                      Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")} · Khi đồng ý, phụ huynh có thể theo dõi tiến độ và lịch học của bạn.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                <button
-                  type="button"
-                  disabled={busyId !== null}
-                  onClick={() => void respond(item.invitationId, false)}
-                  className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-neutral-700 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  Từ chối
-                </button>
-                <button
-                  type="button"
-                  disabled={busyId !== null}
-                  onClick={() => void respond(item.invitationId, true)}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  Đồng ý
-                </button>
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <button
+                    type="button"
+                    disabled={busyId !== null}
+                    onClick={() => void respond(item.invitationId, false)}
+                    className="px-3.5 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-neutral-700 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Từ chối
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyId !== null}
+                    onClick={() => void respond(item.invitationId, true)}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Đồng ý
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
@@ -156,32 +172,44 @@ export function StudentLinkInvitations({ variant = "full" }: StudentLinkInvitati
       ) : invitations.length === 0 ? (
         <p className="text-sm text-neutral-500">Không có lời mời đang chờ.</p>
       ) : (
-        invitations.map((item) => (
-          <div key={item.invitationId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-stone-200 p-4">
-            <div>
-              <p className="text-sm font-semibold text-neutral-900">{item.inviterName || "Phụ huynh"} mời bạn liên kết</p>
-              <p className="text-xs text-neutral-500">Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")}</p>
+        invitations.map((item) => {
+          const isHighlighted = item.invitationId === invitationId;
+          return (
+            <div
+              key={item.invitationId}
+              ref={isHighlighted ? scrollHighlightedIntoView : undefined}
+              data-testid={`invitation-card-${item.invitationId}`}
+              className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-4 transition-all ${
+                isHighlighted
+                  ? "ring-2 ring-amber-500 bg-amber-50/50 border-amber-400"
+                  : "border-stone-200"
+              }`}
+            >
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">{item.inviterName || "Phụ huynh"} mời bạn liên kết</p>
+                <p className="text-xs text-neutral-500">Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={busyId !== null}
+                  onClick={() => void respond(item.invitationId, false)}
+                  className="rounded-lg border border-stone-200 px-3 py-2 text-xs font-bold text-neutral-700 disabled:opacity-50"
+                >
+                  Từ chối
+                </button>
+                <button
+                  type="button"
+                  disabled={busyId !== null}
+                  onClick={() => void respond(item.invitationId, true)}
+                  className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                >
+                  Đồng ý
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={busyId !== null}
-                onClick={() => void respond(item.invitationId, false)}
-                className="rounded-lg border border-stone-200 px-3 py-2 text-xs font-bold text-neutral-700 disabled:opacity-50"
-              >
-                Từ chối
-              </button>
-              <button
-                type="button"
-                disabled={busyId !== null}
-                onClick={() => void respond(item.invitationId, true)}
-                className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
-              >
-                Đồng ý
-              </button>
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
 
       <div className="border-t border-stone-100 pt-4 space-y-3">
