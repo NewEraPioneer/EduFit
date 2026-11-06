@@ -123,6 +123,20 @@ describe("notificationRoute - Hằng số và quy tắc điều hướng", () =>
     expect(getNotificationRoute(item, "STUDENT")).toBe("/student/schedule");
   });
 
+  it.each(["SESSION_PROPOSAL", "SESSION_UPDATE"])(
+    "targetType cũ %s vẫn trỏ thẳng tới buổi học",
+    (targetType) => {
+      const item = buildNotificationFixture({
+        type: "SESSION_UPDATE",
+        targetType,
+        targetId: NOTIFICATION_TEST_IDS.SESSION_1,
+      });
+      expect(getNotificationRoute(item, "STUDENT")).toBe(
+        `/student/schedule?sessionId=${NOTIFICATION_TEST_IDS.SESSION_1}`,
+      );
+    },
+  );
+
   describe("AC6: Thay đổi lịch hàng loạt (CLASS schedule changes)", () => {
     const bulkTypes = [
       "SESSION_RECURRING_CHANGED",

@@ -10,6 +10,10 @@ export interface ScheduleTimelineViewProps {
   sessions: CalendarItem[];
   classes?: ConnectedClass[];
   role?: UserRole;
+  /** Các buổi có thay đổi chưa xem (khóa = sessionId) */
+  changedSessionIds?: ReadonlyMap<string, unknown>;
+  /** Buổi học đang được nhấn mạnh (đến từ thông báo) */
+  highlightedSessionId?: string | null;
   onSelectSession: (sessionId: string) => void;
   onProposeNew: () => void;
 }
@@ -18,6 +22,8 @@ export function ScheduleTimelineView({
   sessions,
   classes = [],
   role,
+  changedSessionIds,
+  highlightedSessionId,
   onSelectSession,
   onProposeNew,
 }: ScheduleTimelineViewProps) {
@@ -218,12 +224,24 @@ export function ScheduleTimelineView({
                       type="button"
                       key={session.sessionId}
                       onClick={() => onSelectSession(session.sessionId)}
+                      data-changed={changedSessionIds?.has(session.sessionId) ? "true" : undefined}
                       className={`group relative flex flex-col justify-between w-full text-left rounded-2xl border bg-white p-5 shadow-2xs hover:shadow-md transition-all cursor-pointer dark:bg-zinc-900 ${
+                        highlightedSessionId === session.sessionId
+                          ? "ring-4 ring-red-500 animate-pulse"
+                          : changedSessionIds?.has(session.sessionId)
+                          ? "ring-2 ring-red-500"
+                          : ""
+                      } ${
                         activeTab === "active"
                           ? "border-stone-200 hover:border-sky-300 dark:border-zinc-800"
                           : "border-rose-100 bg-rose-50/20 hover:border-rose-300 dark:border-rose-950/40"
                       }`}
                     >
+                      {changedSessionIds?.has(session.sessionId) && (
+                        <span className="absolute -top-2 right-3 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white shadow">
+                          Mới thay đổi
+                        </span>
+                      )}
                       <div>
                         {/* Top row: Time + Status badge */}
                         <div className="flex items-center justify-between gap-2">

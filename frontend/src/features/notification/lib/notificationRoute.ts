@@ -16,6 +16,18 @@ export const NOTIFICATION_TARGET = {
   REVIEW: "REVIEW",
 } as const;
 
+/** targetType mà targetId là mã buổi học (gồm giá trị cũ SESSION_PROPOSAL / SESSION_UPDATE của dữ liệu cũ và seed) */
+const SESSION_TARGET_TYPES: ReadonlySet<string> = new Set([
+  NOTIFICATION_TARGET.SESSION,
+  "TUTORING_SESSION",
+  "SESSION_PROPOSAL",
+  "SESSION_UPDATE",
+]);
+
+export function isSessionTargetType(targetType?: string | null): boolean {
+  return SESSION_TARGET_TYPES.has(targetType?.toUpperCase() ?? "");
+}
+
 export type NotificationTargetType =
   (typeof NOTIFICATION_TARGET)[keyof typeof NOTIFICATION_TARGET];
 
@@ -129,8 +141,7 @@ const ROUTE_RULES: RouteRule[] = [
     match: (type, targetType) =>
       type.startsWith("SESSION_") ||
       type.includes("RESCHEDULE") ||
-      targetType === NOTIFICATION_TARGET.SESSION ||
-      targetType === "TUTORING_SESSION" ||
+      isSessionTargetType(targetType) ||
       targetType === "RESCHEDULE_PROPOSAL",
     resolve: (item, role) => {
       // ADMIN không có trang lịch học, về dashboard quản trị
@@ -148,8 +159,7 @@ const ROUTE_RULES: RouteRule[] = [
       }
 
       // Chỉ targetId của buổi học mới là sessionId; các targetType khác (vd. đề xuất đổi lịch) về trang lịch học
-      const upperTarget = item.targetType?.toUpperCase() ?? "";
-      if (upperTarget !== NOTIFICATION_TARGET.SESSION && upperTarget !== "TUTORING_SESSION") {
+      if (!isSessionTargetType(item.targetType)) {
         return base;
       }
 

@@ -98,7 +98,7 @@ export function TopHeader({
           >
             <Bell className="size-4.5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 size-2 rounded-full bg-amber-500 animate-pulse ring-2 ring-white dark:ring-stone-900" />
+              <span className="absolute top-1 right-1 size-3 rounded-full bg-red-600 animate-pulse ring-2 ring-white dark:ring-stone-900" />
             )}
           </button>
 

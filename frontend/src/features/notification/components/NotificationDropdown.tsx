@@ -159,7 +159,7 @@ export function NotificationDropdown({
             Thông báo
           </h3>
           {unreadCount > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white">
               {unreadCount}
             </span>
           )}
@@ -233,7 +233,7 @@ export function NotificationDropdown({
               className={`w-full p-3.5 flex gap-3 text-left transition-colors cursor-pointer ${
                 item.isRead
                   ? "bg-white dark:bg-stone-900 opacity-80 hover:bg-stone-50 dark:hover:bg-stone-800/60"
-                  : "bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-50/70 dark:hover:bg-amber-950/30"
+                  : "bg-red-50 dark:bg-red-950/40 border-l-4 border-red-500 hover:bg-red-100 dark:hover:bg-red-950/60"
               }`}
             >
               <div className="size-8 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center shrink-0 mt-0.5">
@@ -246,7 +246,7 @@ export function NotificationDropdown({
                     className={`text-[13px] leading-snug line-clamp-2 ${
                       item.isRead
                         ? "font-medium text-neutral-800 dark:text-stone-200"
-                        : "font-bold text-neutral-900 dark:text-stone-100"
+                        : "text-sm font-extrabold text-red-800 dark:text-red-100"
                     }`}
                   >
                     {item.title}
@@ -263,7 +263,7 @@ export function NotificationDropdown({
 
               {!item.isRead && (
                 <div className="flex items-center shrink-0">
-                  <span className="size-2 rounded-full bg-amber-500" />
+                  <span className="size-3 rounded-full bg-red-600 ring-4 ring-red-500/20" />
                 </div>
               )}
             </button>

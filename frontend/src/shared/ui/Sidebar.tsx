@@ -279,7 +279,7 @@ function SidebarNav({
                     {collapsed && hasDot && (
                       <span
                         data-testid="sidebar-notification-dot-collapsed"
-                        className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900"
+                        className="absolute -top-1 -right-1 size-2.5 rounded-full bg-red-600 animate-pulse ring-1 ring-white dark:ring-stone-900"
                       />
                     )}
                   </div>
@@ -297,11 +297,11 @@ function SidebarNav({
                   {!collapsed && hasDot && (
                     <span
                       data-testid="sidebar-notification-dot"
-                      className="size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900 shrink-0"
+                      className="size-2.5 rounded-full bg-red-600 animate-pulse ring-1 ring-white dark:ring-stone-900 shrink-0"
                     />
                   )}
                   {!collapsed && item.badge && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-red-600 text-white leading-none shadow-xs shrink-0">
                       {item.badge}
                     </span>
                   )}
@@ -403,7 +403,7 @@ export function Sidebar({
                             {collapsed && hasDot && (
                               <span
                                 data-testid="sidebar-notification-dot-collapsed"
-                                className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900"
+                                className="absolute -top-1 -right-1 size-2.5 rounded-full bg-red-600 animate-pulse ring-1 ring-white dark:ring-stone-900"
                               />
                             )}
                           </div>
@@ -420,11 +420,11 @@ export function Sidebar({
                           {!collapsed && hasDot && (
                             <span
                               data-testid="sidebar-notification-dot"
-                              className="size-2 rounded-full bg-amber-500 animate-pulse ring-1 ring-white dark:ring-stone-900 shrink-0"
+                              className="size-2.5 rounded-full bg-red-600 animate-pulse ring-1 ring-white dark:ring-stone-900 shrink-0"
                             />
                           )}
                           {!collapsed && item.badge && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-500 text-white leading-none shadow-xs shrink-0">
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-red-600 text-white leading-none shadow-xs shrink-0">
                               {item.badge}
                             </span>
                           )}

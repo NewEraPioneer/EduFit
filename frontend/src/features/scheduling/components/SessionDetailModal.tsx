@@ -44,6 +44,8 @@ export interface SessionDetailModalProps {
   currentUserId?: string;
   classes?: ConnectedClass[];
   initialAction?: "outcome" | null;
+  /** Gọi khi tải xong chi tiết buổi học (vd. để lịch nhảy tới đúng tuần) */
+  onSessionLoaded?: (session: SessionDetail) => void;
 }
 
 export function SessionDetailModal({
@@ -55,7 +57,12 @@ export function SessionDetailModal({
   currentUserId,
   classes = [],
   initialAction,
+  onSessionLoaded,
 }: SessionDetailModalProps) {
+  const onSessionLoadedRef = useRef(onSessionLoaded);
+  useEffect(() => {
+    onSessionLoadedRef.current = onSessionLoaded;
+  });
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [rescheduleProposal, setRescheduleProposal] = useState<RescheduleProposal | null>(null);
   const [showRescheduleRejectInput, setShowRescheduleRejectInput] = useState(false);
@@ -130,6 +137,7 @@ export function SessionDetailModal({
           if (!ignore) {
             if (res.success && res.data) {
               setSession(res.data);
+              onSessionLoadedRef.current?.(res.data);
               const canRecord = canRecordSessionOutcome(res.data.status, role);
               const actionKey = `${sessionId}:${initialAction}`;
               if (

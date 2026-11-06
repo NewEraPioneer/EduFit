@@ -60,22 +60,22 @@ export function NotificationFloatingToast({
   return (
     <div
       aria-live="polite"
-      className="fixed top-20 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"
+      className="fixed top-20 right-5 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none"
     >
       {activeToasts.map((toast) => (
         <div
           key={toast.notificationId}
           role="alert"
           onClick={() => void handleToastClick(toast)}
-          className="pointer-events-auto bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-xl p-3.5 flex items-start gap-3 cursor-pointer hover:border-amber-400 dark:hover:border-amber-600 transition-all animate-in slide-in-from-top-3 fade-in duration-300"
+          className="pointer-events-auto bg-red-50 dark:bg-red-950 border-2 border-red-500 rounded-2xl shadow-2xl ring-4 ring-red-500/20 p-4 flex items-start gap-3.5 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900 transition-all animate-in slide-in-from-top-3 fade-in duration-300"
         >
-          <div className="size-8 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center shrink-0 mt-0.5">
+          <div className="size-10 rounded-full bg-red-600 flex items-center justify-center shrink-0 mt-0.5 [&_svg]:size-5 [&_svg]:text-white [&_svg]:fill-none">
             {renderIcon(toast.type)}
           </div>
 
           <div className="flex-1 min-w-0 space-y-0.5">
             <div className="flex items-center justify-between gap-1">
-              <h4 className="text-xs font-bold text-neutral-900 dark:text-stone-100 truncate">
+              <h4 className="text-sm font-extrabold text-red-800 dark:text-red-100 truncate">
                 {toast.title}
               </h4>
               <button
@@ -85,12 +85,12 @@ export function NotificationFloatingToast({
                   e.stopPropagation();
                   dismissToast(toast.notificationId);
                 }}
-                className="text-neutral-400 hover:text-neutral-700 dark:text-stone-500 dark:hover:text-stone-200 p-0.5 rounded cursor-pointer"
+                className="text-red-400 hover:text-red-700 dark:text-red-300 dark:hover:text-red-100 p-0.5 rounded cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
             </div>
-            <p className="text-[11px] text-neutral-600 dark:text-stone-400 line-clamp-2 leading-relaxed">
+            <p className="text-xs font-medium text-red-900 dark:text-red-200 line-clamp-3 leading-relaxed">
               {toast.shortText}
             </p>
           </div>
