@@ -56,7 +56,7 @@ export function ConnectionRequestDialog({
   const [fit, setFit] = useState<TutorFit | null>(null);
   const [fitLoading, setFitLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [proposedSlots, setProposedSlots] = useState<WeeklySlot[]>([]);
+  const [slotDraft, setSlotDraft] = useState<{ scope: string; slots: WeeklySlot[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needDialog, setNeedDialog] = useState<{ need: LearningNeed | null; subjectId?: number } | null>(null);
@@ -71,14 +71,13 @@ export function ConnectionRequestDialog({
     [needs, taughtSubjects]
   );
   const selected = eligible.find((need) => need.needId === needId) ?? null;
+  const slotScope = `${studentId ?? "self"}:${tutorId}:${needId}`;
+  const proposedSlots = slotDraft?.scope === slotScope ? slotDraft.slots : selected?.availabilitySlots ?? [];
+  const setProposedSlots = (slots: WeeklySlot[]) => setSlotDraft({ scope: slotScope, slots });
   const effectiveSlots = proposedSlots.length ? proposedSlots : selected?.availabilitySlots ?? [];
   const slotValidation = effectiveSlots.length
     ? validateAvailabilitySlots(effectiveSlots)
     : { valid: false, message: "Nhu cầu chưa có lịch học. Vui lòng bổ sung lịch trước khi gửi." };
-
-  useEffect(() => {
-    setProposedSlots(selected?.availabilitySlots.map((slot) => ({ ...slot })) ?? []);
-  }, [selected]);
 
   const loadNeeds = useCallback(async (selectNeedId?: string) => {
     setLoading(true);
@@ -195,7 +194,7 @@ export function ConnectionRequestDialog({
           <form onSubmit={send} className="space-y-4">
             <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               Nhu cầu học gửi kèm yêu cầu
-              <select value={needId} onChange={(event) => setNeedId(event.target.value)}
+              <select value={needId} onChange={(event) => { setSlotDraft(null); setNeedId(event.target.value); }}
                 className="mt-1 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-2 text-xs font-medium text-neutral-900 dark:text-neutral-100">
                 {eligible.map((need) => (
                   <option key={need.needId} value={need.needId}>
@@ -234,6 +233,7 @@ export function ConnectionRequestDialog({
                 <summary className="cursor-pointer text-xs font-semibold text-sky-700">Đổi lịch đề xuất cho gia sư này</summary>
                 <p className="mt-2 text-xs text-neutral-600">Lịch ban đầu lấy từ nhu cầu học. Thay đổi ở đây chỉ áp dụng cho yêu cầu gửi đến gia sư này.</p>
                 {!proposedSlots.length && <p className="mt-2 text-xs text-sky-700">Không có lịch riêng: yêu cầu sẽ dùng lịch của nhu cầu học.</p>}
+                <button type="button" onClick={() => setSlotDraft(null)} className="mt-2 text-xs font-semibold text-sky-700 underline">Lấy lại lịch mới nhất của nhu cầu</button>
                 <div className="mt-3 max-h-64 overflow-y-auto">
                   <AvailabilitySlotPicker slots={proposedSlots} onChange={setProposedSlots} showValidation={false} title="Lịch muốn đề xuất" />
                 </div>

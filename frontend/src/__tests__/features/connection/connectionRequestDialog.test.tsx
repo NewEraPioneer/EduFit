@@ -23,6 +23,18 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Connection request dialog", () => {
+  it("preserves custom slots when the same need is reloaded as a new object", async () => {
+    const send = vi.spyOn(connectionService, "send").mockResolvedValue({} as never);
+    const props = { tutorId: "tutor", tutor, onClose: vi.fn(), onSent: vi.fn() };
+    const view = render(<ConnectionRequestDialog {...props} />);
+    fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
+    fireEvent.change(await screen.findByLabelText("Giờ bắt đầu Thứ 3"), { target: { value: "18:00" } });
+    vi.mocked(learningNeedService.list).mockResolvedValue([{ ...mathNeed }]);
+    view.rerender(<ConnectionRequestDialog {...props} tutor={{ ...tutor, offerings: [...tutor.offerings] }} />);
+    await waitFor(() => expect(learningNeedService.list).toHaveBeenCalledTimes(2));
+    fireEvent.click(await screen.findByRole("button", { name: "Xác nhận gửi yêu cầu" }));
+    await waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({ desiredSlots: ["Thứ 3 · 18:00–21:00"] })));
+  });
   it("keeps the validation reason visible outside the closed editor", async () => {
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
     const summary = await screen.findByText("Đổi lịch đề xuất cho gia sư này");
