@@ -325,16 +325,24 @@ export function AiBioAssistantModal({
                 </div>
               </div>
 
-              <p className="text-xs text-neutral-800 leading-relaxed italic bg-white p-3.5 rounded-xl border border-stone-200 shadow-2xs">
-                &ldquo;{draftBio}&rdquo;
-              </p>
+              <label className="block space-y-1 text-xs font-semibold text-neutral-700">
+                Chỉnh sửa bản thảo trước khi dùng
+                <textarea
+                  value={draftBio}
+                  onChange={(event) => setDraftBio(event.target.value)}
+                  maxLength={2000}
+                  rows={6}
+                  className="w-full resize-y rounded-xl border border-stone-200 bg-white p-3.5 text-xs font-normal leading-relaxed text-neutral-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+              </label>
 
               <div className="flex items-center justify-between gap-2 pt-1">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleApply}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    disabled={!draftBio.trim()}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <Check className="size-3.5" />
                     <span>Dùng bản thảo này</span>
