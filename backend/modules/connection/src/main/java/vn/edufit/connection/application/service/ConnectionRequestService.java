@@ -128,6 +128,10 @@ public class ConnectionRequestService {
       throw new InvalidOperationException("Gia sư chưa được xác minh hoặc không còn hoạt động");
     if (NeedFitEvaluator.bestOffering(need, profile.findTutorOfferings(tutorId)).isEmpty())
       throw new InvalidOperationException("Gia sư không dạy môn " + need.subjectName());
+    validateProposedSchedule(desiredSlots);
+    lock.lockTutor(tutorId);
+    requireStudentScheduleAvailable(need.studentId(), desiredSlots);
+    requireTutorScheduleAvailable(tutorId, desiredSlots);
     Instant now = clock.instant();
     for (ConnectionRequest r : requests.findByStudentIdAndStatus(need.studentId(), "PENDING")) {
       if (ConnectionTransitions.isDue(r.getExpiresAt(), now)) {
@@ -231,7 +235,34 @@ public class ConnectionRequestService {
     // Gatekeeper Dual Source Conflict Check
     lock.lockTutor(tutorId);
     requireStudentScheduleAvailable(request.getStudentId(), request.getDesiredSlots());
-    if (request.getDesiredSlots() != null && !request.getDesiredSlots().isEmpty()) {
+    requireTutorScheduleAvailable(tutorId, request.getDesiredSlots());
+
+    request.accept(now);
+    requests.flush();
+    TutoringClass created = classes.save(new TutoringClass(request, offering.pricePerSession(), now));
+    events.publishEvent(new ConnectionRequestChangedEvent(UUID.randomUUID(), id, actor.getUserId(),
+        request.getStudentId(), "PENDING", "ACCEPTED", now, request.getSentByUserId(),
+        studentUserId, actor.getUserId(), created.getId()));
+    events.publishEvent(new TutoringClassCreatedEvent(UUID.randomUUID(), created.getId(), actor.getUserId(),
+        request.getStudentId(), null, "ACTIVE", now, id, tutorId, request.getNeedId()));
+    return TransitionResult.success(ClassResult.from(created));
+  }
+
+  private void validateProposedSchedule(List<String> slots) {
+    for (int i = 0; i < slots.size(); i++) {
+      var parsed = slotConflictDetector.parse(slots.get(i));
+      if (parsed == null || parsed.day() == null || parsed.endMinutes() <= parsed.startMinutes() || parsed.endMinutes() > 1440) {
+        throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED,
+            "Khung giờ đề xuất không hợp lệ. Vui lòng chọn ngày, giờ bắt đầu và giờ kết thúc.");
+      }
+      if (slotConflictDetector.hasConflict(List.of(slots.get(i)), slots.subList(i + 1, slots.size()))) {
+        throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED, "Các khung giờ đề xuất không được chồng lấn.");
+      }
+    }
+  }
+
+  private void requireTutorScheduleAvailable(UUID tutorId, List<String> slots) {
+    if (slots != null && !slots.isEmpty()) {
       // Source 1: Active classes recurring slots
       List<TutoringClass> activeClasses = classes.findByTutorIdAndStatus(tutorId, "ACTIVE");
       if (!activeClasses.isEmpty()) {
@@ -244,7 +275,7 @@ public class ConnectionRequestService {
             .filter(r -> r.getDesiredSlots() != null)
             .flatMap(r -> r.getDesiredSlots().stream())
             .toList();
-        List<String> conflicts = slotConflictDetector.findConflictingSlots(request.getDesiredSlots(), activeSlots);
+        List<String> conflicts = slotConflictDetector.findConflictingSlots(slots, activeSlots);
         if (!conflicts.isEmpty()) {
           throw new ResourceConflictException(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,
               "Khung giờ đề xuất trùng với lịch của lớp học đang hoạt động: " + String.join(", ", conflicts));
@@ -252,21 +283,11 @@ public class ConnectionRequestService {
       }
 
       // Source 2: Scheduled sessions via SPI
-      if (scheduleConflictChecker.hasConflictWithScheduledSessions(tutorId, request.getDesiredSlots())) {
+      if (scheduleConflictChecker.hasConflictWithScheduledSessions(tutorId, slots)) {
         throw new ResourceConflictException(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,
             "Khung giờ đề xuất trùng với buổi học đã được lên lịch của gia sư.");
       }
     }
-
-    request.accept(now);
-    requests.flush();
-    TutoringClass created = classes.save(new TutoringClass(request, offering.pricePerSession(), now));
-    events.publishEvent(new ConnectionRequestChangedEvent(UUID.randomUUID(), id, actor.getUserId(),
-        request.getStudentId(), "PENDING", "ACCEPTED", now, request.getSentByUserId(),
-        studentUserId, actor.getUserId(), created.getId()));
-    events.publishEvent(new TutoringClassCreatedEvent(UUID.randomUUID(), created.getId(), actor.getUserId(),
-        request.getStudentId(), null, "ACTIVE", now, id, tutorId, request.getNeedId()));
-    return TransitionResult.success(ClassResult.from(created));
   }
 
   private void requireStudentScheduleAvailable(UUID studentId, List<String> slots) {

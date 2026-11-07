@@ -202,6 +202,33 @@ class ConnectionRequestRulesTest {
   }
 
   @Test
+  void sendingRejectsTutorScheduledConflictWithoutSavingOrPublishing() {
+    var checker = mock(vn.edufit.connection.api.TutorScheduleConflictChecker.class);
+    when(checker.hasConflictWithScheduledSessions(tutor, List.of("Tue 19:00"))).thenReturn(true);
+    org.springframework.test.util.ReflectionTestUtils.setField(service, "scheduleConflictChecker", checker);
+    var ex = assertThrows(ResourceConflictException.class, () -> create(actor(studentUser, "STUDENT")));
+    assertEquals(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE, ex.getErrorCode());
+    verify(rows, never()).save(any());
+    verifyNoInteractions(events);
+  }
+
+  @Test
+  void sendingRejectsStudentScheduledConflictWithoutSaving() {
+    var checker = mock(vn.edufit.connection.api.TutorScheduleConflictChecker.class);
+    when(checker.hasStudentConflictWithScheduledSessions(student, List.of("Tue 19:00"))).thenReturn(true);
+    org.springframework.test.util.ReflectionTestUtils.setField(service, "scheduleConflictChecker", checker);
+    assertThrows(ResourceConflictException.class, () -> create(actor(studentUser, "STUDENT")));
+    verify(rows, never()).save(any());
+    verifyNoInteractions(events);
+  }
+
+  @Test
+  void sendingRejectsUnparseableSlotsBeforeConflictChecks() {
+    assertThrows(InvalidOperationException.class, () -> service.request(actor(studentUser, "STUDENT"), goal, tutor, List.of("whenever"), null));
+    verify(rows, never()).save(any());
+  }
+
+  @Test
   void acceptRejectsStudentActiveClassConflict() {
     var row = pending(studentUser);
     var other = new ConnectionRequest(student, UUID.randomUUID(), UUID.randomUUID(), studentUser,
