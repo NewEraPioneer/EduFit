@@ -7,7 +7,7 @@ export const DEFAULT_SUGGESTED_SESSIONS = 3;
 export const MAX_TEMPLATE_TITLE_LENGTH = 150;
 /** Khớp backend Topic.MAX_NAME_LENGTH. */
 export const MAX_TOPIC_NAME_LENGTH = 120;
-/** Khớp backend TopicRadarPolicy.MIN_AXES: ít trục hơn thì radar hiện lý do thay vì biểu đồ. */
+/** Khớp backend TopicRadarPolicy.MIN_AXES: ít trục hơn thì giao diện hiện thanh trạng thái thay vì radar. */
 export const MIN_RADAR_AXES = 3;
 /** Mức tự lập cao nhất (thang 1–4). */
 export const MAX_INDEPENDENCE_LEVEL = 4;

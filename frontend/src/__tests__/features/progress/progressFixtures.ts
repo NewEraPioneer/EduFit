@@ -152,6 +152,7 @@ export function buildOverview(overrides: Partial<ProgressOverview> = {}): Progre
     attendance: {
       attendedCount: 7,
       countedCount: 8,
+      totalCount: 12,
       attendanceRate: 88,
       absentCount: 1,
       familyLateCancelCount: 0,

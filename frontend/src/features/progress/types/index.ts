@@ -227,6 +227,8 @@ export interface ProgressOverview {
   attendance: {
     attendedCount: number;
     countedCount: number;
+    /** Tổng số buổi của lớp = đã diễn ra (học + vắng) + còn lại theo lịch; buổi đã hủy không tính. */
+    totalCount: number;
     attendanceRate?: number | null;
     absentCount: number;
     familyLateCancelCount: number;
@@ -263,7 +265,7 @@ export interface ProgressForecast {
   unavailableReason?: string | null;
 }
 
-/** Radar năng lực theo chủ đề chuẩn; ít hơn 3 trục thì axes rỗng và có unavailableReason. */
+/** Radar năng lực theo chủ đề chuẩn; axes rỗng kèm unavailableReason khi chưa có chủ đề nào được chấm; dưới 3 trục giao diện hiện thanh trạng thái. */
 export interface ProgressRadar {
   axes: { topicId: string; topicName: string; level: IndependenceLevel }[];
   unavailableReason?: string | null;

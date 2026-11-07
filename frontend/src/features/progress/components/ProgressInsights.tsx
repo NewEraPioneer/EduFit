@@ -4,7 +4,7 @@ import React from "react";
 import { Hourglass, Radar } from "lucide-react";
 import type { ProgressForecast, ProgressRadar } from "../types";
 import { INDEPENDENCE_LEVELS, formatLocalDate } from "../constants/feedbackLabels";
-import { MAX_INDEPENDENCE_LEVEL } from "../constants/roadmap";
+import { MAX_INDEPENDENCE_LEVEL, MIN_RADAR_AXES } from "../constants/roadmap";
 
 /** Hàng thứ hai của dashboard (Giai đoạn 3): dự báo "còn X buổi cho Y cột mốc" và radar năng lực theo chủ đề. */
 export function ProgressInsights({
@@ -90,6 +90,8 @@ function RadarCard({ radar }: { radar: ProgressRadar }) {
           <p className="text-xl font-black text-neutral-900">—</p>
           <p className="text-xs text-neutral-600">{radar.unavailableReason ?? "Chưa đủ dữ liệu theo chủ đề"}</p>
         </>
+      ) : axes.length < MIN_RADAR_AXES ? (
+        <TopicStatusBars axes={axes} />
       ) : (
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <svg
@@ -143,5 +145,38 @@ function RadarCard({ radar }: { radar: ProgressRadar }) {
         </div>
       )}
     </article>
+  );
+}
+
+/** Dưới MIN_RADAR_AXES chủ đề, radar chỉ còn là điểm hoặc đoạn thẳng nên hiện thanh trạng thái cho từng chủ đề. */
+function TopicStatusBars({ axes }: { axes: ProgressRadar["axes"] }) {
+  return (
+    <ul className="space-y-3" data-testid="topic-status-bars">
+      {axes.map((a) => {
+        const label = INDEPENDENCE_LEVELS.find((l) => l.value === a.level)?.short ?? String(a.level);
+        return (
+          <li key={a.topicId} className="space-y-1">
+            <div className="flex justify-between gap-2 text-xs text-neutral-700">
+              <span className="truncate font-semibold">{a.topicName}</span>
+              <span className="shrink-0">{label}</span>
+            </div>
+            <div
+              className="flex h-2 gap-1"
+              role="progressbar"
+              aria-label={`Mức tự lập: ${a.topicName}`}
+              aria-valuemin={0}
+              aria-valuemax={MAX_INDEPENDENCE_LEVEL}
+              aria-valuenow={a.level}
+              aria-valuetext={label}
+            >
+              {Array.from({ length: MAX_INDEPENDENCE_LEVEL }, (_, i) => i + 1).map((lvl) => (
+                <span key={lvl} className={`flex-1 rounded-full ${lvl <= a.level ? "bg-amber-500" : "bg-stone-100"}`} />
+              ))}
+            </div>
+          </li>
+        );
+      })}
+      <li className="text-[11px] text-neutral-500">Cần điểm chấm ở ít nhất {MIN_RADAR_AXES} chủ đề để vẽ biểu đồ radar.</li>
+    </ul>
   );
 }

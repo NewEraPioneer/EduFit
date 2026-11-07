@@ -99,10 +99,10 @@ Cách tính:
 - **Chuỗi dự phòng cho dòng phụ**: (1) cột mốc tăng mức; (2) cột mốc vừa đạt; (3) tiêu chí vừa tick; (4) "Chưa có thay đổi mức trong 30 ngày. Đang tập trung: X" kèm nhận xét mới nhất; (5) "Đang thiết lập điểm xuất phát".
 - **Khi tụt mức**: hiện ở dòng phụ, nhãn "Cần củng cố: X", màu trung tính (không đỏ).
 
-### 3.9 Thẻ 3 — "Chuyên cần & buổi tới" (Q14)
+### 3.9 Thẻ 3 — "Chuyên cần" (Q14)
 - **Tỉ lệ chuyên cần của con** = `COMPLETED / (COMPLETED + ABSENT + hủy muộn do phía học sinh/phụ huynh)`.
 - Hủy sớm hợp lệ (từ 12 giờ trở lên) và hủy do gia sư **không trừ** chuyên cần của con; hiện riêng ở dòng phụ ("1 buổi dời do gia sư") để minh bạch với phụ huynh.
-- Bố cục: dòng chính "Đi học 7/8 buổi"; dòng phụ "Buổi tới: Thứ 5 18:00 · học *Hệ phương trình*"; huy hiệu "Có bài về nhà" nếu buổi trước có giao. Chi tiết (lịch sử hủy, vắng) nằm trong ngăn kéo.
+- Bố cục: dòng chính "Đi học 7/8 buổi"; không hiện nội dung buổi tới và bài về nhà (thẻ chỉ nói về chuyên cần); dòng phụ nêu mẫu số là các buổi đã diễn ra. Chi tiết (lịch sử hủy, vắng) nằm trong ngăn kéo.
 - Phân biệt phía hủy dựa trên `cancelled_by` (lưu user id); cần kiểm tra cách so khớp với gia sư/học sinh khi triển khai.
 
 ### 3.10 Trạng thái trống theo giai đoạn của lớp (Q22)
