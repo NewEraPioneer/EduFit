@@ -235,7 +235,7 @@ export function ConnectionRequestDialog({
                 <p className="mt-2 text-xs text-neutral-600">Lịch ban đầu lấy từ nhu cầu học. Thay đổi ở đây chỉ áp dụng cho yêu cầu gửi đến gia sư này.</p>
                 {!proposedSlots.length && <p className="mt-2 text-xs text-sky-700">Không có lịch riêng: yêu cầu sẽ dùng lịch của nhu cầu học.</p>}
                 <div className="mt-3 max-h-64 overflow-y-auto">
-                  <AvailabilitySlotPicker slots={proposedSlots} onChange={setProposedSlots} title="Lịch muốn đề xuất" />
+                  <AvailabilitySlotPicker slots={proposedSlots} onChange={setProposedSlots} showValidation={false} title="Lịch muốn đề xuất" />
                 </div>
               </details>
             )}
@@ -254,6 +254,7 @@ export function ConnectionRequestDialog({
             </label>
 
             {error && <p role="alert" className="text-xs text-rose-700 dark:text-rose-400 font-medium">{error}</p>}
+            {!slotValidation.valid && selected?.status === "ACTIVE" && <p role="alert" className="text-xs font-medium text-rose-700">{slotValidation.message}</p>}
 
             <div className="flex flex-wrap justify-between gap-3 pt-1">
               <button type="button" onClick={() => setNeedDialog({ need: null, subjectId: selected?.subjectId })}

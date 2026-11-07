@@ -23,6 +23,17 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Connection request dialog", () => {
+  it("keeps the validation reason visible outside the closed editor", async () => {
+    render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
+    const summary = await screen.findByText("Đổi lịch đề xuất cho gia sư này");
+    fireEvent.click(summary);
+    fireEvent.change(await screen.findByLabelText("Giờ kết thúc Thứ 3"), { target: { value: "18:00" } });
+    fireEvent.click(summary);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Giờ kết thúc phải sau giờ bắt đầu.");
+    expect(alert.closest("details")).toBeNull();
+    expect(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" })).toBeDisabled();
+  });
   it("uses the need schedule when all custom slots are removed", async () => {
     const send = vi.spyOn(connectionService, "send").mockResolvedValue({} as never);
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
