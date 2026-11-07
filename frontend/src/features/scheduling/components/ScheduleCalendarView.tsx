@@ -547,7 +547,7 @@ export function ScheduleCalendarView({
                 HOURS.map((hour) => (
                   <div
                     key={hour}
-                    className="grid min-h-16 grid-cols-[72px_repeat(7,minmax(112px,1fr))] border-b border-stone-100 last:border-b-0"
+                    className="grid min-h-20 grid-cols-[72px_repeat(7,minmax(112px,1fr))] border-b border-stone-100 last:border-b-0"
                   >
                     <div className="border-r border-stone-200 px-2 py-2 text-right text-[11px] font-semibold text-neutral-400">
                       {String(hour).padStart(2, "0")}:00
@@ -623,24 +623,26 @@ export function ScheduleCalendarView({
                                     <MapPin className="size-3 shrink-0" />
                                   )}
                                 </div>
-                                <div className="truncate text-[10px] font-bold text-neutral-800 dark:text-zinc-100 mt-0.5" title={getClassName(s.classId)}>
+                                <div className="break-words text-[10px] font-bold leading-snug text-neutral-800 dark:text-zinc-100 mt-0.5" title={getClassName(s.classId)}>
                                   {getClassName(s.classId)}
                                 </div>
-                                {sessionMilestones[s.sessionId] && (
-                                  <div
-                                    className="truncate text-[9px] font-semibold text-amber-800 mt-0.5"
-                                    data-testid={`session-milestones-${s.sessionId}`}
-                                    title={sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
-                                  >
-                                    {sessionMilestones[s.sessionId].linkType === "ACTUAL" ? "Đã học: " : "Dự kiến: "}
-                                    {sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
-                                  </div>
-                                )}
-                                <div className="truncate text-[9px] font-semibold mt-0.5">
-                                  {isProposed && "⚠️ Chờ xác nhận"}
-                                  {isScheduled && "✓ Đã xếp lịch"}
-                                  {isCompleted && "✓ Đã hoàn thành"}
-                                  {isAbsent && "✕ Vắng mặt"}
+                                <div className="mt-0.5 flex flex-wrap gap-x-1 break-words text-[9px] font-semibold leading-snug">
+                                  <span>
+                                    {isProposed && "⚠️ Chờ xác nhận"}
+                                    {isScheduled && "✓ Đã xếp lịch"}
+                                    {isCompleted && "✓ Đã hoàn thành"}
+                                    {isAbsent && "✕ Vắng mặt"}
+                                  </span>
+                                  {sessionMilestones[s.sessionId] && (
+                                    <span
+                                      className="text-amber-800"
+                                      data-testid={`session-milestones-${s.sessionId}`}
+                                      title={sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
+                                    >
+                                      {sessionMilestones[s.sessionId].linkType === "ACTUAL" ? "Đã học: " : "Dự kiến: "}
+                                      {sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
+                                    </span>
+                                  )}
                                 </div>
                               </button>
                             );
@@ -666,7 +668,7 @@ export function ScheduleCalendarView({
                                   <MapPin className="size-3 shrink-0 text-sky-600" />
                                 )}
                               </div>
-                              <div className="truncate text-[9px] font-bold text-sky-800 dark:text-sky-300 mt-0.5" title={getClassName(s.classId)}>
+                              <div className="break-words text-[9px] font-bold leading-snug text-sky-800 dark:text-sky-300 mt-0.5" title={getClassName(s.classId)}>
                                 {getClassName(s.classId)}
                               </div>
                               <div className="truncate text-[9px] font-semibold text-sky-600 mt-0.5">
