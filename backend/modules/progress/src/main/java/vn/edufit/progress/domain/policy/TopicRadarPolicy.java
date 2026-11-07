@@ -14,7 +14,8 @@ import vn.edufit.progress.domain.model.IndependenceLevel;
  * Biểu đồ radar năng lực theo danh mục chủ đề chuẩn (Giai đoạn 3).
  *
  * <p>Mỗi trục là một chủ đề có cột mốc được chấm; giá trị là mức tự lập của lần chấm gần nhất trong số các cột mốc
- * thuộc chủ đề đó. Cần ít nhất {@link #MIN_AXES} trục thì radar mới có nghĩa, ít hơn thì trả về lý do.
+ * thuộc chủ đề đó. Từ {@link #MIN_AXES} trục trở lên giao diện vẽ radar, ít hơn thì hiện thanh trạng thái cho từng chủ đề;
+ * chỉ khi chưa có trục nào mới trả về lý do.
  */
 public final class TopicRadarPolicy {
 
@@ -39,9 +40,8 @@ public final class TopicRadarPolicy {
         .filter(Objects::nonNull)
         .sorted(Comparator.comparing(TopicAssessment::at))
         .forEach(a -> latestByTopic.put(a.topicId(), a));
-    if (latestByTopic.size() < MIN_AXES) {
-      return new Result(List.of(),
-          "Cần điểm chấm ở ít nhất " + MIN_AXES + " chủ đề (hiện có " + latestByTopic.size() + ")");
+    if (latestByTopic.isEmpty()) {
+      return new Result(List.of(), "Chưa có điểm chấm theo chủ đề");
     }
     List<Axis> axes = new ArrayList<>();
     latestByTopic.values().stream()

@@ -67,10 +67,11 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     expect(within(goal).getByText(/từ “làm được khi có gợi ý” → “tự làm đúng”/)).toBeInTheDocument();
 
     const attendance = screen.getByTestId("card-attendance");
-    expect(within(attendance).getByText("Đi học 7/8 buổi")).toBeInTheDocument();
-    expect(within(attendance).getByText(new RegExp(`đang học ${FIXTURE_TEXT.milestoneA}`))).toBeInTheDocument();
-    expect(within(attendance).getByText("Có bài về nhà")).toBeInTheDocument();
-    expect(within(attendance).getByText("1 buổi dời do gia sư")).toBeInTheDocument();
+    expect(within(attendance).getByText("8/12 buổi")).toBeInTheDocument();
+    expect(within(attendance).getByText("Đã học: 7 buổi · Vắng: 1 buổi")).toBeInTheDocument();
+    expect(within(attendance).getByText("Chi tiết vắng, hủy")).toBeInTheDocument();
+    expect(within(attendance).queryByText(/Buổi tới/)).not.toBeInTheDocument();
+    expect(within(attendance).queryByText("Có bài về nhà")).not.toBeInTheDocument();
   });
 
   it("trạng thái trống: '—' kèm lý do, không hiện số giả", async () => {
@@ -84,7 +85,7 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
           stage: "NO_PLAN",
           onTrack: { status: "NO_PLAN", explanation: "Gia sư chưa lập lộ trình" },
           goalProgress: { ...buildOverview().goalProgress, progressPercentage: null, progressDelta: null, highlight: null },
-          attendance: { ...buildOverview().attendance, attendedCount: 0, countedCount: 0, attendanceRate: null, missedSessions: [] },
+          attendance: { ...buildOverview().attendance, attendedCount: 0, countedCount: 0, totalCount: 0, attendanceRate: null, missedSessions: [] },
           milestoneLevels: [],
         }),
       }),
@@ -94,7 +95,7 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     const goal = await screen.findByTestId("card-goal-progress");
     expect(within(goal).getAllByText("—")).toHaveLength(2);
     expect(within(screen.getByTestId("card-on-track")).getByText("Gia sư chưa lập lộ trình")).toBeInTheDocument();
-    expect(within(screen.getByTestId("card-attendance")).getByText(/Chưa có buổi học nào được ghi nhận/)).toBeInTheDocument();
+    expect(within(screen.getByTestId("card-attendance")).getByText(/Lớp chưa có buổi học nào/)).toBeInTheDocument();
     expect(screen.getByText(/Sau mỗi buổi học, gia sư sẽ ghi phản hồi ngắn/)).toBeInTheDocument();
   });
 
@@ -139,6 +140,82 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     expect(await screen.findByText("65%")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Con B" }));
     await waitFor(() => expect(screen.getByText("40%")).toBeInTheDocument());
+    expect(progressApi.getParentDashboard).toHaveBeenCalledTimes(1);
+  });
+
+  it("phụ huynh chọn lớp chỉ tải tiến độ một lần và báo lỗi khi đổi lớp thất bại", async () => {
+    const user = userEvent.setup();
+    const classes = [
+      { classId: FIXTURE_IDS.class, title: "Lớp Toán", status: "ACTIVE", progressPercentage: 65 },
+      { classId: "class-two", title: "Lớp Văn", status: "ACTIVE", progressPercentage: 40 },
+    ];
+    vi.mocked(progressApi.getParentDashboard).mockResolvedValue({
+      success: true,
+      data: {
+        students: [{ studentId: "student-a", studentName: "Con A", classes: [], activeClassDashboard: buildStudentDashboard({ classes }) }],
+      },
+    });
+    vi.mocked(progressApi.getStudentDashboard).mockRejectedValueOnce(new Error("Không đổi được lớp"));
+    render(<ProgressDashboardView role="PARENT" />);
+
+    await user.click(await screen.findByRole("tab", { name: "Lớp Văn" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Không đổi được lớp");
+    expect(progressApi.getStudentDashboard).toHaveBeenCalledWith("student-a", "class-two");
+    expect(progressApi.getStudentDashboard).toHaveBeenCalledTimes(1);
+    expect(progressApi.getParentDashboard).toHaveBeenCalledTimes(1);
+  });
+
+  it("bỏ qua phản hồi cũ khi đổi lớp nhanh", async () => {
+    const user = userEvent.setup();
+    const classes = [
+      { classId: FIXTURE_IDS.class, title: "Lớp Toán", status: "ACTIVE", progressPercentage: 65 },
+      { classId: "class-two", title: "Lớp Văn", status: "ACTIVE", progressPercentage: 40 },
+      { classId: "class-three", title: "Lớp Anh", status: "ACTIVE", progressPercentage: 10 },
+    ];
+    const mk = (pct: number) =>
+      buildStudentDashboard({
+        classes,
+        overview: buildOverview({ goalProgress: { ...buildOverview().goalProgress, progressPercentage: pct } }),
+      });
+    let resolveSlow: (v: { success: boolean; data: ReturnType<typeof mk> }) => void = () => {};
+    vi.mocked(progressApi.getStudentDashboard)
+      .mockResolvedValueOnce({ success: true, data: mk(65) })
+      .mockReturnValueOnce(new Promise((r) => { resolveSlow = r; }))
+      .mockResolvedValueOnce({ success: true, data: mk(10) });
+    renderStudent();
+
+    await user.click(await screen.findByRole("tab", { name: "Lớp Văn" }));
+    await user.click(screen.getByRole("tab", { name: "Lớp Anh" }));
+    expect(await screen.findByText("10%")).toBeInTheDocument();
+    resolveSlow({ success: true, data: mk(40) });
+    await waitFor(() => expect(screen.getByText("10%")).toBeInTheDocument());
+    expect(screen.queryByText("40%")).not.toBeInTheDocument();
+  });
+
+  it("dưới 3 chủ đề: hiện thanh trạng thái thay vì radar", async () => {
+    vi.mocked(progressApi.getStudentDashboard).mockResolvedValue({
+      success: true,
+      data: buildStudentDashboard({
+        overview: buildOverview({
+          radar: { axes: [{ topicId: FIXTURE_TOPICS[0].topicId, topicName: FIXTURE_TOPICS[0].name, level: 2 }] },
+        }),
+      }),
+    });
+    renderStudent();
+    const radar = await screen.findByTestId("card-radar");
+    expect(within(radar).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(radar).getByRole("progressbar", { name: `Mức tự lập: ${FIXTURE_TOPICS[0].name}` })).toHaveAttribute("aria-valuenow", "2");
+  });
+
+  it("thẻ buổi học hiện trạng thái tiếng Việt, không in enum thô", async () => {
+    const base = buildStudentDashboard();
+    vi.mocked(progressApi.getStudentDashboard).mockResolvedValue({
+      success: true,
+      data: { ...base, recentNotes: [{ ...base.recentNotes![0], status: "CANCELLED", feedback: null }] },
+    });
+    renderStudent();
+    expect(await screen.findByText("Đã hủy")).toBeInTheDocument();
+    expect(screen.queryByText("CANCELLED")).not.toBeInTheDocument();
   });
 
   it("chọn lớp chỉ tải tiến độ một lần", async () => {
@@ -231,7 +308,7 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
       data: buildStudentDashboard({
         overview: buildOverview({
           forecast: { unavailableReason: FIXTURE_TEXT.forecastUnavailable },
-          radar: { axes: [], unavailableReason: "Cần điểm chấm ở ít nhất 3 chủ đề (hiện có 1)" },
+          radar: { axes: [], unavailableReason: "Chưa có điểm chấm theo chủ đề" },
         }),
       }),
     });

@@ -181,6 +181,7 @@ public class ProgressViews {
       int familyLateCancelCount,
       int familyEarlyCancelCount,
       int tutorCancelCount,
+      int totalCount,
       Instant nextSessionStart,
       String focusMilestoneTitle,
       boolean nextSessionPlanned,
