@@ -229,6 +229,8 @@ public class ConnectionRequestService {
         .orElseThrow(() -> new InvalidOperationException("Bạn không còn gói dạy môn " + need.subjectName()));
 
     // Gatekeeper Dual Source Conflict Check
+    lock.lockTutor(tutorId);
+    requireStudentScheduleAvailable(request.getStudentId(), request.getDesiredSlots());
     if (request.getDesiredSlots() != null && !request.getDesiredSlots().isEmpty()) {
       // Source 1: Active classes recurring slots
       List<TutoringClass> activeClasses = classes.findByTutorIdAndStatus(tutorId, "ACTIVE");
@@ -265,6 +267,22 @@ public class ConnectionRequestService {
     events.publishEvent(new TutoringClassCreatedEvent(UUID.randomUUID(), created.getId(), actor.getUserId(),
         request.getStudentId(), null, "ACTIVE", now, id, tutorId, request.getNeedId()));
     return TransitionResult.success(ClassResult.from(created));
+  }
+
+  private void requireStudentScheduleAvailable(UUID studentId, List<String> slots) {
+    List<UUID> requestIds = classes.findByStudentIdAndStatus(studentId, "ACTIVE").stream()
+        .map(TutoringClass::getConnectionRequestId).filter(Objects::nonNull).toList();
+    List<String> activeSlots = requests.findAllById(requestIds).stream()
+        .map(ConnectionRequest::getDesiredSlots).filter(Objects::nonNull).flatMap(List::stream).toList();
+    List<String> conflicts = slotConflictDetector.findConflictingSlots(slots, activeSlots);
+    if (!conflicts.isEmpty()) {
+      throw new ResourceConflictException(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,
+          "Lịch học của học sinh đã có lớp trùng khung giờ: " + String.join(", ", conflicts));
+    }
+    if (scheduleConflictChecker.hasStudentConflictWithScheduledSessions(studentId, slots)) {
+      throw new ResourceConflictException(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,
+          "Lịch học của học sinh đã có buổi học trùng với một khung giờ đề xuất. Vui lòng chọn lịch khác.");
+    }
   }
 
   @Transactional
