@@ -89,6 +89,11 @@ export function ProgressDashboardView({
       setIsLoading(true);
       setError(null);
       if (role === "PARENT") {
+        if (selectedStudentId && selectedClassId) {
+          const res = await progressApi.getStudentDashboard(selectedStudentId, selectedClassId);
+          if (res.success && res.data) setStudentData(res.data);
+          return;
+        }
         const res = await progressApi.getParentDashboard();
         if (res.success && res.data) {
           setParentData(res.data);
@@ -135,18 +140,9 @@ export function ProgressDashboardView({
         : prev
     );
 
-  const handleSelectClass = async (classId: string) => {
-    const targetStudentId = selectedStudentId || initialStudentId;
-    if (!targetStudentId) return;
-    try {
-      setIsLoading(true);
+  const handleSelectClass = (classId: string) => {
+    if (classId !== (selectedClassId || studentData?.selectedClassId)) {
       setSelectedClassId(classId);
-      const res = await progressApi.getStudentDashboard(targetStudentId, classId);
-      if (res.success && res.data) setStudentData(res.data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Lỗi khi chuyển lớp học");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -270,10 +266,11 @@ export function ProgressDashboardView({
             </div>
           ) : (
             <ol className="space-y-3">
-              {milestones.map((m) => (
+              {milestones.map((m, index) => (
                 <MilestoneRow
                   key={m.milestoneId}
                   milestone={m}
+                  sequence={index + 1}
                   levels={overview?.milestoneLevels.find((l) => l.milestoneId === m.milestoneId)}
                 />
               ))}
@@ -404,9 +401,11 @@ function OverviewCards({ overview }: { overview: ProgressOverview }) {
 
 function MilestoneRow({
   milestone: m,
+  sequence,
   levels,
 }: {
   milestone: MilestoneResponse;
+  sequence: number;
   levels?: ProgressOverview["milestoneLevels"][number];
 }) {
   const isAchieved = m.status === "ACHIEVED";
@@ -415,12 +414,13 @@ function MilestoneRow({
   const start = independenceLabel(levels?.startLevel);
   const current = independenceLabel(levels?.currentLevel);
   return (
-    <li className="p-4 rounded-2xl border border-stone-200 space-y-2" data-testid={`milestone-${m.milestoneId}`}>
+    <li className="p-4 rounded-2xl border border-stone-200 bg-white shadow-xs space-y-2" data-testid={`milestone-${m.milestoneId}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-2 text-xs font-bold text-neutral-900">
           <StatusIcon
             className={`size-4 ${isAchieved ? "text-emerald-600" : isInProgress ? "text-amber-600" : "text-stone-400"}`}
           />
+          <span className="shrink-0 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-800">Bước {sequence}</span>
           {m.title}
         </span>
         <span className="text-[11px] text-neutral-500">
@@ -438,7 +438,7 @@ function MilestoneRow({
 
       {levels?.currentLevel ? (
         <div className="space-y-1">
-          <div className="flex h-2 gap-1" aria-hidden="true">
+          <div className="flex h-2 gap-1" role="progressbar" aria-label={`Mức tự lập: ${m.title}`} aria-valuemin={0} aria-valuemax={4} aria-valuenow={levels.currentLevel}>
             {[1, 2, 3, 4].map((lvl) => (
               <span
                 key={lvl}

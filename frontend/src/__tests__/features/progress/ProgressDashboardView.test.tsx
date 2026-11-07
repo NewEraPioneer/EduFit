@@ -140,6 +140,20 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     await user.click(screen.getByRole("button", { name: "Con B" }));
     await waitFor(() => expect(screen.getByText("40%")).toBeInTheDocument());
   });
+
+  it("chọn lớp chỉ tải tiến độ một lần", async () => {
+    const user = userEvent.setup();
+    vi.mocked(progressApi.getStudentDashboard).mockResolvedValue({ success: true, data: buildStudentDashboard({
+      classes: [
+        { classId: FIXTURE_IDS.class, title: "Lớp Toán", status: "ACTIVE", progressPercentage: 65 },
+        { classId: "class-two", title: "Lớp Văn", status: "ACTIVE", progressPercentage: 40 },
+      ],
+    }) });
+    renderStudent();
+    await user.click(await screen.findByRole("tab", { name: "Lớp Văn" }));
+    await waitFor(() => expect(progressApi.getStudentDashboard).toHaveBeenCalledWith(FIXTURE_IDS.student, "class-two"));
+    expect(progressApi.getStudentDashboard).toHaveBeenCalledTimes(2);
+  });
   it("học sinh chọn cảm nhận 1 chạm cho buổi đã hoàn thành, lưu và cập nhật tại chỗ", async () => {
     const user = userEvent.setup();
     vi.mocked(progressApi.getStudentDashboard).mockResolvedValue({ success: true, data: buildStudentDashboard() });
