@@ -31,6 +31,8 @@ export interface AiBioAssistantModalProps {
 
 export type AiTone = "friendly" | "professional" | "concise";
 
+const MAX_BIO_LENGTH = 2000;
+
 export function AiBioAssistantModal({
   isOpen,
   onClose,
@@ -70,6 +72,7 @@ export function AiBioAssistantModal({
       return;
     }
 
+    const sourceBio = draftBio?.trim() || userDraftBio.trim();
     setIsGenerating(true);
     try {
       const res = await profileService.generateTutorBio({
@@ -79,7 +82,7 @@ export function AiBioAssistantModal({
         experienceYears,
         tone,
         focusArea,
-        currentBio: userDraftBio.trim() || undefined,
+        currentBio: sourceBio.slice(0, MAX_BIO_LENGTH) || undefined,
       });
 
       setDraftBio(res.bio);
@@ -90,8 +93,8 @@ export function AiBioAssistantModal({
       // Fallback nếu gặp lỗi mạng
       const name = displayName.trim() || "Gia sư";
       const exp = experienceYears > 0 ? `${experienceYears} năm` : "nhiều năm";
-      const fallbackBio = userDraftBio.trim()
-        ? `${userDraftBio.trim()} Với ${exp} kinh nghiệm chuyên môn môn ${subjectNamesText} (${levelsText}), tôi luôn nỗ lực đồng hành giúp học sinh thấu hiểu bản chất bài học và tự tin bứt phá thành tích.`
+      const fallbackBio = sourceBio
+        ? `${sourceBio} Với ${exp} kinh nghiệm chuyên môn môn ${subjectNamesText} (${levelsText}), tôi luôn nỗ lực đồng hành giúp học sinh thấu hiểu bản chất bài học và tự tin bứt phá thành tích.`
         : `Chào các em và quý phụ huynh! Tôi là ${name}, chuyên giảng dạy ${subjectNamesText} (${levelsText}). Với ${exp} kinh nghiệm, phong cách giảng dạy của tôi luôn lấy sự kiên nhẫn và thấu hiểu làm trọng tâm, giúp học sinh nắm chắc kiến thức và tự tin đạt điểm số cao!`;
       setDraftBio(fallbackBio);
       setIsAiGenerated(false);
@@ -258,12 +261,12 @@ export function AiBioAssistantModal({
                 3. Ý tưởng / Bản nháp của bạn (Tùy chọn)
               </label>
               <span className="text-[10px] text-neutral-400">
-                {userDraftBio.length}/2000 ký tự
+                {userDraftBio.length}/{MAX_BIO_LENGTH} ký tự
               </span>
             </div>
             <textarea
               rows={3}
-              maxLength={2000}
+              maxLength={MAX_BIO_LENGTH}
               value={userDraftBio}
               onChange={(e) => setUserDraftBio(e.target.value)}
               placeholder="Nhập đoạn tiểu sử bạn đã tự viết hoặc các ý tưởng/thế mạnh riêng (vd: phương pháp sơ đồ tư duy, kiên nhẫn với học sinh mất gốc)..."
@@ -301,14 +304,14 @@ export function AiBioAssistantModal({
               ) : (
                 <>
                   <Sparkles className="size-3.5" />
-                  <span>{draftBio ? "Soạn thảo lại với AI" : "Tạo bản thảo Bio bằng AI"}</span>
+                  <span>{draftBio !== null ? "Soạn thảo lại với AI" : "Tạo bản thảo Bio bằng AI"}</span>
                 </>
               )}
             </button>
           </div>
 
           {/* Hiển thị Bản thảo AI gợi ý */}
-          {draftBio && (
+          {draftBio !== null && (
             <div className="p-4 bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-200/90 rounded-2xl space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="font-bold text-amber-900 flex items-center gap-1.5">
@@ -325,16 +328,25 @@ export function AiBioAssistantModal({
                 </div>
               </div>
 
-              <p className="text-xs text-neutral-800 leading-relaxed italic bg-white p-3.5 rounded-xl border border-stone-200 shadow-2xs">
-                &ldquo;{draftBio}&rdquo;
-              </p>
+              <label className="block space-y-1 text-xs font-semibold text-neutral-700">
+                Chỉnh sửa bản thảo trước khi dùng
+                <textarea
+                  value={draftBio}
+                  readOnly={isGenerating}
+                  onChange={(event) => setDraftBio(event.target.value)}
+                  maxLength={MAX_BIO_LENGTH}
+                  rows={6}
+                  className="w-full resize-y rounded-xl border border-stone-200 bg-white p-3.5 text-xs font-normal leading-relaxed text-neutral-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+              </label>
 
               <div className="flex items-center justify-between gap-2 pt-1">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleApply}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    disabled={isGenerating || !draftBio.trim()}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <Check className="size-3.5" />
                     <span>Dùng bản thảo này</span>
@@ -342,6 +354,7 @@ export function AiBioAssistantModal({
                   <button
                     type="button"
                     onClick={handleCopy}
+                    disabled={!draftBio.trim()}
                     className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-neutral-700 rounded-xl transition-colors cursor-pointer"
                     title="Sao chép văn bản"
                   >
@@ -353,6 +366,7 @@ export function AiBioAssistantModal({
                 <button
                   type="button"
                   onClick={handleGenerate}
+                  disabled={isGenerating}
                   className="inline-flex items-center gap-1 text-[11px] text-neutral-500 hover:text-neutral-900 cursor-pointer"
                 >
                   <RotateCcw className="size-3" />
