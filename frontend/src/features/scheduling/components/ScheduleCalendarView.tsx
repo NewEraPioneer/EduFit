@@ -13,13 +13,17 @@ import {
   AlertCircle,
   Video,
   MapPin,
+  BellRing,
 } from "lucide-react";
 import { schedulingApi } from "../api/schedulingApi";
 import { ProposeSessionModal } from "./ProposeSessionModal";
 import { SessionDetailModal } from "./SessionDetailModal";
 import { ScheduleTimelineView } from "./ScheduleTimelineView";
 import { useAuth } from "@/context/AuthContext";
-import { formatLocalDateToIso, formatSessionTime, formatLocalTime } from "@/shared/utils/dateTime";
+import { progressApi, type SessionMilestones } from "@/features/progress";
+import { formatLocalDateToIso, formatLocalTime } from "@/shared/utils/dateTime";
+import { useDeepLinkParams } from "@/shared/hooks";
+import { useSessionChangeNotifications } from "@/features/notification";
 import {
   type CalendarItem,
   type ScheduleViewMode,
@@ -31,6 +35,7 @@ import {
 const HOURS = Array.from({ length: 15 }, (_, index) => index + 7);
 const DAY_LABELS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
 const VN_TIMEZONE = "Asia/Ho_Chi_Minh";
+const HIGHLIGHT_MS = 8000;
 
 interface VnTimeInfo {
   dateStr: string;
@@ -182,6 +187,11 @@ function formatVnSessionTime(
   return `${startStr} - ${endStr}`;
 }
 
+/** Ref callback: cuộn buổi học được nhấn mạnh vào giữa vùng nhìn thấy */
+function scrollIntoViewOnce(el: HTMLElement | null) {
+  el?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+}
+
 export function ScheduleCalendarView({
   role,
   availabilitySlots = [],
@@ -198,6 +208,8 @@ export function ScheduleCalendarView({
 
   // Calendar sessions data state
   const [sessions, setSessions] = useState<CalendarItem[]>([]);
+  // Cột mốc hiệu lực của từng buổi (thực tế thắng dự kiến), do module Progress quản lý
+  const [sessionMilestones, setSessionMilestones] = useState<Record<string, SessionMilestones>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -208,6 +220,10 @@ export function ScheduleCalendarView({
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Buổi học được nhấn mạnh (đến từ thông báo) và các buổi có thay đổi chưa xem
+  const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
+  const { bySession: changedSessions, markSessionSeen } = useSessionChangeNotifications();
 
   // 7 days of the selected week
   const weekDays = useMemo(
@@ -223,6 +239,22 @@ export function ScheduleCalendarView({
     return end;
   }, [weekDays]);
 
+  /** Tên cột mốc chỉ là thông tin bổ sung: lỗi tải không chặn lịch học. */
+  const loadSessionMilestones = useCallback(async (sessionIds: string[]) => {
+    if (sessionIds.length === 0) {
+      setSessionMilestones({});
+      return;
+    }
+    try {
+      const res = await progressApi.getSessionMilestones(sessionIds);
+      setSessionMilestones(
+        res.success && res.data ? Object.fromEntries(res.data.map((m) => [m.sessionId, m])) : {}
+      );
+    } catch {
+      setSessionMilestones({});
+    }
+  }, []);
+
   // Fetch sessions from API
   const fetchSessions = useCallback(async () => {
     try {
@@ -235,8 +267,10 @@ export function ScheduleCalendarView({
       });
       if (res.success && res.data) {
         setSessions(res.data);
+        void loadSessionMilestones(res.data.map((s) => s.sessionId));
       } else {
         setSessions([]);
+        setSessionMilestones({});
       }
     } catch (err: unknown) {
       setError(
@@ -247,11 +281,57 @@ export function ScheduleCalendarView({
     } finally {
       setLoading(false);
     }
-  }, [weekStart, weekEndDateTime, initialStudentId]);
+  }, [weekStart, weekEndDateTime, initialStudentId, loadSessionMilestones]);
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
+
+  // AC7 & AC8: Deep link từ thông báo /…/schedule?sessionId=<id>&action=<action> qua hook dùng chung useDeepLinkParams
+  // Snapshot đổi định danh ở mỗi lần điều hướng mới, kể cả khi bấm lại cùng một buổi học
+  const deepLink = useDeepLinkParams(["sessionId", "action"]);
+  const [detailAction, setDetailAction] = useState<"outcome" | null>(null);
+
+  useEffect(() => {
+    if (!deepLink.sessionId) return;
+    const targetId = deepLink.sessionId;
+    setSelectedSessionId(targetId);
+    setIsDetailOpen(true);
+    setDetailAction(deepLink.action === "outcome" ? "outcome" : null);
+    setHighlightedSessionId(targetId);
+  }, [deepLink]);
+
+  // Khi chi tiết buổi học tải xong, nhảy tới tuần chứa nó để người dùng thấy nó ngay trên lịch phía sau hộp thoại
+  const handleSessionLoaded = useCallback((session: { startAt: string }) => {
+    const target = startOfWeek(new Date(session.startAt));
+    if (Number.isNaN(target.getTime())) return;
+    setWeekStart((current) => (current.getTime() === target.getTime() ? current : target));
+  }, []);
+
+  // Hiệu ứng nhấn mạnh tự tắt sau vài giây
+  useEffect(() => {
+    if (!highlightedSessionId) return;
+    const timer = window.setTimeout(() => setHighlightedSessionId(null), HIGHLIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [highlightedSessionId]);
+
+  const openSession = useCallback(
+    (sessionId: string) => {
+      setSelectedSessionId(sessionId);
+      setIsDetailOpen(true);
+      markSessionSeen(sessionId);
+    },
+    [markSessionSeen]
+  );
+
+  /** Mở buổi học từ banner thay đổi: nhảy tuần + nhấn mạnh + mở chi tiết. */
+  const jumpToSession = useCallback(
+    (sessionId: string) => {
+      setHighlightedSessionId(sessionId);
+      openSession(sessionId);
+    },
+    [openSession]
+  );
 
   // Listen to Global Event Bus (edufit:schedule-updated) and StorageEvent to auto-reload
   useEffect(() => {
@@ -307,10 +387,6 @@ export function ScheduleCalendarView({
     );
   };
 
-  const isCancelledOrInactive = (status?: string): boolean => {
-    return !isValidCalendarGridStatus(status);
-  };
-
   // Helper to format date of calendar grid column
   const getCellDateStr = (date: Date): string => {
     const timeInfo = getVietnamSessionTime(date);
@@ -354,8 +430,7 @@ export function ScheduleCalendarView({
   // Open detail modal from clicking a session
   const handleSessionClick = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
-    setSelectedSessionId(sessionId);
-    setIsDetailOpen(true);
+    openSession(sessionId);
   };
 
   const roleDescription =
@@ -477,6 +552,38 @@ export function ScheduleCalendarView({
         </div>
       )}
 
+      {/* Thay đổi lịch chưa xem: chỉ rõ buổi học nào đổi, bấm để tới thẳng buổi đó */}
+      {changedSessions.size > 0 && (
+        <section
+          aria-label="Thay đổi lịch học chưa xem"
+          className="rounded-2xl border-2 border-red-300 bg-red-50 p-4 shadow-xs"
+        >
+          <div className="mb-2 flex items-center gap-2 text-sm font-extrabold text-red-700">
+            <BellRing className="size-4 animate-pulse" />
+            Có {changedSessions.size} buổi học vừa thay đổi mà bạn chưa xem
+          </div>
+          <ul className="flex flex-col gap-1.5">
+            {[...changedSessions.entries()].slice(0, 5).map(([sessionId, notes]) => (
+              <li key={sessionId}>
+                <button
+                  type="button"
+                  onClick={() => jumpToSession(sessionId)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 text-left text-xs font-bold text-red-800 ring-1 ring-red-200 hover:bg-red-100 cursor-pointer"
+                >
+                  <span className="truncate">
+                    {notes[0].title}
+                    <span className="ml-2 font-semibold text-red-600/80">{notes[0].shortText}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] text-white">
+                    Xem buổi học
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Main Content: Grid View or Timeline View */}
       {viewMode === "grid" ? (
         <section className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-xs">
@@ -589,9 +696,22 @@ export function ScheduleCalendarView({
                               <button
                                 key={s.sessionId}
                                 type="button"
+                                ref={highlightedSessionId === s.sessionId ? scrollIntoViewOnce : undefined}
+                                data-changed={changedSessions.has(s.sessionId) ? "true" : undefined}
                                 onClick={(e) => handleSessionClick(e, s.sessionId)}
-                                className={`w-full rounded-xl border p-1.5 text-left text-[10px] font-bold shadow-2xs transition-all cursor-pointer ${badgeColor}`}
+                                className={`relative w-full rounded-xl border p-1.5 text-left text-[10px] font-bold shadow-2xs transition-all cursor-pointer ${badgeColor} ${
+                                  highlightedSessionId === s.sessionId
+                                    ? "ring-4 ring-red-500 ring-offset-1 animate-pulse"
+                                    : changedSessions.has(s.sessionId)
+                                    ? "ring-2 ring-red-500"
+                                    : ""
+                                }`}
                               >
+                                {changedSessions.has(s.sessionId) && (
+                                  <span className="absolute -top-2 -right-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow">
+                                    Mới thay đổi
+                                  </span>
+                                )}
                                 <div className="flex items-center justify-between">
                                   <span className="truncate">
                                     {formatVnSessionTime(s.startAt, s.endAt)}
@@ -605,6 +725,16 @@ export function ScheduleCalendarView({
                                 <div className="truncate text-[10px] font-bold text-neutral-800 dark:text-zinc-100 mt-0.5" title={getClassName(s.classId)}>
                                   {getClassName(s.classId)}
                                 </div>
+                                {sessionMilestones[s.sessionId] && (
+                                  <div
+                                    className="truncate text-[9px] font-semibold text-amber-800 mt-0.5"
+                                    data-testid={`session-milestones-${s.sessionId}`}
+                                    title={sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
+                                  >
+                                    {sessionMilestones[s.sessionId].linkType === "ACTUAL" ? "Đã học: " : "Dự kiến: "}
+                                    {sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
+                                  </div>
+                                )}
                                 <div className="truncate text-[9px] font-semibold mt-0.5">
                                   {isProposed && "⚠️ Chờ xác nhận"}
                                   {isScheduled && "✓ Đã xếp lịch"}
@@ -658,10 +788,9 @@ export function ScheduleCalendarView({
           sessions={sessions}
           classes={classes}
           role={role}
-          onSelectSession={(id) => {
-            setSelectedSessionId(id);
-            setIsDetailOpen(true);
-          }}
+          changedSessionIds={changedSessions}
+          highlightedSessionId={highlightedSessionId}
+          onSelectSession={openSession}
           onProposeNew={() => {
             setProposeInitialDate(undefined);
             setProposeInitialHour(8);
@@ -722,9 +851,12 @@ export function ScheduleCalendarView({
       <SessionDetailModal
         sessionId={selectedSessionId}
         isOpen={isDetailOpen}
+        initialAction={detailAction}
+        onSessionLoaded={handleSessionLoaded}
         onClose={() => {
           setIsDetailOpen(false);
           setSelectedSessionId(null);
+          setDetailAction(null);
         }}
         onUpdated={() => {
           fetchSessions();

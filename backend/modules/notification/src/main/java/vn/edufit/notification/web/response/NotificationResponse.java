@@ -2,6 +2,7 @@ package vn.edufit.notification.web.response;
 
 import java.time.Instant;
 import java.util.UUID;
+import vn.edufit.notification.application.NotificationCategory;
 import vn.edufit.notification.infra.persistence.entity.Notification;
 
 /**
@@ -10,6 +11,7 @@ import vn.edufit.notification.infra.persistence.entity.Notification;
 public record NotificationResponse(
     UUID notificationId,
     String type,
+    String category,
     String title,
     String shortText,
     String targetType,
@@ -23,6 +25,7 @@ public record NotificationResponse(
     return new NotificationResponse(
         entity.getNotificationId(),
         entity.getType(),
+        NotificationCategory.of(entity.getType()).name(),
         entity.getTitle(),
         entity.getShortText(),
         entity.getTargetType(),

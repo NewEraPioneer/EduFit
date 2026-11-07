@@ -21,7 +21,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import vn.edufit.connection.api.ConnectionFacade;
+import vn.edufit.profile.api.ProfileFacade;
+import vn.edufit.profile.api.dto.TutorSummaryDto;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -79,7 +84,6 @@ class ConcurrentSchedulingIT {
     registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
     registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
     registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    registry.add("edufit.scheduling.use-mock-connection", () -> "true");
   }
 
   @BeforeAll
@@ -173,6 +177,22 @@ class ConcurrentSchedulingIT {
   @Autowired
   private RespondToProposalService respondToProposalService;
 
+  /** Module profile/connection không nằm trong context cô lập này; quyền phản hồi được stub theo đúng hợp đồng facade. */
+  @MockitoBean
+  private ProfileFacade profileFacade;
+
+  @MockitoBean
+  private ConnectionFacade connectionFacade;
+
+  /** Tài khoản gia sư (user_id) khác mã hồ sơ gia sư (tutor_id) giống hệ thống thật. */
+  private UUID tutorAccount(UUID tutorId) {
+    UUID tutorUserId = UUID.randomUUID();
+    Mockito.when(profileFacade.findTutorByUserId(tutorUserId)).thenReturn(java.util.Optional.of(new TutorSummaryDto(
+        tutorId, tutorUserId, "Gia sư kiểm thử", null, null, "ONLINE", null, false, null, null, null, null,
+        "VERIFIED", null, null, 0)));
+    return tutorUserId;
+  }
+
   @Autowired
   private TutoringSessionDomainRepository sessionRepository;
 
@@ -194,6 +214,7 @@ class ConcurrentSchedulingIT {
     }
 
     UUID tutorId = UUID.randomUUID();
+    UUID tutorUserId = tutorAccount(tutorId);
     UUID studentA = UUID.randomUUID();
     UUID studentB = UUID.randomUUID();
     UUID classA = UUID.randomUUID();
@@ -237,7 +258,7 @@ class ConcurrentSchedulingIT {
       futures.add(executor.submit(() -> {
         try {
           startGate.await(); // Chờ phát lệnh đồng loạt
-          respondToProposalService.respondToProposal(targetSessionId, tutorId, true, null);
+          respondToProposalService.respondToProposal(targetSessionId, tutorUserId, true, null);
           successCount.incrementAndGet();
         } catch (Exception ex) {
           conflictOrRejectedCount.incrementAndGet();
@@ -291,6 +312,7 @@ class ConcurrentSchedulingIT {
     }
 
     UUID tutorId = UUID.randomUUID();
+    UUID tutorUserId = tutorAccount(tutorId);
     UUID studentId = UUID.randomUUID();
     UUID classId = UUID.randomUUID();
 
@@ -319,7 +341,7 @@ class ConcurrentSchedulingIT {
       executor.submit(() -> {
         try {
           startGate.await();
-          respondToProposalService.respondToProposal(sessionId, tutorId, true, null);
+          respondToProposalService.respondToProposal(sessionId, tutorUserId, true, null);
           successCount.incrementAndGet();
         } catch (Exception ex) {
           failedCount.incrementAndGet();
@@ -345,6 +367,6 @@ class ConcurrentSchedulingIT {
 
     TutoringSession finalSession = sessionRepository.findById(sessionId).orElseThrow();
     assertThat(finalSession.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
-    assertThat(finalSession.getRespondedBy()).isEqualTo(tutorId);
+    assertThat(finalSession.getRespondedBy()).isEqualTo(tutorUserId);
   }
 }

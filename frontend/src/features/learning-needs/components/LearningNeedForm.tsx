@@ -12,7 +12,8 @@ import {
   type TeachingMode,
   type WeeklySlot,
 } from "@/services/learningNeeds";
-import { SLOT_PRESETS } from "@/shared/lib/dateTime";
+import { validateAvailabilitySlots } from "@/shared/lib/dateTime";
+import { AvailabilitySlotPicker } from "@/features/profile/components/AvailabilitySlotPicker";
 import {
   GIFTED_TAG_CODE,
   MODE_LABELS,
@@ -42,11 +43,6 @@ export interface LearningNeedFormProps {
 }
 
 type FieldErrors = Record<string, string>;
-
-function sameSlot(a: WeeklySlot, b: WeeklySlot) {
-  return a.dayOfWeek === b.dayOfWeek && a.startTime.slice(0, 5) === b.startTime.slice(0, 5)
-    && a.endTime.slice(0, 5) === b.endTime.slice(0, 5);
-}
 
 export function LearningNeedForm({
   catalog,
@@ -101,14 +97,6 @@ export function LearningNeedForm({
     if (!goalTagsFor(catalog, levelId, subjectId, value).some((t) => t.goalTagId === goalTagId)) setGoalTagId(null);
   };
 
-  const togglePreset = (preset: (typeof SLOT_PRESETS)[number]) => {
-    const presetSlots = preset.slots.map((s) => ({ ...s, startTime: s.startTime.slice(0, 5), endTime: s.endTime.slice(0, 5) }));
-    const active = presetSlots.every((ps) => slots.some((s) => sameSlot(s, ps)));
-    setSlots((prev) => active
-      ? prev.filter((s) => !presetSlots.some((ps) => sameSlot(s, ps)))
-      : [...prev, ...presetSlots.filter((ps) => !prev.some((s) => sameSlot(s, ps)))]);
-  };
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const local: FieldErrors = {};
@@ -118,6 +106,8 @@ export function LearningNeedForm({
     if (!goalTagId) local.goalTagId = "Vui lòng chọn mục tiêu học.";
     if (selectedGoal?.requiresTextbook && !textbookId) local.textbookSeriesId = "Vui lòng chọn bộ sách con đang học trên trường.";
     if (selectedGoal?.requiresExamProvince && !examProvinceId) local.examProvinceId = "Vui lòng chọn tỉnh/thành nơi con dự thi vào 10.";
+    const slotCheck = variant === "full" ? validateAvailabilitySlots(slots) : { valid: true };
+    if (!slotCheck.valid) local.availabilitySlots = slotCheck.message ?? "Khung giờ chưa hợp lệ.";
     if (Object.keys(local).length > 0) {
       setErrors(local);
       return;
@@ -216,22 +206,32 @@ export function LearningNeedForm({
       )}
 
       <fieldset className="space-y-2">
-        <legend className="text-xs font-bold text-neutral-700">3. Mục tiêu</legend>
+        <legend className="text-xs font-bold text-neutral-700 dark:text-stone-200">3. Mục tiêu</legend>
         {goals.length === 0 ? (
-          <p className="text-xs text-neutral-500">Chọn khối lớp và môn{needsTrack ? ", nhánh" : ""} để xem mục tiêu phù hợp.</p>
+          <p className="text-xs text-neutral-500 dark:text-stone-400">Chọn khối lớp và môn{needsTrack ? ", nhánh" : ""} để xem mục tiêu phù hợp.</p>
         ) : (
           <div className="grid gap-1.5">
             {goals.map((tag) => (
               <button key={tag.goalTagId} type="button" aria-pressed={goalTagId === tag.goalTagId}
                 onClick={() => setGoalTagId(tag.goalTagId)}
-                className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs flex items-start justify-between gap-3 ${
-                  goalTagId === tag.goalTagId ? "border-[#006DCC] bg-sky-50/60 text-[#006DCC]" : "border-stone-200 text-neutral-700 hover:bg-stone-50"
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs flex items-start justify-between gap-3 transition-colors ${
+                  goalTagId === tag.goalTagId
+                    ? "border-[#006DCC] dark:border-sky-400 bg-sky-50/70 dark:bg-sky-950/60 text-[#006DCC] dark:text-sky-300 shadow-2xs"
+                    : "border-stone-200 dark:border-stone-700/80 bg-white dark:bg-stone-800/80 text-neutral-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700/80"
                 }`}>
                 <span>
                   <span className="block font-semibold">{tag.name}</span>
-                  {tag.description && <span className="block mt-0.5 text-neutral-500 font-normal">{tag.description}</span>}
+                  {tag.description && (
+                    <span className={`block mt-0.5 font-normal ${
+                      goalTagId === tag.goalTagId
+                        ? "text-sky-800 dark:text-sky-200/90"
+                        : "text-neutral-500 dark:text-stone-400"
+                    }`}>
+                      {tag.description}
+                    </span>
+                  )}
                 </span>
-                {goalTagId === tag.goalTagId && <Check className="size-4 shrink-0" />}
+                {goalTagId === tag.goalTagId && <Check className="size-4 shrink-0 text-[#006DCC] dark:text-sky-400" />}
               </button>
             ))}
           </div>
@@ -315,27 +315,21 @@ export function LearningNeedForm({
             <FieldError message={errors.budgetMaxPerSession} />
           </label>
 
-          <fieldset className="space-y-2">
-            <legend className="text-xs font-bold text-neutral-700">Khung giờ có thể học</legend>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {SLOT_PRESETS.map((preset) => {
-                const active = preset.slots.every((ps) => slots.some((s) => sameSlot(s, ps)));
-                return (
-                  <button key={preset.id} type="button" aria-pressed={active} onClick={() => togglePreset(preset)}
-                    className={`text-left px-3 py-2 rounded-xl border text-xs font-medium ${active ? "border-[#006DCC] bg-sky-50/60 text-[#006DCC]" : "border-stone-200 text-neutral-700 hover:bg-stone-50"}`}>
-                    {preset.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="space-y-3">
+            <AvailabilitySlotPicker
+              slots={slots}
+              onChange={setSlots}
+              title="Khung giờ có thể học hằng tuần"
+              description="Thêm các khoảng con có thể học. Gia sư sẽ được so khớp theo các khoảng này; lịch chính thức do hai bên thống nhất sau."
+            />
             <FieldError message={errors.availabilitySlots} />
-          </fieldset>
+          </div>
         </div>
       )}
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 hover:bg-stone-100">
+          <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
             Hủy
           </button>
         )}

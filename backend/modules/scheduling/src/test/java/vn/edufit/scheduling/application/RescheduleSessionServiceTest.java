@@ -26,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import vn.edufit.scheduling.api.event.SessionRescheduleProposedEvent;
+import vn.edufit.scheduling.api.event.SessionRescheduleRejectedEvent;
 import vn.edufit.scheduling.api.event.SessionRescheduledEvent;
 import vn.edufit.scheduling.application.service.RescheduleSessionService;
 import vn.edufit.scheduling.application.service.SchedulingSecurityResolver;
@@ -236,6 +237,7 @@ class RescheduleSessionServiceTest {
     assertEquals(ProposalStatus.REJECTED, result.getStatus());
     assertEquals("Em bị kẹt lịch học ở trường", result.getResponseReason());
     assertEquals(oldStartAt, scheduledSession.getStartAt()); // Không đổi giờ
+    verify(eventPublisher).publishEvent(any(SessionRescheduleRejectedEvent.class));
   }
 
   @Test

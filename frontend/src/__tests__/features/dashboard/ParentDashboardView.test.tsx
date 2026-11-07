@@ -101,4 +101,51 @@ describe("ParentDashboardView Component", () => {
     expect(screen.getByText(/Tiếng Anh/i)).toBeInTheDocument();
     expect(screen.getByText("Đã học 0 / 6 buổi")).toBeInTheDocument();
   });
+
+  it("KPI lấy từ dashboard tiến độ thật, không còn điểm số hay chuyên cần giả", async () => {
+    vi.spyOn(connectionApi, "getLinks").mockResolvedValue(mockLinks.slice(0, 1));
+    vi.spyOn(connectionApi, "getStudentClasses").mockResolvedValue(mockClasses.slice(0, 1));
+    vi.spyOn(progressApi, "getParentDashboard").mockResolvedValue({
+      success: true,
+      data: {
+        students: [
+          {
+            studentId: "stu-1",
+            studentName: "Minh Anh",
+            classes: [],
+            activeClassDashboard: {
+              studentId: "stu-1",
+              studentName: "Minh Anh",
+              classes: [],
+              goalTitle: "Ôn thi chuyển cấp / thi tuyển",
+              progressPercentage: 40,
+              overview: { attendance: { attendanceRate: 75, nextSessionStart: null } },
+            },
+          },
+        ],
+      },
+    } as any);
+
+    render(<ParentDashboardView user={mockUser} />);
+
+    expect(await screen.findByText("Chuyên cần 75%")).toBeInTheDocument();
+    expect(screen.getByText("40%")).toBeInTheDocument();
+    expect(screen.getByText("Ôn thi chuyển cấp / thi tuyển")).toBeInTheDocument();
+    expect(screen.getByText("Chưa có buổi sắp tới")).toBeInTheDocument();
+    expect(screen.queryByText(/8\.5/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/so với tháng trước/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/5\.0 ★/)).not.toBeInTheDocument();
+  });
+
+  it("học sinh chỉ có liên kết, chưa có lớp: không bịa khối lớp hay tiến độ", async () => {
+    vi.spyOn(connectionApi, "getLinks").mockResolvedValue(mockLinks.slice(1));
+    vi.spyOn(connectionApi, "getStudentClasses").mockResolvedValue([]);
+    vi.spyOn(progressApi, "getParentDashboard").mockResolvedValue({ success: true, data: { students: [] } });
+
+    render(<ParentDashboardView user={mockUser} />);
+
+    expect(await screen.findByText("Gia sư chưa lập lộ trình học")).toBeInTheDocument();
+    expect(screen.getByText("Chưa có buổi học kết thúc")).toBeInTheDocument();
+    expect(screen.queryByText(/Lớp 9/)).not.toBeInTheDocument();
+  });
 });

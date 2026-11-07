@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
+import { markOnboardingDone, sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
 import { useToast } from "@/shared/ui/Toast";
 import { profileService, type TutorProfileData, type TutorType } from "@/services/profile";
 import { verificationService } from "@/services/verification";
@@ -33,8 +34,11 @@ const ALLOWED_CREDENTIAL_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"];
 
 export function TutorOnboardingWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoading, refreshUser } = useAuth();
   const { showToast } = useToast();
+
+  const safeReturnUrl = sanitizeReturnUrl(searchParams.get("returnUrl"));
 
   useEffect(() => {
     if (isLoading) return;
@@ -53,7 +57,7 @@ export function TutorOnboardingWizard() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [lastSaved, setLastSaved] = useState<string>("Vừa cập nhật");
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
 
   const { catalog } = useLearningCatalog();
 
@@ -181,20 +185,19 @@ export function TutorOnboardingWizard() {
       }
     }
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        "edufit_tutor_onboarding_completed",
-        JSON.stringify({
-          completedAt: new Date().toISOString(),
-          skipped: true,
-          displayName,
-          offeringsCount: profile?.offerings.length ?? 0,
-          step: "SKIPPED",
-        })
-      );
-    }
+    markOnboardingDone(
+      "tutor",
+      user?.id,
+      JSON.stringify({
+        completedAt: new Date().toISOString(),
+        skipped: true,
+        displayName,
+        offeringsCount: profile?.offerings.length ?? 0,
+        step: "SKIPPED",
+      })
+    );
     showToast("Bạn có thể hoàn thiện hồ sơ và gửi duyệt KYC bất cứ lúc nào trong Bảng điều khiển.", "info");
-    router.push("/tutor/dashboard");
+    router.push(safeReturnUrl || "/tutor/dashboard");
   };
 
   const handleNextFromStep2 = () => {
@@ -275,9 +278,10 @@ export function TutorOnboardingWizard() {
         selectedFiles
       );
 
-      // 3. Lưu trạng thái hoàn tất vào Local Storage
-      localStorage.setItem(
-        "edufit_tutor_onboarding_completed",
+      // 3. Lưu trạng thái hoàn tất vào Local Storage theo user.id
+      markOnboardingDone(
+        "tutor",
+        user?.id,
         JSON.stringify({
           completedAt: new Date().toISOString(),
           displayName,
@@ -288,7 +292,7 @@ export function TutorOnboardingWizard() {
 
       showToast("Hoàn tất thiết lập hồ sơ gia sư! Hồ sơ đã được gửi để duyệt KYC.", "success");
       await refreshUser?.();
-      router.push("/tutor/dashboard");
+      router.push(safeReturnUrl || "/tutor/dashboard");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Có lỗi xảy ra khi lưu hồ sơ gia sư";
       showToast(message, "error");
@@ -325,10 +329,12 @@ export function TutorOnboardingWizard() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 text-xs text-neutral-400">
-            <Clock className="size-3.5" />
-            <span>Đã lưu nháp lúc {lastSaved}</span>
-          </div>
+          {lastSaved && (
+            <div className="hidden md:flex items-center gap-2 text-xs text-neutral-400">
+              <Clock className="size-3.5" />
+              <span>Đã lưu nháp lúc {lastSaved}</span>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleSkipToDashboard}

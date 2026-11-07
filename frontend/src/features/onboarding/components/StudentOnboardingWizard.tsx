@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, Plus } from "lucide-react";
 import { EduFitLogo } from "@/shared/ui/EduFitLogo";
 import { useAuth } from "@/context/AuthContext";
+import { markOnboardingDone, sanitizeReturnUrl } from "@/features/auth/utils/authRedirect";
 import { useToast } from "@/shared/ui/Toast";
 import { profileService } from "@/services/profile";
 import type { LearningNeed } from "@/services/learningNeeds";
@@ -19,12 +20,15 @@ import { useLearningCatalog } from "@/features/learning-needs/hooks/useLearningC
  */
 export function StudentOnboardingWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const { catalog, error } = useLearningCatalog();
   const [created, setCreated] = useState<LearningNeed[]>([]);
   const [formKey, setFormKey] = useState(0);
   const [finishing, setFinishing] = useState(false);
+
+  const safeReturnUrl = sanitizeReturnUrl(searchParams.get("returnUrl"));
 
   const handleSaved = async (need: LearningNeed) => {
     if (created.length === 0 && need.educationLevelId) {
@@ -38,9 +42,12 @@ export function StudentOnboardingWizard() {
 
   const finish = async () => {
     setFinishing(true);
+    // Cả "Hoàn tất" lẫn "Bỏ qua" đều là quyết định rời wizard: dashboard không được đẩy về đây nữa,
+    // kể cả khi lưu khối lớp (profileComplete) thất bại.
+    markOnboardingDone("student", user?.id);
     try {
       await refreshUser?.();
-      router.push("/student/dashboard");
+      router.push(safeReturnUrl || "/student/dashboard");
     } finally {
       setFinishing(false);
     }

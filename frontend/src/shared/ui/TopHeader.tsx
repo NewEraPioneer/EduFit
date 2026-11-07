@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { UserRole } from "./Sidebar";
 import { useTheme } from "@/context/ThemeContext";
-import { NotificationDropdown, notificationApi } from "@/features/notification";
+import { NotificationDropdown, useNotification } from "@/features/notification";
 
 interface TopHeaderProps {
   role?: UserRole;
@@ -46,22 +46,8 @@ export function TopHeader({
 }: TopHeaderProps) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const { unreadCount } = useNotification();
   const { theme, setTheme } = useTheme();
-
-  React.useEffect(() => {
-    let active = true;
-    const refreshCount = () => {
-      if (document.hidden) return;
-      void notificationApi.getUnreadCount().then((res) => {
-        if (active && res.success && res.data) setUnreadNotifications(res.data.unreadCount);
-      }).catch(() => {});
-    };
-    refreshCount();
-    const interval = window.setInterval(refreshCount, 15_000);
-    window.addEventListener("focus", refreshCount);
-    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", refreshCount); };
-  }, [user.email]);
 
   const roleLabel = ROLE_LABEL_MAP[role] || "Thành viên";
   const roleBase = role.toLowerCase();
@@ -106,21 +92,18 @@ export function TopHeader({
           <button
             type="button"
             aria-label="Thông báo"
+            data-notification-trigger
             onClick={() => setNotificationOpen(!notificationOpen)}
             className="relative p-2 rounded-xl border border-stone-200/60 dark:border-stone-700/60 hover:bg-stone-50 dark:hover:bg-stone-800 text-neutral-600 dark:text-stone-300 transition-colors cursor-pointer"
           >
             <Bell className="size-4.5" />
-            {unreadNotifications > 0 && (
-              <span className="absolute top-1 right-1 size-2 rounded-full bg-amber-500 animate-pulse ring-2 ring-white dark:ring-stone-900" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 size-3 rounded-full bg-red-600 animate-pulse ring-2 ring-white dark:ring-stone-900" />
             )}
           </button>
 
           {notificationOpen && (
-            <NotificationDropdown
-              role={role}
-              onClose={() => setNotificationOpen(false)}
-              onUnreadCountChange={(cnt) => setUnreadNotifications(cnt)}
-            />
+            <NotificationDropdown role={role} onClose={() => setNotificationOpen(false)} />
           )}
         </div>
 

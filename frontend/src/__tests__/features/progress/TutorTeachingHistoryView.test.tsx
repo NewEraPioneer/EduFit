@@ -72,6 +72,7 @@ describe("TutorTeachingHistoryView Component Tests", () => {
         status: "ACHIEVED",
         isArchived: false,
         sortOrder: 1,
+        criteria: [],
       },
     ],
   };

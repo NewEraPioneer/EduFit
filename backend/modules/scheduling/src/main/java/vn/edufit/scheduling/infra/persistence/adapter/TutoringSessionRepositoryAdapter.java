@@ -88,6 +88,17 @@ public class TutoringSessionRepositoryAdapter implements TutoringSessionDomainRe
   }
 
   @Override
+  public List<TutoringSession> findCompletedEndedBetween(Instant from, Instant to) {
+    return springDataRepository.findCompletedEndedBetween(from, to).stream().map(sessionMapper::toDomain).toList();
+  }
+
+  @Override
+  public List<TutoringSession> findByIds(java.util.Collection<UUID> sessionIds) {
+    if (sessionIds == null || sessionIds.isEmpty()) return List.of();
+    return springDataRepository.findBySessionIdIn(sessionIds).stream().map(sessionMapper::toDomain).toList();
+  }
+
+  @Override
   public List<TutoringSession> findOverdueOutcomeSessions(Instant cutoff) {
     return springDataRepository.findOverdueOutcomeSessions(cutoff)
         .stream()

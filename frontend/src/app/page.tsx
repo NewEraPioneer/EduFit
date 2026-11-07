@@ -145,7 +145,7 @@ export default function HomePage() {
               <div className="w-full p-5 bg-white/95 backdrop-blur-md rounded-2xl border border-stone-200/80 shadow-md flex flex-col gap-3.5 animate-float-delayed hover:shadow-xl transition-all duration-300">
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-800 text-xs font-semibold">
-                    Mục tiêu của Minh
+                    Ví dụ minh họa · Mục tiêu học tập
                   </span>
                   <span className="px-2.5 py-0.5 bg-orange-300 rounded-full text-neutral-900 text-xs font-semibold">
                     Lớp 9
@@ -269,7 +269,7 @@ export default function HomePage() {
                 Học và nhìn thấy tiến bộ
               </h3>
               <p className="text-neutral-600 text-sm leading-relaxed">
-                Theo dõi buổi học, quiz và từng cột mốc đã hoàn thành trên một nơi.
+                Theo dõi buổi học, nhận xét của gia sư và từng cột mốc đã hoàn thành trên một nơi.
               </p>
             </div>
           </div>
@@ -337,7 +337,7 @@ export default function HomePage() {
                 {/* Header Match Badge */}
                 <div className="bg-neutral-900 text-white px-5 py-3.5 flex justify-between items-center text-xs">
                   <span className="font-medium">
-                    Gợi ý phù hợp nhất cho mục tiêu của bạn
+                    Ví dụ minh họa thẻ gợi ý gia sư
                   </span>
                   <span className="text-orange-300 font-semibold">
                     94% phù hợp
@@ -421,7 +421,7 @@ export default function HomePage() {
                     Chào Minh 👋
                   </div>
                   <div className="text-neutral-500 text-xs">
-                    Tuần này bạn đang tiến bộ tốt.
+                    Ví dụ minh họa giao diện dashboard
                   </div>
                 </div>
                 <div className="size-9 bg-stone-100 rounded-xl flex justify-center items-center text-neutral-600">
@@ -464,18 +464,18 @@ export default function HomePage() {
                     <TrendingUp className="size-3.5" />
                   </div>
                   <div className="text-neutral-900 text-base font-semibold">
-                    8.4
+                    9 / 12
                   </div>
-                  <div className="text-neutral-500 text-[11px]">Điểm quiz</div>
+                  <div className="text-neutral-500 text-[11px]">Buổi đã học</div>
                 </div>
                 <div className="p-3 bg-stone-50 border border-stone-100 rounded-xl flex flex-col gap-1">
                   <div className="size-6 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center">
                     <Calendar className="size-3.5" />
                   </div>
                   <div className="text-neutral-900 text-base font-semibold">
-                    6
+                    100%
                   </div>
-                  <div className="text-neutral-500 text-[11px]">Ngày liên tiếp</div>
+                  <div className="text-neutral-500 text-[11px]">Chuyên cần</div>
                 </div>
               </div>
 
@@ -509,8 +509,8 @@ export default function HomePage() {
               Mỗi buổi học đều để lại một dấu mốc.
             </h2>
             <p className="text-neutral-700 text-base leading-relaxed">
-              Không còn học trong mơ hồ. Bạn thấy mục tiêu, điểm quiz, cột mốc và
-              buổi học tiếp theo ngay trên dashboard.
+              Không còn học trong mơ hồ. Bạn thấy mục tiêu, cột mốc, nhận xét của
+              gia sư và buổi học tiếp theo ngay trên dashboard.
             </p>
 
             <div className="p-4 bg-stone-100 border border-stone-200/70 rounded-xl flex items-start gap-3 mt-2">
@@ -520,8 +520,8 @@ export default function HomePage() {
                   AI gợi ý, gia sư quyết định
                 </div>
                 <div className="text-neutral-600 text-xs leading-relaxed">
-                  Mọi nhận xét học tập đều được gia sư xem và xác nhận trước khi
-                  gửi đến bạn.
+                  AI giúp gợi ý gia sư và giải thích lý do phù hợp. Nhận xét học
+                  tập do chính gia sư viết sau mỗi buổi học.
                 </div>
               </div>
             </div>

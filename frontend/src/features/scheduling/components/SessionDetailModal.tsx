@@ -1,7 +1,7 @@
 "use client";
 
 import { SessionBillingPanel } from "@/features/payment/components/SessionBillingPanel";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Clock,
@@ -30,7 +30,10 @@ import {
 } from "../types";
 import type { UserRole } from "@/shared/ui/Sidebar";
 import { formatLocalDateToIso, formatLocalTime } from "@/shared/utils/dateTime";
-import { SessionOutcomeModal, progressApi, type PlanResponse } from "@/features/progress";
+import { PlannedMilestonesPicker, SessionOutcomeModal, progressApi, type PlanResponse } from "@/features/progress";
+
+export const canRecordSessionOutcome = (status?: string, role?: string): boolean =>
+  status === "SCHEDULED" && role === "TUTOR";
 
 export interface SessionDetailModalProps {
   sessionId: string | null;
@@ -40,6 +43,9 @@ export interface SessionDetailModalProps {
   role: UserRole;
   currentUserId?: string;
   classes?: ConnectedClass[];
+  initialAction?: "outcome" | null;
+  /** Gọi khi tải xong chi tiết buổi học (vd. để lịch nhảy tới đúng tuần) */
+  onSessionLoaded?: (session: SessionDetail) => void;
 }
 
 export function SessionDetailModal({
@@ -50,7 +56,13 @@ export function SessionDetailModal({
   role,
   currentUserId,
   classes = [],
+  initialAction,
+  onSessionLoaded,
 }: SessionDetailModalProps) {
+  const onSessionLoadedRef = useRef(onSessionLoaded);
+  useEffect(() => {
+    onSessionLoadedRef.current = onSessionLoaded;
+  });
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [rescheduleProposal, setRescheduleProposal] = useState<RescheduleProposal | null>(null);
   const [showRescheduleRejectInput, setShowRescheduleRejectInput] = useState(false);
@@ -89,6 +101,8 @@ export function SessionDetailModal({
   const [rejectReason, setRejectReason] = useState("");
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [classPlan, setClassPlan] = useState<PlanResponse | null>(null);
+  const [plannedMilestoneIds, setPlannedMilestoneIds] = useState<string[]>([]);
+  const handledActionRef = useRef<string | null>(null);
 
   // Track session ID during render to avoid cascading renders in useEffect (React 19 pattern)
   const [prevSessionId, setPrevSessionId] = useState<string | null>(null);
@@ -97,13 +111,21 @@ export function SessionDetailModal({
     setRescheduleProposal(null);
     setShowRescheduleRejectInput(false);
     setRescheduleRejectReason("");
+    setShowOutcomeModal(false);
   } else if (!isOpen && prevSessionId !== null) {
     setPrevSessionId(null);
     setSession(null);
     setRescheduleProposal(null);
     setShowRescheduleRejectInput(false);
     setRescheduleRejectReason("");
+    setShowOutcomeModal(false);
   }
+
+  useEffect(() => {
+    if (!isOpen) {
+      handledActionRef.current = null;
+    }
+  }, [isOpen]);
 
   // Fetch session details on mount / id change
   useEffect(() => {
@@ -115,6 +137,17 @@ export function SessionDetailModal({
           if (!ignore) {
             if (res.success && res.data) {
               setSession(res.data);
+              onSessionLoadedRef.current?.(res.data);
+              const canRecord = canRecordSessionOutcome(res.data.status, role);
+              const actionKey = `${sessionId}:${initialAction}`;
+              if (
+                canRecord &&
+                initialAction === "outcome" &&
+                handledActionRef.current !== actionKey
+              ) {
+                handledActionRef.current = actionKey;
+                setShowOutcomeModal(true);
+              }
               const start = new Date(res.data.startAt);
               const end = new Date(res.data.endAt);
               if (!Number.isNaN(start.getTime())) {
@@ -164,7 +197,7 @@ export function SessionDetailModal({
     return () => {
       ignore = true;
     };
-  }, [isOpen, sessionId]);
+  }, [isOpen, sessionId, initialAction, role]);
 
   if (!isOpen || !sessionId) return null;
 
@@ -577,6 +610,16 @@ export function SessionDetailModal({
                 </div>
               </div>
 
+              {/* Cột mốc dự kiến/thực tế của buổi (module Progress) */}
+              {["PROPOSED", "SCHEDULED", "COMPLETED"].includes(session.status) && (
+                <PlannedMilestonesPicker
+                  sessionId={session.sessionId}
+                  plan={classPlan}
+                  editable={role === "TUTOR" && ["PROPOSED", "SCHEDULED"].includes(session.status)}
+                  onChange={setPlannedMilestoneIds}
+                />
+              )}
+
               {(["STUDENT", "PARENT", "TUTOR"] as string[]).includes(role) && ["SCHEDULED", "COMPLETED", "ABSENT", "CANCELLED"].includes(session.status) && <SessionBillingPanel sessionId={session.sessionId} role={role as "STUDENT" | "PARENT" | "TUTOR"} />}
 
               {/* Banner đề xuất dời lịch học (UC4.4) */}
@@ -967,7 +1010,7 @@ export function SessionDetailModal({
                   {/* Trạng thái SCHEDULED: Đổi lịch hoặc Hủy */}
                   {session.status === "SCHEDULED" && (
                     <>
-                      {role === "TUTOR" && (
+                      {canRecordSessionOutcome(session.status, role) && (
                         <button
                           type="button"
                           onClick={() => setShowOutcomeModal(true)}
@@ -1025,6 +1068,7 @@ export function SessionDetailModal({
             endAt: session.endAt,
           }}
           plan={classPlan}
+          plannedMilestoneIds={plannedMilestoneIds}
           onSuccess={() => {
             setShowOutcomeModal(false);
             onUpdated();

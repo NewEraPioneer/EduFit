@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import vn.edufit.notification.web.response.MarkAllReadResponse;
 import vn.edufit.notification.web.response.MarkReadResponse;
 import vn.edufit.notification.web.response.NotificationListResponse;
 import vn.edufit.notification.web.response.UnreadCountResponse;
+import vn.edufit.notification.web.response.UnreadSummaryResponse;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.response.ApiResponse;
 
@@ -124,5 +126,21 @@ class NotificationControllerTest {
     assertNotNull(response.getBody());
     assertTrue(response.getBody().success());
     assertEquals(7, response.getBody().data().count());
+  }
+
+  @Test
+  @DisplayName("getUnreadSummary: Trả về HTTP 200 kèm UnreadSummaryResponse")
+  void getUnreadSummary_success_returns200() {
+    when(currentUserProvider.getIfAvailable()).thenReturn(testUser);
+    UnreadSummaryResponse summaryResponse = new UnreadSummaryResponse(4L, Map.of("SCHEDULE", 3L, "CONNECTION", 1L));
+    when(notificationService.getUnreadSummary(testUser)).thenReturn(summaryResponse);
+
+    ResponseEntity<ApiResponse<UnreadSummaryResponse>> response = controller.getUnreadSummary();
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().success());
+    assertEquals(4L, response.getBody().data().total());
+    assertEquals(3L, response.getBody().data().byCategory().get("SCHEDULE"));
   }
 }

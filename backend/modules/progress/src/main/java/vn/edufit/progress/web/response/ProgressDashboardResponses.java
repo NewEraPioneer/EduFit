@@ -1,28 +1,17 @@
 package vn.edufit.progress.web.response;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import vn.edufit.progress.application.dto.ProgressViews.ClassSelectorItemView;
 import vn.edufit.progress.application.dto.ProgressViews.ParentDashboardView;
 import vn.edufit.progress.application.dto.ProgressViews.ParentStudentSummaryView;
-import vn.edufit.progress.application.dto.ProgressViews.ProgressSeriesPointView;
+import vn.edufit.progress.application.dto.ProgressViews.ProgressOverviewView;
 import vn.edufit.progress.application.dto.ProgressViews.StudentDashboardView;
 import vn.edufit.progress.application.dto.ProgressViews.TeachingHistoryItemView;
 import vn.edufit.scheduling.api.dto.ClassSessionStatsView;
 
 public class ProgressDashboardResponses {
-
-  public record ProgressSeriesPoint(
-      LocalDate date,
-      int progressPercent
-  ) {
-    public static ProgressSeriesPoint from(ProgressSeriesPointView v) {
-      if (v == null) return null;
-      return new ProgressSeriesPoint(v.date(), v.progressPercent());
-    }
-  }
 
   public record ClassSelectorItem(
       UUID classId,
@@ -47,8 +36,7 @@ public class ProgressDashboardResponses {
       String goalTitle,
       Integer progressPercentage,
       PlanResponse plan,
-      ClassSessionStatsView sessionStats,
-      List<ProgressSeriesPoint> progressSeries,
+      ProgressOverviewView overview,
       List<SessionNoteTimelineResponse> recentNotes,
       boolean hasMoreNotes
   ) {
@@ -65,8 +53,7 @@ public class ProgressDashboardResponses {
           v.goalTitle(),
           v.progressPercentage(),
           PlanResponse.from(v.plan()),
-          v.sessionStats(),
-          v.progressSeries() != null ? v.progressSeries().stream().map(ProgressSeriesPoint::from).toList() : List.of(),
+          v.overview(),
           v.recentNotes() != null ? v.recentNotes().stream().map(SessionNoteTimelineResponse::from).toList() : List.of(),
           v.hasMoreNotes()
       );

@@ -33,7 +33,6 @@ import vn.edufit.profile.api.dto.*;
 import vn.edufit.shared.audit.AuditSink;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.*;
-import vn.edufit.shared.notification.NotificationSink;
 
 /**
  * Dedicated test suite targeting edge cases, defensive checks, and sub-branches
@@ -299,13 +298,12 @@ class ConnectionBranchCoverageTest {
     ProfileFacade profile = mock(ProfileFacade.class);
     IamFacade iam = mock(IamFacade.class);
     ConnectionLock lock = mock(ConnectionLock.class);
-    NotificationSink notifications = mock(NotificationSink.class);
     ConnectionFacade facade = mock(ConnectionFacade.class);
     ConnectionRequestInput input = new ConnectionRequestInput("legacy-compatible");
     ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
     ConnectionExpiryService expiryService = mock(ConnectionExpiryService.class);
 
-    ConnectionRequestService service = new ConnectionRequestService(reqRepo, classRepo, profile, iam, lock, notifications, facade, input, events, expiryService, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
+    ConnectionRequestService service = new ConnectionRequestService(reqRepo, classRepo, profile, iam, lock, facade, input, events, expiryService, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
 
     UUID userId = UUID.randomUUID();
     UUID studentId = UUID.randomUUID();
@@ -579,13 +577,12 @@ class ConnectionBranchCoverageTest {
     ProfileFacade profile = mock(ProfileFacade.class);
     IamFacade iam = mock(IamFacade.class);
     ConnectionLock lock = mock(ConnectionLock.class);
-    NotificationSink notifications = mock(NotificationSink.class);
     ConnectionFacade facade = mock(ConnectionFacade.class);
     ConnectionRequestInput input = new ConnectionRequestInput("legacy-compatible");
     ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
 
     ConnectionExpiryService expiryService = mock(ConnectionExpiryService.class);
-    ConnectionRequestService service = new ConnectionRequestService(reqRepo, classRepo, profile, iam, lock, notifications, facade, input, events, expiryService, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
+    ConnectionRequestService service = new ConnectionRequestService(reqRepo, classRepo, profile, iam, lock, facade, input, events, expiryService, new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), clock);
 
     UUID tutorUserId = UUID.randomUUID();
     UUID tutorId = UUID.randomUUID();

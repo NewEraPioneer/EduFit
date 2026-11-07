@@ -29,14 +29,18 @@ class PaymentApplicationIT {
  @Autowired org.springframework.context.ApplicationEventPublisher events;
 
  @Test void schedulingOutcomeAtomicallyOpensOneNotified24HourWindowEvenWhenRecordedLate() {
-  var row=db.queryForMap("select g.goal_id,g.student_id,s.user_id student_user,t.tutor_id,t.user_id tutor_user"
-    + " from learning_goal g join student_profile s using(student_id) cross join tutor_profile t limit 1");
-  UUID pupil=(UUID)row.get("student_user"), tutorUser=(UUID)row.get("tutor_user"), student=(UUID)row.get("student_id"), tutor=(UUID)row.get("tutor_id");
+  // Profile mặc định không nạp seed demo: tự tạo học sinh, gia sư và nhu cầu học (V1.25) cho test.
+  UUID pupil=UUID.randomUUID(), tutorUser=UUID.randomUUID(), student=UUID.randomUUID(), tutor=UUID.randomUUID(), need=UUID.randomUUID();
+  db.update("insert into account(user_id,email,full_name,role) values (?,?,'Payment IT Student','STUDENT'),(?,?,'Payment IT Tutor','TUTOR')",
+    pupil,pupil+"@payment-it.test",tutorUser,tutorUser+"@payment-it.test");
+  db.update("insert into student_profile(student_id,user_id) values (?,?)",student,pupil);
+  db.update("insert into tutor_profile(tutor_id,user_id,display_name,teaching_mode) values (?,?,'Payment IT Tutor','ONLINE')",tutor,tutorUser);
+  db.update("insert into learning_need(need_id,student_id,created_by,subject_id) values (?,?,?,(select min(subject_id) from subject))",need,student,pupil);
   UUID request=UUID.randomUUID(), cls=UUID.randomUUID(), session=UUID.randomUUID();
   var recorded=java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
   var end=recorded.minusSeconds(90000);
-  db.update("insert into connection_request(request_id,student_id,tutor_id,goal_id,sent_by_user_id,status,expires_at) values (?,?,?,?,?,'ACCEPTED',now())",request,student,tutor,row.get("goal_id"),pupil);
-  db.update("insert into class(class_id,connection_request_id,student_id,tutor_id,goal_id) values (?,?,?,?,?)",cls,request,student,tutor,row.get("goal_id"));
+  db.update("insert into connection_request(request_id,student_id,tutor_id,need_id,sent_by_user_id,status,expires_at) values (?,?,?,?,?,'ACCEPTED',now())",request,student,tutor,need,pupil);
+  db.update("insert into class(class_id,connection_request_id,student_id,tutor_id,need_id,price_per_session) values (?,?,?,?,?,100000)",cls,request,student,tutor,need);
   db.update("insert into tutoring_session(session_id,class_id,tutor_id,student_id,start_at,end_at,mode,status,proposed_by,expires_at) values (?,?,?,?,?,?,'ONLINE','SCHEDULED',?,now())",session,cls,tutor,student,java.sql.Timestamp.from(end.minusSeconds(3600)),java.sql.Timestamp.from(end),tutorUser);
   store.locked(()-> {store.insert(new vn.edufit.payment.application.PaymentViews.Charge(session,cls,student,pupil,tutorUser,1000,new vn.edufit.payment.domain.SessionCharge(100000,end)));store.move(pupil,0,100000,"review-fixture:"+session,"TEST",session);return null;});
   var event=vn.edufit.scheduling.api.event.SessionOutcomeRecordedEvent.of(session,cls,tutor,student,"COMPLETED",null,recorded);

@@ -31,6 +31,9 @@ class ClassEndedEventListenerTest {
   @Mock
   private RescheduleClassScheduleService rescheduleClassScheduleService;
 
+  @Mock
+  private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
   private final Instant fixedNow = Instant.parse("2026-10-20T10:00:00Z");
   private final Clock clock = Clock.fixed(fixedNow, ZoneOffset.UTC);
 
@@ -38,7 +41,7 @@ class ClassEndedEventListenerTest {
 
   @BeforeEach
   void setUp() {
-    listener = new ClassEndedEventListener(sessionRepository, rescheduleClassScheduleService, clock);
+    listener = new ClassEndedEventListener(sessionRepository, rescheduleClassScheduleService, clock, eventPublisher);
   }
 
   @Test
@@ -84,5 +87,27 @@ class ClassEndedEventListenerTest {
 
     verify(sessionRepository, times(2)).save(any(TutoringSession.class));
     verify(rescheduleClassScheduleService).cancelActiveProposalForClass(classId, "Học sinh chuyển trường", fixedNow);
+
+    var published = org.mockito.ArgumentCaptor.forClass(vn.edufit.scheduling.api.event.ClassScheduleChangedEvent.class);
+    verify(eventPublisher).publishEvent(published.capture());
+    var change = published.getValue();
+    assertEquals(classId, change.classId());
+    assertEquals(tutorId, change.tutorId());
+    assertEquals(studentId, change.studentId());
+    assertEquals(endedBy, change.actorUserId());
+    assertEquals(vn.edufit.scheduling.api.event.ClassScheduleChangedEvent.CLASS_ENDED, change.kind());
+    assertEquals(2, change.cancelledCount());
+  }
+
+  @Test
+  @DisplayName("Lớp kết thúc mà không còn buổi tương lai nào thì không phát sự kiện thông báo")
+  void shouldNotPublishWhenThereIsNothingToCancel() {
+    UUID classId = UUID.randomUUID();
+    when(sessionRepository.findByClassId(classId, fixedNow, null)).thenReturn(List.of());
+
+    listener.onClassEnded(new TutoringClassEndedEvent(
+        classId, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "x", fixedNow));
+
+    verifyNoInteractions(eventPublisher);
   }
 }

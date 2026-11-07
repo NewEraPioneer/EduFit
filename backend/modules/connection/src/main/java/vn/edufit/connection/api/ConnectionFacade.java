@@ -1,6 +1,7 @@
 package vn.edufit.connection.api;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,7 @@ public interface ConnectionFacade {
   Optional<ClassDetailView> findClassById(UUID classId);
   List<ClassDetailView> findClassesByStudent(UUID studentId);
   List<ClassDetailView> findClassesByTutor(UUID tutorId);
+  List<ClassDetailView> findClassesByIds(Collection<UUID> classIds);
   List<UUID> findConfirmedParentUserIds(UUID studentId);
   List<UUID> findConfirmedStudentIds(UUID parentUserId);
   long countActiveClasses();

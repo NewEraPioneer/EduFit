@@ -38,6 +38,8 @@ export default function TutorSchedulePage() {
   }, []);
 
   return (
-    <ScheduleCalendarView role="TUTOR" availabilitySlots={availabilitySlots} classes={classes} />
+    <React.Suspense fallback={<div className="p-6 text-sm text-slate-500">Đang tải lịch học...</div>}>
+      <ScheduleCalendarView role="TUTOR" availabilitySlots={availabilitySlots} classes={classes} />
+    </React.Suspense>
   );
 }

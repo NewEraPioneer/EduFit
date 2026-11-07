@@ -47,7 +47,6 @@ import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.exception.ResourceConflictException;
-import vn.edufit.shared.notification.NotificationSink;
 
 /**
  * DDT Matrix tests verifying complete permission, state transition, and boundary matrices
@@ -65,7 +64,6 @@ class ConnectionMatrixDdtTest {
   private final ConnectionLock locks = mock(ConnectionLock.class);
   private final InvitationQuotaService quota = mock(InvitationQuotaService.class);
   private final ConnectionFacade facade = mock(ConnectionFacade.class);
-  private final NotificationSink notifications = mock(NotificationSink.class);
   private final AuditSink audit = mock(AuditSink.class);
   private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
 
@@ -214,7 +212,7 @@ class ConnectionMatrixDdtTest {
   ) {
     Instant testTime = T0.plus(Duration.ofHours(hoursElapsed));
     Clock fixedClock = Clock.fixed(testTime, ZoneOffset.UTC);
-    ConnectionRequestService service = new ConnectionRequestService(requests, classes, profile, iam, locks, notifications, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), fixedClock);
+    ConnectionRequestService service = new ConnectionRequestService(requests, classes, profile, iam, locks, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), fixedClock);
 
     ConnectionRequest request = new ConnectionRequest(
         studentId, tutorId, needId, studentUser, List.of("Tue 19:00"), null, T0
@@ -277,7 +275,7 @@ class ConnectionMatrixDdtTest {
     when(profile.findStudentById(studentUser)).thenReturn(Optional.empty());
 
     CurrentUser studentActor = actor(studentUser, "STUDENT");
-    ConnectionRequestService service = new ConnectionRequestService(requests, classes, profile, iam, locks, notifications, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(T0, ZoneOffset.UTC));
+    ConnectionRequestService service = new ConnectionRequestService(requests, classes, profile, iam, locks, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(T0, ZoneOffset.UTC));
 
     // If goal had wrong student profile mapping, request creation is rejected
     UUID fakeGoal = UUID.randomUUID();
@@ -310,7 +308,7 @@ class ConnectionMatrixDdtTest {
     when(facade.hasConfirmedParentLink(parentUser, student2Id)).thenReturn(true);
 
     CurrentUser parentActor = actor(parentUser, "PARENT");
-    ConnectionRequestService reqService = new ConnectionRequestService(requests, classes, profile, iam, locks, notifications, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(T0, ZoneOffset.UTC));
+    ConnectionRequestService reqService = new ConnectionRequestService(requests, classes, profile, iam, locks, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(T0, ZoneOffset.UTC));
 
     // 1. Parent can create request for Student 1
     var res1 = reqService.request(parentActor, needId, tutorId, List.of("Tue 19:00"), null);

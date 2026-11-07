@@ -293,7 +293,13 @@ class BatchSchedulingTest {
     assertEquals(2, results.size());
     assertEquals(SessionStatus.SCHEDULED, results.get(0).getStatus());
     assertEquals(SessionStatus.SCHEDULED, results.get(1).getStatus());
-    verify(eventPublisher, org.mockito.Mockito.times(2)).publishEvent(any(SessionScheduledEvent.class));
+    // Cả lô chỉ phát MỘT sự kiện gộp (một thông báo cố định), không phải một sự kiện cho mỗi buổi
+    verify(eventPublisher, never()).publishEvent(any(SessionScheduledEvent.class));
+    var batch = org.mockito.ArgumentCaptor.forClass(vn.edufit.scheduling.api.event.ClassScheduleChangedEvent.class);
+    verify(eventPublisher).publishEvent(batch.capture());
+    assertEquals(vn.edufit.scheduling.api.event.ClassScheduleChangedEvent.BATCH_ACCEPTED, batch.getValue().kind());
+    assertEquals(2, batch.getValue().generatedCount());
+    assertEquals(studentUserId, batch.getValue().actorUserId());
   }
 
   @Test
@@ -330,6 +336,11 @@ class BatchSchedulingTest {
     assertEquals(SessionStatus.REJECTED, results.get(0).getStatus());
     assertEquals(SessionStatus.REJECTED, results.get(1).getStatus());
     verify(eventPublisher, never()).publishEvent(any(SessionScheduledEvent.class));
+    // B-13: từ chối hàng loạt cũng báo người đề xuất, bằng MỘT sự kiện cho cả lô
+    var batch = org.mockito.ArgumentCaptor.forClass(vn.edufit.scheduling.api.event.ClassScheduleChangedEvent.class);
+    verify(eventPublisher).publishEvent(batch.capture());
+    assertEquals(vn.edufit.scheduling.api.event.ClassScheduleChangedEvent.BATCH_REJECTED, batch.getValue().kind());
+    assertEquals(2, batch.getValue().cancelledCount());
   }
 
   @Test

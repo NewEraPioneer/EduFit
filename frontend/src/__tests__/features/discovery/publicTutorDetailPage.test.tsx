@@ -125,6 +125,8 @@ describe("Public Tutor Detail Page (/tutors/[id])", () => {
       error: null,
       login: vi.fn(),
       register: vi.fn(),
+      verifyRegistration: vi.fn(),
+      resetPassword: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
     });
@@ -170,6 +172,8 @@ describe("Public Tutor Detail Page (/tutors/[id])", () => {
       error: null,
       login: vi.fn(),
       register: vi.fn(),
+      verifyRegistration: vi.fn(),
+      resetPassword: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
     });
@@ -204,6 +208,8 @@ describe("Public Tutor Detail Page (/tutors/[id])", () => {
       error: null,
       login: vi.fn(),
       register: vi.fn(),
+      verifyRegistration: vi.fn(),
+      resetPassword: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
     });
@@ -235,6 +241,8 @@ describe("Public Tutor Detail Page (/tutors/[id])", () => {
       error: null,
       login: vi.fn(),
       register: vi.fn(),
+      verifyRegistration: vi.fn(),
+      resetPassword: vi.fn(),
       logout: vi.fn(),
       refreshUser: vi.fn(),
     });

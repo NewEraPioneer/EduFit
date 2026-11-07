@@ -1,20 +1,24 @@
 package vn.edufit.notification.application.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.edufit.notification.application.NotificationCategory;
 import vn.edufit.notification.infra.persistence.entity.Notification;
 import vn.edufit.notification.infra.persistence.repository.NotificationRepository;
 import vn.edufit.notification.web.response.MarkAllReadResponse;
 import vn.edufit.notification.web.response.MarkReadResponse;
 import vn.edufit.notification.web.response.NotificationListResponse;
 import vn.edufit.notification.web.response.UnreadCountResponse;
+import vn.edufit.notification.web.response.UnreadSummaryResponse;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
-import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.exception.InvalidOperationException;
 
 /**
@@ -65,20 +69,34 @@ public class NotificationService {
   }
 
   /**
+   * Thống kê số lượng thông báo chưa đọc theo danh mục cho người dùng hiện tại (phục vụ sidebar dots).
+   */
+  @Transactional(readOnly = true)
+  public UnreadSummaryResponse getUnreadSummary(CurrentUser currentUser) {
+    ensureAuthenticated(currentUser);
+    List<Object[]> results = notificationRepository.countUnreadByType(currentUser.getUserId());
+    Map<String, Long> byCategory = new HashMap<>();
+    long total = 0;
+    for (Object[] row : results) {
+      long count = ((Number) row[1]).longValue();
+      byCategory.merge(NotificationCategory.of((String) row[0]).name(), count, Long::sum);
+      total += count;
+    }
+    return new UnreadSummaryResponse(total, byCategory);
+  }
+
+  /**
    * Đánh dấu một thông báo cụ thể là đã đọc.
    *
-   * @throws EntityNotFoundException nếu không tìm thấy thông báo theo ID (HTTP 404).
-   * @throws ForbiddenOperationException nếu thông báo thuộc về tài khoản khác (HTTP 403).
+   * @throws EntityNotFoundException nếu không có thông báo này của người dùng hiện tại (HTTP 404, kể cả khi thuộc tài khoản khác).
    */
   @Transactional
   public MarkReadResponse markAsRead(CurrentUser currentUser, UUID notificationId) {
     ensureAuthenticated(currentUser);
-    Notification notification = notificationRepository.findById(notificationId)
+    // Truy vấn theo cả chủ sở hữu: thông báo của người khác trả 404, không lộ việc id có tồn tại.
+    Notification notification = notificationRepository
+        .findByNotificationIdAndUserId(notificationId, currentUser.getUserId())
         .orElseThrow(() -> EntityNotFoundException.of("Notification", notificationId));
-
-    if (!notification.getUserId().equals(currentUser.getUserId())) {
-      throw new ForbiddenOperationException("Bạn không có quyền thao tác trên thông báo này");
-    }
 
     if (!notification.isRead()) {
       notification.markAsRead();
@@ -101,7 +119,7 @@ public class NotificationService {
   /**
    * Tạo bản ghi thông báo mới và lưu trữ vào cơ sở dữ liệu.
    *
-   * <p>Được gọi bởi {@code JpaNotificationSink} và {@code NotificationEventListener}.
+   * <p>Mọi listener và {@code JpaNotificationSink} đều ghi thông báo qua hàm này (một đường ghi duy nhất).
    */
   @Transactional
   public Notification createNotification(
@@ -113,15 +131,24 @@ public class NotificationService {
       String targetType,
       UUID targetId
   ) {
-    Notification notification = new Notification(
-        userId,
-        aboutStudentId,
-        type,
-        title,
-        shortText,
-        targetType,
-        targetId
-    );
+    return createNotification(userId, aboutStudentId, type, title, shortText, targetType, targetId, null);
+  }
+
+  /** Như trên nhưng giữ thời điểm xảy ra của sự kiện nguồn làm {@code createdAt} (null = bây giờ). */
+  @Transactional
+  public Notification createNotification(
+      UUID userId,
+      UUID aboutStudentId,
+      String type,
+      String title,
+      String shortText,
+      String targetType,
+      UUID targetId,
+      java.time.Instant occurredAt
+  ) {
+    Notification notification = occurredAt == null
+        ? new Notification(userId, aboutStudentId, type, title, shortText, targetType, targetId)
+        : new Notification(userId, aboutStudentId, type, title, shortText, targetType, targetId, occurredAt);
     return notificationRepository.save(notification);
   }
 

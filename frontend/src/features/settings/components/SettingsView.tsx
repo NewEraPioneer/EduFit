@@ -2,13 +2,12 @@
 
 import React, { useState, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { User, KeyRound, Palette, Bell, Tv, LucideIcon } from "lucide-react";
+import { User, KeyRound, Palette, Tv, LucideIcon } from "lucide-react";
 import { UserRole } from "@/shared/ui/Sidebar";
 import { SettingsTabId } from "../types";
 import { ProfileSettingsTab } from "./ProfileSettingsTab";
 import { AccountSettingsTab } from "./AccountSettingsTab";
 import { AppearanceSettingsTab } from "./AppearanceSettingsTab";
-import { NotificationsSettingsTab } from "./NotificationsSettingsTab";
 import { DisplaySettingsTab } from "./DisplaySettingsTab";
 
 interface SettingsTabConfig {
@@ -21,7 +20,6 @@ const TABS: SettingsTabConfig[] = [
   { id: "profile", label: "Hồ sơ cá nhân", icon: User },
   { id: "account", label: "Tài khoản", icon: KeyRound },
   { id: "appearance", label: "Giao diện", icon: Palette },
-  { id: "notifications", label: "Thông báo", icon: Bell },
   { id: "display", label: "Hiển thị", icon: Tv },
 ];
 
@@ -103,7 +101,6 @@ function SettingsContent({ role = "STUDENT", defaultTab = "profile" }: SettingsV
           {activeTab === "profile" && <ProfileSettingsTab role={role} />}
           {activeTab === "account" && <AccountSettingsTab />}
           {activeTab === "appearance" && <AppearanceSettingsTab />}
-          {activeTab === "notifications" && <NotificationsSettingsTab />}
           {activeTab === "display" && <DisplaySettingsTab />}
         </div>
       </div>

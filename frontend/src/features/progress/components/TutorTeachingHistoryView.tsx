@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { progressApi } from "../api/progressApi";
 import type { TeachingHistoryItem, SessionNoteTimelineResponse, PlanResponse } from "../types";
+import { formatGoalTitle } from "../utils/goalTitle";
 import { formatSessionTime, formatLocalDateToIso } from "@/shared/utils/dateTime";
 import { EmptyState } from "@/shared/ui/EmptyState";
 
@@ -210,7 +211,7 @@ export function TutorTeachingHistoryView() {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-neutral-900 dark:text-stone-100">
-                    {selectedClass.goalTitle || "Lớp học kèm cặp 1-1"}
+                    {formatGoalTitle(selectedClass.goalTitle) || "Lớp học kèm cặp 1-1"}
                   </h2>
                   {renderStatusBadge(selectedClass.status)}
                 </div>
@@ -366,7 +367,7 @@ export function TutorTeachingHistoryView() {
                 </h3>
                 {plan && (
                   <span className="text-xs font-bold text-sky-600">
-                    Tiến độ: {plan.progressPercentage || 0}%
+                    Tiến độ: {plan.progressPercentage != null ? `${plan.progressPercentage}%` : "—"}
                   </span>
                 )}
               </div>
@@ -550,7 +551,7 @@ export function TutorTeachingHistoryView() {
                     <div className="space-y-1.5 flex-1">
                       <div className="flex items-center gap-2.5">
                         <h3 className="font-heading text-sm sm:text-base font-bold text-neutral-900 dark:text-stone-100">
-                          {item.goalTitle || "Lớp kèm cặp 1-1"}
+                          {formatGoalTitle(item.goalTitle) || "Lớp kèm cặp 1-1"}
                         </h3>
                         {renderStatusBadge(item.status)}
                       </div>

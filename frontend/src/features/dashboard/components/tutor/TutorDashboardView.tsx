@@ -15,11 +15,13 @@ import { OnboardingGuideBanner } from "@/shared/ui/OnboardingGuideBanner";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import { inboxNeedTitle } from "@/features/connection/components/StudentPedagogicalProfileModal";
 import { schedulingApi } from "@/features/scheduling";
+import { TutorTodoDrawer } from "@/features/progress";
 import type { TutoringClass } from "@/features/connection/types";
 import type { CalendarItem } from "@/features/scheduling/types";
 
 interface TutorDashboardViewProps {
   user: {
+    id?: string;
     fullName: string;
     email: string;
     role: string;
@@ -82,7 +84,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
         const mappedRequests: PendingRequestItem[] = requests.map((r) => ({
           name: r.studentDisplayName || "Học sinh",
           subject: inboxNeedTitle(r.need),
-          note: r.message || "Mong muốn kết nối và học cùng Thầy/Cô",
+          note: r.message || "",
           match: r.hasSlotConflict
             ? "Trùng lịch"
             : r.fitChecks.every((check) => check.matched)
@@ -157,25 +159,36 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
   const ratingAverage = profile?.ratingAvg || 0;
   const reviewCount = profile?.reviewCount || 0;
 
-  const hasConfiguredTeachingProfile = Boolean(
-    profile && profile.offerings.length > 0 && profile.availabilitySlots.length > 0
-  );
+  const hasOfferings = Boolean(profile && profile.offerings && profile.offerings.length > 0);
+  const hasAvailabilitySlots = Boolean(profile && profile.availabilitySlots && profile.availabilitySlots.length > 0);
+  const hasConfiguredTeachingProfile = hasOfferings && hasAvailabilitySlots;
 
   const isProfileVerified = profile?.status === "VERIFIED" || Boolean(profile?.verifiedAt);
+  const isKycSubmitted =
+    verificationStatus === "PENDING" ||
+    profile?.status === "PENDING_VERIFICATION";
 
   const onboardingSteps = [
     {
       title: "Thiết lập gói dạy & Lịch rảnh",
       description: "Khai báo môn, lớp, mục tiêu, học phí từng gói và các khung giờ bạn sẵn sàng nhận lớp.",
-      href: "/tutor/profile",
-      actionText: "Cài đặt ngay",
+      href: hasOfferings && !hasAvailabilitySlots ? "/tutor/schedule" : "/tutor/profile",
+      actionText: hasOfferings
+        ? (hasAvailabilitySlots ? "Chỉnh sửa gói & lịch" : "Cài lịch rảnh")
+        : "Cài đặt ngay",
       completed: hasConfiguredTeachingProfile,
     },
     {
       title: "Xác minh bằng cấp năng lực (KYC)",
       description: "Tải chứng chỉ sư phạm, bằng đại học để nhận huy hiệu Gia Sư Uy Tín.",
       href: "/tutor/verification",
-      actionText: isProfileVerified ? "Bổ sung bằng cấp" : "Nộp bằng cấp",
+      actionText: isProfileVerified
+        ? "Bổ sung bằng cấp"
+        : isKycSubmitted
+        ? "Đang chờ duyệt"
+        : verificationStatus === "REJECTED"
+        ? "Nộp lại bằng cấp"
+        : "Nộp bằng cấp",
       completed:
         verificationStatus === "VERIFIED" ||
         verificationStatus === "APPROVED" ||
@@ -183,7 +196,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
     },
     {
       title: "Nhận yêu cầu & Bắt đầu dạy",
-      description: "Chấp nhận lời mời học thử từ học sinh và tạo lớp học 1-1 trực tiếp.",
+      description: "Chấp nhận yêu cầu kết nối từ học sinh, phụ huynh để mở lớp học 1-1.",
       href: "/tutor/requests",
       actionText: "Xem hàng đợi",
       completed: activeClasses.length > 0,
@@ -207,6 +220,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
+          <TutorTodoDrawer />
           <Link
             href="/tutor/schedule"
             className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-neutral-800 rounded-xl text-xs font-bold shadow-2xs transition-colors shrink-0"
@@ -228,6 +242,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
       <OnboardingGuideBanner
         role="TUTOR"
         userName={tutorName}
+        userId={user?.id}
         steps={onboardingSteps}
       />
 

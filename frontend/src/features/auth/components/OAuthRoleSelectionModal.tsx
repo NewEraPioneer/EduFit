@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, Sparkles, UserCheck } from "lucide-react";
 import { RoleSelector, type RoleType } from "./RoleSelector";
 import { useAuth } from "@/context/AuthContext";
+import { buildOnboardingPath } from "../utils/authRedirect";
 import { useToast } from "@/shared/ui/Toast";
 
 interface OAuthRoleSelectionModalProps {
@@ -24,6 +25,7 @@ export function OAuthRoleSelectionModal({
   onboardingData,
 }: OAuthRoleSelectionModalProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { completeOAuthRegistration } = useAuth();
   const { showToast } = useToast();
 
@@ -52,14 +54,9 @@ export function OAuthRoleSelectionModal({
       showToast(`Chào mừng ${user.fullName} gia nhập EduFit!`, "success");
       onClose();
 
-      // Điều hướng người dùng theo vai trò
-      if (selectedRole === "TUTOR") {
-        router.push("/tutor/dashboard");
-      } else if (selectedRole === "PARENT") {
-        router.push("/parent/dashboard");
-      } else {
-        router.push("/student/dashboard");
-      }
+      // Điều hướng người dùng vào màn hình Onboarding theo vai trò vừa đăng ký, giữ returnUrl an toàn
+      const role = selectedRole === "TUTOR" || selectedRole === "PARENT" ? selectedRole : "STUDENT";
+      router.push(buildOnboardingPath(role, searchParams.get("returnUrl")));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Đã có lỗi xảy ra. Vui lòng thử lại.";
       setErrorMsg(msg);

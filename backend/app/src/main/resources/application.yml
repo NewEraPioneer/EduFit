@@ -1,6 +1,7 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:${PORT:8080}}
   shutdown: graceful
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
   servlet:
     session:
       timeout: 60m # NFR-04: Hết hạn sau 60 phút không hoạt động (sliding inactivity)
@@ -74,8 +75,21 @@ spring:
 edufit:
   mail:
     from: ${MAIL_FROM:no-reply@edufit.local}
+    # smtp: gửi qua spring.mail (Mailpit ở dev/demo, SMTP thật ở prod).
+    # log : ghi mã OTP ra log backend, chỉ cho môi trường không phải prod (bị chặn khi profile prod).
+    delivery: ${MAIL_DELIVERY:smtp}
+  auth:
+    otp:
+      code-ttl: 10m              # Hiệu lực một mã OTP
+      max-failed-attempts: 5     # Số lần nhập sai tối đa cho một mã
+      resend-cooldown: 60s       # Thời gian chờ giữa hai lần gửi mã
+      max-sends-per-window: 5    # Số lần gửi mã tối đa trong một cửa sổ
+      send-window: 1h
+      cleanup-cron: "0 17 * * * *" # Dọn thử thách OTP cũ mỗi giờ
   frontend:
-    base-url: ${FRONTEND_BASE_URL:http://localhost:3000} # Dùng để dựng liên kết trong email (reset mật khẩu)
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:3000,http://127.0.0.1:3000,https://*.vercel.app}
   oauth:
     google:
       client-id: ${GOOGLE_CLIENT_ID:}
@@ -94,11 +108,11 @@ edufit:
         location: 10
         rating: 15
   ai:
-    provider: ${AI_PROVIDER:gemini} # 'stub' cho offline/test, 'gemini' cho gọi thật
+    provider: ${AI_PROVIDER} # Bắt buộc, không có mặc định: 'stub' cho offline/test, 'gemini' cho gọi thật
     timeout: 15s                 # NFR-10: khống chế timeout 15 giây
     gemini:
       api-key: ${GEMINI_API_KEY:}
-      model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
+      model: ${GEMINI_MODEL:} # Không có mặc định; bắt buộc khi AI_PROVIDER=gemini
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
   storage:
     credentials:

@@ -1,5 +1,6 @@
 "use client";
 
+import React, { Suspense } from "react";
 import { HeartHandshake } from "lucide-react";
 import { StudentLinkInvitations } from "@/features/connection/components/StudentLinkInvitations";
 
@@ -15,7 +16,9 @@ export default function StudentFamilyPage() {
           Kiểm tra lời mời đang chờ và các tài khoản phụ huynh đang được liên kết với bạn.
         </p>
       </header>
-      <StudentLinkInvitations />
+      <Suspense fallback={<div className="p-8 text-center text-xs text-neutral-500">Đang tải lời mời...</div>}>
+        <StudentLinkInvitations />
+      </Suspense>
     </div>
   );
 }

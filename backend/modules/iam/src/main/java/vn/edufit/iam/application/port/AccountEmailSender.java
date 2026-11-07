@@ -1,22 +1,26 @@
 package vn.edufit.iam.application.port;
 
+import java.time.Duration;
+
 /**
- * Cổng giao tiếp gửi thư điện tử của phân hệ IAM (Ports & Adapters).
+ * Cổng gửi thư điện tử của phân hệ IAM (Ports & Adapters).
  *
- * <p>Mục đích:
- * <ul>
- *   <li>Tách biệt nghiệp vụ cốt lõi khỏi hạ tầng mạng và máy chủ SMTP thật.</li>
- *   <li>Cho phép dễ dàng thay thế bằng Mock/Fake trong các bài kiểm thử tự động.</li>
- * </ul>
+ * <p>Adapter được chọn theo cấu hình {@code edufit.mail.delivery}: {@code smtp} (Mailpit ở dev/demo,
+ * SMTP thật ở prod) hoặc {@code log} (chỉ cho môi trường không phải prod, khi không có SMTP).
+ *
+ * <p>Mọi phương thức ném {@link EmailDeliveryException} khi không gửi được; tầng ứng dụng quyết định
+ * báo lỗi cho người dùng (đăng ký) hay giữ phản hồi trung tính (quên mật khẩu).
+ * Mã OTP chỉ xuất hiện trong nội dung thư, adapter SMTP không bao giờ ghi mã ra log.
  */
 public interface AccountEmailSender {
 
   /**
-   * Gửi thư chứa liên kết đặt lại mật khẩu kèm token 30 phút.
-   *
-   * @param recipientEmail email người nhận
-   * @param rawToken       chuỗi mã token đặt lại mật khẩu thô
-   * @param fullName       họ và tên người nhận
+   * Gửi mã xác thực email khi đăng ký tài khoản.
    */
-  void sendPasswordResetEmail(String recipientEmail, String rawToken, String fullName);
+  void sendRegistrationCode(String recipientEmail, String fullName, String code, Duration validity);
+
+  /**
+   * Gửi mã xác thực khi người dùng yêu cầu đặt lại mật khẩu.
+   */
+  void sendPasswordResetCode(String recipientEmail, String fullName, String code, Duration validity);
 }

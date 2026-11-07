@@ -1,3 +1,9 @@
+/**
+ * Luồng 08/09 - Automated Web UI Testing: Cổng Thanh Toán Nạp Tiền VietQR & Rút Thu Nhập Gia Sư
+ * - MF_08.1: Phụ huynh mở modal nạp tiền và hiển thị mã VietQR (TC_UI_43)
+ * - MF_08.2: Gia sư xem số dư khả dụng và biểu mẫu yêu cầu rút tiền (TC_UI_45)
+ */
+
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { WebDriver } from 'selenium-webdriver';
 import type { Driver as ChromeDriver } from 'selenium-webdriver/chrome';

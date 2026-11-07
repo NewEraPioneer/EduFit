@@ -17,20 +17,7 @@ public record PlanResponse(
     Instant updatedAt
 ) {
   public static PlanResponse from(LearningPlan plan) {
-    if (plan == null) return null;
-    List<MilestoneResponse> milestoneResponses = plan.getMilestones().stream()
-        .map(MilestoneResponse::from)
-        .toList();
-    return new PlanResponse(
-        plan.getPlanId(),
-        plan.getClassId(),
-        plan.getSummary(),
-        plan.getVersion(),
-        plan.calculateProgressPercentage(),
-        milestoneResponses,
-        plan.getCreatedAt(),
-        plan.getUpdatedAt()
-    );
+    return plan == null ? null : from(ProgressViews.PlanDetailView.from(plan));
   }
 
   public static PlanResponse from(ProgressViews.PlanDetailView view) {

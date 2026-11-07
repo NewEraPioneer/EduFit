@@ -42,8 +42,26 @@ class FlywayMigrationIT {
   /** Chuỗi migration triển khai thật: chỉ schema + danh mục tham chiếu, không có tài khoản demo. */
   private static final String[] PROD_LOCATIONS = {"classpath:db/migration"};
 
-  /** Chuỗi migration của profile dev: thêm seed demo (V1.09, V1.10, V1.13) từ db/seed. */
+  /** Chuỗi migration của profile dev: thêm seed demo (V1.09, V1.10, V1.13, V1.27) từ db/seed. */
   private static final String[] DEV_LOCATIONS = {"classpath:db/migration", "classpath:db/seed"};
+
+  /** Số migration lấy trực tiếp từ mã nguồn: thêm migration mới không phải sửa tay các con số dưới đây. */
+  private static final int PROD_COUNT = MigrationScripts.count(MigrationScripts.MIGRATION);
+  private static final int DEV_COUNT = MigrationScripts.count(MigrationScripts.MIGRATION, MigrationScripts.SEED);
+
+  /** Version cuối của schema (db/migration). Seed demo đầy đủ V1.34 chỉ dành cho CSDL dev mới, không áp lên dữ liệu có sẵn. */
+  private static final MigrationVersion SCHEMA_HEAD =
+      MigrationScripts.versions(MigrationScripts.MIGRATION).stream().max(MigrationVersion::compareTo).orElseThrow();
+
+  private static int devAfter(String version) {
+    return (int) MigrationScripts.versions(MigrationScripts.MIGRATION, MigrationScripts.SEED).stream()
+        .filter(v -> v.isNewerThan(version) && !v.isNewerThan(SCHEMA_HEAD.getVersion()))
+        .count();
+  }
+
+  private static int devUpTo(String version) {
+    return MigrationScripts.countUpTo(version, MigrationScripts.MIGRATION, MigrationScripts.SEED);
+  }
 
   @Container
   @SuppressWarnings("resource")
@@ -93,8 +111,9 @@ class FlywayMigrationIT {
             .outOfOrder(false)
             .validateOnMigrate(true)
             .baselineOnMigrate(false)
+            .target(SCHEMA_HEAD)
             .load();
-    assertEquals(18, upgraded.migrate().migrationsExecuted);
+    assertEquals(devAfter("1.09"), upgraded.migrate().migrationsExecuted, "Mọi migration sau V1.09");
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted, "Rerun không thực thi lại migration");
     try (Connection connection =
@@ -146,7 +165,7 @@ class FlywayMigrationIT {
             .validateOnMigrate(true)
             .load();
 
-    assertEquals(23, flyway.migrate().migrationsExecuted, "22 migration cũ - 3 seed demo + V1.23 danh mục + V1.24–V1.26 nhu cầu học");
+    assertEquals(PROD_COUNT, flyway.migrate().migrationsExecuted, "Chỉ migration trong db/migration, không có seed demo");
 
     try (Connection connection =
             DriverManager.getConnection(
@@ -199,7 +218,7 @@ class FlywayMigrationIT {
     // 3. Kiểm chứng kết quả thực thi của Flyway
     assertTrue(result.success, "Quá trình migrate của Flyway phải thành công 100%");
     assertEquals(
-        27, result.migrationsExecuted, "Phải thực thi đúng 27 file migration V1.01 -> V1.27 (kể cả seed dev)");
+        DEV_COUNT, result.migrationsExecuted, "Phải thực thi toàn bộ migration có version (kể cả seed dev)");
 
     // 4. Kiểm tra trực tiếp các bảng và ràng buộc đã được tạo trong PostgreSQL
     try (Connection connection =
@@ -210,7 +229,7 @@ class FlywayMigrationIT {
       // Kiểm tra bảng account tồn tại và có thể truy vấn
       try (ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM account")) {
         assertTrue(rs.next(), "Bảng account phải tồn tại và cho phép truy vấn");
-        assertEquals(9, rs.getInt(1), "Bảng account có 9 bản ghi demo sau V1.13");
+        assertEquals(17, rs.getInt(1), "Bảng account có 17 tài khoản demo sau V1.34 (học sinh/phụ huynh/admin demo, học sinh phụ và 13 gia sư)");
       }
 
       // Kiểm tra bảng email_token tồn tại và có thể truy vấn
@@ -235,7 +254,7 @@ class FlywayMigrationIT {
               "SELECT COUNT(*) FROM flyway_schema_history WHERE success = true")) {
         assertTrue(rs.next());
         assertEquals(
-            27, rs.getInt(1), "Lịch sử migration phải ghi nhận đúng 27 bản ghi thành công");
+            DEV_COUNT, rs.getInt(1), "Lịch sử migration ghi nhận đủ migration có version (callback không ghi lịch sử)");
       }
     }
   }
@@ -250,7 +269,7 @@ class FlywayMigrationIT {
             .schemas(schema)
             .target("1.21")
             .load();
-    assertEquals(21, existing.migrate().migrationsExecuted);
+    assertEquals(devUpTo("1.21"), existing.migrate().migrationsExecuted);
 
     try (Connection connection =
             DriverManager.getConnection(
@@ -269,8 +288,9 @@ class FlywayMigrationIT {
             .schemas(schema)
             .outOfOrder(false)
             .validateOnMigrate(true)
+            .target(SCHEMA_HEAD)
             .load();
-    assertEquals(6, upgraded.migrate().migrationsExecuted);
+    assertEquals(devAfter("1.21"), upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
 
@@ -314,15 +334,16 @@ class FlywayMigrationIT {
     String schema = "audit_snapshot_upgrade";
     var builder = Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
         .locations(DEV_LOCATIONS).schemas(schema);
-    assertEquals(13, builder.target("1.13").load().migrate().migrationsExecuted);
+    assertEquals(devUpTo("1.13"), builder.target("1.13").load().migrate().migrationsExecuted);
     try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         var statement = connection.createStatement()) {
       statement.execute("set search_path to " + schema);
       statement.execute("insert into audit_log(actor_user_id,action,target_type,target_id,reason,created_at) values ('11111111-1111-1111-1111-111111111111','LINK_REVOKED','PARENT_STUDENT_LINK','99999999-1111-1111-1111-111111111111','historical reason','2026-10-01T00:00:00Z')");
     }
     var upgraded = Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-        .locations(DEV_LOCATIONS).schemas(schema).load();
-    assertEquals(14, upgraded.migrate().migrationsExecuted);
+        .locations(DEV_LOCATIONS).schemas(schema).target(SCHEMA_HEAD)
+            .load();
+    assertEquals(devAfter("1.13"), upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
     try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -366,8 +387,9 @@ class FlywayMigrationIT {
             .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
             .locations(DEV_LOCATIONS)
             .schemas(schema)
+            .target(SCHEMA_HEAD)
             .load();
-    assertEquals(16, upgraded.migrate().migrationsExecuted);
+    assertEquals(devAfter("1.11"), upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
     try (var connection =
@@ -404,7 +426,7 @@ class FlywayMigrationIT {
             .schemas(schema)
             .target(MigrationVersion.fromVersion("1.10"))
             .load();
-    assertEquals(10, previous.migrate().migrationsExecuted, "Phải chạy đúng 11 migrations tới V1.10");
+    assertEquals(devUpTo("1.10"), previous.migrate().migrationsExecuted, "Mọi migration tới V1.10");
 
     UUID studentUserId = UUID.fromString("11111111-1111-1111-1111-111111111111");
     UUID studentProfileId = UUID.fromString("11111111-1111-1111-1111-000000000001");
@@ -476,8 +498,9 @@ class FlywayMigrationIT {
             .outOfOrder(false)
             .validateOnMigrate(true)
             .baselineOnMigrate(false)
+            .target(SCHEMA_HEAD)
             .load();
-    assertEquals(17, upgraded.migrate().migrationsExecuted, "Phải thực thi đúng 17 migrations: V1.11 -> V1.27");
+    assertEquals(devAfter("1.10"), upgraded.migrate().migrationsExecuted, "Mọi migration sau V1.10");
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted, "Rerun phải là no-op");
 

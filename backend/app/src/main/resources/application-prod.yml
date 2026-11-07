@@ -1,0 +1,66 @@
+# Profile PROD: Cấu hình chuẩn hóa cho môi trường Production.
+# Lưu ý: File này chỉ mang tính định hình chuẩn; chỉ phát hành khi hoàn tất các điều kiện sản xuất.
+# Tuyệt đối KHÔNG nạp db/seed và KHÔNG chứa secret trong file này.
+
+server:
+  port: ${SERVER_PORT:${PORT:8080}}
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+        same-site: lax
+        http-only: true
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}?sslmode=require}
+    username: ${DB_USERNAME:${DB_USER}}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:20}
+      minimum-idle: ${HIKARI_MIN_IDLE:5}
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: EduFitHikariPool-PROD
+      data-source-properties:
+        options: "-c timezone=Asia/Ho_Chi_Minh"
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    # Production không được bỏ qua lịch sử migration để che lỗi schema.
+    baseline-on-migrate: false
+    out-of-order: false
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+edufit:
+  mail:
+    # Production bắt buộc gửi OTP qua SMTP thật; 'log' bị AccountEmailSenderConfig chặn khi khởi động.
+    delivery: smtp
+    from: ${MAIL_FROM}
+
+logging:
+  level:
+    vn.edufit: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.springframework.web: WARN

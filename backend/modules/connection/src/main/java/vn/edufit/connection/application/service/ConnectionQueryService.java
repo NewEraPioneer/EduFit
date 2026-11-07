@@ -39,6 +39,7 @@ import vn.edufit.profile.api.dto.EducationLevelOrderDto;
 import vn.edufit.profile.api.dto.LearningNeedView;
 import vn.edufit.profile.api.dto.TutorDiscoveryProfileDto;
 import vn.edufit.profile.api.fit.NeedFitEvaluator;
+import vn.edufit.profile.api.fit.FitAudience;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ForbiddenOperationException;
@@ -507,7 +508,7 @@ public class ConnectionQueryService {
       hasConflict = true;
     }
 
-    var fit = tutorProfile.flatMap(tutor -> NeedFitEvaluator.evaluate(need, tutor, levelOrder));
+    var fit = tutorProfile.flatMap(tutor -> NeedFitEvaluator.evaluate(need, tutor, levelOrder, FitAudience.TUTOR));
     String offeringName = fit.map(f -> f.offering().trackName() == null
         ? f.offering().subjectName() : f.offering().subjectName() + " – " + f.offering().trackName()).orElse(null);
 

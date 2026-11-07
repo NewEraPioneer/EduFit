@@ -61,10 +61,11 @@ class FlywayMigrationScriptTest {
           .toList();
 
       assertFalse(sqlFiles.isEmpty(), "Phải có ít nhất một file migration SQL trong db/migration");
-      assertEquals(23, sqlFiles.size(), "Payment đến V1.21, Connection V1.22, danh mục V1.23, nhu cầu học V1.24–V1.26; seed demo đã tách sang db/seed");
-      assertEquals(sqlFiles.size(), sqlFiles.stream()
-          .map(path -> path.getFileName().toString().split("__", 2)[0])
-          .distinct().count(), "Version Flyway phải duy nhất trên tất cả module");
+      // Profile dev nạp cả db/migration lẫn db/seed vào cùng một chuỗi version: trùng version ở bất kỳ đâu
+      // đều làm backend dev không khởi động được ("Found more than one migration with version").
+      var versions = MigrationScripts.versions(MigrationScripts.MIGRATION, MigrationScripts.SEED);
+      assertEquals(versions.size(), new java.util.HashSet<>(versions).size(),
+          "Version Flyway phải duy nhất trên toàn bộ db/migration và db/seed: " + versions);
       assertTrue(Files.exists(migrationRootDir.resolve("connection")
           .resolve("V1.11__allow_relink_after_revocation.sql")),
           "Migration cho relink, optimistic version và invite quota phải tồn tại");
@@ -82,6 +83,8 @@ class FlywayMigrationScriptTest {
           "Giữ nguyên checksum V1.10 đã phát hành");
       assertTrue(Files.exists(seedRootDir.resolve("V1.13__seed_demo_matching_data.sql")),
           "Seed matching nằm ở db/seed");
+      assertTrue(Files.exists(seedRootDir.resolve("V1.34__seed_demo_journeys.sql")),
+          "Dữ liệu demo đầy đủ nằm ở db/seed (chỉ profile dev nạp, production không có)");
       assertEquals(1468271677, checksum(migrationRootDir.resolve("connection/V1.11__allow_relink_after_revocation.sql")),
           "Connection chỉ đổi version migration, giữ nguyên SQL");
 
