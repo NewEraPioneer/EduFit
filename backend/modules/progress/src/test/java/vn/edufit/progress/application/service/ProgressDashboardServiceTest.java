@@ -172,6 +172,7 @@ class ProgressDashboardServiceTest {
     assertThat(response.overview().goalProgress().highlight()).isEqualTo("Buổi đầu: đánh giá điểm xuất phát");
     assertThat(response.overview().attendance().attendedCount()).isEqualTo(1);
     assertThat(response.overview().attendance().countedCount()).isEqualTo(1);
+    assertThat(response.overview().attendance().totalCount()).isEqualTo(2);
     assertThat(response.overview().attendance().tutorCancelCount()).isEqualTo(1);
     assertThat(response.overview().attendance().nextSessionStart()).isEqualTo(nextStart);
     assertThat(response.overview().attendance().focusMilestoneTitle()).isEqualTo("M2");

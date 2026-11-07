@@ -185,6 +185,7 @@ public class ProgressOverviewService {
             attendance.familyLateCancelCount(),
             attendance.familyEarlyCancelCount(),
             attendance.tutorCancelCount(),
+            attendance.totalCount(),
             attendance.nextSessionStart(),
             nextPlanned.orElseGet(() -> focus.map(Milestone::getTitle).orElse(null)),
             nextPlanned.isPresent(),

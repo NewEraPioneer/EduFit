@@ -37,14 +37,22 @@ class TopicRadarPolicyTest {
   }
 
   @Test
-  @DisplayName("Chưa gắn chủ đề, hoặc dưới 3 chủ đề có điểm chấm: không vẽ radar, kèm lý do")
+  @DisplayName("Chưa gắn chủ đề hoặc chưa có điểm chấm nào: không có trục, kèm lý do")
   void unavailable() {
     assertThat(TopicRadarPolicy.evaluate(false, List.of()).unavailableReason()).contains("chưa được gắn chủ đề");
 
+    TopicRadarPolicy.Result none = TopicRadarPolicy.evaluate(true, List.of());
+    assertThat(none.axes()).isEmpty();
+    assertThat(none.unavailableReason()).contains("Chưa có điểm chấm");
+  }
+
+  @Test
+  @DisplayName("Dưới 3 chủ đề vẫn trả đủ trục để giao diện hiện thanh trạng thái, không kèm lý do")
+  void fewerThanMinAxesStillReturnsAxes() {
     TopicRadarPolicy.Result two = TopicRadarPolicy.evaluate(true, List.of(
         at(algebra, "Đại số", 1, IndependenceLevel.WITH_HINTS, 1),
         at(geometry, "Hình học", 2, IndependenceLevel.WITH_HINTS, 1)));
-    assertThat(two.axes()).isEmpty();
-    assertThat(two.unavailableReason()).contains("ít nhất 3 chủ đề").contains("hiện có 2");
+    assertThat(two.unavailableReason()).isNull();
+    assertThat(two.axes()).extracting(Axis::topicName).containsExactly("Đại số", "Hình học");
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   BookOpen,
@@ -26,6 +26,7 @@ import type {
   StudentDashboardResponse,
 } from "../types";
 import { formatGoalTitle } from "../utils/goalTitle";
+import { MAX_INDEPENDENCE_LEVEL } from "../constants/roadmap";
 import { ProgressInsights } from "./ProgressInsights";
 import { PeriodReportsSection } from "./PeriodReports";
 import {
@@ -39,6 +40,16 @@ import {
   independenceLabel,
   selfRatingOption,
 } from "../constants/feedbackLabels";
+
+const SESSION_STATUS: Record<string, { label: string; tone: string }> = {
+  COMPLETED: { label: "Có mặt", tone: "bg-emerald-100 text-emerald-800" },
+  ABSENT: { label: "Vắng mặt", tone: "bg-rose-100 text-rose-800" },
+  SCHEDULED: { label: "Sắp diễn ra", tone: "bg-sky-100 text-sky-800" },
+  RESCHEDULED: { label: "Đã dời lịch", tone: "bg-amber-100 text-amber-900" },
+  CANCELLED: { label: "Đã hủy", tone: "bg-stone-200 text-neutral-700" },
+};
+
+const CLASS_PANEL_ID = "progress-class-panel";
 
 interface ProgressDashboardViewProps {
   role?: "STUDENT" | "PARENT" | "TUTOR";
@@ -84,13 +95,30 @@ export function ProgressDashboardView({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  /** Mỗi lần tải có một số thứ tự; phản hồi của lần tải đã bị thay thế sẽ bị bỏ qua. */
+  const requestRef = useRef(0);
+  const parentLoadedRef = useRef(false);
+
   const loadData = async () => {
+    const requestId = ++requestRef.current;
+    const isCurrent = () => requestId === requestRef.current;
     try {
       setIsLoading(true);
       setError(null);
       if (role === "PARENT") {
+        if (selectedStudentId && selectedClassId) {
+          const res = await progressApi.getStudentDashboard(selectedStudentId, selectedClassId);
+          if (!isCurrent()) return;
+          if (res.success && res.data) setStudentData(res.data);
+          else setError(res.message || "Không thể tải tiến độ của lớp này");
+          return;
+        }
+        // Đổi con: dữ liệu đã có sẵn trong parentData, không gọi lại API.
+        if (parentLoadedRef.current && selectedStudentId) return;
         const res = await progressApi.getParentDashboard();
+        if (!isCurrent()) return;
         if (res.success && res.data) {
+          parentLoadedRef.current = true;
           setParentData(res.data);
           const firstStudent = res.data.students?.[0];
           if (firstStudent) {
@@ -102,14 +130,14 @@ export function ProgressDashboardView({
         }
       } else if (selectedStudentId || initialStudentId) {
         const res = await progressApi.getStudentDashboard(selectedStudentId || initialStudentId!, selectedClassId);
-        if (res.success && res.data) {
-          setStudentData(res.data);
-        }
+        if (!isCurrent()) return;
+        if (res.success && res.data) setStudentData(res.data);
+        else setError(res.message || "Không thể tải tiến độ của lớp này");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Không thể tải dữ liệu tiến độ");
+      if (isCurrent()) setError(err instanceof Error ? err.message : "Không thể tải dữ liệu tiến độ");
     } finally {
-      setIsLoading(false);
+      if (isCurrent()) setIsLoading(false);
     }
   };
 
@@ -135,19 +163,11 @@ export function ProgressDashboardView({
         : prev
     );
 
-  const handleSelectClass = async (classId: string) => {
-    const targetStudentId = selectedStudentId || initialStudentId;
-    if (!targetStudentId) return;
-    try {
-      setIsLoading(true);
-      setSelectedClassId(classId);
-      const res = await progressApi.getStudentDashboard(targetStudentId, classId);
-      if (res.success && res.data) setStudentData(res.data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Lỗi khi chuyển lớp học");
-    } finally {
-      setIsLoading(false);
-    }
+  const activeClassId = selectedClassId || studentData?.selectedClassId;
+
+  const handleSelectClass = (classId: string) => {
+    if (classId !== activeClassId) setSelectedClassId(classId);
+    else if (error) void loadData(); // bấm lại đúng lớp đang lỗi = thử lại
   };
 
   if (isLoading && !studentData) {
@@ -208,13 +228,15 @@ export function ProgressDashboardView({
       {studentData?.classes && studentData.classes.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Lớp học">
           {studentData.classes.map((cls) => {
-            const isSelected = cls.classId === (selectedClassId || studentData.selectedClassId);
+            const isSelected = cls.classId === activeClassId;
             return (
               <button
                 key={cls.classId}
                 type="button"
                 role="tab"
                 aria-selected={isSelected}
+                aria-controls={CLASS_PANEL_ID}
+                id={`class-tab-${cls.classId}`}
                 onClick={() => handleSelectClass(cls.classId)}
                 className={`min-h-9 px-3 rounded-xl text-xs whitespace-nowrap cursor-pointer border ${
                   isSelected
@@ -229,6 +251,32 @@ export function ProgressDashboardView({
         </div>
       )}
 
+      {error && studentData && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void loadData()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 font-bold text-white hover:bg-rose-700 cursor-pointer"
+          >
+            <RefreshCw className="size-3.5" />
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      <div
+        id={CLASS_PANEL_ID}
+        role={studentData?.classes && studentData.classes.length > 1 ? "tabpanel" : undefined}
+        aria-labelledby={activeClassId && studentData?.classes && studentData.classes.length > 1 ? `class-tab-${activeClassId}` : undefined}
+        aria-busy={isLoading}
+        className={`space-y-6 transition-opacity ${isLoading && studentData ? "opacity-60" : ""}`}
+      >
+      {isLoading && studentData && (
+        <p role="status" className="text-xs font-medium text-neutral-500">
+          Đang tải tiến độ của lớp...
+        </p>
+      )}
       {overview ? (
         <>
           <OverviewCards overview={overview} />
@@ -270,10 +318,11 @@ export function ProgressDashboardView({
             </div>
           ) : (
             <ol className="space-y-3">
-              {milestones.map((m) => (
+              {milestones.map((m, index) => (
                 <MilestoneRow
                   key={m.milestoneId}
                   milestone={m}
+                  sequence={index + 1}
                   levels={overview?.milestoneLevels.find((l) => l.milestoneId === m.milestoneId)}
                 />
               ))}
@@ -305,6 +354,7 @@ export function ProgressDashboardView({
             </ul>
           )}
         </section>
+      </div>
       </div>
     </div>
   );
@@ -357,33 +407,17 @@ function OverviewCards({ overview }: { overview: ProgressOverview }) {
 
       <article className="p-5 rounded-3xl bg-white border border-stone-200 space-y-2" data-testid="card-attendance">
         <div className="flex items-center justify-between text-neutral-500">
-          <h3 className="text-xs font-bold uppercase tracking-wider">Chuyên cần & buổi tới</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider">Chuyên cần</h3>
           <CalendarClock className="size-4 text-amber-600" />
         </div>
         <p className="text-xl font-black text-neutral-900">
-          {attendance.countedCount > 0
-            ? `Đi học ${attendance.attendedCount}/${attendance.countedCount} buổi`
-            : "—"}
+          {attendance.totalCount > 0 ? `${attendance.countedCount}/${attendance.totalCount} buổi` : "—"}
         </p>
-        {attendance.countedCount === 0 && <p className="text-[11px] text-neutral-500">Chưa có buổi học nào được ghi nhận</p>}
-        <p className="text-xs text-neutral-700">
-          {attendance.nextSessionStart
-            ? `Buổi tới: ${formatDateTime(attendance.nextSessionStart)}${
-                attendance.focusMilestoneTitle
-                  ? ` · ${attendance.nextSessionPlanned ? "học" : "đang học"} ${attendance.focusMilestoneTitle}` : ""
-              }`
-            : "Chưa có buổi tới"}
+        <p className="text-[11px] text-neutral-500">
+          {attendance.totalCount > 0
+            ? `Đã học: ${attendance.attendedCount} buổi · Vắng: ${attendance.countedCount - attendance.attendedCount} buổi`
+            : "Lớp chưa có buổi học nào"}
         </p>
-        <div className="flex flex-wrap gap-1.5">
-          {attendance.homeworkAssigned && (
-            <span className="rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[11px] font-bold text-sky-800">
-              Có bài về nhà
-            </span>
-          )}
-          {attendance.tutorCancelCount > 0 && (
-            <span className="text-[11px] text-neutral-500">{attendance.tutorCancelCount} buổi dời do gia sư</span>
-          )}
-        </div>
         {attendance.missedSessions.length > 0 && (
           <details className="text-xs text-neutral-700">
             <summary className="cursor-pointer text-[11px] font-bold text-neutral-600">Chi tiết vắng, hủy</summary>
@@ -404,42 +438,52 @@ function OverviewCards({ overview }: { overview: ProgressOverview }) {
 
 function MilestoneRow({
   milestone: m,
+  sequence,
   levels,
 }: {
   milestone: MilestoneResponse;
+  sequence: number;
   levels?: ProgressOverview["milestoneLevels"][number];
 }) {
-  const isAchieved = m.status === "ACHIEVED";
+  const isAchieved = m.status === "ACHIEVED" || m.status === "COMPLETED";
   const isInProgress = m.status === "IN_PROGRESS";
   const StatusIcon = isAchieved ? CheckCircle2 : isInProgress ? CircleDot : Circle;
+  const isDone = isAchieved;
+  const statusText = isDone ? "Đã đạt" : isInProgress ? "Đang học" : "Chưa bắt đầu";
+  const statusTone = isDone
+    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+    : isInProgress
+      ? "bg-amber-50 text-amber-900 border-amber-200"
+      : "bg-stone-100 text-neutral-600 border-stone-200";
+  const dateText = isDone
+    ? m.achievedDate ? `Đạt ngày ${formatDate(m.achievedDate)}` : ""
+    : m.targetDate
+      ? `Hạn ${formatDate(m.targetDate)}`
+      : m.expectedDate
+        ? `Dự kiến ~${formatDate(m.expectedDate)}`
+        : "";
   const start = independenceLabel(levels?.startLevel);
   const current = independenceLabel(levels?.currentLevel);
   return (
-    <li className="p-4 rounded-2xl border border-stone-200 space-y-2" data-testid={`milestone-${m.milestoneId}`}>
+    <li className="p-4 rounded-2xl border border-stone-200 bg-white shadow-xs space-y-2" data-testid={`milestone-${m.milestoneId}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-2 text-xs font-bold text-neutral-900">
           <StatusIcon
             className={`size-4 ${isAchieved ? "text-emerald-600" : isInProgress ? "text-amber-600" : "text-stone-400"}`}
           />
+          <span className="shrink-0 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-800">Bước {sequence}</span>
           {m.title}
         </span>
-        <span className="text-[11px] text-neutral-500">
-          {isAchieved
-            ? `Đã đạt ${formatDate(m.achievedDate)}`
-            : m.targetDate
-              ? `Hạn ${formatDate(m.targetDate)}`
-              : m.expectedDate
-                ? `Dự kiến ~${formatDate(m.expectedDate)}`
-                : isInProgress
-                ? "Đang học"
-                : "Chưa bắt đầu"}
+        <span className="flex flex-wrap items-center gap-1.5 text-[11px] text-neutral-500">
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusTone}`}>{statusText}</span>
+          {dateText}
         </span>
       </div>
 
       {levels?.currentLevel ? (
         <div className="space-y-1">
-          <div className="flex h-2 gap-1" aria-hidden="true">
-            {[1, 2, 3, 4].map((lvl) => (
+          <div className="flex h-2 gap-1" role="progressbar" aria-label={`Mức tự lập: ${m.title}`} aria-valuemin={0} aria-valuemax={MAX_INDEPENDENCE_LEVEL} aria-valuenow={levels.currentLevel} aria-valuetext={current ?? undefined}>
+            {Array.from({ length: MAX_INDEPENDENCE_LEVEL }, (_, i) => i + 1).map((lvl) => (
               <span
                 key={lvl}
                 className={`flex-1 rounded-full ${
@@ -582,23 +626,21 @@ function NoteItem({
   onRated: (rating: SelfRatingValue) => void;
 }) {
   const feedback = note.feedback;
+  const statusInfo = SESSION_STATUS[note.status] ?? { label: "Không xác định", tone: "bg-stone-200 text-neutral-700" };
   return (
-    <li className="p-3 rounded-2xl bg-stone-50/70 border border-stone-200/80 text-xs space-y-2">
+    <li className="p-3 rounded-2xl bg-white border border-stone-200 shadow-xs text-xs space-y-2" data-testid={`note-${note.sessionId}`}>
       <div className="flex items-center justify-between text-[11px]">
-        <span className="font-bold text-neutral-800">{formatDateTime(note.startAt)}</span>
+        <span className="font-bold text-neutral-800">
+          {formatDateTime(note.startAt)}
+          {note.endAt ? ` – ${new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date(note.endAt))}` : ""}
+        </span>
         <span className="flex items-center gap-1">
           {feedback?.late && (
             <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-bold text-neutral-700">
               Bổ sung muộn
             </span>
           )}
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-              note.status === "COMPLETED" ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-neutral-700"
-            }`}
-          >
-            {note.status === "COMPLETED" ? "Có mặt" : note.status === "ABSENT" ? "Vắng mặt" : note.status}
-          </span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusInfo.tone}`}>{statusInfo.label}</span>
         </span>
       </div>
       {feedback && (
@@ -624,6 +666,9 @@ function NoteItem({
             ))}
           </div>
         </div>
+      )}
+      {!feedback && !note.noteText && note.status === "COMPLETED" && (
+        <p className="text-neutral-500">Gia sư chưa ghi phản hồi cho buổi học này.</p>
       )}
       {note.noteText && <p className="text-neutral-700 leading-relaxed">{note.noteText}</p>}
       {feedback?.parentMessage && (
