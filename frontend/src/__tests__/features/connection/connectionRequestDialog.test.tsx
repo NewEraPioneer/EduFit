@@ -50,6 +50,22 @@ describe("Connection request dialog", () => {
     });
   });
 
+  it("allows a different proposed schedule for this tutor without changing the learning need", async () => {
+    const send = vi.spyOn(connectionService, "send").mockResolvedValue({
+      requestId: "request", studentId: "student", tutorId: "tutor", needId: "need-1",
+      status: "PENDING", createdAt: "2030-01-01", expiresAt: "2030-01-08",
+    });
+    render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
+    fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
+    fireEvent.change(await screen.findByLabelText("Giờ bắt đầu Thứ 3"), { target: { value: "18:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" }));
+    await waitFor(() => expect(send).toHaveBeenCalled());
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+      desiredSlots: ["Thứ 3 · 18:00–21:00"],
+    }));
+    expect(mathNeed.availabilitySlots[0].startTime).toBe("19:00:00");
+  });
+
   it("shows soft fit warnings but still allows sending", async () => {
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
     expect(await screen.findByText("Học phí vượt ngân sách")).toBeInTheDocument();
