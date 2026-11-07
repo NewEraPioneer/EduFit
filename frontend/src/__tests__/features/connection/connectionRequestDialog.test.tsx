@@ -23,6 +23,18 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Connection request dialog", () => {
+  it("loads the new need defaults when changing need selection", async () => {
+    vi.mocked(learningNeedService.list).mockResolvedValue([mathNeed, makeNeed({
+      needId: "need-2", availabilitySlots: [{ dayOfWeek: 3, startTime: "17:00:00", endTime: "18:00:00" }],
+    })]);
+    const send = vi.spyOn(connectionService, "send").mockResolvedValue({} as never);
+    render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
+    fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
+    fireEvent.change(await screen.findByLabelText("Giờ bắt đầu Thứ 3"), { target: { value: "18:00" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "need-2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" }));
+    await waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({ needId: "need-2", desiredSlots: ["Thứ 4 · 17:00–18:00"] })));
+  });
   it("preserves custom slots when the same need is reloaded as a new object", async () => {
     const send = vi.spyOn(connectionService, "send").mockResolvedValue({} as never);
     const props = { tutorId: "tutor", tutor, onClose: vi.fn(), onSent: vi.fn() };

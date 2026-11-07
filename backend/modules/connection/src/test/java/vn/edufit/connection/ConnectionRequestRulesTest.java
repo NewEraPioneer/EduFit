@@ -202,6 +202,31 @@ class ConnectionRequestRulesTest {
   }
 
   @Test
+  void sendRejectsTutorActiveClassConflict() {
+    var other = new ConnectionRequest(UUID.randomUUID(), tutor, UUID.randomUUID(), studentUser,
+        List.of("TUESDAY 18:30-19:30"), null, now);
+    UUID otherId = UUID.randomUUID();
+    org.springframework.test.util.ReflectionTestUtils.setField(other, "id", otherId);
+    when(classes.findByTutorIdAndStatus(tutor, "ACTIVE")).thenReturn(List.of(new TutoringClass(other, 200000L, now)));
+    when(rows.findAllById(List.of(otherId))).thenReturn(List.of(other));
+    assertThrows(ResourceConflictException.class, () -> create(actor(studentUser, "STUDENT")));
+    verify(rows, never()).save(any());
+  }
+
+  @Test
+  void sendRejectsStudentActiveClassButAllowsAdjacentSlot() {
+    var other = new ConnectionRequest(student, UUID.randomUUID(), UUID.randomUUID(), studentUser,
+        List.of("TUESDAY 18:30-19:30"), null, now);
+    UUID otherId = UUID.randomUUID();
+    org.springframework.test.util.ReflectionTestUtils.setField(other, "id", otherId);
+    when(classes.findByStudentIdAndStatus(student, "ACTIVE")).thenReturn(List.of(new TutoringClass(other, 200000L, now)));
+    when(rows.findAllById(List.of(otherId))).thenReturn(List.of(other));
+    assertThrows(ResourceConflictException.class, () -> create(actor(studentUser, "STUDENT")));
+    verify(rows, never()).save(any());
+    assertInstanceOf(TransitionResult.Success.class, service.request(actor(studentUser, "STUDENT"), goal, tutor, List.of("TUESDAY 19:30-20:30"), null));
+  }
+
+  @Test
   void sendingRejectsTutorScheduledConflictWithoutSavingOrPublishing() {
     var checker = mock(vn.edufit.connection.api.TutorScheduleConflictChecker.class);
     when(checker.hasConflictWithScheduledSessions(tutor, List.of("Tue 19:00"))).thenReturn(true);

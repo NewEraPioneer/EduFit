@@ -1,6 +1,17 @@
 # Task thực thi: lịch đề xuất và chống trùng khi kết nối
 
-Kế hoạch chi tiết: [request-schedule-conflict-plan.md](request-schedule-conflict-plan.md). Đây là checklist **chưa thực hiện**, không đánh dấu pass trước khi có test và SHA. Mỗi task một commit trên `feat/connection-request-schedule`, push ngay sau khi test; không merge branch trong quy trình này.
+Kế hoạch chi tiết: [request-schedule-conflict-plan.md](request-schedule-conflict-plan.md). T01–T06 đã triển khai và push; T07 đã qua kiểm thử tập trung, còn kiểm chứng PostgreSQL/Testcontainers do Docker chưa chạy. Mỗi task một commit trên `feat/connection-request-schedule`. Xem [báo cáo kiểm chứng](request-schedule-conflict-verification.md).
+
+| Task | Commit đã push |
+| --- | --- |
+| T01 | `c27efed` |
+| T02 | `30a471b` |
+| T03 | `df2553a` |
+| T04 | `c8eabcb` |
+| T05 | `a1e0873` |
+| T06 | `b509897` |
+
+T04 mở rộng SPI hiện có bằng phương thức nhận `studentId`, không tạo thêm một bean/interface riêng. Phương thức mới là bắt buộc để implementation không âm thầm bỏ qua kiểm tra học sinh.
 
 | Thứ tự | Task | Phụ thuộc | Commit dự kiến |
 | --- | --- | --- | --- |

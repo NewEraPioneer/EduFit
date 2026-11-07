@@ -63,6 +63,15 @@ class SessionScheduleConflictCheckerAdapterTest {
   }
 
   @Test
+  void detectsStudentSessionContinuingAcrossMidnightInVietnam() {
+    var start = nowZdt.withHour(23);
+    when(sessionRepository.findStudentBusySlots(eq(studentId), any(), any()))
+        .thenReturn(List.of(createScheduledSession(start, start.plusHours(2))));
+    assertTrue(adapter.hasStudentConflictWithScheduledSessions(studentId, List.of("TUESDAY 00:30-01:30")));
+    assertFalse(adapter.hasStudentConflictWithScheduledSessions(studentId, List.of("TUESDAY 01:00-02:00")));
+  }
+
+  @Test
   void checksStudentBusySessionsAndAllowsTouchingBoundary() {
     var start = nowZdt.withHour(18);
     when(sessionRepository.findStudentBusySlots(eq(studentId), eq(now), eq(now.plusSeconds(56L * 86400))))

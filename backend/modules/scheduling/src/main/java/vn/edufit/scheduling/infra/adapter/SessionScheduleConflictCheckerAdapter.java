@@ -89,19 +89,12 @@ public class SessionScheduleConflictCheckerAdapter implements TutorScheduleConfl
     for (TutoringSession session : busySessions) {
       ZonedDateTime sessionStart = session.getStartAt().atZone(VIETNAM_ZONE);
       ZonedDateTime sessionEnd = session.getEndAt().atZone(VIETNAM_ZONE);
-      DayOfWeek sessionDay = sessionStart.getDayOfWeek();
-      int sessionStartMinutes = sessionStart.getHour() * 60 + sessionStart.getMinute();
-      int sessionEndMinutes = sessionEnd.getHour() * 60 + sessionEnd.getMinute();
-
-      for (ParsedSlot cand : candidateSlots) {
-        if (cand.dayOfWeek() == sessionDay) {
-          if (Math.max(cand.startMinutes(), sessionStartMinutes) < Math.min(cand.endMinutes(), sessionEndMinutes)) {
-            log.info(
-                "Phát hiện xung đột lịch: tutorId={}, slot='{}', session={}",
-                tutorId,
-                cand.raw(),
-                session.getSessionId()
-            );
+      for (var date = sessionStart.toLocalDate(); !date.isAfter(sessionEnd.toLocalDate()); date = date.plusDays(1)) {
+        int startMinutes = date.equals(sessionStart.toLocalDate()) ? sessionStart.getHour() * 60 + sessionStart.getMinute() : 0;
+        int endMinutes = date.equals(sessionEnd.toLocalDate()) ? sessionEnd.getHour() * 60 + sessionEnd.getMinute() : 1440;
+        for (ParsedSlot cand : candidateSlots) {
+          if (cand.dayOfWeek() == date.getDayOfWeek()
+              && Math.max(cand.startMinutes(), startMinutes) < Math.min(cand.endMinutes(), endMinutes)) {
             return true;
           }
         }
