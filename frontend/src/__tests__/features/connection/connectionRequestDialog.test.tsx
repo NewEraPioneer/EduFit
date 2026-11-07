@@ -23,6 +23,14 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Connection request dialog", () => {
+  it("uses the need schedule when all custom slots are removed", async () => {
+    const send = vi.spyOn(connectionService, "send").mockResolvedValue({} as never);
+    render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
+    fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
+    fireEvent.click(await screen.findByRole("button", { name: /Xóa khoảng giờ/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" }));
+    await waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({ desiredSlots: ["Thứ 3 · 19:00–21:00"] })));
+  });
   it("shows server errors and never reports success for a failed connection", async () => {
     vi.spyOn(connectionService, "send").mockRejectedValue(new Error("Đã có yêu cầu đang chờ"));
     const onSent = vi.fn();

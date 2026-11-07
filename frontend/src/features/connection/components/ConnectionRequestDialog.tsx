@@ -71,7 +71,10 @@ export function ConnectionRequestDialog({
     [needs, taughtSubjects]
   );
   const selected = eligible.find((need) => need.needId === needId) ?? null;
-  const slotValidation = validateAvailabilitySlots(proposedSlots);
+  const effectiveSlots = proposedSlots.length ? proposedSlots : selected?.availabilitySlots ?? [];
+  const slotValidation = effectiveSlots.length
+    ? validateAvailabilitySlots(effectiveSlots)
+    : { valid: false, message: "Nhu cầu chưa có lịch học. Vui lòng bổ sung lịch trước khi gửi." };
 
   useEffect(() => {
     setProposedSlots(selected?.availabilitySlots.map((slot) => ({ ...slot })) ?? []);
@@ -121,7 +124,7 @@ export function ConnectionRequestDialog({
         needId: selected.needId,
         tutorId,
         message: message.trim() || undefined,
-        desiredSlots: proposedSlots.map((slot) => formatMatchingSlots([slot])),
+        desiredSlots: effectiveSlots.map((slot) => formatMatchingSlots([slot])),
       });
       onSent();
     } catch (err) {
@@ -230,6 +233,7 @@ export function ConnectionRequestDialog({
               <details className="rounded-2xl border border-stone-200 bg-white p-3.5">
                 <summary className="cursor-pointer text-xs font-semibold text-sky-700">Đổi lịch đề xuất cho gia sư này</summary>
                 <p className="mt-2 text-xs text-neutral-600">Lịch ban đầu lấy từ nhu cầu học. Thay đổi ở đây chỉ áp dụng cho yêu cầu gửi đến gia sư này.</p>
+                {!proposedSlots.length && <p className="mt-2 text-xs text-sky-700">Không có lịch riêng: yêu cầu sẽ dùng lịch của nhu cầu học.</p>}
                 <div className="mt-3 max-h-64 overflow-y-auto">
                   <AvailabilitySlotPicker slots={proposedSlots} onChange={setProposedSlots} title="Lịch muốn đề xuất" />
                 </div>
