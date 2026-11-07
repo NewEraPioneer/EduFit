@@ -41,6 +41,7 @@ class DemoJourneySeedIT {
     Flyway.configure()
         .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
         .locations("classpath:db/migration", "classpath:db/seed")
+        .target("1.34") // This fixture test describes V1.34; later additive workshops have their own tests.
         .schemas(SCHEMA)
         .load()
         .migrate();
