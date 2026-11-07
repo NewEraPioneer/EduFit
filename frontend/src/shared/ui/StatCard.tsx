@@ -25,7 +25,7 @@ export function StatCard({
   badge,
 }: StatCardProps) {
   return (
-    <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between card-interactive">
+    <div className="edufit-surface bg-white p-5 rounded-2xl border border-stone-200/80 flex flex-col justify-between card-interactive">
       <div className="flex items-center justify-between text-neutral-400">
         <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
         <div className={`size-8 rounded-xl ${iconBg} ${iconColor} flex items-center justify-center shrink-0`}>

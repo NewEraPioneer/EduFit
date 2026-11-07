@@ -131,7 +131,7 @@ export function EmptyState({
 
   return (
     <div
-      className={`relative overflow-hidden bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/90 dark:border-stone-800 shadow-xs p-6 sm:p-8 flex flex-col items-center text-center space-y-5 ${className}`}
+      className={`edufit-surface relative overflow-hidden bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/90 dark:border-stone-800 p-6 sm:p-8 flex flex-col items-center text-center space-y-5 ${className}`}
     >
       {/* Background Soft Glow */}
       <div

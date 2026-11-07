@@ -34,7 +34,7 @@ export function DashboardShell({
   const toggleCollapse = () => setCollapsed((prev) => !prev);
 
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex font-sans text-neutral-900 dark:text-stone-100 selection:bg-amber-200 dark:selection:bg-amber-900/40 transition-colors duration-200">
+    <div className="edufit-workspace min-h-screen bg-stone-50 dark:bg-stone-950 flex font-sans text-neutral-900 dark:text-stone-100 selection:bg-amber-200 dark:selection:bg-amber-900/40 transition-colors duration-200">
       {/* 1. Unified Dynamic Sidebar */}
       <div className="hidden lg:block">
         <Sidebar

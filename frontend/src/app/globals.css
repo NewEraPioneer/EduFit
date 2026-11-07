@@ -5,13 +5,30 @@
 :root {
   --background: #fafaf9;
   --foreground: #171717;
+  --workspace-glow: rgba(14, 116, 144, 0.08);
+  --surface-shadow: 0 10px 30px -16px rgba(26, 56, 70, 0.24), 0 2px 8px -4px rgba(26, 56, 70, 0.12);
   color-scheme: light;
 }
 
 .dark {
   --background: #1c1917;
   --foreground: #f5f5f4;
+  --workspace-glow: rgba(56, 189, 248, 0.05);
+  --surface-shadow: 0 12px 30px -16px rgba(0, 0, 0, 0.65);
   color-scheme: dark;
+}
+
+.edufit-workspace {
+  background-image: radial-gradient(ellipse 52rem 32rem at 85% -10%, var(--workspace-glow), transparent 70%);
+}
+
+.edufit-surface {
+  box-shadow: var(--surface-shadow);
+}
+
+.edufit-workspace main .rounded-3xl.border.bg-white,
+.edufit-workspace main .rounded-2xl.border.bg-white {
+  box-shadow: var(--surface-shadow);
 }
 
 @theme inline {

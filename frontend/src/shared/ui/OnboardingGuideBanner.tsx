@@ -98,7 +98,7 @@ export function OnboardingGuideBanner({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border ${roleMeta.borderColor} bg-gradient-to-br ${roleMeta.bgGradient} p-5 sm:p-6 shadow-xs animate-in fade-in`}
+      className={`edufit-surface relative overflow-hidden rounded-3xl border ${roleMeta.borderColor} bg-gradient-to-br ${roleMeta.bgGradient} p-5 sm:p-6 animate-in fade-in`}
     >
       <button
         type="button"
