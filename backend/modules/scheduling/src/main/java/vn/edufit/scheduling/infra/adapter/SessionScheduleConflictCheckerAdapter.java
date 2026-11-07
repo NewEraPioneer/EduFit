@@ -53,6 +53,15 @@ public class SessionScheduleConflictCheckerAdapter implements TutorScheduleConfl
 
   @Override
   public boolean hasConflictWithScheduledSessions(UUID tutorId, List<String> desiredSlots) {
+    return hasConflict(tutorId, desiredSlots, false);
+  }
+
+  @Override
+  public boolean hasStudentConflictWithScheduledSessions(UUID studentId, List<String> desiredSlots) {
+    return hasConflict(studentId, desiredSlots, true);
+  }
+
+  private boolean hasConflict(UUID tutorId, List<String> desiredSlots, boolean student) {
     if (tutorId == null || desiredSlots == null || desiredSlots.isEmpty()) {
       return false;
     }
@@ -70,7 +79,9 @@ public class SessionScheduleConflictCheckerAdapter implements TutorScheduleConfl
     Instant now = clock.instant();
     Instant horizonEnd = now.plus(HORIZON);
 
-    List<TutoringSession> busySessions = sessionRepository.findTutorBusySlots(tutorId, now, horizonEnd);
+    List<TutoringSession> busySessions = student
+        ? sessionRepository.findStudentBusySlots(tutorId, now, horizonEnd)
+        : sessionRepository.findTutorBusySlots(tutorId, now, horizonEnd);
     if (busySessions == null || busySessions.isEmpty()) {
       return false;
     }

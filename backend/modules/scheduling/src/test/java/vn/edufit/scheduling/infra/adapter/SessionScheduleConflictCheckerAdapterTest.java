@@ -63,6 +63,15 @@ class SessionScheduleConflictCheckerAdapterTest {
   }
 
   @Test
+  void checksStudentBusySessionsAndAllowsTouchingBoundary() {
+    var start = nowZdt.withHour(18);
+    when(sessionRepository.findStudentBusySlots(eq(studentId), eq(now), eq(now.plusSeconds(56L * 86400))))
+        .thenReturn(List.of(createScheduledSession(start, start.plusHours(1))));
+    assertTrue(adapter.hasStudentConflictWithScheduledSessions(studentId, List.of("Thứ 2 · 18:30–19:30")));
+    assertFalse(adapter.hasStudentConflictWithScheduledSessions(studentId, List.of("MONDAY 19:00-20:00")));
+  }
+
+  @Test
   @DisplayName("Trả về false khi desiredSlots rỗng hoặc null")
   void shouldReturnFalseWhenSlotsEmpty() {
     assertFalse(adapter.hasConflictWithScheduledSessions(tutorId, null));

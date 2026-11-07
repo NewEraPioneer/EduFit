@@ -72,6 +72,10 @@ public interface SpringDataTutoringSessionRepository extends JpaRepository<Tutor
       @Param("to") Instant to
   );
 
+  @Query("SELECT s FROM TutoringSessionJpaEntity s WHERE s.studentId = :studentId AND s.status = 'SCHEDULED' AND s.startAt < :to AND s.endAt > :from ORDER BY s.startAt ASC")
+  List<TutoringSessionJpaEntity> findStudentBusySlots(@Param("studentId") UUID studentId,
+      @Param("from") Instant from, @Param("to") Instant to);
+
   /**
    * Đếm số buổi học COMPLETED của một lớp học.
    */

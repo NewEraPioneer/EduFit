@@ -21,4 +21,7 @@ public interface TutorScheduleConflictChecker {
    * @return true if a conflict exists, false otherwise
    */
   boolean hasConflictWithScheduledSessions(UUID tutorId, List<String> desiredSlots);
+
+  /** Checks the student's SCHEDULED sessions using the same bounded horizon and timezone. */
+  boolean hasStudentConflictWithScheduledSessions(UUID studentId, List<String> desiredSlots);
 }
