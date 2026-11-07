@@ -71,7 +71,7 @@ describe("Scheduling Overhaul Implementation Tests", () => {
       expect(screen.getByText("Đề xuất lịch mới")).toBeInTheDocument();
     });
 
-    it("handles continuation slot for 90m session: displays continuation and locks click against duplicates", async () => {
+    it("renders 90m session as one block that spans its duration", async () => {
       const todayIso = formatLocalDateToIso(new Date());
       const mock90mSession: CalendarItem = {
         sessionId: "sess-90m",
@@ -101,16 +101,42 @@ describe("Scheduling Overhaul Implementation Tests", () => {
       // Origin slot (18:00) displays full session range
       expect(await screen.findByText("18:00 - 19:30")).toBeInTheDocument();
 
-      // Continuation slot (19:00) displays continuation badge
-      expect(screen.getByText(/↳ Tiếp nối \(18:00 - 19:30\)/i)).toBeInTheDocument();
-      expect(screen.getByText(/Khóa giờ: Đến 19:30/i)).toBeInTheDocument();
+      // Không còn thẻ tiếp nối: 1 khối cao 1.5 giờ (72px/giờ)
+      expect(screen.queryByText(/Tiếp nối/i)).not.toBeInTheDocument();
+      const block = screen.getByTestId("calendar-session-sess-90m");
+      expect(block.style.getPropertyValue("--block-h")).toBe("106px");
 
-      // Clicking on the locked continuation slot does NOT open propose modal
-      const continuationBadge = screen.getByText(/↳ Tiếp nối/i);
-      fireEvent.click(continuationBadge);
-
-      // Propose modal should not be opened by clicking continuation slot
+      // Bấm khối buổi học không mở modal đề xuất
+      fireEvent.click(block);
       expect(screen.queryByText("Đề xuất buổi học mới")).not.toBeInTheDocument();
+    });
+    it("splits overlapping sessions into side-by-side columns and keeps full text (no truncation)", async () => {
+      const todayIso = formatLocalDateToIso(new Date());
+      const base = {
+        classId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+        tutorId: "tutor-1",
+        studentId: "student-1",
+        mode: "ONLINE" as const,
+        status: "SCHEDULED" as const,
+        isLateCancel: false,
+      };
+      vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({
+        success: true,
+        data: [
+          { ...base, sessionId: "ov-a", startAt: `${todayIso}T18:00:00`, endAt: `${todayIso}T19:30:00` },
+          { ...base, sessionId: "ov-b", startAt: `${todayIso}T19:00:00`, endAt: `${todayIso}T20:00:00` },
+        ],
+      });
+
+      render(<ScheduleCalendarView role="STUDENT" availabilitySlots={[]} classes={[]} />);
+
+      const a = await screen.findByTestId("calendar-session-ov-a");
+      const b = screen.getByTestId("calendar-session-ov-b");
+      expect(a.style.width).toBe("calc(50% - 4px)");
+      expect(b.style.width).toBe("calc(50% - 4px)");
+      expect(a.style.left).not.toBe(b.style.left);
+      // Không dùng truncate/line-clamp trên thẻ
+      expect(a.innerHTML).not.toMatch(/truncate|line-clamp/);
     });
   });
 
