@@ -1,9 +1,15 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ProgressDashboardView } from "@/features/progress";
 import { profileService } from "@/services/profile";
+
+function StudentProgressContent({ studentId }: { studentId: string }) {
+  const classId = useSearchParams().get("classId") || undefined;
+  return <ProgressDashboardView key={classId} role="STUDENT" studentId={studentId} classId={classId} />;
+}
 
 export default function StudentProgressPage() {
   const { user } = useAuth();
@@ -47,7 +53,7 @@ export default function StudentProgressPage() {
       </div>
 
       <Suspense fallback={<div className="py-12 text-center text-xs text-neutral-400">Đang tải tiến độ...</div>}>
-        <ProgressDashboardView role="STUDENT" studentId={studentId || user.id} />
+        <StudentProgressContent studentId={studentId || user.id} />
       </Suspense>
     </div>
   );

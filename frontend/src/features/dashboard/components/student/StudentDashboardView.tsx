@@ -1,21 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import Link from "next/link";
 import { Search, CheckCircle2, TrendingUp, Calendar } from "lucide-react";
-import { StudentGoalProgressCard, type StudentGoalItem } from "./StudentGoalProgressCard";
-import { StudentNextSessionCard } from "./StudentNextSessionCard";
+import { StudentGoalProgressCard } from "./StudentGoalProgressCard";
+import { StudentNextSessionCard, type SessionInfo } from "./StudentNextSessionCard";
 import { StudentActiveClasses } from "./StudentActiveClasses";
 import { OnboardingGuideBanner } from "@/shared/ui/OnboardingGuideBanner";
 import { profileService, StudentProfileData } from "@/services/profile";
 import { learningNeedService, type LearningNeed } from "@/services/learningNeeds";
-import { MODE_LABELS } from "@/features/learning-needs/catalogRules";
 import { needTitle } from "@/features/learning-needs/components/LearningNeedSummary";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 import { schedulingApi } from "@/features/scheduling";
 import type { TutoringClass } from "@/features/connection/types";
 import type { CalendarItem } from "@/features/scheduling/types";
-import { progressApi, type StudentDashboardResponse } from "@/features/progress";
+import { progressApi } from "@/features/progress";
+import { formatSessionTime } from "@/shared/utils/dateTime";
+
+const INITIAL_PROGRESS_CARDS = 2;
 
 interface StudentDashboardViewProps {
   user: {
@@ -28,15 +30,16 @@ interface StudentDashboardViewProps {
 
 export function StudentDashboardView({ user }: StudentDashboardViewProps) {
   const studentName = user.fullName || "bạn";
+  const extraProgressId = useId();
 
   const [profile, setProfile] = useState<StudentProfileData | null>(null);
   const [rawClasses, setRawClasses] = useState<TutoringClass[]>([]);
-  const [activeClasses, setActiveClasses] = useState<any[]>([]);
-  const [nextSession, setNextSession] = useState<any | null>(null);
-  const [activeGoal, setActiveGoal] = useState<StudentGoalItem | null>(null);
+  const [nextSession, setNextSession] = useState<SessionInfo | null>(null);
+  const [nextSessionByClass, setNextSessionByClass] = useState(new Map<string, CalendarItem>());
   const [learningNeeds, setLearningNeeds] = useState<LearningNeed[]>([]);
-  const [progressDashboard, setProgressDashboard] = useState<StudentDashboardResponse | null>(null);
+  const [attendanceRate, setAttendanceRate] = useState<number | null>(null);
   const [upcomingWeekCount, setUpcomingWeekCount] = useState<number>(0);
+  const [extraProgress, setExtraProgress] = useState<"unloaded" | "expanded" | "collapsed">("unloaded");
 
   useEffect(() => {
     let ignore = false;
@@ -66,102 +69,17 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
         const classList: TutoringClass[] = classesRes.status === "fulfilled" ? classesRes.value || [] : [];
         setRawClasses(classList);
 
-        // Tiến độ thật theo lộ trình (milestone) do backend tính cho lớp đang học
-        let dashboard: StudentDashboardResponse | null = null;
         if (studentProf?.studentId && classList.length > 0) {
-          try {
-            const res = await progressApi.getStudentDashboard(studentProf.studentId);
-            dashboard = res.success && res.data ? res.data : null;
-          } catch {
-            dashboard = null;
-          }
-        }
-        if (ignore) return;
-        setProgressDashboard(dashboard);
-
-        // Nhu cầu chính: ưu tiên nhu cầu gắn với lớp đang có tiến độ, sau đó tới nhu cầu ACTIVE đầu tiên
-        const primaryNeed =
-          needs.find((need) => dashboard?.needId && need.needId === dashboard.needId) ||
-          needs.find((need) => need.status === "ACTIVE") ||
-          needs[0];
-
-        if (primaryNeed) {
-          const needClasses = classList.filter((c) => c.needId === primaryNeed.needId);
-          const totalCompletedSessions = needClasses.reduce((acc, c) => acc + (c.completedCount ?? 0), 0);
-          const goalGrade = primaryNeed.educationLevelName || studentProf?.educationLevelName || "";
-          const goalTitle = needTitle(primaryNeed);
-          const roadmapDesc = primaryNeed.mode
-            ? `Hình thức: ${MODE_LABELS[primaryNeed.mode]}`
-            : "Chưa chọn hình thức học, hãy bổ sung khi tìm gia sư";
-
-          const planMilestones = (dashboard?.plan?.milestones ?? [])
-            .filter((m) => !m.isArchived)
-            .sort((a, b) => a.sortOrder - b.sortOrder);
-
-          if (planMilestones.length > 0) {
-            const achieved = planMilestones.filter((m) => m.status === "ACHIEVED").length;
-            setActiveGoal({
-              id: primaryNeed.needId,
-              grade: goalGrade,
-              title: goalTitle,
-              roadmapDesc,
-              hasPlan: true,
-              progressPercent: dashboard?.progressPercentage ?? null,
-              completedMilestones: achieved,
-              totalMilestones: planMilestones.length,
-              milestones: planMilestones.slice(0, 6).map((m) => ({
-                label: m.title,
-                completed: m.status === "ACHIEVED",
-              })),
+          void progressApi.getStudentDashboard(studentProf.studentId)
+            .then((response) => {
+              if (!ignore && response.success) {
+                setAttendanceRate(response.data?.overview?.attendance?.attendanceRate ?? null);
+              }
+            })
+            .catch(() => {
+              if (!ignore) setAttendanceRate(null);
             });
-          } else {
-            const hasClasses = needClasses.length > 0;
-            const hasCompleted = totalCompletedSessions > 0;
-            const steps = [
-              { label: "Thêm nhu cầu học", completed: true },
-              { label: "Ghép nối gia sư", completed: hasClasses },
-              { label: "Hoàn thành buổi học đầu", completed: hasCompleted },
-            ];
-            setActiveGoal({
-              id: primaryNeed.needId,
-              grade: goalGrade,
-              title: goalTitle,
-              roadmapDesc,
-              hasPlan: false,
-              progressPercent: null,
-              completedMilestones: steps.filter((st) => st.completed).length,
-              totalMilestones: steps.length,
-              milestones: steps,
-            });
-          }
-        } else {
-          setActiveGoal(null);
         }
-
-        const activeList = classList.filter((c) => c.status === "ACTIVE");
-        const badgeColors = [
-          "bg-sky-50 text-sky-800",
-          "bg-amber-50 text-amber-800",
-          "bg-emerald-50 text-emerald-800",
-          "bg-purple-50 text-purple-800",
-        ];
-        const borderColors = [
-          "hover:border-sky-300",
-          "hover:border-amber-300",
-          "hover:border-emerald-300",
-          "hover:border-purple-300",
-        ];
-
-        const mappedActive = activeList.map((c, idx) => ({
-          subject: c.subjectName || "Môn học kèm",
-          badgeColor: badgeColors[idx % badgeColors.length],
-          borderColor: borderColors[idx % borderColors.length],
-          frequency: c.scheduleStatus === "SCHEDULED" ? "Đã chốt lịch" : "Chờ thống nhất lịch",
-          title: `${c.subjectName || "Môn học kèm"}${c.educationLevelName ? ` - ${c.educationLevelName}` : ""}`,
-          tutor: c.tutorDisplayName || "Gia sư",
-          progress: `Đã học ${c.completedCount ?? 0} / ${c.totalCount ?? c.sessionCount} buổi`,
-        }));
-        setActiveClasses(mappedActive);
 
         // Next session: active/pending sessions that haven't ended yet
         let sessions: CalendarItem[] = [];
@@ -178,6 +96,11 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
           .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 
         setUpcomingWeekCount(validUpcoming.filter((s) => s.status === "SCHEDULED").length);
+        const nextByClass = new Map<string, CalendarItem>();
+        for (const session of validUpcoming) {
+          if (!nextByClass.has(session.classId)) nextByClass.set(session.classId, session);
+        }
+        setNextSessionByClass(nextByClass);
 
         if (validUpcoming.length > 0) {
           const earliest = validUpcoming[0];
@@ -193,6 +116,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
 
           const sessionObj = {
             id: earliest.sessionId,
+            startAt: earliest.startAt,
             dayShort,
             dateNum,
             lessonTitle: classItem?.subjectName
@@ -204,9 +128,6 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
           };
 
           setNextSession(sessionObj);
-          setActiveGoal((prev) =>
-            prev ? { ...prev, nextSessionText: `Buổi tiếp theo: ${sessionObj.lessonTitle}` } : null
-          );
         } else {
           setNextSession(null);
         }
@@ -228,8 +149,29 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
     0
   );
 
-  // Tỉ lệ chuyên cần do backend tính (không trừ buổi hủy sớm hoặc do gia sư dời)
-  const attendanceRate = progressDashboard?.overview?.attendance.attendanceRate ?? null;
+  const activeList = rawClasses.filter((c) => c.status === "ACTIVE");
+  const badgeColors = [
+    "bg-sky-50 text-sky-800",
+    "bg-amber-50 text-amber-800",
+    "bg-emerald-50 text-emerald-800",
+    "bg-purple-50 text-purple-800",
+  ];
+  const borderColors = [
+    "hover:border-sky-300",
+    "hover:border-amber-300",
+    "hover:border-emerald-300",
+    "hover:border-purple-300",
+  ];
+
+  const mappedActive = activeList.map((c, idx) => ({
+    subject: c.subjectName || "Môn học kèm",
+    badgeColor: badgeColors[idx % badgeColors.length],
+    borderColor: borderColors[idx % borderColors.length],
+    frequency: c.scheduleStatus === "SCHEDULED" ? "Đã chốt lịch" : "Chờ thống nhất lịch",
+    title: `${c.subjectName || "Môn học kèm"}${c.educationLevelName ? ` - ${c.educationLevelName}` : ""}`,
+    tutor: c.tutorDisplayName || "Gia sư",
+    progress: `Đã học ${c.completedCount ?? 0} / ${c.totalCount ?? c.sessionCount} buổi`,
+  }));
 
   const onboardingSteps = [
     {
@@ -254,6 +196,19 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       completed: rawClasses.length > 0,
     },
   ];
+
+  const needById = new Map(learningNeeds.map((need) => [need.needId, need]));
+  const renderProgressCard = (tutoringClass: TutoringClass) => {
+    const next = nextSessionByClass.get(tutoringClass.classId);
+    return (
+      <StudentGoalProgressCard
+        key={tutoringClass.classId}
+        tutoringClass={tutoringClass}
+        need={needById.get(tutoringClass.needId)}
+        nextSessionText={next ? `Buổi tiếp theo: ${formatSessionTime(next.startAt, next.endAt)}` : undefined}
+      />
+    );
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
@@ -289,9 +244,31 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       {/* 3. Main 2-Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
         {/* Main Column (8 Cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          <StudentGoalProgressCard goal={activeGoal} />
-          {learningNeeds.length > 1 && (
+        <div className="min-w-0 lg:col-span-8 space-y-6">
+          {activeList.length > 0 && (
+            <section aria-label="Tiến độ các lớp đang học" className="space-y-4">
+              {activeList.slice(0, INITIAL_PROGRESS_CARDS).map(renderProgressCard)}
+              {activeList.length > INITIAL_PROGRESS_CARDS && (
+                <>
+                  <button
+                    type="button"
+                    aria-expanded={extraProgress === "expanded"}
+                    aria-controls={extraProgressId}
+                    onClick={() => setExtraProgress((state) => state === "expanded" ? "collapsed" : "expanded")}
+                    className="rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:border-stone-700 dark:bg-stone-900 dark:text-amber-300 dark:hover:bg-stone-800"
+                  >
+                    {extraProgress === "expanded"
+                      ? "Thu gọn"
+                      : `Xem thêm (${activeList.length - INITIAL_PROGRESS_CARDS})`}
+                  </button>
+                  <div id={extraProgressId} hidden={extraProgress !== "expanded"} className="space-y-4">
+                    {extraProgress !== "unloaded" && activeList.slice(INITIAL_PROGRESS_CARDS).map(renderProgressCard)}
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+          {(learningNeeds.length > 1 || (learningNeeds.length === 1 && activeList.length === 0)) && (
             <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-xs" aria-labelledby="student-needs-heading">
               <h3 id="student-needs-heading" className="font-heading text-base font-bold text-neutral-900">Tất cả môn và nhu cầu học</h3>
               <ul className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -303,7 +280,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
               </ul>
             </section>
           )}
-          <StudentActiveClasses classes={activeClasses} />
+          <StudentActiveClasses classes={mappedActive} />
         </div>
 
         {/* Side Column (4 Cols) */}
