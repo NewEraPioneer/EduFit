@@ -60,6 +60,19 @@ describe("StudentDashboardView Component", () => {
     expect(screen.getByText(/Thầy Hưng/i)).toBeInTheDocument();
   });
 
+  it("hiển thị tất cả môn học đã khai báo, kể cả môn chưa có lớp", async () => {
+    vi.spyOn(learningNeedService, "list").mockResolvedValue([
+      { needId: "need-1", subjectName: "Toán", status: "ACTIVE" },
+      { needId: "need-2", subjectName: "Tiếng Anh", status: "ACTIVE" },
+    ] as never);
+    vi.spyOn(connectionApi, "getStudentClasses").mockResolvedValue([]);
+    vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({ success: true, data: [] });
+    render(<StudentDashboardView user={mockUser} />);
+    expect(await screen.findByText("Tất cả môn và nhu cầu học")).toBeInTheDocument();
+    expect(screen.getAllByText("Toán").length).toBeGreaterThan(0);
+    expect(screen.getByText("Tiếng Anh")).toBeInTheDocument();
+  });
+
   it("hiển thị buổi học đang diễn ra (ongoing session) trong StudentNextSessionCard", async () => {
     const now = new Date();
     // Session started 15 minutes ago, ends in 45 minutes
@@ -90,7 +103,7 @@ describe("StudentDashboardView Component", () => {
 
     expect(await screen.findByText("Buổi học sắp tới")).toBeInTheDocument();
     expect(await screen.findByText("Đã xác nhận")).toBeInTheDocument();
-    expect(screen.getByText("Vào phòng học")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Xem buổi học" })).toHaveAttribute("href", "/student/schedule");
   });
 
   it("lấy tiến độ và cột mốc thật từ lộ trình, không hiện chỉ số không có dữ liệu", async () => {

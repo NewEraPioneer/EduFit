@@ -137,7 +137,7 @@ export function StudentGoalProgressCard({ goal }: StudentGoalProgressCardProps) 
                 >
                   {m.completed ? "✓" : idx + 1}
                 </span>
-                <span className="truncate">{m.label}</span>
+                <span className="break-words leading-snug">{m.label}</span>
               </div>
             ))}
           </div>

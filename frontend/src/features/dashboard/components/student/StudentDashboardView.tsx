@@ -6,7 +6,6 @@ import { Search, CheckCircle2, TrendingUp, Calendar } from "lucide-react";
 import { StudentGoalProgressCard, type StudentGoalItem } from "./StudentGoalProgressCard";
 import { StudentNextSessionCard } from "./StudentNextSessionCard";
 import { StudentActiveClasses } from "./StudentActiveClasses";
-import { StudentQuickActions } from "./StudentQuickActions";
 import { OnboardingGuideBanner } from "@/shared/ui/OnboardingGuideBanner";
 import { profileService, StudentProfileData } from "@/services/profile";
 import { learningNeedService, type LearningNeed } from "@/services/learningNeeds";
@@ -35,6 +34,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
   const [activeClasses, setActiveClasses] = useState<any[]>([]);
   const [nextSession, setNextSession] = useState<any | null>(null);
   const [activeGoal, setActiveGoal] = useState<StudentGoalItem | null>(null);
+  const [learningNeeds, setLearningNeeds] = useState<LearningNeed[]>([]);
   const [progressDashboard, setProgressDashboard] = useState<StudentDashboardResponse | null>(null);
   const [upcomingWeekCount, setUpcomingWeekCount] = useState<number>(0);
 
@@ -62,6 +62,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
         const needs: LearningNeed[] = needsRes.status === "fulfilled"
           ? (needsRes.value || []).filter((need) => need.status !== "ARCHIVED")
           : [];
+        setLearningNeeds(needs);
         const classList: TutoringClass[] = classesRes.status === "fulfilled" ? classesRes.value || [] : [];
         setRawClasses(classList);
 
@@ -290,12 +291,24 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
         {/* Main Column (8 Cols) */}
         <div className="lg:col-span-8 space-y-6">
           <StudentGoalProgressCard goal={activeGoal} />
-          <StudentNextSessionCard session={nextSession} />
+          {learningNeeds.length > 1 && (
+            <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-xs" aria-labelledby="student-needs-heading">
+              <h3 id="student-needs-heading" className="font-heading text-base font-bold text-neutral-900">Tất cả môn và nhu cầu học</h3>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {learningNeeds.map((need) => (
+                  <li key={need.needId} className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-medium text-neutral-800">
+                    {needTitle(need)}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <StudentActiveClasses classes={activeClasses} />
         </div>
 
         {/* Side Column (4 Cols) */}
         <div className="lg:col-span-4 space-y-6">
+          <StudentNextSessionCard session={nextSession} />
           {/* Micro Metrics */}
           <div className="grid grid-cols-1 gap-3.5">
             <div className="p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex items-center gap-3.5">
@@ -335,7 +348,6 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
             </div>
           </div>
 
-          <StudentQuickActions />
         </div>
       </div>
     </div>
