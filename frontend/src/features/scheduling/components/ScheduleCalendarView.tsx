@@ -30,7 +30,62 @@ import {
 } from "../types";
 
 const HOURS = Array.from({ length: 15 }, (_, index) => index + 7);
-const DAY_LABELS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+/** Chiều cao 1 giờ trên lưới (px): đủ chỗ cho thẻ 3 dòng của buổi 60 phút. */
+const HOUR_PX = 72;
+const FIRST_HOUR = HOURS[0];
+const GRID_HEIGHT = HOURS.length * HOUR_PX;
+const MIN_BLOCK_MINUTES = 45;
+
+interface PositionedSession {
+  session: CalendarItem;
+  top: number;
+  height: number;
+  column: number;
+  columns: number;
+}
+
+/**
+ * Xếp các buổi trong 1 ngày thành các khối theo thời lượng; buổi chồng giờ
+ * được chia cột cạnh nhau (thuật toán cụm chồng lấn như Google Calendar).
+ */
+function layoutDaySessions(
+  items: { session: CalendarItem; start: number; end: number }[]
+): PositionedSession[] {
+  const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
+  const result: PositionedSession[] = [];
+  let cluster: typeof sorted = [];
+  let clusterEnd = -1;
+
+  const flush = () => {
+    const colEnds: number[] = [];
+    const placed = cluster.map((item) => {
+      let col = colEnds.findIndex((end) => end <= item.start);
+      if (col === -1) col = colEnds.length;
+      colEnds[col] = item.end;
+      return { item, col };
+    });
+    for (const { item, col } of placed) {
+      result.push({
+        session: item.session,
+        top: ((item.start - FIRST_HOUR * 60) / 60) * HOUR_PX,
+        height: (Math.max(item.end - item.start, MIN_BLOCK_MINUTES) / 60) * HOUR_PX,
+        column: col,
+        columns: colEnds.length,
+      });
+    }
+    cluster = [];
+  };
+
+  for (const item of sorted) {
+    if (cluster.length > 0 && item.start >= clusterEnd) flush();
+    cluster.push(item);
+    clusterEnd = cluster.length === 1 ? item.end : Math.max(clusterEnd, item.end);
+  }
+  if (cluster.length > 0) flush();
+  return result;
+}
+
+const DAY_LABELS =["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
 const VN_TIMEZONE = "Asia/Ho_Chi_Minh";
 
 interface VnTimeInfo {
@@ -328,41 +383,35 @@ export function ScheduleCalendarView({
     );
   };
 
-  const isCancelledOrInactive = (status?: string): boolean => {
-    return !isValidCalendarGridStatus(status);
-  };
-
   // Helper to format date of calendar grid column
   const getCellDateStr = (date: Date): string => {
     const timeInfo = getVietnamSessionTime(date);
     return timeInfo ? timeInfo.dateStr : formatLocalDateToIso(date);
   };
 
-  // Get sessions that start in this specific hour on this day (origin) theo múi giờ Việt Nam
-  const getOriginSessionsForCell = (date: Date, hour: number): CalendarItem[] => {
+  // Các khối buổi học trong 1 ngày (múi giờ Việt Nam), đã tính vị trí theo thời lượng và cột chồng lấn
+  const getDayBlocks = (date: Date): PositionedSession[] => {
     const targetDateStr = getCellDateStr(date);
-    return sessions.filter((s) => {
-      if (!s.startAt) return false;
-      if (!isValidCalendarGridStatus(s.status)) return false;
-      const timeInfo = getVietnamSessionTime(s.startAt);
-      if (!timeInfo) return false;
-      return timeInfo.dateStr === targetDateStr && timeInfo.hour === hour;
-    });
-  };
-
-  // Get continuation sessions for non-hour durations (90m/150m) theo múi giờ Việt Nam
-  const getContinuationSessionsForCell = (date: Date, hour: number): CalendarItem[] => {
-    const targetDateStr = getCellDateStr(date);
-    return sessions.filter((s) => {
-      if (!s.startAt || !s.endAt) return false;
-      if (!isValidCalendarGridStatus(s.status)) return false;
-      const startTimeInfo = getVietnamSessionTime(s.startAt);
-      const endTimeInfo = getVietnamSessionTime(s.endAt);
-      if (!startTimeInfo || !endTimeInfo) return false;
-      if (startTimeInfo.dateStr !== targetDateStr) return false;
-      const slotStartMin = hour * 60;
-      return startTimeInfo.totalMinutes < slotStartMin && endTimeInfo.totalMinutes > slotStartMin;
-    });
+    const dayStart = FIRST_HOUR * 60;
+    const dayEnd = (FIRST_HOUR + HOURS.length) * 60;
+    const items: { session: CalendarItem; start: number; end: number }[] = [];
+    for (const s of sessions) {
+      if (!s.startAt || !isValidCalendarGridStatus(s.status)) continue;
+      const startInfo = getVietnamSessionTime(s.startAt);
+      if (!startInfo || startInfo.dateStr !== targetDateStr) continue;
+      const endInfo = s.endAt ? getVietnamSessionTime(s.endAt) : null;
+      const rawEnd =
+        endInfo && endInfo.dateStr === targetDateStr && endInfo.totalMinutes > startInfo.totalMinutes
+          ? endInfo.totalMinutes
+          : endInfo && endInfo.dateStr > targetDateStr
+          ? 24 * 60
+          : startInfo.totalMinutes + 60;
+      const start = Math.max(startInfo.totalMinutes, dayStart);
+      const end = Math.min(rawEnd, dayEnd);
+      if (end <= start) continue;
+      items.push({ session: s, start, end });
+    }
+    return layoutDaySessions(items);
   };
 
   // Open propose modal from clicking empty cell
@@ -537,150 +586,144 @@ export function ScheduleCalendarView({
                 })}
               </div>
 
-              {/* Loading Skeleton Rows */}
+              {/* Loading Skeleton / Time grid */}
               {loading && sessions.length === 0 ? (
                 <div className="p-12 text-center text-xs font-semibold text-neutral-400 animate-pulse">
                   Đang đồng bộ dữ liệu lịch học...
                 </div>
               ) : (
-                /* Hours Rows */
-                HOURS.map((hour) => (
-                  <div
-                    key={hour}
-                    className="grid min-h-20 grid-cols-[72px_repeat(7,minmax(112px,1fr))] border-b border-stone-100 last:border-b-0"
-                  >
-                    <div className="border-r border-stone-200 px-2 py-2 text-right text-[11px] font-semibold text-neutral-400">
-                      {String(hour).padStart(2, "0")}:00
-                    </div>
+                <div className="grid grid-cols-[72px_repeat(7,minmax(112px,1fr))]">
+                  {/* Time gutter */}
+                  <div className="relative border-r border-stone-200" style={{ height: GRID_HEIGHT }}>
+                    {HOURS.map((hour) => (
+                      <div
+                        key={hour}
+                        className="absolute right-2 text-[11px] font-semibold text-neutral-400"
+                        style={{ top: (hour - FIRST_HOUR) * HOUR_PX + 4 }}
+                      >
+                        {String(hour).padStart(2, "0")}:00
+                      </div>
+                    ))}
+                  </div>
 
-                    {weekDays.map((day, index) => {
-                      const available = role === "TUTOR" && isAvailable(index + 1, hour);
-                      const cellSessions = getOriginSessionsForCell(day.date, hour);
-                      const continuationSessions = getContinuationSessionsForCell(day.date, hour);
-                      const isCellBusy = cellSessions.length > 0 || continuationSessions.length > 0;
-
-                      return (
-                        <div
-                          key={`${day.label}-${hour}`}
-                          className={`relative border-r border-stone-100 p-1 last:border-r-0 transition-colors group ${
-                            hasExplicitAvailability && available ? "bg-emerald-50/40" : "bg-white"
-                          } ${!isCellBusy ? "hover:bg-sky-50/30" : ""}`}
-                          title={
-                            continuationSessions.length > 0
-                              ? `Khung giờ đang có ca học tiếp nối (${formatVnSessionTime(continuationSessions[0].startAt, continuationSessions[0].endAt)})`
-                              : undefined
-                          }
-                        >
-                          {!isCellBusy && (
+                  {weekDays.map((day, dayIndex) => {
+                    const blocks = getDayBlocks(day.date);
+                    return (
+                      <div
+                        key={day.label}
+                        data-testid={`calendar-day-${dayIndex}`}
+                        className="relative border-r border-stone-100 last:border-r-0"
+                        style={{ height: GRID_HEIGHT }}
+                      >
+                        {/* Hour slots: grid lines, availability, click to propose */}
+                        {HOURS.map((hour) => {
+                          const available = role === "TUTOR" && isAvailable(dayIndex + 1, hour);
+                          const label = `${String(hour).padStart(2, "0")}:00 ${day.label}`;
+                          return (
                             <button
+                              key={hour}
                               type="button"
                               onClick={() => handleCellClick(day.date, hour)}
-                              className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-sky-500 focus-visible:-outline-offset-2"
-                              aria-label={`Đề xuất lịch lúc ${String(hour).padStart(2, "0")}:00 ${day.label}`}
-                              title={`Bấm để đề xuất lịch lúc ${String(hour).padStart(2, "0")}:00 ${day.label}`}
-                            />
-                          )}
-                          {/* If availability slot */}
-                          {hasExplicitAvailability && available && !isCellBusy && (
-                            <div className="absolute inset-1 pointer-events-none flex items-center justify-center opacity-60">
-                              <span className="text-[9px] font-bold text-emerald-700 flex items-center gap-0.5">
-                                <Clock3 className="size-2.5" /> Khung rảnh
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Sessions inside this cell */}
-                          {cellSessions.map((s) => {
-                            const isProposed = s.status === "PROPOSED";
-                            const isScheduled = s.status === "SCHEDULED";
-                            const isCompleted = s.status === "COMPLETED";
-                            const isAbsent = s.status === "ABSENT";
-
-                            const badgeColor = isScheduled
-                              ? "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100"
-                              : isProposed
-                              ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
-                              : isCompleted
-                              ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-                              : isAbsent
-                              ? "border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100"
-                              : "border-stone-300 bg-stone-50 text-stone-700";
-
-                            return (
-                              <button
-                                key={s.sessionId}
-                                type="button"
-                                onClick={(e) => handleSessionClick(e, s.sessionId)}
-                                className={`w-full rounded-xl border p-1.5 text-left text-[10px] font-bold shadow-2xs transition-all cursor-pointer ${badgeColor}`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="truncate">
-                                    {formatVnSessionTime(s.startAt, s.endAt)}
-                                  </span>
-                                  {s.mode === "ONLINE" ? (
-                                    <Video className="size-3 shrink-0" />
-                                  ) : (
-                                    <MapPin className="size-3 shrink-0" />
-                                  )}
-                                </div>
-                                <div className="break-words text-[10px] font-bold leading-snug text-neutral-800 dark:text-zinc-100 mt-0.5" title={getClassName(s.classId)}>
-                                  {getClassName(s.classId)}
-                                </div>
-                                <div className="mt-0.5 flex flex-wrap gap-x-1 break-words text-[9px] font-semibold leading-snug">
-                                  <span>
-                                    {isProposed && "⚠️ Chờ xác nhận"}
-                                    {isScheduled && "✓ Đã xếp lịch"}
-                                    {isCompleted && "✓ Đã hoàn thành"}
-                                    {isAbsent && "✕ Vắng mặt"}
-                                  </span>
-                                  {sessionMilestones[s.sessionId] && (
-                                    <span
-                                      className="text-amber-800"
-                                      data-testid={`session-milestones-${s.sessionId}`}
-                                      title={sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
-                                    >
-                                      {sessionMilestones[s.sessionId].linkType === "ACTUAL" ? "Đã học: " : "Dự kiến: "}
-                                      {sessionMilestones[s.sessionId].milestones.map((m) => m.title).join(" · ")}
-                                    </span>
-                                  )}
-                                </div>
-                              </button>
-                            );
-                          })}
-
-                          {/* Continuation slots for non-hour durations (90m/150m) */}
-                          {continuationSessions.map((s) => (
-                            <button
-                              type="button"
-                              key={`cont-${s.sessionId}`}
-                              onClick={(e) => handleSessionClick(e, s.sessionId)}
-                              className="block w-full rounded-xl border border-dashed border-sky-300 bg-sky-50/70 p-1.5 text-left text-[10px] font-bold text-sky-900 shadow-2xs transition-all cursor-pointer hover:bg-sky-100/80"
-                              title={`Ca học tiếp nối (${formatVnSessionTime(s.startAt, s.endAt)})`}
+                              className={`absolute inset-x-0 border-b border-stone-100 cursor-pointer transition-colors hover:bg-sky-50/40 focus-visible:outline-2 focus-visible:outline-sky-500 focus-visible:-outline-offset-2 ${
+                                hasExplicitAvailability && available ? "bg-emerald-50/40" : "bg-transparent"
+                              }`}
+                              style={{ top: (hour - FIRST_HOUR) * HOUR_PX, height: HOUR_PX }}
+                              aria-label={`Đề xuất lịch lúc ${label}`}
+                              title={`Bấm để đề xuất lịch lúc ${label}`}
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="truncate flex items-center gap-1 text-[9px] font-bold text-sky-800">
-                                  <Clock3 className="size-2.5 shrink-0 text-sky-600" />
-                                  ↳ Tiếp nối ({formatVnSessionTime(s.startAt, s.endAt)})
+                              {hasExplicitAvailability && available && (
+                                <span className="pointer-events-none absolute right-1 top-1 flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 opacity-60">
+                                  <Clock3 className="size-2.5" /> Khung rảnh
                                 </span>
+                              )}
+                            </button>
+                          );
+                        })}
+
+                        {/* Session blocks: height follows duration, overlaps split into columns */}
+                        {blocks.map(({ session: s, top, height, column, columns }) => {
+                          const isProposed = s.status === "PROPOSED";
+                          const isScheduled = s.status === "SCHEDULED";
+                          const isCompleted = s.status === "COMPLETED";
+                          const isAbsent = s.status === "ABSENT";
+
+                          const badgeColor = isScheduled
+                            ? "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                            : isProposed
+                            ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                            : isCompleted
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                            : isAbsent
+                            ? "border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100"
+                            : "border-stone-300 bg-stone-50 text-stone-700";
+
+                          const statusText = isProposed
+                            ? "⚠️ Chờ xác nhận"
+                            : isScheduled
+                            ? "✓ Đã xếp lịch"
+                            : isCompleted
+                            ? "✓ Đã hoàn thành"
+                            : isAbsent
+                            ? "✕ Vắng mặt"
+                            : "";
+                          const milestone = sessionMilestones[s.sessionId];
+                          const milestoneText = milestone
+                            ? `${milestone.linkType === "ACTUAL" ? "Đã học: " : "Dự kiến: "}${milestone.milestones
+                                .map((m) => m.title)
+                                .join(" · ")}`
+                            : "";
+                          const className = getClassName(s.classId);
+
+                          return (
+                            <button
+                              key={s.sessionId}
+                              type="button"
+                              onClick={(e) => handleSessionClick(e, s.sessionId)}
+                              data-testid={`calendar-session-${s.sessionId}`}
+                              title={[formatVnSessionTime(s.startAt, s.endAt), className, statusText, milestoneText]
+                                .filter(Boolean)
+                                .join("\n")}
+                              className={`absolute z-10 h-(--block-h) overflow-hidden rounded-lg border px-1.5 py-1 text-left text-[10px] font-bold leading-tight shadow-2xs transition-shadow cursor-pointer hover:z-30 hover:h-auto hover:min-h-(--block-h) hover:shadow-md focus-visible:z-30 focus-visible:h-auto ${badgeColor}`}
+                              style={
+                                {
+                                  top: top + 1,
+                                  left: `calc(${(column / columns) * 100}% + 2px)`,
+                                  width: `calc(${100 / columns}% - 4px)`,
+                                  "--block-h": `${height - 2}px`,
+                                } as React.CSSProperties
+                              }
+                            >
+                              {/* Dòng 1: giờ + hình thức học */}
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="whitespace-nowrap">{formatVnSessionTime(s.startAt, s.endAt)}</span>
                                 {s.mode === "ONLINE" ? (
-                                  <Video className="size-3 shrink-0 text-sky-600" />
+                                  <Video className="size-3 shrink-0" />
                                 ) : (
-                                  <MapPin className="size-3 shrink-0 text-sky-600" />
+                                  <MapPin className="size-3 shrink-0" />
                                 )}
                               </div>
-                              <div className="break-words text-[9px] font-bold leading-snug text-sky-800 dark:text-sky-300 mt-0.5" title={getClassName(s.classId)}>
-                                {getClassName(s.classId)}
-                              </div>
-                              <div className="truncate text-[9px] font-semibold text-sky-600 mt-0.5">
-                                Khóa giờ: Đến {formatVnTime(s.endAt)}
+                              {/* Dòng 2: tên lớp */}
+                              <div className="min-w-0 break-words text-neutral-800">{className}</div>
+                              {/* Dòng 3: trạng thái + cột mốc */}
+                              <div className="flex min-w-0 flex-wrap gap-x-1 text-[9px] font-semibold">
+                                <span className="min-w-0 break-words">{statusText}</span>
+                                {milestone && (
+                                  <span
+                                    className="min-w-0 break-words text-amber-800"
+                                    data-testid={`session-milestones-${s.sessionId}`}
+                                    title={milestone.milestones.map((m) => m.title).join(" · ")}
+                                  >
+                                    {milestoneText}
+                                  </span>
+                                )}
                               </div>
                             </button>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>
@@ -702,33 +745,6 @@ export function ScheduleCalendarView({
           }}
         />
       )}
-
-      {/* Guide Cards */}
-      <section className="grid gap-4 lg:grid-cols-3">
-        {[
-          ["1", "Đề xuất thời gian", "Bấm vào bất kỳ ô trống nào trên lịch để đề xuất khung giờ học."],
-          [
-            "2",
-            "Kiểm tra & Chống trùng GiST",
-            "Hệ thống tự động phát hiện xung đột lịch và bẫy lỗi 409 nếu có ca học khác cùng giờ.",
-          ],
-          [
-            "3",
-            "Xác nhận & Đưa vào lịch",
-            "Chỉ khi bên còn lại xác nhận, buổi học mới chính thức khóa lịch và hiển thị xanh.",
-          ],
-        ].map(([step, title, description]) => (
-          <div key={step} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-2xs">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="grid size-7 place-items-center rounded-full bg-sky-100 text-xs font-black text-sky-800">
-                {step}
-              </span>
-              <h2 className="text-sm font-bold text-neutral-900">{title}</h2>
-            </div>
-            <p className="text-xs leading-relaxed text-neutral-500">{description}</p>
-          </div>
-        ))}
-      </section>
 
       {/* Modals */}
       <ProposeSessionModal
