@@ -22,7 +22,7 @@ describe("liên kết gia đình", () => {
     const invite = vi.spyOn(connectionApi, "inviteParentStudent").mockResolvedValue();
     const withdraw = vi.spyOn(connectionApi, "withdrawLinkInvitation").mockResolvedValue();
     render(<ParentChildrenPage />);
-    expect(await screen.findByText("Mã học sinh: student-1")).toBeInTheDocument();
+    expect(await screen.findByText("Học sinh 1")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Email học sinh"), { target: { value: "child@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Gửi lời mời" }));
     await waitFor(() => expect(invite).toHaveBeenCalledWith("child@example.com"));
@@ -77,7 +77,7 @@ describe("liên kết gia đình", () => {
 
     render(<StudentLinkInvitations />);
 
-    expect(await screen.findByText("Mã tài khoản: parent-account-1")).toBeInTheDocument();
+    expect(await screen.findByText("Phụ huynh 1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Hủy liên kết" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();

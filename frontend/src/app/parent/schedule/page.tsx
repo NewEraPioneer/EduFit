@@ -55,21 +55,21 @@ export default function ParentSchedulePage() {
         if (dashRes.status === "fulfilled" && dashRes.value?.success && dashRes.value.data?.students) {
           dashRes.value.data.students.forEach((s) => {
             if (s.studentId) {
-              studentMap.set(s.studentId, s.studentName || `Học sinh ${s.studentId.slice(0, 8)}`);
+              studentMap.set(s.studentId, s.studentName || `Học sinh ${studentMap.size + 1}`);
             }
           });
         }
 
         mappedClasses.forEach((c) => {
           if (c.studentId && !studentMap.has(c.studentId)) {
-            studentMap.set(c.studentId, c.studentName || `Học sinh ${c.studentId.slice(0, 8)}`);
+            studentMap.set(c.studentId, c.studentName || `Học sinh ${studentMap.size + 1}`);
           }
         });
 
         if (linksRes.status === "fulfilled" && Array.isArray(linksRes.value)) {
           linksRes.value.forEach((l) => {
             if (l.studentId && !studentMap.has(l.studentId)) {
-              studentMap.set(l.studentId, `Học sinh ${l.studentId.slice(0, 8)}`);
+              studentMap.set(l.studentId, `Học sinh ${studentMap.size + 1}`);
             }
           });
         }

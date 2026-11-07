@@ -87,7 +87,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           const links = await connectionApi.getLinks();
           const choices = links.map((link, index) => ({
             id: link.studentId,
-            label: `Học sinh liên kết ${index + 1} (${link.studentId.slice(-8)})`,
+            label: `Học sinh liên kết ${index + 1}`,
           }));
           if (!cancelled) {
             setStudentChoices(choices);

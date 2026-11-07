@@ -38,7 +38,7 @@ describe("RevokeLinkModal Component", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Hủy liên kết học sinh")).toBeInTheDocument();
     expect(screen.getByText("Nguyễn Văn An")).toBeInTheDocument();
-    expect(screen.getByText("Mã học sinh: student-78901234")).toBeInTheDocument();
+    expect(screen.getByText("Liên kết đã được xác nhận")).toBeInTheDocument();
     expect(screen.getByText("Lưu ý quan trọng:")).toBeInTheDocument();
     expect(screen.getByLabelText("Lý do hủy liên kết (tùy chọn)")).toBeInTheDocument();
   });
@@ -85,7 +85,7 @@ describe("RevokeLinkModal Component", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Hủy liên kết phụ huynh")).toBeInTheDocument();
     expect(screen.getByText("Tài khoản phụ huynh")).toBeInTheDocument();
-    expect(screen.getByText("Mã tài khoản: parent-456")).toBeInTheDocument();
+    expect(screen.getByText("Liên kết đã được xác nhận")).toBeInTheDocument();
     expect(screen.getByText(/Khi hủy liên kết, phụ huynh sẽ không thể tiếp tục xem lịch học, tiến độ và kết quả học tập của bạn/)).toBeInTheDocument();
   });
 });

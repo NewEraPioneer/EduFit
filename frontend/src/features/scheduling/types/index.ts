@@ -132,7 +132,7 @@ export function formatConnectedClassName(
   fallbackClassId?: string
 ): string {
   if (!cls) {
-    return fallbackClassId ? `Lớp #${fallbackClassId.slice(0, 8)}` : "Lớp học";
+    return "Lớp học";
   }
 
   const subject = cls.subjectName?.trim();
@@ -161,7 +161,7 @@ export function formatConnectedClassName(
     return cls.title;
   }
 
-  return fallbackClassId ? `Lớp #${fallbackClassId.slice(0, 8)}` : "Lớp học";
+  return "Lớp học";
 }
 
 export type ScheduleViewMode = "grid" | "timeline";

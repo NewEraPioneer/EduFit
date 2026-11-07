@@ -439,7 +439,6 @@ export function SessionDetailModal({
                     {currentClassName}
                   </span>
                   <span className="text-[11px] font-medium text-neutral-400">
-                    • Mã: {session.sessionId.slice(0, 8)}... ({role})
                   </span>
                 </div>
               )}

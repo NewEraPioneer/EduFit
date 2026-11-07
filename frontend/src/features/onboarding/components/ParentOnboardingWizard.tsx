@@ -247,7 +247,7 @@ export function ParentOnboardingWizard() {
             ) : (
               <div className="space-y-3">
                 {/* 1. Danh sách đã xác nhận */}
-                {links.map((link) => (
+                {links.map((link, index) => (
                   <div
                     key={link.linkId}
                     className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-4"
@@ -259,7 +259,7 @@ export function ParentOnboardingWizard() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-xs font-bold text-neutral-900">
-                            Học sinh mã: {link.studentId}
+                            Học sinh {index + 1}
                           </h4>
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-full text-[10px]">
                             <CheckCircle2 className="size-3" />
@@ -296,7 +296,7 @@ export function ParentOnboardingWizard() {
                           </span>
                         </div>
                         <p className="text-[11px] text-neutral-500 mt-0.5">
-                          Mã lời mời: {item.invitationId.slice(0, 8)} · Hết hạn:{" "}
+                          Hết hạn:{" "}
                           {new Date(item.expiresAt).toLocaleDateString("vi-VN")}
                         </p>
                       </div>

@@ -240,7 +240,7 @@ export function ParentProfileForm() {
       {linkedLinks.map((link, index) => (
         <div key={link.linkId} className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-2">
           <p className="text-[11px] font-semibold text-emerald-700 break-all">
-            Học sinh {index + 1} · mã {link.studentId.slice(-8)}
+            Nhu cầu học của học sinh {index + 1}
           </p>
           <LearningNeedManager studentId={link.studentId} />
         </div>
@@ -269,7 +269,7 @@ export function ParentProfileForm() {
 
         {linkedLinks.length > 0 ? (
           <div className="space-y-2">
-            {linkedLinks.map((link) => (
+            {linkedLinks.map((link, index) => (
               <div
                 key={link.linkId}
                 className="p-3 bg-white rounded-2xl border border-stone-200 flex items-center justify-between"
@@ -280,7 +280,7 @@ export function ParentProfileForm() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-neutral-900">
-                      Mã hồ sơ học sinh: {link.studentId}
+                      Học sinh {index + 1}
                     </p>
                     <p className="text-[10px] text-neutral-400">
                       {link.confirmedAt

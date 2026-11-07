@@ -189,11 +189,10 @@ export function StudentLinkInvitations({ variant = "full" }: StudentLinkInvitati
         {links.length === 0 ? (
           <p className="text-sm text-neutral-500">Chưa có phụ huynh nào được liên kết.</p>
         ) : (
-          links.map((link) => (
+          links.map((link, index) => (
             <div key={link.linkId} className="flex flex-col gap-3 rounded-xl border border-stone-200 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-neutral-900">Tài khoản phụ huynh</p>
-                <p className="text-xs text-neutral-500">Mã tài khoản: {link.parentUserId}</p>
+                <p className="text-sm font-semibold text-neutral-900">Phụ huynh {index + 1}</p>
                 {link.confirmedAt && <p className="text-xs text-neutral-500">Liên kết ngày {new Date(link.confirmedAt).toLocaleDateString("vi-VN")}</p>}
               </div>
               <button

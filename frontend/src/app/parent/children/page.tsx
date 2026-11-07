@@ -111,10 +111,9 @@ export default function ParentChildrenPage() {
           <h2 id="linked-children-title" className="text-sm font-bold text-neutral-900 uppercase tracking-wider">Con đã liên kết ({links.length})</h2>
           {loading ? <p role="status" className="rounded-2xl border border-stone-200 bg-white p-8 text-sm text-neutral-500">Đang tải liên kết...</p>
             : !error && links.length === 0 ? <p className="rounded-2xl border border-dashed border-stone-300 bg-white p-8 text-sm text-neutral-600">Chưa có học sinh nào được liên kết.</p>
-              : links.map((link) => <article key={link.linkId} className="rounded-2xl border border-stone-200 bg-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              : links.map((link, index) => <article key={link.linkId} className="rounded-2xl border border-stone-200 bg-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-sm font-bold text-neutral-900">{names[link.studentId] || `Học sinh ${link.studentId.slice(0, 8)}`}</h3>
-                  <p className="text-xs text-neutral-500 mt-1">Mã học sinh: {link.studentId}</p>
+                  <h3 className="text-sm font-bold text-neutral-900">{names[link.studentId] || `Học sinh ${index + 1}`}</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link href="/parent/schedule" className="rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold">Lịch học</Link>
@@ -128,7 +127,7 @@ export default function ParentChildrenPage() {
           {invitations.map((item) => <div key={item.invitationId} className="rounded-2xl border border-stone-200 bg-white p-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-neutral-800">Đang chờ học sinh xác nhận</p>
-              <p className="text-xs text-neutral-500">Mã lời mời: {item.invitationId.slice(0, 8)} · Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")}</p>
+              <p className="text-xs text-neutral-500">Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")}</p>
             </div>
             <button type="button" disabled={busyId !== null} onClick={() => void withdraw(item.invitationId)} className="text-xs font-bold text-rose-700 disabled:opacity-50 cursor-pointer">Rút lời mời</button>
           </div>)}

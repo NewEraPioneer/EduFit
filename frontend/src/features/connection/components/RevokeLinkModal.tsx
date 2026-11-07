@@ -30,7 +30,7 @@ export function RevokeLinkModal({
   const isTargetParent = targetRole === "parent";
   const displayName = isTargetParent
     ? "Tài khoản phụ huynh"
-    : studentName || `Học sinh ${link.studentId.slice(0, 8)}`;
+    : studentName || "Học sinh đã liên kết";
 
   const handleConfirm = async () => {
     try {
@@ -113,11 +113,7 @@ export function RevokeLinkModal({
             <p className="text-xs font-bold text-neutral-900 truncate">
               {displayName}
             </p>
-            <p className="text-[11px] text-neutral-500 font-mono truncate">
-              {isTargetParent
-                ? `Mã tài khoản: ${link.parentUserId}`
-                : `Mã học sinh: ${link.studentId}`}
-            </p>
+            <p className="text-[11px] text-neutral-500">Liên kết đã được xác nhận</p>
           </div>
         </div>
 
