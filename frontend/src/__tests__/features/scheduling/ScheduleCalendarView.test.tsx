@@ -1,9 +1,17 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
+import StudentSchedulePage from "@/app/student/schedule/page";
+import { connectionApi } from "@/features/connection/api/connectionApi";
 import { ScheduleCalendarView } from "@/features/scheduling";
 import { schedulingApi } from "@/features/scheduling/api/schedulingApi";
 import { ApiError } from "@/lib/api";
+
+const scheduleSearchParams = new URLSearchParams();
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...await importOriginal<typeof import("next/navigation")>(),
+  useSearchParams: () => scheduleSearchParams,
+}));
 
 // Mock AuthContext
 vi.mock("@/context/AuthContext", () => ({
@@ -176,6 +184,28 @@ describe("ScheduleCalendarView Component", () => {
     expect(screen.getByText("Chi tiết buổi học")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Đổi lịch học" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Hủy buổi học" })).toBeInTheDocument();
+  });
+
+  it("chọn tuần và mở chi tiết của buổi học từ liên kết dashboard", async () => {
+    const { sessionId, startAt } = mockSessions[0];
+    const monday = new Date(`${startAt.slice(0, 10)}T00:00:00+07:00`);
+    const sessionDetail = vi.spyOn(schedulingApi, "getSessionDetail").mockResolvedValue({ success: false });
+    vi.spyOn(connectionApi, "getStudentClasses").mockResolvedValue([]);
+    scheduleSearchParams.set("sessionId", sessionId);
+    scheduleSearchParams.set("startAt", startAt);
+
+    try {
+      render(<StudentSchedulePage />);
+
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      expect(sessionDetail).toHaveBeenCalledWith(sessionId);
+      expect(schedulingApi.getCalendar).toHaveBeenCalledWith(expect.objectContaining({
+        from: monday.toISOString(),
+      }));
+    } finally {
+      scheduleSearchParams.delete("sessionId");
+      scheduleSearchParams.delete("startAt");
+    }
   });
 
   it("hiển thị EmptyState trong chế độ Timeline khi không có buổi học nào", async () => {

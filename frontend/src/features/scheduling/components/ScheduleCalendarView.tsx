@@ -243,6 +243,7 @@ export function ScheduleCalendarView({
   availabilitySlots = [],
   classes = [],
   initialStudentId,
+  initialSession,
 }: ScheduleCalendarViewProps) {
   const { user } = useAuth();
 
@@ -250,7 +251,9 @@ export function ScheduleCalendarView({
   const [viewMode, setViewMode] = useState<ScheduleViewMode>("grid");
 
   // Selected week starting date
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [weekStart, setWeekStart] = useState(() =>
+    startOfWeek(initialSession ? new Date(initialSession.startAt) : new Date())
+  );
 
   // Calendar sessions data state
   const [sessions, setSessions] = useState<CalendarItem[]>([]);
@@ -264,8 +267,7 @@ export function ScheduleCalendarView({
   const [proposeInitialDate, setProposeInitialDate] = useState<Date | undefined>(undefined);
   const [proposeInitialHour, setProposeInitialHour] = useState<number>(8);
 
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialSession?.sessionId ?? null);
 
   // 7 days of the selected week
   const weekDays = useMemo(
@@ -273,13 +275,7 @@ export function ScheduleCalendarView({
     [weekStart]
   );
   const weekEnd = weekDays[6].date;
-
-  // End of week date at 23:59:59.999
-  const weekEndDateTime = useMemo(() => {
-    const end = new Date(weekDays[6].date);
-    end.setHours(23, 59, 59, 999);
-    return end;
-  }, [weekDays]);
+  const todayInVietnam = getVietnamSessionTime(new Date())?.dateStr;
 
   /** Tên cột mốc chỉ là thông tin bổ sung: lỗi tải không chặn lịch học. */
   const loadSessionMilestones = useCallback(async (sessionIds: string[]) => {
@@ -303,8 +299,8 @@ export function ScheduleCalendarView({
       setLoading(true);
       setError(null);
       const res = await schedulingApi.getCalendar({
-        from: weekStart.toISOString(),
-        to: weekEndDateTime.toISOString(),
+        from: new Date(`${formatLocalDateToIso(weekStart)}T00:00:00+07:00`).toISOString(),
+        to: new Date(`${formatLocalDateToIso(weekEnd)}T23:59:59.999+07:00`).toISOString(),
         studentId: initialStudentId,
       });
       if (res.success && res.data) {
@@ -323,7 +319,7 @@ export function ScheduleCalendarView({
     } finally {
       setLoading(false);
     }
-  }, [weekStart, weekEndDateTime, initialStudentId, loadSessionMilestones]);
+  }, [weekStart, weekEnd, initialStudentId, loadSessionMilestones]);
 
   useEffect(() => {
     fetchSessions();
@@ -383,15 +379,9 @@ export function ScheduleCalendarView({
     );
   };
 
-  // Helper to format date of calendar grid column
-  const getCellDateStr = (date: Date): string => {
-    const timeInfo = getVietnamSessionTime(date);
-    return timeInfo ? timeInfo.dateStr : formatLocalDateToIso(date);
-  };
-
   // Các khối buổi học trong 1 ngày (múi giờ Việt Nam), đã tính vị trí theo thời lượng và cột chồng lấn
   const getDayBlocks = (date: Date): PositionedSession[] => {
-    const targetDateStr = getCellDateStr(date);
+    const targetDateStr = formatLocalDateToIso(date);
     const dayStart = FIRST_HOUR * 60;
     const dayEnd = (FIRST_HOUR + HOURS.length) * 60;
     const items: { session: CalendarItem; start: number; end: number }[] = [];
@@ -425,7 +415,6 @@ export function ScheduleCalendarView({
   const handleSessionClick = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
     setSelectedSessionId(sessionId);
-    setIsDetailOpen(true);
   };
 
   const roleDescription =
@@ -558,8 +547,7 @@ export function ScheduleCalendarView({
                   Giờ
                 </div>
                 {weekDays.map(({ label, date }) => {
-                  const isToday =
-                    getCellDateStr(date) === getCellDateStr(new Date());
+                  const isToday = formatLocalDateToIso(date) === todayInVietnam;
                   return (
                     <div
                       key={label}
@@ -736,7 +724,6 @@ export function ScheduleCalendarView({
           role={role}
           onSelectSession={(id) => {
             setSelectedSessionId(id);
-            setIsDetailOpen(true);
           }}
           onProposeNew={() => {
             setProposeInitialDate(undefined);
@@ -770,11 +757,8 @@ export function ScheduleCalendarView({
 
       <SessionDetailModal
         sessionId={selectedSessionId}
-        isOpen={isDetailOpen}
-        onClose={() => {
-          setIsDetailOpen(false);
-          setSelectedSessionId(null);
-        }}
+        isOpen={selectedSessionId !== null}
+        onClose={() => setSelectedSessionId(null)}
         onUpdated={() => {
           fetchSessions();
           if (typeof window !== "undefined") {
