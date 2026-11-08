@@ -1,10 +1,25 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ScheduleCalendarView, ConnectedClass } from "@/features/scheduling";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 
 export default function StudentSchedulePage() {
+  return (
+    <Suspense fallback={<div className="py-12 text-center text-xs text-neutral-500">Đang tải lịch học...</div>}>
+      <StudentScheduleContent />
+    </Suspense>
+  );
+}
+
+function StudentScheduleContent() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("sessionId");
+  const startAt = searchParams.get("startAt");
+  const initialSession = sessionId && startAt && Number.isFinite(Date.parse(startAt))
+    ? { sessionId, startAt }
+    : undefined;
   const [classes, setClasses] = useState<ConnectedClass[]>([]);
 
   useEffect(() => {
@@ -32,5 +47,12 @@ export default function StudentSchedulePage() {
       });
   }, []);
 
-  return <ScheduleCalendarView role="STUDENT" availabilitySlots={[]} classes={classes} />;
+  return (
+    <ScheduleCalendarView
+      key={initialSession && `${initialSession.sessionId}:${initialSession.startAt}`}
+      role="STUDENT"
+      classes={classes}
+      initialSession={initialSession}
+    />
+  );
 }

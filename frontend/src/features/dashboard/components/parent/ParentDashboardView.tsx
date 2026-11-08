@@ -6,7 +6,6 @@ import { Plus, CreditCard, HeartHandshake, UserPlus } from "lucide-react";
 import { ParentChildSwitcher, ChildInfo } from "./ParentChildSwitcher";
 import { ParentKpiGrid } from "./ParentKpiGrid";
 import { ParentActiveTutors } from "./ParentActiveTutors";
-import { ParentQuickActions } from "./ParentQuickActions";
 import { OnboardingGuideBanner } from "@/shared/ui/OnboardingGuideBanner";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ProgressDashboardView, progressApi, formatGoalTitle } from "@/features/progress";
@@ -226,16 +225,7 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
           {/* KPI Grid */}
           <ParentKpiGrid child={currentChild} />
 
-          {/* 2-Column Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-            <div className="lg:col-span-8 space-y-6">
-              <ParentActiveTutors tutors={currentChildTutors} />
-            </div>
-
-            <div className="lg:col-span-4 space-y-6">
-              <ParentQuickActions />
-            </div>
-          </div>
+          <ParentActiveTutors tutors={currentChildTutors} />
 
           {/* Tiến độ học tập & Nhật ký */}
           <div className="space-y-4 pt-6 border-t border-stone-200">
