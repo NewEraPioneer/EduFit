@@ -20,6 +20,7 @@ interface AvailabilitySlotPickerProps<T extends EditableSlot> {
   title?: string;
   /** Mô tả ngắn dưới tiêu đề. */
   description?: string;
+  showValidation?: boolean;
 }
 
 function toInputTime(value: string): string {
@@ -39,6 +40,7 @@ export function AvailabilitySlotPicker<T extends EditableSlot>({
   onChange,
   title = "Lịch rảnh giảng dạy hằng tuần",
   description = "Thêm các khoảng bạn có thể nhận lịch. Giờ học chính thức sẽ do hai bên đề xuất và xác nhận sau.",
+  showValidation = true,
 }: AvailabilitySlotPickerProps<T>) {
   const headingId = useId();
   const validation = validateAvailabilitySlots(slots);
@@ -101,7 +103,7 @@ export function AvailabilitySlotPicker<T extends EditableSlot>({
         </span>
       </div>
 
-      {!validation.valid && (
+      {showValidation && !validation.valid && (
         <p
           role="alert"
           className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"

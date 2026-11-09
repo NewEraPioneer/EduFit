@@ -70,6 +70,11 @@ public class TutoringSessionRepositoryAdapter implements TutoringSessionDomainRe
   }
 
   @Override
+  public List<TutoringSession> findStudentBusySlots(UUID studentId, Instant from, Instant to) {
+    return springDataRepository.findStudentBusySlots(studentId, from, to).stream().map(sessionMapper::toDomain).toList();
+  }
+
+  @Override
   public int countCompletedSessions(UUID classId) {
     return springDataRepository.countCompletedSessions(classId);
   }

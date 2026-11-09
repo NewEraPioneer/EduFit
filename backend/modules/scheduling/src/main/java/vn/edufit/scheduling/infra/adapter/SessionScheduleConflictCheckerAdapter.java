@@ -53,6 +53,15 @@ public class SessionScheduleConflictCheckerAdapter implements TutorScheduleConfl
 
   @Override
   public boolean hasConflictWithScheduledSessions(UUID tutorId, List<String> desiredSlots) {
+    return hasConflict(tutorId, desiredSlots, false);
+  }
+
+  @Override
+  public boolean hasStudentConflictWithScheduledSessions(UUID studentId, List<String> desiredSlots) {
+    return hasConflict(studentId, desiredSlots, true);
+  }
+
+  private boolean hasConflict(UUID tutorId, List<String> desiredSlots, boolean student) {
     if (tutorId == null || desiredSlots == null || desiredSlots.isEmpty()) {
       return false;
     }
@@ -70,7 +79,9 @@ public class SessionScheduleConflictCheckerAdapter implements TutorScheduleConfl
     Instant now = clock.instant();
     Instant horizonEnd = now.plus(HORIZON);
 
-    List<TutoringSession> busySessions = sessionRepository.findTutorBusySlots(tutorId, now, horizonEnd);
+    List<TutoringSession> busySessions = student
+        ? sessionRepository.findStudentBusySlots(tutorId, now, horizonEnd)
+        : sessionRepository.findTutorBusySlots(tutorId, now, horizonEnd);
     if (busySessions == null || busySessions.isEmpty()) {
       return false;
     }
@@ -78,19 +89,12 @@ public class SessionScheduleConflictCheckerAdapter implements TutorScheduleConfl
     for (TutoringSession session : busySessions) {
       ZonedDateTime sessionStart = session.getStartAt().atZone(VIETNAM_ZONE);
       ZonedDateTime sessionEnd = session.getEndAt().atZone(VIETNAM_ZONE);
-      DayOfWeek sessionDay = sessionStart.getDayOfWeek();
-      int sessionStartMinutes = sessionStart.getHour() * 60 + sessionStart.getMinute();
-      int sessionEndMinutes = sessionEnd.getHour() * 60 + sessionEnd.getMinute();
-
-      for (ParsedSlot cand : candidateSlots) {
-        if (cand.dayOfWeek() == sessionDay) {
-          if (Math.max(cand.startMinutes(), sessionStartMinutes) < Math.min(cand.endMinutes(), sessionEndMinutes)) {
-            log.info(
-                "Phát hiện xung đột lịch: tutorId={}, slot='{}', session={}",
-                tutorId,
-                cand.raw(),
-                session.getSessionId()
-            );
+      for (var date = sessionStart.toLocalDate(); !date.isAfter(sessionEnd.toLocalDate()); date = date.plusDays(1)) {
+        int startMinutes = date.equals(sessionStart.toLocalDate()) ? sessionStart.getHour() * 60 + sessionStart.getMinute() : 0;
+        int endMinutes = date.equals(sessionEnd.toLocalDate()) ? sessionEnd.getHour() * 60 + sessionEnd.getMinute() : 1440;
+        for (ParsedSlot cand : candidateSlots) {
+          if (cand.dayOfWeek() == date.getDayOfWeek()
+              && Math.max(cand.startMinutes(), startMinutes) < Math.min(cand.endMinutes(), endMinutes)) {
             return true;
           }
         }

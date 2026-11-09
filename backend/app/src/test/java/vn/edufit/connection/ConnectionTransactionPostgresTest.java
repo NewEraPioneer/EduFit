@@ -539,7 +539,7 @@ class ConnectionTransactionPostgresTest {
     when(profile.getTutorIdByUserId(tutor2User)).thenReturn(tutor2);
     when(profile.findTutorById(tutor2)).thenReturn(Optional.of(new TutorSummaryDto(tutor2, tutor2User, "Tutor2", null, null, null, null, false, null, null, null, null, "VERIFIED", Instant.now(), null, 0)));
     when(profile.findTutorOfferings(tutor2)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
-    var request2Result = requests.request(actor(parent, "PARENT"), goal2, tutor2, java.util.List.of("Tue 19:00"), null);
+    var request2Result = requests.request(actor(parent, "PARENT"), goal2, tutor2, java.util.List.of("Thu 19:00"), null);
     assertInstanceOf(vn.edufit.connection.application.dto.TransitionResult.Success.class, request2Result);
   }
 
@@ -1591,7 +1591,7 @@ class ConnectionTransactionPostgresTest {
     @Bean IamFacade iam() { return mock(IamFacade.class); }
     @Bean AuditSink audit() { return mock(AuditSink.class); }
     // Port do module scheduling hiện thực; slice test chỉ nạp connection nên khai báo hành vi trung tính tường minh
-    @Bean vn.edufit.connection.api.TutorScheduleConflictChecker noScheduleConflicts() { return (tutorId, slots) -> false; }
+    @Bean vn.edufit.connection.api.TutorScheduleConflictChecker noScheduleConflicts() { return mock(vn.edufit.connection.api.TutorScheduleConflictChecker.class); }
     @Bean vn.edufit.connection.api.ClassScheduleStatusProvider noScheduledSessions() { return classIds -> java.util.Map.of(); }
     @Bean NotificationSink notifications() { return mock(NotificationSink.class); }
   }

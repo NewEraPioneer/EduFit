@@ -26,6 +26,7 @@ public interface TutoringSessionDomainRepository {
   List<TutoringSession> findCalendarSessions(UUID userId, Instant from, Instant to);
 
   List<TutoringSession> findTutorBusySlots(UUID tutorId, Instant from, Instant to);
+  List<TutoringSession> findStudentBusySlots(UUID studentId, Instant from, Instant to);
 
   int countCompletedSessions(UUID classId);
 

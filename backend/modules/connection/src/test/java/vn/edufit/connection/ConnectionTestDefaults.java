@@ -19,7 +19,7 @@ final class ConnectionTestDefaults {
 
   /** Lịch của gia sư không trùng buổi học đã lên lịch nào. */
   static TutorScheduleConflictChecker noScheduleConflicts() {
-    return (tutorId, desiredSlots) -> false;
+    return mock(TutorScheduleConflictChecker.class);
   }
 
   /** Không lớp nào còn buổi học đã lên lịch. */

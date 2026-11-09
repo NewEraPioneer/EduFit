@@ -3,9 +3,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, Loader2, Plus } from "lucide-react";
 import { connectionService } from "@/services/connections";
-import { learningNeedService, type LearningNeed } from "@/services/learningNeeds";
+import { learningNeedService, type LearningNeed, type WeeklySlot } from "@/services/learningNeeds";
 import type { TutorOffering } from "@/services/profile";
-import { formatMatchingSlots } from "@/shared/lib/dateTime";
+import { formatMatchingSlots, validateAvailabilitySlots } from "@/shared/lib/dateTime";
+import { AvailabilitySlotPicker } from "@/features/profile/components/AvailabilitySlotPicker";
 import { describeMissing } from "@/features/learning-needs/catalogRules";
 import { LearningNeedModal } from "@/features/learning-needs/components/LearningNeedModal";
 import { LearningNeedSummary, needTitle } from "@/features/learning-needs/components/LearningNeedSummary";
@@ -55,6 +56,7 @@ export function ConnectionRequestDialog({
   const [fit, setFit] = useState<TutorFit | null>(null);
   const [fitLoading, setFitLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [slotDraft, setSlotDraft] = useState<{ scope: string; slots: WeeklySlot[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needDialog, setNeedDialog] = useState<{ need: LearningNeed | null; subjectId?: number } | null>(null);
@@ -69,6 +71,13 @@ export function ConnectionRequestDialog({
     [needs, taughtSubjects]
   );
   const selected = eligible.find((need) => need.needId === needId) ?? null;
+  const slotScope = `${studentId ?? "self"}:${tutorId}:${needId}`;
+  const proposedSlots = slotDraft?.scope === slotScope ? slotDraft.slots : selected?.availabilitySlots ?? [];
+  const setProposedSlots = (slots: WeeklySlot[]) => setSlotDraft({ scope: slotScope, slots });
+  const effectiveSlots = proposedSlots.length ? proposedSlots : selected?.availabilitySlots ?? [];
+  const slotValidation = effectiveSlots.length
+    ? validateAvailabilitySlots(effectiveSlots)
+    : { valid: false, message: "Nhu cầu chưa có lịch học. Vui lòng bổ sung lịch trước khi gửi." };
 
   const loadNeeds = useCallback(async (selectNeedId?: string) => {
     setLoading(true);
@@ -106,7 +115,7 @@ export function ConnectionRequestDialog({
 
   const send = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (busy || !selected || selected.status !== "ACTIVE") return;
+    if (busy || !selected || selected.status !== "ACTIVE" || !slotValidation.valid) return;
     setBusy(true);
     setError(null);
     try {
@@ -114,7 +123,7 @@ export function ConnectionRequestDialog({
         needId: selected.needId,
         tutorId,
         message: message.trim() || undefined,
-        desiredSlots: selected.availabilitySlots.map((slot) => formatMatchingSlots([slot])),
+        desiredSlots: effectiveSlots.map((slot) => formatMatchingSlots([slot])),
       });
       onSent();
     } catch (err) {
@@ -185,7 +194,7 @@ export function ConnectionRequestDialog({
           <form onSubmit={send} className="space-y-4">
             <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               Nhu cầu học gửi kèm yêu cầu
-              <select value={needId} onChange={(event) => setNeedId(event.target.value)}
+              <select value={needId} onChange={(event) => { setSlotDraft(null); setNeedId(event.target.value); }}
                 className="mt-1 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-2 text-xs font-medium text-neutral-900 dark:text-neutral-100">
                 {eligible.map((need) => (
                   <option key={need.needId} value={need.needId}>
@@ -219,6 +228,18 @@ export function ConnectionRequestDialog({
               </div>
             )}
 
+            {selected?.status === "ACTIVE" && (
+              <details className="rounded-2xl border border-stone-200 bg-white p-3.5">
+                <summary className="cursor-pointer text-xs font-semibold text-sky-700">Đổi lịch đề xuất cho gia sư này</summary>
+                <p className="mt-2 text-xs text-neutral-600">Lịch ban đầu lấy từ nhu cầu học. Thay đổi ở đây chỉ áp dụng cho yêu cầu gửi đến gia sư này.</p>
+                {!proposedSlots.length && <p className="mt-2 text-xs text-sky-700">Không có lịch riêng: yêu cầu sẽ dùng lịch của nhu cầu học.</p>}
+                <button type="button" onClick={() => setSlotDraft(null)} className="mt-2 text-xs font-semibold text-sky-700 underline">Lấy lại lịch mới nhất của nhu cầu</button>
+                <div className="mt-3 max-h-64 overflow-y-auto">
+                  <AvailabilitySlotPicker slots={proposedSlots} onChange={setProposedSlots} showValidation={false} title="Lịch muốn đề xuất" />
+                </div>
+              </details>
+            )}
+
             <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               Lời nhắn gửi gia sư (không bắt buộc)
               <textarea
@@ -233,6 +254,7 @@ export function ConnectionRequestDialog({
             </label>
 
             {error && <p role="alert" className="text-xs text-rose-700 dark:text-rose-400 font-medium">{error}</p>}
+            {!slotValidation.valid && selected?.status === "ACTIVE" && <p role="alert" className="text-xs font-medium text-rose-700">{slotValidation.message}</p>}
 
             <div className="flex flex-wrap justify-between gap-3 pt-1">
               <button type="button" onClick={() => setNeedDialog({ need: null, subjectId: selected?.subjectId })}
@@ -244,7 +266,7 @@ export function ConnectionRequestDialog({
                   className="rounded-full border border-stone-200 dark:border-stone-700 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-stone-50">
                   Đóng
                 </button>
-                <button disabled={busy || !selected || selected.status !== "ACTIVE"}
+                <button disabled={busy || !selected || selected.status !== "ACTIVE" || !slotValidation.valid}
                   className="rounded-full bg-blue-700 px-5 py-2 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-50">
                   {busy ? "Đang gửi…" : "Xác nhận gửi yêu cầu"}
                 </button>
