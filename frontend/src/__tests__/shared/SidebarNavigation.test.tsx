@@ -12,6 +12,28 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+const mockNotificationState = {
+  unreadCount: 0,
+  unreadCategoryMap: {} as Record<string, boolean>,
+};
+
+vi.mock("@/features/notification", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/notification")>();
+  return {
+    ...actual,
+    useNotification: () => ({
+      unreadCount: mockNotificationState.unreadCount,
+      unreadCategoryMap: mockNotificationState.unreadCategoryMap,
+      categoryCounts: {},
+      activeToasts: [],
+      dismissToast: vi.fn(),
+      markAsRead: vi.fn(),
+      markAllAsRead: vi.fn(),
+      refreshSummary: vi.fn(),
+    }),
+  };
+});
+
 describe("Sidebar Finance Badges and Navigation", () => {
   it("renders Student sidebar with active payment navigation on payments menu", () => {
     render(<Sidebar role="STUDENT" collapsed={false} onToggleCollapse={vi.fn()} />);
@@ -63,5 +85,27 @@ describe("Dashboard Payment CTAs", () => {
     const link = screen.getByRole("link", { name: /Thông tin học phí/i });
     expect(link).toHaveAttribute("href", "/parent/billing");
     expect(link).not.toHaveTextContent("Sắp ra mắt");
+  });
+});
+
+describe("Sidebar Notification Category Dots", () => {
+  it("renders notification dot on Lịch học tuần when SCHEDULE category is unread", () => {
+    mockNotificationState.unreadCategoryMap = { SCHEDULE: true };
+    render(<Sidebar role="STUDENT" collapsed={false} onToggleCollapse={vi.fn()} />);
+    const dots = screen.getAllByTestId("sidebar-notification-dot");
+    expect(dots.length).toBeGreaterThan(0);
+  });
+
+  it("does not render notification dot when categories are all read", () => {
+    mockNotificationState.unreadCategoryMap = {};
+    render(<Sidebar role="STUDENT" collapsed={false} onToggleCollapse={vi.fn()} />);
+    expect(screen.queryByTestId("sidebar-notification-dot")).toBeNull();
+  });
+
+  it("renders notification dot on collapsed icon wrapper when collapsed", () => {
+    mockNotificationState.unreadCategoryMap = { SCHEDULE: true };
+    render(<Sidebar role="STUDENT" collapsed={true} onToggleCollapse={vi.fn()} />);
+    const dots = screen.getAllByTestId("sidebar-notification-dot-collapsed");
+    expect(dots.length).toBeGreaterThan(0);
   });
 });

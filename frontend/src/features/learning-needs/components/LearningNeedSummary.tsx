@@ -21,18 +21,18 @@ export function LearningNeedSummary({ need, compact = false }: { need: LearningN
 
   return (
     <div className="min-w-0 space-y-1.5">
-      <p className="font-semibold text-sm text-neutral-900 break-words">{needTitle(need)}</p>
-      {details.length > 0 && <p className="text-xs text-neutral-600 break-words">{details.join(" · ")}</p>}
+      <p className="font-medium text-sm text-ink break-words">{needTitle(need)}</p>
+      {details.length > 0 && <p className="text-xs text-ink-2 break-words">{details.join(" · ")}</p>}
       {!compact && need.availabilitySlots.length > 0 && (
-        <p className="text-xs text-neutral-500 break-words">{need.availabilitySlots.map(formatSlot).join(", ")}</p>
+        <p className="text-xs text-muted break-words">{need.availabilitySlots.map(formatSlot).join(", ")}</p>
       )}
       {need.status === "ACTIVE" && (
-        <p className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+        <p className="inline-flex items-center gap-1 text-xs font-medium text-success-strong">
           <CheckCircle2 className="size-3.5" />Đủ thông tin để ghép gia sư
         </p>
       )}
       {need.status === "INCOMPLETE" && (
-        <p className="inline-flex items-start gap-1 text-xs font-semibold text-amber-700">
+        <p className="inline-flex items-start gap-1 text-xs font-medium text-action-strong">
           <AlertTriangle className="size-3.5 mt-0.5 shrink-0" />Cần bổ sung: {describeMissing(need.missingFields)}
         </p>
       )}

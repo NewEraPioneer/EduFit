@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField } from "@/shared/ui/DateField";
 import React, { useState, useEffect } from "react";
 import {
   X,
@@ -400,20 +401,20 @@ export function CreateLearningPlanModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="plan-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-night/60 backdrop-blur-xs overflow-y-auto"
     >
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      <div className="relative w-full max-w-dialog-wide overflow-hidden rounded-3xl bg-surface shadow-2xl border border-line animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4 bg-stone-50/50">
+        <div className="flex items-center justify-between border-b border-line px-6 py-4 bg-paper/50">
           <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-2xl bg-amber-100 text-amber-800">
+            <div className="grid size-10 place-items-center rounded-2xl bg-action-soft text-action-strong">
               <Award className="size-5" />
             </div>
             <div>
-              <h2 id="plan-modal-title" className="text-base font-bold text-neutral-900">
+              <h2 id="plan-modal-title" className="text-base font-medium text-ink">
                 {isEditing ? "Cập nhật Kế hoạch học tập" : "Thiết lập Kế hoạch học tập & Cột mốc"}
               </h2>
-              <p className="text-xs text-neutral-500 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 {className ? `${className}` : "Lớp học kèm 1:1"}{" "}
                 {studentName ? `• Học sinh: ${studentName}` : ""}
               </p>
@@ -422,7 +423,7 @@ export function CreateLearningPlanModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-8 place-items-center rounded-full text-neutral-400 hover:bg-stone-100 hover:text-neutral-700 transition-colors"
+            className="grid size-8 place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink-2 transition-colors"
             aria-label="Đóng"
           >
             <X className="size-4" />
@@ -436,35 +437,35 @@ export function CreateLearningPlanModal({
             {errorMessage && (
               <div
                 role="alert"
-                className="flex items-start gap-3 rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs text-rose-800 font-medium"
+                className="flex items-start gap-3 rounded-2xl bg-danger-soft border border-danger-line p-4 text-xs text-danger-strong font-medium"
               >
-                <AlertCircle className="size-4.5 text-rose-600 shrink-0 mt-0.5" />
+                <AlertCircle className="size-4.5 text-danger-strong shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold">Không thể lưu kế hoạch</p>
+                  <p className="font-medium">Không thể lưu kế hoạch</p>
                   <p className="mt-0.5">{errorMessage}</p>
                 </div>
               </div>
             )}
 
             {!isEditing && (
-              <div className="space-y-2 rounded-2xl border border-violet-200 bg-violet-50/50 p-3" data-testid="plan-ai-draft">
+              <div className="space-y-2 rounded-2xl border border-brand-line bg-brand-soft/50 p-3" data-testid="plan-ai-draft">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-neutral-700">
-                    <span className="font-bold text-neutral-800">Gợi ý bằng AI:</span> lập bản nháp theo môn, khối, mục
+                  <p className="text-xs text-ink-2">
+                    <span className="font-medium text-ink">Gợi ý bằng AI:</span> lập bản nháp theo môn, khối, mục
                     tiêu của lớp. Không gửi thông tin cá nhân của học sinh.
                   </p>
                   <button
                     type="button"
                     onClick={() => void handleDraftWithAi()}
                     disabled={drafting}
-                    className="inline-flex items-center gap-1.5 min-h-9 px-3 rounded-xl bg-violet-600 text-white text-xs font-bold disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 min-h-9 px-3 rounded-xl bg-brand text-white text-xs font-medium disabled:opacity-50 cursor-pointer"
                   >
                     {drafting ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
                     {drafting ? "Đang gợi ý…" : "Gợi ý lộ trình bằng AI"}
                   </button>
                 </div>
                 {draftNotice && (
-                  <p role="status" className="text-[11px] text-violet-800">
+                  <p role="status" className="text-xs text-brand-strong">
                     {draftNotice}
                   </p>
                 )}
@@ -472,8 +473,8 @@ export function CreateLearningPlanModal({
             )}
 
             {!isEditing && templates.length > 0 && (
-              <div className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50/50 p-3" data-testid="plan-template-picker">
-                <label htmlFor="plan-template" className="block text-xs font-bold text-neutral-800 uppercase tracking-wider">
+              <div className="space-y-2 rounded-2xl border border-action-line bg-action-soft/50 p-3" data-testid="plan-template-picker">
+                <label htmlFor="plan-template" className="block text-xs font-medium text-ink">
                   Bắt đầu từ mẫu lộ trình
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
@@ -481,7 +482,7 @@ export function CreateLearningPlanModal({
                     id="plan-template"
                     value={selectedTemplateId}
                     onChange={(e) => setSelectedTemplateId(e.target.value)}
-                    className="min-h-9 flex-1 rounded-xl border border-stone-200 bg-white px-2 text-xs"
+                    className="min-h-9 flex-1 rounded-xl border border-line bg-surface px-2 text-xs"
                   >
                     <option value="">— Chọn mẫu —</option>
                     {templates.map((t) => (
@@ -494,7 +495,7 @@ export function CreateLearningPlanModal({
                     type="button"
                     onClick={handleApplyTemplate}
                     disabled={!selectedTemplate}
-                    className="min-h-9 px-3 rounded-xl bg-amber-500 text-white text-xs font-bold disabled:opacity-40 cursor-pointer"
+                    className="min-h-9 px-3 rounded-xl bg-action text-on-action text-xs font-medium disabled:opacity-40 cursor-pointer"
                   >
                     Áp dụng mẫu
                   </button>
@@ -502,13 +503,13 @@ export function CreateLearningPlanModal({
                     <button
                       type="button"
                       onClick={() => void handleDeleteTemplate()}
-                      className="min-h-9 px-3 rounded-xl border border-rose-200 bg-white text-rose-700 text-xs font-bold cursor-pointer"
+                      className="min-h-9 px-3 rounded-xl border border-danger-line bg-surface text-danger-strong text-xs font-medium cursor-pointer"
                     >
                       Xóa mẫu này
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-neutral-500">
+                <p className="text-xs text-muted">
                   Áp dụng sẽ thay danh sách cột mốc bên dưới; bạn vẫn sửa được trước khi lưu và cần đặt hạn cho cột mốc cuối.
                 </p>
               </div>
@@ -518,7 +519,7 @@ export function CreateLearningPlanModal({
             <div className="space-y-1.5">
               <label
                 htmlFor="plan-summary"
-                className="block text-xs font-bold text-neutral-800 uppercase tracking-wider"
+                className="block text-xs font-medium text-ink"
               >
                 Mục tiêu chung & Tóm tắt kế hoạch
               </label>
@@ -528,10 +529,10 @@ export function CreateLearningPlanModal({
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 placeholder="Ví dụ: Ôn tập lấy lại căn bản môn Toán lớp 9, làm quen các dạng bài tập hình học và phương trình bậc hai hướng tới kỳ thi vào 10..."
-                className="w-full rounded-2xl border border-stone-200 bg-stone-50/50 p-3 text-xs text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-hidden transition-all"
+                className="w-full rounded-2xl border border-line bg-paper/50 p-3 text-xs text-ink placeholder:text-muted focus:bg-surface focus:border-action focus:ring-2 focus:ring-action/20 focus:outline-hidden transition-all"
                 maxLength={1000}
               />
-              <div className="flex justify-between text-[11px] text-neutral-400 px-1">
+              <div className="flex justify-between text-xs text-muted px-1">
                 <span>Tóm tắt tổng quát giúp học sinh và phụ huynh nắm rõ lộ trình</span>
                 <span>{summary.length}/1000</span>
               </div>
@@ -539,12 +540,12 @@ export function CreateLearningPlanModal({
 
             {/* Milestones Header & Quick Stats */}
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
+                  <h3 className="text-xs font-medium text-ink">
                     Danh sách các cột mốc kiến thức ({MIN_PLAN_MILESTONES} - {MAX_PLAN_MILESTONES} mốc)
                   </h3>
-                  <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200">
+                  <span className="inline-flex items-center rounded-full bg-action-soft px-2 py-0.5 text-xs font-medium text-action-strong border border-action-line">
                     {milestones.length} mốc • Tổng trọng số: {totalWeight}
                   </span>
                 </div>
@@ -553,7 +554,7 @@ export function CreateLearningPlanModal({
                   type="button"
                   onClick={handleAddMilestone}
                   disabled={milestones.length >= MAX_PLAN_MILESTONES}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-amber-600 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-action px-3 py-1.5 text-xs font-medium text-on-action shadow-xs hover:bg-action-deep active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   <Plus className="size-3.5" />
                   Thêm cột mốc
@@ -561,8 +562,8 @@ export function CreateLearningPlanModal({
               </div>
 
               {/* Formula Explainer */}
-              <div className="flex items-center gap-2 rounded-xl bg-stone-50 p-3 text-[11px] text-neutral-600 border border-stone-200/60">
-                <HelpCircle className="size-4 text-amber-600 shrink-0" />
+              <div className="flex items-center gap-2 rounded-xl bg-paper p-3 text-xs text-ink-2 border border-line/60">
+                <HelpCircle className="size-4 text-action-strong shrink-0" />
                 <span>
                   <strong>Quy tắc:</strong> Mỗi cột mốc có trọng số 1–5 và 1–4 tiêu chí đạt (hành vi nhìn thấy được).
                   Cột mốc đã đạt tính 100%, cột mốc đang học tính theo số tiêu chí đã tick; chỉ chốt đạt khi tick đủ tiêu chí.
@@ -578,14 +579,14 @@ export function CreateLearningPlanModal({
                   return (
                     <div
                       key={idx}
-                      className="relative rounded-2xl border border-stone-200 bg-white p-4 shadow-xs space-y-3 transition-shadow hover:shadow-md"
+                      className="relative rounded-2xl border border-line bg-surface p-4 shadow-xs space-y-3 transition-shadow hover:shadow-md"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="grid size-6 place-items-center rounded-lg bg-stone-100 text-xs font-bold text-neutral-700">
+                          <span className="grid size-6 place-items-center rounded-lg bg-sunken text-xs font-medium text-ink-2">
                             {idx + 1}
                           </span>
-                          <span className="text-xs font-bold text-neutral-800">
+                          <span className="text-xs font-medium text-ink">
                             Cột mốc {idx + 1}
                           </span>
                         </div>
@@ -594,7 +595,7 @@ export function CreateLearningPlanModal({
                           <button
                             type="button"
                             onClick={() => handleRemoveMilestone(idx)}
-                            className="rounded-lg p-1 text-neutral-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                            className="rounded-lg p-1 text-muted hover:bg-danger-soft hover:text-danger-strong transition-colors cursor-pointer"
                             title="Xóa cột mốc này"
                             aria-label={`Xóa cột mốc ${idx + 1}`}
                           >
@@ -605,30 +606,30 @@ export function CreateLearningPlanModal({
 
                       {/* Title input */}
                       <div>
-                        <label className="block text-[11px] font-bold text-neutral-700 mb-1">
-                          Tiêu đề cột mốc <span className="text-rose-500">*</span>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">
+                          Tiêu đề cột mốc <span className="text-danger-strong">*</span>
                         </label>
                         <input
                           type="text"
                           value={item.title}
                           onChange={(e) => handleMilestoneChange(idx, "title", e.target.value)}
                           placeholder="Ví dụ: Nắm vững Định lý Vi-ét và ứng dụng giải bài toán"
-                          className={`w-full rounded-xl border px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-hidden ${
+                          className={`w-full rounded-xl border px-3 py-2 text-xs text-ink placeholder:text-muted focus:outline-hidden ${
                             titleError
-                              ? "border-rose-300 bg-rose-50/30 focus:border-rose-500"
-                              : "border-stone-200 bg-stone-50/40 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                              ? "border-danger-line bg-danger-soft/30 focus:border-danger"
+                              : "border-line bg-paper/40 focus:bg-surface focus:border-action focus:ring-1 focus:ring-action"
                           }`}
                           maxLength={200}
                         />
                         {titleError && (
-                          <p className="text-[10px] text-rose-600 mt-1">{titleError}</p>
+                          <p className="text-xs text-danger-strong mt-1">{titleError}</p>
                         )}
                       </div>
 
                       {/* Description & Date & Weight Row */}
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                         <div className="sm:col-span-6">
-                          <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                          <label className="block text-xs font-medium text-ink-2 mb-1">
                             Mô tả chi tiết (Tùy chọn)
                           </label>
                           <input
@@ -638,7 +639,7 @@ export function CreateLearningPlanModal({
                               handleMilestoneChange(idx, "description", e.target.value)
                             }
                             placeholder="Chi tiết bài tập, kỹ năng cần thành thạo..."
-                            className="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:border-amber-500 focus:outline-hidden"
+                            className="w-full rounded-xl border border-line bg-paper/40 px-3 py-2 text-xs text-ink placeholder:text-muted focus:bg-surface focus:border-action focus:outline-hidden"
                             maxLength={1000}
                           />
                         </div>
@@ -646,26 +647,22 @@ export function CreateLearningPlanModal({
                         <div className="sm:col-span-3">
                           <label
                             htmlFor={`milestone-${idx}-target-date`}
-                            className="block text-[11px] font-bold text-neutral-700 mb-1"
+                            className="block text-xs font-medium text-ink-2 mb-1"
                           >
                             Hạn dự kiến
-                            {idx === milestones.length - 1 ? <span className="text-rose-500"> *</span> : " (tùy chọn)"}
+                            {idx === milestones.length - 1 ? <span className="text-danger-strong"> *</span> : " (tùy chọn)"}
                           </label>
                           <div className="relative">
-                            <input
+                            <DateField
                               id={`milestone-${idx}-target-date`}
-                              type="date"
                               value={item.targetDate}
-                              onChange={(e) =>
-                                handleMilestoneChange(idx, "targetDate", e.target.value)
-                              }
-                              className="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-3 py-2 text-xs text-neutral-900 focus:bg-white focus:border-amber-500 focus:outline-hidden"
+                              onChange={(value) => handleMilestoneChange(idx, "targetDate", value)}
                             />
                           </div>
                         </div>
 
                         <div className="sm:col-span-3">
-                          <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                          <label className="block text-xs font-medium text-ink-2 mb-1">
                             Trọng số (1 - 5)
                           </label>
                           <div className="flex items-center gap-1">
@@ -676,10 +673,10 @@ export function CreateLearningPlanModal({
                                   key={w}
                                   type="button"
                                   onClick={() => handleMilestoneChange(idx, "weight", w)}
-                                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                                     isSelected
-                                      ? "bg-amber-500 text-white shadow-xs"
-                                      : "bg-stone-100 text-neutral-600 hover:bg-stone-200"
+                                      ? "bg-action text-on-action shadow-xs"
+                                      : "bg-sunken text-ink-2 hover:bg-line"
                                   }`}
                                   title={`Trọng số ${w}/5`}
                                 >
@@ -691,7 +688,7 @@ export function CreateLearningPlanModal({
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-3 text-[11px] font-bold text-neutral-700">
+                      <div className="flex flex-wrap gap-3 text-xs font-medium text-ink-2">
                         <label className="flex items-center gap-2">
                           Số buổi gợi ý
                           <select
@@ -700,7 +697,7 @@ export function CreateLearningPlanModal({
                             onChange={(e) =>
                               handleMilestoneChange(idx, "suggestedSessions", e.target.value ? Number(e.target.value) : null)
                             }
-                            className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs"
+                            className="rounded-lg border border-line bg-surface px-2 py-1 text-xs"
                           >
                             <option value="">Chưa đặt</option>
                             {SESSION_OPTIONS.map((n) => (
@@ -717,7 +714,7 @@ export function CreateLearningPlanModal({
                               aria-label={`Chủ đề chuẩn của cột mốc ${idx + 1}`}
                               value={item.topicId}
                               onChange={(e) => handleMilestoneChange(idx, "topicId", e.target.value)}
-                              className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs"
+                              className="rounded-lg border border-line bg-surface px-2 py-1 text-xs"
                             >
                               <option value="">Không gắn</option>
                               {topics.map((t) => (
@@ -734,17 +731,17 @@ export function CreateLearningPlanModal({
                       </div>
 
                       {/* Tiêu chí đạt */}
-                      <div className="space-y-2 rounded-xl border border-stone-200/70 bg-stone-50/40 p-3">
+                      <div className="space-y-2 rounded-xl border border-line/70 bg-paper/40 p-3">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-neutral-700">
-                            <ListChecks className="size-3.5 text-amber-600" />
-                            Tiêu chí đạt (1–{MAX_CRITERIA_PER_MILESTONE}) <span className="text-rose-500">*</span>
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-ink-2">
+                            <ListChecks className="size-3.5 text-action-strong" />
+                            Tiêu chí đạt (1–{MAX_CRITERIA_PER_MILESTONE}) <span className="text-danger-strong">*</span>
                           </span>
                           <button
                             type="button"
                             onClick={() => handleAddCriterion(idx)}
                             disabled={item.criteria.length >= MAX_CRITERIA_PER_MILESTONE}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold text-amber-700 hover:bg-amber-50 disabled:opacity-40 cursor-pointer"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-action-strong hover:bg-action-soft disabled:opacity-40 cursor-pointer"
                           >
                             <Plus className="size-3" />
                             Thêm tiêu chí
@@ -758,14 +755,14 @@ export function CreateLearningPlanModal({
                               onChange={(e) => handleCriterionChange(idx, cIdx, e.target.value)}
                               placeholder="Ví dụ: Tự giải đúng hệ phương trình bằng phương pháp thế"
                               aria-label={`Tiêu chí ${cIdx + 1} của cột mốc ${idx + 1}`}
-                              className="flex-1 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs text-neutral-900 placeholder:text-neutral-400 focus:border-amber-500 focus:outline-hidden"
+                              className="flex-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-ink placeholder:text-muted focus:border-action focus:outline-hidden"
                               maxLength={200}
                             />
                             {item.criteria.length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => handleRemoveCriterion(idx, cIdx)}
-                                className="rounded-lg p-1 text-neutral-400 hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+                                className="rounded-lg p-1 text-muted hover:bg-danger-soft hover:text-danger-strong cursor-pointer"
                                 aria-label={`Xóa tiêu chí ${cIdx + 1} của cột mốc ${idx + 1}`}
                               >
                                 <Trash2 className="size-3.5" />
@@ -773,7 +770,7 @@ export function CreateLearningPlanModal({
                             )}
                           </div>
                         ))}
-                        {criteriaError && <p className="text-[10px] text-rose-600">{criteriaError}</p>}
+                        {criteriaError && <p className="text-xs text-danger-strong">{criteriaError}</p>}
                       </div>
                     </div>
                   );
@@ -782,8 +779,8 @@ export function CreateLearningPlanModal({
             </div>
 
             {!isEditing && (
-              <div className="space-y-2 rounded-2xl border border-stone-200 p-3">
-                <label className="flex items-center gap-2 text-xs font-bold text-neutral-800">
+              <div className="space-y-2 rounded-2xl border border-line p-3">
+                <label className="flex items-center gap-2 text-xs font-medium text-ink">
                   <input
                     type="checkbox"
                     className="size-4"
@@ -800,7 +797,7 @@ export function CreateLearningPlanModal({
                     maxLength={MAX_TEMPLATE_TITLE_LENGTH}
                     onChange={(e) => setTemplateTitle(e.target.value)}
                     placeholder="Ví dụ: Toán 9 ôn thi vào 10 (mẫu của tôi)"
-                    className="w-full rounded-xl border border-stone-200 bg-stone-50/40 px-3 py-2 text-xs"
+                    className="w-full rounded-xl border border-line bg-paper/40 px-3 py-2 text-xs"
                   />
                 )}
               </div>
@@ -808,8 +805,8 @@ export function CreateLearningPlanModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-stone-100 px-6 py-4 bg-stone-50/50">
-            <span className="text-xs text-neutral-500">
+          <div className="flex items-center justify-between border-t border-line px-6 py-4 bg-paper/50">
+            <span className="text-xs text-muted">
               {milestones.length} cột mốc sẽ được tạo
             </span>
 
@@ -817,14 +814,14 @@ export function CreateLearningPlanModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="h-9 px-4 rounded-xl border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 active:scale-95 transition-all cursor-pointer"
+                className="h-9 px-4 rounded-xl border border-line bg-surface text-xs font-medium text-ink-2 hover:bg-paper active:scale-95 transition-all cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="h-9 px-5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
+                className="h-9 px-5 rounded-xl bg-action hover:bg-action-deep active:scale-95 text-on-action text-xs font-medium shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
               >
                 {loading ? (
                   <Loader2 className="size-3.5 animate-spin" />

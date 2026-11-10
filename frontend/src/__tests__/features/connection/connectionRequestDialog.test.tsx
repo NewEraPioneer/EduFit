@@ -31,7 +31,7 @@ describe("Connection request dialog", () => {
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
     fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
     fireEvent.change(await screen.findByLabelText("Giờ bắt đầu Thứ 3"), { target: { value: "18:00" } });
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "need-2" } });
+    fireEvent.change(screen.getByRole("combobox", { name: /Nhu cầu học/ }), { target: { value: "need-2" } });
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" }));
     await waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({ needId: "need-2", desiredSlots: ["Thứ 4 · 17:00–18:00"] })));
   });
@@ -123,7 +123,7 @@ describe("Connection request dialog", () => {
       makeNeed({ needId: "english", subjectId: 2, subjectName: "Tiếng Anh" }),
     ]);
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
-    const picker = await screen.findByRole("combobox");
+    const picker = await screen.findByRole("combobox", { name: /Nhu cầu học/ });
     expect(picker).toHaveTextContent("Toán");
     expect(picker).not.toHaveTextContent("Tiếng Anh");
   });
@@ -150,7 +150,7 @@ describe("Connection request dialog", () => {
 
   it("loads the linked child's needs for parents", async () => {
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} studentId="child" onClose={vi.fn()} onSent={vi.fn()} />);
-    await screen.findByRole("combobox");
+    await screen.findByRole("combobox", { name: /Nhu cầu học/ });
     expect(learningNeedService.list).toHaveBeenCalledWith("child");
   });
 });

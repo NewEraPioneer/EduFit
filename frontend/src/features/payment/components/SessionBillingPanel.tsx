@@ -69,13 +69,13 @@ export function SessionBillingPanel({
   return (
     <section className="space-y-2">
       <div className="flex justify-between gap-2">
-        <h3 className="text-sm font-bold">Thanh toán buổi học</h3>
-        <Link className="text-xs text-sky-700 underline" href={href}>
+        <h3 className="text-sm font-medium">Thanh toán buổi học</h3>
+        <Link className="text-xs text-brand-strong underline" href={href}>
           Mở ví & lịch sử
         </Link>
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-danger-strong">
           {error}
         </p>
       )}
@@ -87,7 +87,7 @@ export function SessionBillingPanel({
         />
       ) : (
         !error && (
-          <p className="text-sm text-neutral-500">Đang kiểm tra học phí…</p>
+          <p className="text-sm text-muted">Đang kiểm tra học phí…</p>
         )
       )}
     </section>

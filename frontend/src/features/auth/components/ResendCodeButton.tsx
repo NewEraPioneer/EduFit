@@ -18,7 +18,7 @@ export function ResendCodeButton({ secondsLeft, isSending, onResend }: ResendCod
       type="button"
       onClick={onResend}
       disabled={waiting || isSending}
-      className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline disabled:text-neutral-400 disabled:no-underline disabled:cursor-not-allowed cursor-pointer"
+      className="inline-flex items-center gap-1.5 text-xs font-medium text-action-strong hover:text-action-strong hover:underline disabled:text-muted disabled:no-underline disabled:cursor-not-allowed cursor-pointer"
     >
       {isSending ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
       <span>{waiting ? `Gửi lại mã sau ${secondsLeft}s` : "Gửi lại mã"}</span>

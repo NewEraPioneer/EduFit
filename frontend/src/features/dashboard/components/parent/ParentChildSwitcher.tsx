@@ -38,18 +38,18 @@ export function ParentChildSwitcher({
             key={child.id}
             type="button"
             onClick={() => onSelect(idx)}
-            className={`px-4 py-2.5 rounded-2xl flex items-center gap-2 text-xs font-bold transition-all shrink-0 ${
+            className={`px-4 py-2.5 rounded-2xl flex items-center gap-2 text-xs font-medium transition-all shrink-0 ${
               isActive
-                ? "bg-emerald-600 text-white shadow-xs"
-                : "bg-white hover:bg-stone-100 text-neutral-700 border border-stone-200"
+                ? "bg-success text-white shadow-xs"
+                : "bg-surface hover:bg-sunken text-ink-2 border border-line"
             }`}
           >
-            <span className={`size-2 rounded-full ${isActive ? "bg-white" : "bg-emerald-500"}`} />
+            <span className={`size-2 rounded-full ${isActive ? "bg-surface" : "bg-success"}`} />
             <span>
               {child.name}
               {child.grade ? ` (${child.grade})` : ""}
             </span>
-            <span className={`text-[10px] ${isActive ? "text-emerald-100" : "text-neutral-400"}`}>
+            <span className={`text-xs ${isActive ? "text-success-tint" : "text-muted"}`}>
               · {child.tutorsCount} gia sư
             </span>
           </button>
@@ -57,7 +57,7 @@ export function ParentChildSwitcher({
       })}
       <Link
         href="/parent/children"
-        className="px-3.5 py-2.5 rounded-2xl border border-dashed border-stone-300 hover:border-emerald-400 text-neutral-500 hover:text-emerald-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
+        className="px-3.5 py-2.5 rounded-2xl border border-dashed border-line-strong hover:border-success text-muted hover:text-success-strong text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
       >
         <Plus className="size-3.5" />
         <span>Thêm con</span>

@@ -30,14 +30,14 @@ describe("AdminLinksView Component Tests", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Giám sát & Thu hồi Liên kết Gia đình (UC3.3)")
+        screen.getByText("Giám sát và thu hồi liên kết gia đình")
       ).toBeInTheDocument();
       expect(screen.getByText("Nguyễn Văn Phụ Huynh")).toBeInTheDocument();
       expect(screen.getByText("Nguyễn Văn Học Sinh")).toBeInTheDocument();
       expect(screen.getByText("CONFIRMED")).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Quy chuẩn nghiệp vụ UC3.3 & BR-38/i)).toBeInTheDocument();
+    expect(screen.getByText(/Lưu ý:/i)).toBeInTheDocument();
   });
 
   it("mở Modal xác nhận và thực hiện thu hồi liên kết theo UC3.3", async () => {

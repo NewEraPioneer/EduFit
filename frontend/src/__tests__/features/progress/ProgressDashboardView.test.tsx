@@ -57,13 +57,13 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     vi.mocked(progressApi.getStudentDashboard).mockResolvedValue({ success: true, data: buildStudentDashboard() });
     renderStudent();
 
-    const onTrack = await screen.findByTestId("card-on-track");
-    expect(within(onTrack).getByText("Cần chú ý")).toBeInTheDocument();
-    expect(within(onTrack).getByText(/trễ 2 ngày so với kế hoạch/)).toBeInTheDocument();
+    const nextSession = await screen.findByTestId("card-next-session");
+    expect(within(nextSession).getByText(/Cần chú ý/)).toBeInTheDocument();
+    expect(within(nextSession).getByText(/trễ 2 ngày so với kế hoạch/)).toBeInTheDocument();
 
     const goal = screen.getByTestId("card-goal-progress");
     expect(within(goal).getByText("65%")).toBeInTheDocument();
-    expect(within(goal).getByText("+20%")).toBeInTheDocument();
+    expect(within(goal).getByText("Tăng từ 45% lên 65% trong 30 ngày qua")).toBeInTheDocument();
     expect(within(goal).getByText(/từ “làm được khi có gợi ý” → “tự làm đúng”/)).toBeInTheDocument();
 
     const attendance = screen.getByTestId("card-attendance");
@@ -85,7 +85,7 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
           stage: "NO_PLAN",
           onTrack: { status: "NO_PLAN", explanation: "Gia sư chưa lập lộ trình" },
           goalProgress: { ...buildOverview().goalProgress, progressPercentage: null, progressDelta: null, highlight: null },
-          attendance: { ...buildOverview().attendance, attendedCount: 0, countedCount: 0, totalCount: 0, attendanceRate: null, missedSessions: [] },
+          attendance: { ...buildOverview().attendance, nextSessionStart: null, attendedCount: 0, countedCount: 0, totalCount: 0, attendanceRate: null, missedSessions: [] },
           milestoneLevels: [],
         }),
       }),
@@ -93,8 +93,9 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     renderStudent();
 
     const goal = await screen.findByTestId("card-goal-progress");
-    expect(within(goal).getAllByText("—")).toHaveLength(2);
-    expect(within(screen.getByTestId("card-on-track")).getByText("Gia sư chưa lập lộ trình")).toBeInTheDocument();
+    expect(within(goal).getByText("—")).toBeInTheDocument();
+    expect(within(goal).queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(within(screen.getByTestId("card-next-session")).getByText("Chưa có lịch")).toBeInTheDocument();
     expect(within(screen.getByTestId("card-attendance")).getByText(/Lớp chưa có buổi học nào/)).toBeInTheDocument();
     expect(screen.getByText(/Sau mỗi buổi học, gia sư sẽ ghi phản hồi ngắn/)).toBeInTheDocument();
   });

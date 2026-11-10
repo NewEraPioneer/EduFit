@@ -36,7 +36,7 @@ describe("AdminDashboardView Component Tests", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Bảng điều hành Tổng thể Hệ thống EduFit/i)
+        screen.getByText(/Bảng điều hành hệ thống EduFit/i)
       ).toBeInTheDocument();
     });
 

@@ -158,9 +158,9 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
 
   if (loading) {
     return (
-      <div className="p-12 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-stone-200">
-        <Loader2 className="size-6 text-amber-500 animate-spin" />
-        <span className="text-xs text-neutral-500 font-medium">Đang tải hồ sơ gia sư...</span>
+      <div className="p-12 flex flex-col items-center justify-center gap-3 bg-surface rounded-3xl border border-line">
+        <Loader2 className="size-6 text-action-strong animate-spin" />
+        <span className="text-xs text-muted font-medium">Đang tải hồ sơ gia sư...</span>
       </div>
     );
   }
@@ -168,17 +168,17 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
   return (
     <form onSubmit={handleSaveProfile} className="space-y-8">
       {/* 1. Phần Thông Tin Cá Nhân & Học Phí */}
-      <div className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-stone-100">
+      <div className="bg-surface p-5 sm:p-8 rounded-3xl border border-line/90 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-line">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-sky-50 text-sky-900 rounded-full text-xs font-bold mb-2">
-              <Briefcase className="size-3.5 text-sky-600" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-soft text-brand-strong rounded-full text-xs font-medium mb-2">
+              <Briefcase className="size-3.5 text-brand-strong" />
               <span>Hồ Sơ Gia Sư Chuyên Nghiệp</span>
             </div>
-            <h3 className="font-heading text-xl font-bold text-neutral-900">
+            <h3 className="font-heading text-xl font-bold text-ink">
               Thông tin giảng dạy
             </h3>
-            <p className="text-xs text-neutral-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Hiển thị trên thẻ gia sư công khai và hồ sơ tìm kiếm của học sinh / phụ huynh
             </p>
           </div>
@@ -186,7 +186,7 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand hover:bg-brand-deep active:scale-[0.99] text-white font-medium text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
           >
             {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             <span>{saving ? "Đang lưu..." : "Lưu hồ sơ"}</span>
@@ -195,11 +195,11 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Tên hiển thị (Display Name) <span className="text-rose-500">*</span>
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
+              Tên hiển thị (Display Name) <span className="text-danger-strong">*</span>
             </label>
             <div className="relative">
-              <User className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
@@ -207,13 +207,13 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Thầy Nguyễn Văn A"
                 maxLength={100}
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
+                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
               Tiêu đề hồ sơ (Headline)
             </label>
             <input
@@ -222,26 +222,26 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
               onChange={(e) => setHeadline(e.target.value)}
               placeholder="VD: Cử nhân ĐH Sư Phạm Hà Nội · 5 năm kinh nghiệm luyện thi vào 10"
               maxLength={200}
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
+              className="w-full px-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium"
             />
           </div>
 
           <div>
-            <label htmlFor="tutor-type" className="block text-xs font-bold text-neutral-700 mb-1.5">
+            <label htmlFor="tutor-type" className="block text-xs font-medium text-ink-2 mb-1.5">
               Bạn là
             </label>
             <select
               id="tutor-type"
               value={tutorType ?? ""}
               onChange={(e) => setTutorType((e.target.value || null) as TutorType | null)}
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
+              className="w-full px-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium"
             >
               <option value="">-- Chọn --</option>
               {(Object.keys(TUTOR_TYPE_LABELS) as TutorType[]).map((type) => (
                 <option key={type} value={type}>{TUTOR_TYPE_LABELS[type]}</option>
               ))}
             </select>
-            <p className="mt-1 text-[11px] text-neutral-500">
+            <p className="mt-1 text-xs text-muted">
               {profile?.tutorTypeVerified
                 ? "Đã được xác minh. Đổi loại gia sư sẽ cần xác minh lại."
                 : "Sẽ được xác minh cùng giấy tờ ở mục Xác minh hồ sơ."}
@@ -249,13 +249,13 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
               Hình thức giảng dạy
             </label>
             <select
               value={teachingMode}
               onChange={(e) => setTeachingMode(e.target.value as "ONLINE" | "OFFLINE" | "BOTH")}
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
+              className="w-full px-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium"
             >
               <option value="ONLINE">Học Online (Google Meet / Zoom)</option>
               <option value="OFFLINE">Dạy kèm tại nhà (Offline)</option>
@@ -264,7 +264,7 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
               Số năm kinh nghiệm giảng dạy
             </label>
             <input
@@ -273,23 +273,23 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
               max={50}
               value={experienceYears}
               onChange={(e) => setExperienceYears(Number(e.target.value))}
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
+              className="w-full px-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium"
             />
           </div>
 
           {teachingMode !== "ONLINE" && (
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label htmlFor="tutor-province" className="block text-xs font-bold text-neutral-700 mb-1.5">
-                  Tỉnh/thành dạy trực tiếp <span className="text-rose-500">*</span>
+                <label htmlFor="tutor-province" className="block text-xs font-medium text-ink-2 mb-1.5">
+                  Tỉnh/thành dạy trực tiếp <span className="text-danger-strong">*</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <MapPin className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <select
                     id="tutor-province"
                     value={provinceId ?? ""}
                     onChange={(e) => { setProvinceId(e.target.value ? Number(e.target.value) : null); setDistrictIds([]); }}
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium"
                   >
                     <option value="">-- Chọn tỉnh/thành --</option>
                     {catalog?.provinces.map((province) => (
@@ -297,11 +297,11 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
                     ))}
                   </select>
                 </div>
-                {errors.provinceId && <p role="alert" className="mt-1 text-xs text-rose-600">{errors.provinceId}</p>}
+                {errors.provinceId && <p role="alert" className="mt-1 text-xs text-danger-strong">{errors.provinceId}</p>}
               </div>
               {catalog && districtsOf(catalog, provinceId).length > 0 && (
                 <fieldset>
-                  <legend className="block text-xs font-bold text-neutral-700 mb-1.5">Khu vực nhận dạy (bỏ trống = toàn tỉnh/thành)</legend>
+                  <legend className="block text-xs font-medium text-ink-2 mb-1.5">Khu vực nhận dạy (bỏ trống = toàn tỉnh/thành)</legend>
                   <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
                     {districtsOf(catalog, provinceId).map((district) => {
                       const active = districtIds.includes(district.districtId);
@@ -310,15 +310,15 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
                           onClick={() => setDistrictIds((prev) => active
                             ? prev.filter((id) => id !== district.districtId)
                             : [...prev, district.districtId])}
-                          className={`px-2.5 py-1 text-[11px] rounded-lg border transition-colors ${
-                            active ? "bg-sky-100 text-sky-800 font-bold border-sky-300" : "bg-stone-50 border-stone-200 text-neutral-600 hover:bg-stone-100"
+                          className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                            active ? "bg-brand-soft text-brand-strong font-medium border-brand-line" : "bg-paper border-line text-ink-2 hover:bg-sunken"
                           }`}>
                           {district.name}
                         </button>
                       );
                     })}
                   </div>
-                  {errors.districtIds && <p role="alert" className="mt-1 text-xs text-rose-600">{errors.districtIds}</p>}
+                  {errors.districtIds && <p role="alert" className="mt-1 text-xs text-danger-strong">{errors.districtIds}</p>}
                 </fieldset>
               )}
             </div>
@@ -327,19 +327,19 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-bold text-neutral-700">
+            <label className="block text-xs font-medium text-ink-2">
               Tiểu sử & Giới thiệu bản thân (Bio)
             </label>
             <div className="flex items-center gap-2.5">
-              <span className="text-[11px] text-neutral-400">
+              <span className="text-xs text-muted">
                 {bio.length} / 1.500 ký tự
               </span>
               <button
                 type="button"
                 onClick={() => setShowAiModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-800 font-bold text-[11px] rounded-full transition-all border border-amber-200/80 shadow-2xs cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-action-soft hover:from-action-soft hover:to-action-soft text-action-strong font-medium text-xs rounded-full transition-all border border-action-line/80 shadow-2xs cursor-pointer active:scale-95"
               >
-                <Sparkles className="size-3 text-amber-600 animate-pulse" />
+                <Sparkles className="size-3 text-action-strong animate-pulse" />
                 <span>Viết bio bằng AI</span>
               </button>
             </div>
@@ -349,18 +349,18 @@ export function TutorProfileForm({ initialProfile, onSaved }: TutorProfileFormPr
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="Chia sẻ về phong cách giảng dạy, phương pháp sư phạm và thành tích học viên trước đây..."
-            className="w-full p-3.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-neutral-900 font-medium leading-relaxed"
+            className="w-full p-3.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium leading-relaxed"
           />
         </div>
       </div>
 
       {/* 2. Gói dạy */}
-      <div className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs">
+      <div className="bg-surface p-5 sm:p-8 rounded-3xl border border-line/90 shadow-xs">
         <TutorOfferingManager offerings={profile?.offerings ?? []} onChange={setProfile} />
       </div>
 
       {/* 3. Lịch rảnh định kỳ của gia sư */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs">
+      <div className="bg-surface p-6 sm:p-8 rounded-3xl border border-line/90 shadow-xs">
         <AvailabilitySlotPicker slots={availabilitySlots} onChange={setAvailabilitySlots} />
       </div>
 

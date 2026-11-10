@@ -1,5 +1,6 @@
 import React from "react";
 import { LucideIcon } from "lucide-react";
+import { StatusPill } from "./StatusPill";
 
 interface StatCardProps {
   label: string;
@@ -13,37 +14,23 @@ interface StatCardProps {
   badge?: string;
 }
 
-export function StatCard({
-  label,
-  value,
-  suffix,
-  subtext,
-  subtextColor = "text-neutral-500",
-  icon: Icon,
-  iconColor = "text-neutral-700",
-  iconBg = "bg-stone-100",
-  badge,
-}: StatCardProps) {
+export function StatCard({ label, value, suffix, subtext, subtextColor = "text-muted", icon: Icon, iconColor = "text-ink-2", iconBg = "bg-sunken", badge }: StatCardProps) {
   return (
-    <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between card-interactive">
-      <div className="flex items-center justify-between text-neutral-400">
-        <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
-        <div className={`size-8 rounded-xl ${iconBg} ${iconColor} flex items-center justify-center shrink-0`}>
-          <Icon className="size-4" />
+    <div className="card-lift flex flex-col justify-between rounded-2xl border border-line bg-surface p-5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm text-muted">{label}</span>
+        <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}>
+          <Icon className="size-4.5" />
         </div>
       </div>
       <div className="mt-3">
-        <div className="text-2xl font-extrabold font-heading text-neutral-900 leading-tight">
-          {value} {suffix && <span className="text-xs font-normal text-neutral-400">{suffix}</span>}
+        <div className="font-heading text-3xl font-bold leading-tight text-ink">
+          {value} {suffix && <span className="text-sm font-normal text-muted">{suffix}</span>}
         </div>
         {(subtext || badge) && (
-          <div className="flex items-center gap-1.5 mt-1">
-            {badge && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                {badge}
-              </span>
-            )}
-            {subtext && <span className={`text-[11px] font-medium ${subtextColor}`}>{subtext}</span>}
+          <div className="mt-1 flex items-center gap-1.5">
+            {badge && <StatusPill tone="success">{badge}</StatusPill>}
+            {subtext && <span className={`text-xs ${subtextColor}`}>{subtext}</span>}
           </div>
         )}
       </div>

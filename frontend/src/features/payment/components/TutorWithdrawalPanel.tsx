@@ -47,14 +47,14 @@ function RecipientEditor({
   return (
     <form
       onSubmit={save}
-      className="space-y-4 rounded-xl border border-stone-200 bg-stone-50 p-4"
+      className="space-y-4 rounded-xl border border-line bg-paper p-4"
     >
-      <h3 className="font-semibold">
+      <h3 className="font-medium">
         {recipient
           ? "Đổi tài khoản nhận tiền"
           : "Lưu tài khoản nhận tiền một lần"}
       </h3>
-      <p className="text-sm text-neutral-600">
+      <p className="text-sm text-ink-2">
         Các lần rút sau sẽ dùng tài khoản này. Yêu cầu rút đang chờ vẫn giữ tài
         khoản đã chọn trước đó.
       </p>
@@ -68,7 +68,7 @@ function RecipientEditor({
               setBin(event.target.value);
               setChecked(false);
             }}
-            className="mt-1 w-full rounded-lg border bg-white p-2"
+            className="mt-1 w-full rounded-lg border bg-surface p-2"
           >
             <option value="">Chọn ngân hàng nhận</option>
             {banks.map((bank) => (
@@ -117,14 +117,14 @@ function RecipientEditor({
           Tôi đã kiểm tra ngân hàng, số tài khoản và tên người nhận.
         </label>
       </fieldset>
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-muted">
         Thông tin do bạn cung cấp; Admin đối soát người nhận trước khi chi trả.
         Lưu tài khoản chưa tạo yêu cầu rút tiền.
       </p>
       <div className="flex flex-wrap gap-3">
         <button
           disabled={busy || !checked}
-          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold disabled:opacity-50"
+          className="rounded-lg bg-action px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           Lưu tài khoản nhận tiền
         </button>
@@ -133,7 +133,7 @@ function RecipientEditor({
             type="button"
             disabled={busy}
             onClick={close}
-            className="rounded-lg border bg-white px-4 py-2 text-sm"
+            className="rounded-lg border bg-surface px-4 py-2 text-sm"
           >
             Hủy thay đổi
           </button>
@@ -211,18 +211,18 @@ export function TutorWithdrawalPanel({
   return (
     <section
       aria-label="Ví thu nhập gia sư"
-      className="overflow-hidden rounded-2xl border border-stone-200 bg-white"
+      className="overflow-hidden rounded-2xl border border-line bg-surface"
     >
       <div className="grid lg:grid-cols-2">
-        <div className="space-y-5 bg-stone-50 p-6 text-stone-900 dark:text-stone-100 sm:p-8">
-          <div className="flex items-center gap-2 text-sm font-semibold text-orange-800 dark:text-orange-300">
-            <span className="rounded-lg bg-orange-100 p-2 dark:bg-orange-950/60">
+        <div className="space-y-5 bg-paper p-6 text-ink sm:p-8">
+          <div className="flex items-center gap-2 text-sm font-medium text-action-strong">
+            <span className="rounded-lg bg-action-soft p-2">
               <Wallet className="size-4" />
             </span>
             Ví thu nhập gia sư
           </div>
           <div>
-            <p className="text-sm text-stone-600 dark:text-stone-300">
+            <p className="text-sm text-ink-2">
               Có thể yêu cầu rút
             </p>
             <p className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
@@ -237,61 +237,61 @@ export function TutorWithdrawalPanel({
               setConfirmation(null);
               setAmount("");
             }}
-            className="inline-flex items-center gap-2 rounded-xl bg-orange-700 px-5 py-3 text-sm font-bold text-white hover:bg-orange-800 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-300"
+            className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-3 text-sm font-medium text-on-action hover:bg-action-deep disabled:cursor-not-allowed disabled:bg-line disabled:text-muted"
           >
             Rút tiền
             <ArrowUpRight className="size-4" />
           </button>
           {!pending && maximum < 10000 && (
-            <p className="text-xs font-medium text-stone-600 dark:text-stone-300">
+            <p className="text-xs font-medium text-ink-2">
               Số dư khả dụng tối thiểu để rút là 10.000đ.
             </p>
           )}
-          <p className="text-xs leading-relaxed text-stone-600 dark:text-stone-300">
+          <p className="text-xs leading-relaxed text-ink-2">
             Thu nhập đã trừ phí nền tảng. Không thu thêm phí EduFit khi rút.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-5 p-6 sm:p-8">
           <div>
-            <Clock3 className="mb-4 size-5 text-amber-600" />
-            <p className="text-sm text-neutral-500">Thu nhập chờ tất toán</p>
+            <Clock3 className="mb-4 size-5 text-action-strong" />
+            <p className="text-sm text-muted">Thu nhập chờ tất toán</p>
             <p className="mt-2 break-words text-2xl font-bold">
               {data.pendingIncome === undefined
                 ? "—"
                 : money(data.pendingIncome)}
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+            <p className="mt-2 text-xs leading-relaxed text-muted">
               Dự kiến sau phí, chưa thể rút; có thể đổi theo kết quả hồ sơ.
             </p>
           </div>
           <div>
-            <ArrowUpRight className="mb-4 size-5 text-neutral-500" />
-            <p className="text-sm text-neutral-500">Đang chờ chi trả</p>
+            <ArrowUpRight className="mb-4 size-5 text-muted" />
+            <p className="text-sm text-muted">Đang chờ chi trả</p>
             <p className="mt-2 break-words text-2xl font-bold">
               {money(data.wallet.held)}
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+            <p className="mt-2 text-xs leading-relaxed text-muted">
               Tiền trong yêu cầu rút đang được xử lý.
             </p>
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-stone-100 px-6 py-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line px-6 py-5">
         <div className="flex items-center gap-3">
-          <span className="rounded-xl bg-stone-100 p-3">
-            <Building2 className="size-5 text-neutral-500" />
+          <span className="rounded-xl bg-sunken p-3">
+            <Building2 className="size-5 text-muted" />
           </span>
           <div>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted">
               Tài khoản nhận tiền mặc định
             </p>
-            <p className="mt-1 text-sm font-semibold">
+            <p className="mt-1 text-sm font-medium">
               {recipient
                 ? `${recipient.bank_name} · ${mask(recipient.bank_account)}`
                 : "Chưa thêm tài khoản ngân hàng"}
             </p>
             {recipient && (
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-muted">
                 {recipient.bank_holder}
               </p>
             )}
@@ -304,7 +304,7 @@ export function TutorWithdrawalPanel({
             setEditing(true);
             setConfirmation(null);
           }}
-          className="rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold"
+          className="rounded-lg border border-line px-3 py-2 text-sm font-medium"
         >
           {recipient ? "Đổi tài khoản" : "Thêm tài khoản nhận tiền"}
         </button>
@@ -312,7 +312,7 @@ export function TutorWithdrawalPanel({
       {pending && (
         <p
           role="status"
-          className="border-t border-amber-100 bg-amber-50 px-6 py-3 text-sm text-amber-900"
+          className="border-t border-action-line bg-action-soft px-6 py-3 text-sm text-action-strong"
         >
           Bạn có yêu cầu rút đang chờ duyệt hoặc chuyển tiền:{" "}
           {money(pending.amount)} đến {pending.bank_name} ·{" "}
@@ -328,7 +328,7 @@ export function TutorWithdrawalPanel({
           {localError && (
             <p
               role="alert"
-              className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+              className="mb-4 rounded-xl bg-danger-soft p-3 text-sm text-danger-strong"
             >
               {localError}
             </p>
@@ -351,22 +351,22 @@ export function TutorWithdrawalPanel({
           {localError && (
             <p
               role="alert"
-              className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+              className="mb-4 rounded-xl bg-danger-soft p-3 text-sm text-danger-strong"
             >
               {localError}
             </p>
           )}
-          <div className="mb-5 flex items-center justify-between rounded-xl bg-stone-50 p-4 text-sm">
+          <div className="mb-5 flex items-center justify-between rounded-xl bg-paper p-4 text-sm">
             <div>
-              <p className="text-xs text-neutral-500">Nhận vào</p>
-              <p className="mt-1 font-semibold">
+              <p className="text-xs text-muted">Nhận vào</p>
+              <p className="mt-1 font-medium">
                 {recipient.bank_name} · {mask(recipient.bank_account)}
               </p>
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-muted">
                 {recipient.bank_holder}
               </p>
             </div>
-            <Building2 className="size-5 text-neutral-400" />
+            <Building2 className="size-5 text-muted" />
           </div>
           {!confirmation ? (
             <form
@@ -388,26 +388,26 @@ export function TutorWithdrawalPanel({
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
                   placeholder="Nhập số tiền cần rút"
-                  className="mt-2 w-full rounded-xl border border-stone-300 px-4 py-3 text-xl font-semibold"
+                  className="mt-2 w-full rounded-xl border border-line-strong px-4 py-3 text-xl font-bold"
                 />
               </label>
-              <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+              <div className="flex items-center justify-between gap-3 text-xs text-muted">
                 <p>Khả dụng: {money(data.wallet.available)}</p>
                 <button
                   type="button"
                   disabled={busy || maximum < 10000 || !!pending}
                   onClick={() => setAmount(String(maximum))}
-                  className="font-semibold text-amber-800 underline"
+                  className="font-medium text-action-strong underline"
                 >
                   Rút toàn bộ
                 </button>
               </div>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-muted">
                 Tối thiểu 10.000đ, tối đa 100.000.000đ mỗi yêu cầu.
               </p>
               <button
                 disabled={busy || !valid || !!pending}
-                className="w-full rounded-xl bg-amber-500 py-3 text-sm font-bold disabled:opacity-50"
+                className="w-full rounded-xl bg-action py-3 text-sm font-medium disabled:opacity-50"
               >
                 Tiếp tục rút tiền
               </button>
@@ -421,28 +421,28 @@ export function TutorWithdrawalPanel({
               className="space-y-4"
             >
               <div className="text-center">
-                <p className="text-sm text-neutral-500">Số tiền yêu cầu nhận</p>
+                <p className="text-sm text-muted">Số tiền yêu cầu nhận</p>
                 <p className="mt-2 text-3xl font-bold">
                   {money(confirmation.amount)}
                 </p>
               </div>
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-ink-2">
                 Nhận vào {confirmation.recipient.bank_name} ·{" "}
                 {mask(confirmation.recipient.bank_account)} ·{" "}
                 {confirmation.recipient.bank_holder}
               </p>
-              <div className="flex justify-between border-y border-stone-100 py-3 text-sm">
+              <div className="flex justify-between border-y border-line py-3 text-sm">
                 <span>Phí rút EduFit</span>
                 <strong>0đ</strong>
               </div>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-muted">
                 Admin duyệt trước khi chuyển. Bạn có thể theo dõi trạng thái
                 trong giao dịch.
               </p>
               {recipient.id !== confirmation.recipient.id && (
                 <p
                   role="alert"
-                  className="rounded-xl bg-red-50 p-3 text-sm text-red-700"
+                  className="rounded-xl bg-danger-soft p-3 text-sm text-danger-strong"
                 >
                   Tài khoản nhận đã đổi. Hãy kiểm tra lại và tạo xác nhận mới.
                 </p>
@@ -456,7 +456,7 @@ export function TutorWithdrawalPanel({
                   confirmation.amount > data.wallet.available
                 }
                 onClick={() => void confirm()}
-                className="w-full rounded-xl bg-amber-500 py-3 text-sm font-bold disabled:opacity-50"
+                className="w-full rounded-xl bg-action py-3 text-sm font-medium disabled:opacity-50"
               >
                 Xác nhận rút tiền
               </button>
@@ -464,7 +464,7 @@ export function TutorWithdrawalPanel({
                 type="button"
                 disabled={busy}
                 onClick={() => setConfirmation(null)}
-                className="w-full rounded-xl border border-stone-200 py-3 text-sm font-semibold"
+                className="w-full rounded-xl border border-line py-3 text-sm font-medium"
               >
                 Quay lại
               </button>

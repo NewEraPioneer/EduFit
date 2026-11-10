@@ -5,7 +5,7 @@ import { ParentDiscoveryView } from "@/features/discovery/components/views/Paren
 
 export default function ParentTutorsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-neutral-500">Đang tải danh sách gia sư...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-muted">Đang tải danh sách gia sư...</div>}>
       <ParentDiscoveryView />
     </Suspense>
   );

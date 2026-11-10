@@ -193,8 +193,8 @@ export function AdminPlanTemplatesView() {
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-extrabold text-neutral-900">Mẫu lộ trình hệ thống</h1>
-          <p className="text-xs text-neutral-500 mt-1">
+          <h1 className="font-heading text-2xl font-bold text-ink">Mẫu lộ trình hệ thống</h1>
+          <p className="text-xs text-muted mt-1">
             Mẫu theo môn × khối × mục tiêu, {MIN_PLAN_MILESTONES}–{MAX_PLAN_MILESTONES} cột mốc, mỗi cột mốc{" "}
             {MIN_SUGGESTED_SESSIONS}–{MAX_SUGGESTED_SESSIONS} buổi. Gia sư nhân bản và sửa khi lập lộ trình cho lớp.
           </p>
@@ -202,27 +202,27 @@ export function AdminPlanTemplatesView() {
         <button
           type="button"
           onClick={() => setDraft(emptyDraft())}
-          className="inline-flex items-center gap-1.5 min-h-10 px-4 rounded-xl bg-amber-500 text-white text-xs font-bold cursor-pointer"
+          className="inline-flex items-center gap-1.5 min-h-10 px-4 rounded-xl bg-action text-on-action text-xs font-medium cursor-pointer"
         >
           <Plus className="size-3.5" /> Tạo mẫu
         </button>
       </div>
 
       {error && (
-        <p role="alert" className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800">
+        <p role="alert" className="rounded-xl bg-danger-soft border border-danger-line p-3 text-xs text-danger-strong">
           {error}
         </p>
       )}
 
       {draft && (
-        <section aria-label="Biểu mẫu mẫu lộ trình" className="rounded-3xl border border-stone-200 bg-white p-5 space-y-4">
+        <section aria-label="Biểu mẫu mẫu lộ trình" className="rounded-3xl border border-line bg-surface p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <label className="text-xs font-bold text-neutral-700 space-y-1">
+            <label className="text-xs font-medium text-ink-2 space-y-1">
               <span>Môn học</span>
               <select
                 value={draft.subjectId}
                 onChange={(e) => patchDraft({ subjectId: e.target.value, goalTagId: "" })}
-                className="w-full rounded-xl border border-stone-200 px-2 py-2 text-xs"
+                className="w-full rounded-xl border border-line px-2 py-2 text-xs"
               >
                 <option value="">— Chọn —</option>
                 {catalog?.subjects.map((s) => (
@@ -232,12 +232,12 @@ export function AdminPlanTemplatesView() {
                 ))}
               </select>
             </label>
-            <label className="text-xs font-bold text-neutral-700 space-y-1">
+            <label className="text-xs font-medium text-ink-2 space-y-1">
               <span>Khối lớp</span>
               <select
                 value={draft.educationLevelId}
                 onChange={(e) => patchDraft({ educationLevelId: e.target.value, goalTagId: "" })}
-                className="w-full rounded-xl border border-stone-200 px-2 py-2 text-xs"
+                className="w-full rounded-xl border border-line px-2 py-2 text-xs"
               >
                 <option value="">— Chọn —</option>
                 {catalog?.educationLevels.map((l) => (
@@ -247,12 +247,12 @@ export function AdminPlanTemplatesView() {
                 ))}
               </select>
             </label>
-            <label className="text-xs font-bold text-neutral-700 space-y-1">
+            <label className="text-xs font-medium text-ink-2 space-y-1">
               <span>Mục tiêu</span>
               <select
                 value={draft.goalTagId}
                 onChange={(e) => patchDraft({ goalTagId: e.target.value })}
-                className="w-full rounded-xl border border-stone-200 px-2 py-2 text-xs"
+                className="w-full rounded-xl border border-line px-2 py-2 text-xs"
               >
                 <option value="">Mọi mục tiêu</option>
                 {goalOptions.map((g) => (
@@ -263,36 +263,36 @@ export function AdminPlanTemplatesView() {
               </select>
             </label>
           </div>
-          <label className="block text-xs font-bold text-neutral-700 space-y-1">
+          <label className="block text-xs font-medium text-ink-2 space-y-1">
             <span>Tên mẫu</span>
             <input
               value={draft.title}
               onChange={(e) => patchDraft({ title: e.target.value })}
               placeholder="Ví dụ: Toán 9 ôn thi vào 10"
-              className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-line px-3 py-2 text-xs"
             />
           </label>
-          <label className="block text-xs font-bold text-neutral-700 space-y-1">
+          <label className="block text-xs font-medium text-ink-2 space-y-1">
             <span>Mô tả (tùy chọn)</span>
             <textarea
               rows={2}
               value={draft.description}
               onChange={(e) => patchDraft({ description: e.target.value })}
-              className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-line px-3 py-2 text-xs"
             />
           </label>
 
           <ol className="space-y-3">
             {draft.milestones.map((m, idx) => (
-              <li key={idx} className="rounded-2xl border border-stone-200 p-3 space-y-2">
+              <li key={idx} className="rounded-2xl border border-line p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-neutral-800">Cột mốc {idx + 1}</span>
+                  <span className="text-xs font-medium text-ink">Cột mốc {idx + 1}</span>
                   {draft.milestones.length > MIN_PLAN_MILESTONES && (
                     <button
                       type="button"
                       aria-label={`Xóa cột mốc ${idx + 1} của mẫu`}
                       onClick={() => patchDraft({ milestones: draft.milestones.filter((_, i) => i !== idx) })}
-                      className="rounded-lg p-1 text-neutral-400 hover:text-rose-600 cursor-pointer"
+                      className="rounded-lg p-1 text-muted hover:text-danger-strong cursor-pointer"
                     >
                       <Trash2 className="size-4" />
                     </button>
@@ -303,15 +303,15 @@ export function AdminPlanTemplatesView() {
                   value={m.title}
                   onChange={(e) => patchMilestone(idx, { title: e.target.value })}
                   placeholder="Tiêu đề cột mốc"
-                  className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-line px-3 py-2 text-xs"
                 />
-                <div className="flex flex-wrap gap-3 text-xs text-neutral-700">
+                <div className="flex flex-wrap gap-3 text-xs text-ink-2">
                   <label className="flex items-center gap-1.5">
                     Trọng số
                     <select
                       value={m.weight}
                       onChange={(e) => patchMilestone(idx, { weight: Number(e.target.value) })}
-                      className="rounded-lg border border-stone-200 px-2 py-1"
+                      className="rounded-lg border border-line px-2 py-1"
                     >
                       {[1, 2, 3, 4, 5].map((w) => (
                         <option key={w} value={w}>
@@ -325,7 +325,7 @@ export function AdminPlanTemplatesView() {
                     <select
                       value={m.suggestedSessions}
                       onChange={(e) => patchMilestone(idx, { suggestedSessions: Number(e.target.value) })}
-                      className="rounded-lg border border-stone-200 px-2 py-1"
+                      className="rounded-lg border border-line px-2 py-1"
                     >
                       {Array.from(
                         { length: MAX_SUGGESTED_SESSIONS - MIN_SUGGESTED_SESSIONS + 1 },
@@ -344,7 +344,7 @@ export function AdminPlanTemplatesView() {
                   value={m.criteriaText}
                   onChange={(e) => patchMilestone(idx, { criteriaText: e.target.value })}
                   placeholder={`Mỗi dòng một tiêu chí đạt (1–${MAX_CRITERIA_PER_MILESTONE})`}
-                  className="w-full rounded-xl border border-stone-200 px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-line px-3 py-2 text-xs"
                 />
               </li>
             ))}
@@ -355,7 +355,7 @@ export function AdminPlanTemplatesView() {
               type="button"
               disabled={draft.milestones.length >= MAX_PLAN_MILESTONES}
               onClick={() => patchDraft({ milestones: [...draft.milestones, emptyDraftMilestone()] })}
-              className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 disabled:opacity-40 cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-medium text-action-strong disabled:opacity-40 cursor-pointer"
             >
               <Plus className="size-3.5" /> Thêm cột mốc
             </button>
@@ -363,7 +363,7 @@ export function AdminPlanTemplatesView() {
               <button
                 type="button"
                 onClick={() => setDraft(null)}
-                className="min-h-10 px-4 rounded-xl border border-stone-200 text-xs font-bold cursor-pointer"
+                className="min-h-10 px-4 rounded-xl border border-line text-xs font-medium cursor-pointer"
               >
                 Hủy
               </button>
@@ -371,7 +371,7 @@ export function AdminPlanTemplatesView() {
                 type="button"
                 onClick={() => void save()}
                 disabled={saving}
-                className="min-h-10 px-4 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="min-h-10 px-4 rounded-xl bg-success text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {saving && <Loader2 className="size-3.5 animate-spin" />}
                 Lưu mẫu
@@ -382,20 +382,20 @@ export function AdminPlanTemplatesView() {
       )}
 
       {loading ? (
-        <p className="flex items-center gap-2 text-xs text-neutral-500">
+        <p className="flex items-center gap-2 text-xs text-muted">
           <Loader2 className="size-3.5 animate-spin" /> Đang tải…
         </p>
       ) : templates.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-stone-200 p-6 text-center text-xs text-neutral-500">
+        <p className="rounded-2xl border border-dashed border-line p-6 text-center text-xs text-muted">
           Chưa có mẫu lộ trình hệ thống nào.
         </p>
       ) : (
         <ul className="space-y-2">
           {templates.map((t) => (
-            <li key={t.templateId} className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white p-4">
+            <li key={t.templateId} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4">
               <div>
-                <p className="text-sm font-bold text-neutral-900">{t.title}</p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-sm font-medium text-ink">{t.title}</p>
+                <p className="text-xs text-muted">
                   {names(t)} · {t.milestones.length} cột mốc
                 </p>
               </div>
@@ -403,7 +403,7 @@ export function AdminPlanTemplatesView() {
                 <button
                   type="button"
                   onClick={() => setDraft(toDraft(t))}
-                  className="min-h-9 px-3 rounded-xl border border-stone-200 text-xs font-bold cursor-pointer"
+                  className="min-h-9 px-3 rounded-xl border border-line text-xs font-medium cursor-pointer"
                 >
                   Sửa
                 </button>
@@ -411,7 +411,7 @@ export function AdminPlanTemplatesView() {
                   type="button"
                   aria-label={`Xóa mẫu ${t.title}`}
                   onClick={() => void remove(t)}
-                  className="min-h-9 px-3 rounded-xl border border-rose-200 text-rose-700 text-xs font-bold cursor-pointer"
+                  className="min-h-9 px-3 rounded-xl border border-danger-line text-danger-strong text-xs font-medium cursor-pointer"
                 >
                   Xóa
                 </button>

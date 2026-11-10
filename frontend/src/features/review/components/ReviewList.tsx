@@ -19,9 +19,9 @@ export const ReviewList: React.FC<ReviewListProps> = ({
 }) => {
   if (!reviews || reviews.length === 0) {
     return (
-      <div className="py-12 text-center text-neutral-400 bg-stone-50 rounded-2xl border border-stone-100">
+      <div className="py-12 text-center text-muted bg-paper rounded-2xl border border-line">
         <p className="text-sm font-medium">Chưa có đánh giá nào cho gia sư này.</p>
-        <p className="text-xs text-neutral-400 mt-1">
+        <p className="text-xs text-muted mt-1">
           Các đánh giá sẽ xuất hiện tại đây sau khi học sinh hoặc phụ huynh hoàn thành buổi học.
         </p>
       </div>
@@ -42,47 +42,47 @@ export const ReviewList: React.FC<ReviewListProps> = ({
           <div
             key={review.reviewId}
             data-testid="review-item"
-            className="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-sm space-y-3"
+            className="p-5 rounded-2xl bg-surface border border-line/90 shadow-sm space-y-3"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-full bg-amber-100/70 border border-amber-200 flex items-center justify-center text-amber-700 font-bold shrink-0">
+                <div className="size-10 rounded-full bg-action-soft/70 border border-action-line flex items-center justify-center text-action-strong font-medium shrink-0">
                   <User className="size-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span data-testid="reviewer-name" className="text-sm font-bold text-neutral-900">
+                    <span data-testid="reviewer-name" className="text-sm font-medium text-ink">
                       {review.reviewerName || "Người dùng"}
                     </span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                         review.reviewerType === "STUDENT"
-                          ? "bg-blue-50 text-blue-700 border border-blue-200"
-                          : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          ? "bg-brand-soft text-brand-strong border border-brand-line"
+                          : "bg-success-soft text-success-strong border border-success-line"
                       }`}
                     >
                       {review.reviewerType === "STUDENT" ? "Học sinh" : "Phụ huynh"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <div role="img" aria-label={`${review.rating} trên 5 sao`} className="flex items-center gap-0.5 text-amber-500">
+                    <div role="img" aria-label={`${review.rating} trên 5 sao`} className="flex items-center gap-0.5 text-action-strong">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
                           className={`size-3.5 ${
                             star <= review.rating
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-stone-300"
+                              ? "fill-action text-action-strong"
+                              : "text-white/75"
                           }`}
                         />
                       ))}
                     </div>
-                    <span className="text-xs text-neutral-400 flex items-center gap-1">
+                    <span className="text-xs text-muted flex items-center gap-1">
                       <Calendar className="size-3" />
                       {formattedDate}
                     </span>
                     {review.isEdited && (
-                      <span className="text-[10px] text-neutral-400 italic">
+                      <span className="text-xs text-muted italic">
                         (Đã chỉnh sửa)
                       </span>
                     )}
@@ -94,7 +94,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
                 <button
                   type="button"
                   onClick={() => onEditReview(review)}
-                  className="text-xs text-amber-700 hover:text-amber-800 font-semibold flex items-center gap-1 hover:underline p-1"
+                  className="text-xs text-action-strong hover:text-action-strong font-medium flex items-center gap-1 hover:underline p-1"
                 >
                   <Edit3 className="size-3.5" />
                   Sửa
@@ -102,7 +102,7 @@ export const ReviewList: React.FC<ReviewListProps> = ({
               )}
             </div>
 
-            <p data-testid="review-comment" className="text-xs sm:text-sm text-neutral-700 leading-relaxed whitespace-pre-line pl-13">
+            <p data-testid="review-comment" className="text-xs sm:text-sm text-ink-2 leading-relaxed whitespace-pre-line pl-13">
               {review.comment}
             </p>
           </div>

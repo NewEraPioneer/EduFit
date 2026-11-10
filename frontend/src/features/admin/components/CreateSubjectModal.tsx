@@ -75,20 +75,20 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto"
     >
-      <div className="bg-white dark:bg-stone-900 w-full max-w-lg rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden transition-colors my-auto">
+      <div className="bg-surface w-full max-w-dialog rounded-3xl border border-line shadow-xl overflow-hidden transition-colors my-auto">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-line flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 flex items-center justify-center">
+            <div className="size-9 rounded-2xl bg-brand-soft text-brand-strong flex items-center justify-center">
               <BookPlus className="size-5" />
             </div>
             <div>
-              <h3 id="modal-title" className="font-heading text-lg font-bold text-neutral-900 dark:text-stone-100">
+              <h3 id="modal-title" className="font-heading text-lg font-bold text-ink">
                 Thêm môn học mới
               </h3>
-              <p className="text-xs text-neutral-500 dark:text-stone-400">
+              <p className="text-xs text-muted">
                 Tạo môn học cho hệ thống tuyển dụng & tìm kiếm gia sư
               </p>
             </div>
@@ -96,7 +96,7 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
           <button
             type="button"
             onClick={onClose}
-            className="size-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="size-8 rounded-full flex items-center justify-center text-muted hover:text-ink-2 hover:bg-sunken transition-colors"
           >
             <X className="size-4" />
           </button>
@@ -105,7 +105,7 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {apiError && (
-            <div className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/60 text-red-700 dark:text-red-400 text-xs flex items-center gap-2">
+            <div className="p-3.5 rounded-2xl bg-danger-soft border border-danger-line text-danger-strong text-xs flex items-center gap-2">
               <AlertCircle className="size-4 shrink-0" />
               <span>{apiError}</span>
             </div>
@@ -113,8 +113,8 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
 
           {/* Tên môn học */}
           <div>
-            <label className="block text-xs font-bold text-neutral-800 dark:text-stone-200 mb-1">
-              Tên môn học <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium text-ink mb-1">
+              Tên môn học <span className="text-danger-strong">*</span>
             </label>
             <input
               type="text"
@@ -122,33 +122,33 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
               onChange={(e) => setName(e.target.value)}
               placeholder="VD: Toán 12 Nâng Cao, IELTS Foundation..."
               disabled={isSubmitting}
-              className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-neutral-900 dark:text-stone-100 bg-white dark:bg-stone-800/50 outline-none transition-all ${
+              className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-ink bg-surface outline-none transition-all ${
                 formErrors.name
-                  ? "border-red-400 focus:ring-2 focus:ring-red-400/20"
-                  : "border-stone-200 dark:border-stone-700 focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20"
+                  ? "border-danger focus:ring-2 focus:ring-danger/20"
+                  : "border-line focus:border-brand focus:ring-2 focus:ring-brand/20"
               }`}
             />
             {formErrors.name && (
-              <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.name}</p>
+              <p className="text-xs text-danger-strong mt-1 font-medium">{formErrors.name}</p>
             )}
           </div>
 
           {/* Danh mục */}
           <div>
-            <label className="block text-xs font-bold text-neutral-800 dark:text-stone-200 mb-1">
+            <label className="block text-xs font-medium text-ink mb-1">
               Phân loại danh mục
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               disabled={isSubmitting}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs text-neutral-900 dark:text-stone-100 bg-white dark:bg-stone-800/50 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs text-ink bg-surface outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all"
             >
               <option value="Khoa học Tự nhiên">Khoa học Tự nhiên (Toán, Lý, Hóa, Sinh)</option>
               <option value="Khoa học Xã hội">Khoa học Xã hội (Văn, Sử, Địa, GDCD)</option>
               <option value="Ngoại ngữ">Ngoại ngữ (Tiếng Anh, Tiếng Trung, Nhật, Hàn)</option>
-              <option value="Tin học & Lập trình">Tin học & Lập trình (Tin THCS/THPT, Coding)</option>
-              <option value="Nghệ thuật & Kỹ năng">Nghệ thuật & Kỹ năng sống</option>
+              <option value="Tin học & Lập trình">Tin học và lập trình (Tin THCS/THPT, Coding)</option>
+              <option value="Nghệ thuật & Kỹ năng">Nghệ thuật và kỹ năng sống</option>
               <option value="Khác">Danh mục khác</option>
             </select>
           </div>
@@ -156,7 +156,7 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
           {/* Mã môn học & Slug */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-neutral-800 dark:text-stone-200 mb-1">
+              <label className="block text-xs font-medium text-ink mb-1">
                 Mã môn học (Code)
               </label>
               <input
@@ -165,11 +165,11 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="VD: MATH_12 (tùy chọn)"
                 disabled={isSubmitting}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs text-neutral-900 dark:text-stone-100 bg-white dark:bg-stone-800/50 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs text-ink bg-surface outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-neutral-800 dark:text-stone-200 mb-1">
+              <label className="block text-xs font-medium text-ink mb-1">
                 Đường dẫn tĩnh (Slug)
               </label>
               <input
@@ -178,14 +178,14 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
                 onChange={(e) => setSlug(e.target.value.toLowerCase())}
                 placeholder="VD: toan-12 (tự động tạo nếu trống)"
                 disabled={isSubmitting}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs text-neutral-900 dark:text-stone-100 bg-white dark:bg-stone-800/50 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-line text-xs text-ink bg-surface outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all"
               />
             </div>
           </div>
 
           {/* Mô tả */}
           <div>
-            <label className="block text-xs font-bold text-neutral-800 dark:text-stone-200 mb-1">
+            <label className="block text-xs font-medium text-ink mb-1">
               Mô tả ngắn gọn
             </label>
             <textarea
@@ -194,24 +194,24 @@ export function CreateSubjectModal({ isOpen, onClose, onSuccess }: CreateSubject
               onChange={(e) => setDescription(e.target.value)}
               placeholder="VD: Chương trình ôn thi tốt nghiệp THPT và luyện đề vào đại học..."
               disabled={isSubmitting}
-              className="w-full px-3.5 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-xs text-neutral-900 dark:text-stone-100 bg-white dark:bg-stone-800/50 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all resize-none"
+              className="w-full px-3.5 py-2 rounded-xl border border-line text-xs text-ink bg-surface outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all resize-none"
             />
           </div>
 
           {/* Actions */}
-          <div className="pt-3 border-t border-stone-100 dark:border-stone-800 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-line flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-semibold text-neutral-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+              className="px-4 py-2.5 rounded-xl border border-line text-xs font-medium text-ink-2 hover:bg-sunken transition-colors cursor-pointer"
             >
               Hủy bỏ
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-deep text-white text-xs font-medium shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

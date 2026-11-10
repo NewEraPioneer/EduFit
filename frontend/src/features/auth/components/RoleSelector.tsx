@@ -19,7 +19,7 @@ export function RoleSelector({ selectedRole, onChange }: RoleSelectorProps) {
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-semibold text-neutral-700">Tôi muốn đăng ký vai trò:</label>
+      <label className="block text-xs font-medium text-ink-2">Tôi muốn đăng ký vai trò:</label>
       <div className="grid grid-cols-3 gap-2">
         {roles.map((r) => {
           const Icon = r.icon;
@@ -31,13 +31,13 @@ export function RoleSelector({ selectedRole, onChange }: RoleSelectorProps) {
               onClick={() => onChange(r.id)}
               className={`p-2.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-1 transition-all ${
                 isSelected
-                  ? "border-amber-500 bg-amber-50/50 text-amber-950 font-semibold shadow-xs ring-2 ring-amber-500/20"
-                  : "border-stone-200 hover:border-stone-300 text-neutral-600 bg-white"
+                  ? "border-action bg-action-soft/50 text-action-strong font-medium shadow-xs ring-2 ring-action/20"
+                  : "border-line hover:border-line-strong text-ink-2 bg-surface"
               }`}
             >
-              <Icon className={`size-4.5 ${isSelected ? "text-amber-600" : "text-neutral-400"}`} />
-              <span className="text-xs font-bold leading-none">{r.label}</span>
-              <span className="text-[9px] text-neutral-400 leading-none">{r.desc}</span>
+              <Icon className={`size-4.5 ${isSelected ? "text-action-strong" : "text-muted"}`} />
+              <span className="text-xs font-medium leading-none">{r.label}</span>
+              <span className="text-xs text-muted leading-none">{r.desc}</span>
             </button>
           );
         })}

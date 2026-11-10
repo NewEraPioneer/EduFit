@@ -150,7 +150,7 @@ describe("AdminKycQueueView Component Tests (3 Tabs & Revocation)", () => {
     // Review Modal mở ra
     await waitFor(() => {
       expect(
-        screen.getByText("Thẩm Định Hồ Sơ Xác Minh KYC")
+        screen.getByText("Thẩm định hồ sơ xác minh KYC")
       ).toBeInTheDocument();
       expect(screen.getByText(/Mã yêu cầu: req-pending-001/)).toBeInTheDocument();
     });

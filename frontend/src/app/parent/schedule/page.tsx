@@ -111,10 +111,10 @@ export default function ParentSchedulePage() {
     <div className="space-y-4">
       {/* Student Selector Dropdown for Parent */}
       {students.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-stone-200 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface px-5 py-3.5 rounded-2xl border border-line shadow-2xs">
           <div className="flex items-center gap-2">
-            <Users className="size-4 text-sky-600" />
-            <label htmlFor="parent-student-select" className="text-xs font-bold text-neutral-800">
+            <Users className="size-4 text-brand-strong" />
+            <label htmlFor="parent-student-select" className="text-xs font-medium text-ink">
               Xem lịch học của con:
             </label>
           </div>
@@ -124,7 +124,7 @@ export default function ParentSchedulePage() {
               aria-label="Chọn học sinh"
               value={activeStudentId || ""}
               onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-bold text-neutral-800 focus:bg-white focus:outline-sky-500 cursor-pointer min-w-56"
+              className="rounded-xl border border-line bg-paper px-3 py-1.5 text-xs font-medium text-ink focus:bg-surface focus:outline-brand cursor-pointer min-w-56"
             >
               {students.map((st) => (
                 <option key={st.studentId} value={st.studentId}>
@@ -138,19 +138,20 @@ export default function ParentSchedulePage() {
 
       {/* When no linked students and loading complete */}
       {!loading && students.length === 0 && (
-        <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center text-xs font-semibold text-neutral-500 shadow-2xs">
+        <div className="rounded-2xl border border-line bg-surface p-8 text-center text-xs font-medium text-muted shadow-2xs">
           Chưa tìm thấy học sinh liên kết với tài khoản phụ huynh này.
         </div>
       )}
 
       {/* Calendar View with initialStudentId passed */}
-      <ScheduleCalendarView
-        key={activeStudentId || "empty"}
-        role="PARENT"
-        availabilitySlots={[]}
-        classes={classes}
-        initialStudentId={activeStudentId}
-      />
+      <React.Suspense fallback={<div className="p-6 text-sm text-muted">Đang tải lịch học...</div>}>
+        <ScheduleCalendarView
+          role="PARENT"
+          availabilitySlots={[]}
+          classes={classes}
+          initialStudentId={activeStudentId}
+        />
+      </React.Suspense>
     </div>
   );
 }

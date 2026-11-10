@@ -84,16 +84,16 @@ export function StudentActiveClasses() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
-            <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-xl font-bold tracking-tight text-ink flex items-center gap-2.5">
+            <BookOpen className="h-6 w-6 text-brand-strong" />
             Lớp học của tôi
-            <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+            <span className="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand-strong">
               {classes.length} lớp
             </span>
           </h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-sm text-muted mt-1">
             Theo dõi các lớp học 1-1 bạn đang tham gia cùng gia sư, trạng thái lịch học và số buổi học.
           </p>
         </div>
@@ -101,7 +101,7 @@ export function StudentActiveClasses() {
         <button
           onClick={() => void loadClasses()}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs hover:bg-zinc-50 active:scale-95 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 shadow-xs hover:bg-paper active:scale-95 disabled:opacity-50 self-start sm:self-auto"
           title="Làm mới danh sách"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -111,14 +111,14 @@ export function StudentActiveClasses() {
 
       {/* Error State */}
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-300 flex items-center justify-between">
+        <div className="rounded-2xl border border-danger-line bg-danger-soft/70 p-4 text-sm text-danger-strong flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
+            <AlertCircle className="h-5 w-5 text-danger-strong shrink-0" />
             <span>{error}</span>
           </div>
           <button
             onClick={() => void loadClasses()}
-            className="rounded-lg bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-200"
+            className="rounded-lg bg-danger-soft px-3 py-1 text-xs font-medium text-danger-strong hover:bg-danger-line"
           >
             Thử lại
           </button>
@@ -131,17 +131,17 @@ export function StudentActiveClasses() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs animate-pulse dark:border-zinc-800 dark:bg-zinc-900 space-y-4"
+              className="rounded-2xl border border-line bg-surface p-5 shadow-xs animate-pulse space-y-4"
             >
               <div className="flex items-center justify-between">
-                <div className="h-4 w-32 rounded-md bg-zinc-200 dark:bg-zinc-800" />
-                <div className="h-6 w-24 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-4 w-32 rounded-md bg-line" />
+                <div className="h-6 w-24 rounded-full bg-line" />
               </div>
               <div className="space-y-2">
-                <div className="h-3 w-40 rounded-md bg-zinc-200 dark:bg-zinc-800" />
-                <div className="h-3 w-28 rounded-md bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-3 w-40 rounded-md bg-line" />
+                <div className="h-3 w-28 rounded-md bg-line" />
               </div>
-              <div className="h-9 w-full rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+              <div className="h-9 w-full rounded-xl bg-line" />
             </div>
           ))}
         </div>
@@ -149,21 +149,21 @@ export function StudentActiveClasses() {
 
       {/* Empty State */}
       {!loading && !error && classes.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/50 py-14 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500 mb-3">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line-strong bg-paper/50 py-14 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sunken text-muted mb-3">
             <BookOpen className="h-6 w-6" />
           </div>
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          <h3 className="text-base font-medium text-ink">
             Bạn chưa tham gia lớp học nào
           </h3>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
-            Hãy khám phá các gia sư chất lượng trên EduFit và gửi yêu cầu kết nối để bắt đầu lớp học
+          <p className="mt-1 text-sm text-muted max-w-sm">
+            Tìm gia sư trên EduFit và gửi yêu cầu kết nối để bắt đầu lớp học
             1-1 của bạn.
           </p>
           <div className="mt-4">
             <Link
               href="/student/tutors"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 active:scale-95 transition-all"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-medium text-white shadow-xs hover:bg-brand-deep active:scale-95 transition-all"
             >
               Tìm kiếm gia sư
               <ArrowRight className="h-3.5 w-3.5" />
@@ -189,17 +189,17 @@ export function StudentActiveClasses() {
             return (
               <div
                 key={item.classId}
-                className="flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs hover:shadow-md transition-shadow dark:border-zinc-800 dark:bg-zinc-900"
+                className="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5 shadow-xs card-lift"
               >
                 <div>
                   {/* Top Bar: Subject & Badge */}
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-base">
+                      <h4 className="font-medium text-ink text-base">
                         {item.subjectName || "Môn học kèm"}
                       </h4>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-0.5">
-                        <GraduationCap className="h-3.5 w-3.5 text-zinc-400" />
+                      <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
+                        <GraduationCap className="h-3.5 w-3.5 text-muted" />
                         {item.educationLevelName || "Cấp học"}
                       </p>
                     </div>
@@ -209,33 +209,33 @@ export function StudentActiveClasses() {
                       {isEnded ? (
                         <span
                           data-testid="badge-ended"
-                          className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-sunken px-2.5 py-1 text-xs font-medium text-ink-2 border border-line"
                         >
-                          <CheckCircle2 className="h-3 w-3 text-zinc-500" />
+                          <CheckCircle2 className="h-3 w-3 text-muted" />
                           Đã kết thúc
                         </span>
                       ) : isBatchCompleted ? (
                         <span
                           data-testid="badge-batch-completed"
-                          className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-2.5 py-1 text-xs font-semibold text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-900/50"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand-strong border border-brand-line"
                         >
-                          <CheckCircle2 className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+                          <CheckCircle2 className="h-3 w-3 text-brand-strong" />
                           Đã hoàn thành đợt học
                         </span>
                       ) : isPendingSchedule ? (
                         <span
                           data-testid="badge-pending-schedule"
-                          className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-action-soft px-2.5 py-1 text-xs font-medium text-action-strong border border-action-line"
                         >
-                          <Clock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                          <Clock className="h-3 w-3 text-action-strong" />
                           Chờ thống nhất lịch học
                         </span>
                       ) : (
                         <span
                           data-testid="badge-scheduled"
-                          className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/50"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-xs font-medium text-success-strong border border-success-line"
                         >
-                          <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                          <CheckCircle2 className="h-3 w-3 text-success-strong" />
                           Đã chốt lịch
                         </span>
                       )}
@@ -243,17 +243,17 @@ export function StudentActiveClasses() {
                   </div>
 
                   {/* Tutor Info */}
-                  <div className="mt-4 flex items-center gap-3 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 font-bold text-xs">
+                  <div className="mt-4 flex items-center gap-3 rounded-xl bg-paper p-3 border border-line">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success-soft text-success-strong font-medium text-xs">
                       {item.tutorDisplayName
                         ? item.tutorDisplayName.charAt(0).toUpperCase()
                         : "GS"}
                     </div>
                     <div>
-                      <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider block">
-                        Gia sư đồng hành
+                      <span className="text-xs font-medium text-muted block">
+                        Gia sư phụ trách
                       </span>
-                      <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      <span className="text-sm font-medium text-ink">
                         {item.tutorDisplayName || "Gia sư EduFit"}
                       </span>
                     </div>
@@ -261,23 +261,23 @@ export function StudentActiveClasses() {
 
                   {/* Session Stats */}
                   <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-2.5 dark:border-zinc-800 dark:bg-zinc-800/40">
-                      <span className="text-zinc-500 dark:text-zinc-400 block text-[11px]">
+                    <div className="rounded-xl border border-line bg-paper/50 p-2.5">
+                      <span className="text-muted block text-xs">
                         Số buổi đã học
                       </span>
-                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 block">
+                      <span className="text-sm font-medium text-ink mt-0.5 block">
                         {item.completedCount ?? 0} / {item.totalCount ?? item.sessionCount} buổi
                       </span>
                     </div>
-                    <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-2.5 dark:border-zinc-800 dark:bg-zinc-800/40">
-                      <span className="text-zinc-500 dark:text-zinc-400 block text-[11px]">
+                    <div className="rounded-xl border border-line bg-paper/50 p-2.5">
+                      <span className="text-muted block text-xs">
                         Trạng thái lớp
                       </span>
                       <span
-                        className={`text-sm font-bold mt-0.5 block ${
+                        className={`text-sm font-medium mt-0.5 block ${
                           item.status === "ACTIVE"
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-zinc-600 dark:text-zinc-400"
+                            ? "text-success-strong"
+                            : "text-ink-2"
                         }`}
                       >
                         {item.status === "ACTIVE"
@@ -291,7 +291,7 @@ export function StudentActiveClasses() {
 
                   {/* 2-Step Note if schedule pending */}
                   {isPendingSchedule && (
-                    <div className="mt-3 rounded-xl bg-amber-50/80 p-2.5 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-300 border border-amber-200/70 dark:border-amber-900/40">
+                    <div className="mt-3 rounded-xl bg-action-soft/80 p-2.5 text-xs text-action-strong border border-action-line/70">
                       <p className="leading-relaxed">
                         Gia sư đã duyệt tạo lớp! Bạn hoặc gia sư cần đề xuất và xác nhận lịch học để
                         chính thức bắt đầu buổi học đầu tiên.
@@ -309,17 +309,17 @@ export function StudentActiveClasses() {
                 </div>
 
                 {/* Actions */}
-                <div className="mt-5 flex flex-wrap items-center gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <div className="mt-5 flex flex-wrap items-center gap-2 pt-3 border-t border-line">
                   <Link
                     href={`/student/schedule`}
-                    className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 active:scale-95 transition-all text-center"
+                    className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-medium text-white shadow-xs hover:bg-brand-deep active:scale-95 transition-all text-center"
                   >
                     <Calendar className="h-3.5 w-3.5" />
                     Lịch học tuần
                   </Link>
                   <Link
                     href={`/student/progress`}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-line px-3 py-2 text-xs font-medium text-ink-2 hover:bg-paper transition-colors"
                   >
                     <TrendingUp className="h-3.5 w-3.5" />
                     Tiến độ
@@ -327,9 +327,9 @@ export function StudentActiveClasses() {
                   <button
                     type="button"
                     onClick={() => setReviewTargetClass(item)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300 transition-colors cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-action-line bg-action-soft px-3 py-2 text-xs font-medium text-action-strong hover:bg-action-soft transition-colors cursor-pointer"
                   >
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                    <Star className="h-3.5 w-3.5 fill-action text-action-strong" />
                     Đánh giá
                   </button>
                   {item.status === "ACTIVE" && (
@@ -337,7 +337,7 @@ export function StudentActiveClasses() {
                       <button
                         type="button"
                         onClick={() => setRecurringModalClass(item)}
-                        className="inline-flex items-center justify-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 active:scale-95 transition-all cursor-pointer dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300"
+                        className="inline-flex items-center justify-center gap-1 rounded-xl border border-brand-line bg-brand-soft px-3 py-2 text-xs font-medium text-brand-strong hover:bg-brand-soft active:scale-95 transition-all cursor-pointer"
                         title={
                           isOngoing
                             ? "Đề xuất lại lịch học định kỳ (Hủy lịch cũ khi được chấp thuận)"
@@ -346,7 +346,7 @@ export function StudentActiveClasses() {
                             : "Thống nhất lịch học định kỳ (4-8 tuần)"
                         }
                       >
-                        <CalendarDays className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                        <CalendarDays className="h-3.5 w-3.5 text-brand-strong" />
                         {isOngoing
                           ? "Đề xuất lại lịch học định kỳ"
                           : isBatchCompleted
@@ -356,10 +356,10 @@ export function StudentActiveClasses() {
                       <button
                         type="button"
                         onClick={() => setEndClassTarget(item)}
-                        className={`inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold active:scale-95 transition-all cursor-pointer ${
+                        className={`inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-medium active:scale-95 transition-all cursor-pointer ${
                           isBatchCompleted
-                            ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
-                            : "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+                            ? "border border-success-line bg-success-soft text-success-strong hover:bg-success-soft"
+                            : "border border-danger-line bg-danger-soft text-danger-strong hover:bg-danger-soft"
                         }`}
                         title="Kết thúc lớp học"
                       >
