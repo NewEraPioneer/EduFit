@@ -14,13 +14,13 @@ class PaymentAccessTest {
  final ConnectionFacade links=mock(ConnectionFacade.class);
  final PaymentAccess access=new PaymentAccess(profiles,links);
  CurrentUser actor(UUID id,String role) {var a=mock(CurrentUser.class);when(a.getUserId()).thenReturn(id);when(a.hasRole(role)).thenReturn(true);return a;}
- @Test void onlyThePayerParentWithLiveLinkOrStudentOwnerCanApproveLearnerSide() {
+ @Test void payerRetainsFinancialAccessAfterLinkRevocationButOtherParentsCannotAct() {
   UUID parent=UUID.randomUUID(),student=UUID.randomUUID(),tutor=UUID.randomUUID(),studentUser=UUID.randomUUID();
   var charge=new PaymentViews.Charge(UUID.randomUUID(),UUID.randomUUID(),student,parent,tutor,1000,new SessionCharge(300000,Instant.now()));
   when(links.hasConfirmedParentLink(parent,student)).thenReturn(true);
   assertTrue(access.learner(actor(parent,"PARENT"),charge));
   when(links.hasConfirmedParentLink(parent,student)).thenReturn(false);
-  assertFalse(access.learner(actor(parent,"PARENT"),charge));
+  assertTrue(access.learner(actor(parent,"PARENT"),charge));
   UUID otherParent=UUID.randomUUID();when(links.hasConfirmedParentLink(otherParent,student)).thenReturn(true);
   assertFalse(access.learner(actor(otherParent,"PARENT"),charge));
   when(profiles.findStudentByUserId(studentUser)).thenReturn(Optional.of(new StudentSummaryDto(student, studentUser, null, null, null, true)));

@@ -129,6 +129,11 @@ public class PaymentStore {
         .findFirst();
   }
 
+  public List<UUID> payerClassIds(UUID user) {
+    return db.query("select distinct class_id from payment_charge where payer_user_id=?",
+        (r,n) -> r.getObject("class_id", UUID.class), user);
+  }
+
   public List<Charge> pending() {
     return db.query(
         "select * from payment_charge where status not in ('SETTLED','REFUNDED','EXPIRED') order by"
