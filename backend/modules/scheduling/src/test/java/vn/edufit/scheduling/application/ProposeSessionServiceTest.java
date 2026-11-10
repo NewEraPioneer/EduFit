@@ -126,6 +126,20 @@ class ProposeSessionServiceTest {
   }
 
   @Test
+  void cancelledStudentSessionDoesNotBlockReplacement() {
+    Instant start = fixedNow.plus(2, ChronoUnit.DAYS);
+    Instant end = start.plus(90, ChronoUnit.MINUTES);
+    var cancelled = TutoringSession.createScheduled(UUID.randomUUID(), classId, tutorId, studentId,
+        start, end, SessionMode.ONLINE, null, null, null, tutorUserId, parentUserId, fixedNow);
+    cancelled.cancel(tutorUserId, vn.edufit.scheduling.domain.model.CancelReason.OTHER, "Đổi lịch", false, fixedNow);
+    when(connectionValidationPort.isConnectionActive(classId, tutorId, studentId)).thenReturn(true);
+    when(sessionRepository.findCalendarSessions(studentId, start, end)).thenReturn(List.of(cancelled));
+    when(sessionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    assertEquals(SessionStatus.PROPOSED, proposeSessionService.proposeSession(classId, tutorId, studentId,
+        start, end, SessionMode.ONLINE, null, null, null, tutorUser).getStatus());
+  }
+
+  @Test
   @DisplayName("Đề xuất buổi học thành công khi Phụ huynh đại diện học sinh đề xuất")
   void shouldProposeSessionSuccessfullyByParent() {
     Instant startAt = fixedNow.plus(2, ChronoUnit.HOURS);
