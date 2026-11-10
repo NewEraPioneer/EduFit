@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Video,
   MapPin,
+  BellRing,
 } from "lucide-react";
 import { schedulingApi } from "../api/schedulingApi";
 import { ProposeSessionModal } from "./ProposeSessionModal";
@@ -20,7 +21,10 @@ import { SessionDetailModal } from "./SessionDetailModal";
 import { ScheduleTimelineView } from "./ScheduleTimelineView";
 import { useAuth } from "@/context/AuthContext";
 import { progressApi, type SessionMilestones } from "@/features/progress";
-import { formatLocalDateToIso, formatSessionTime, formatLocalTime } from "@/shared/utils/dateTime";
+import { formatLocalDateToIso, formatLocalTime } from "@/shared/utils/dateTime";
+import { FIRST_HOUR, LAST_MINUTE, WeekTimeGrid, type DaySessionRange } from "./WeekTimeGrid";
+import { useDeepLinkParams } from "@/shared/hooks";
+import { useSessionChangeNotifications } from "@/features/notification";
 import {
   type CalendarItem,
   type ScheduleViewMode,
@@ -29,64 +33,9 @@ import {
   formatConnectedClassName,
 } from "../types";
 
-const HOURS = Array.from({ length: 15 }, (_, index) => index + 7);
-/** Chiều cao 1 giờ trên lưới (px): đủ chỗ cho thẻ 3 dòng của buổi 60 phút. */
-const HOUR_PX = 72;
-const FIRST_HOUR = HOURS[0];
-const GRID_HEIGHT = HOURS.length * HOUR_PX;
-const MIN_BLOCK_MINUTES = 45;
-
-interface PositionedSession {
-  session: CalendarItem;
-  top: number;
-  height: number;
-  column: number;
-  columns: number;
-}
-
-/**
- * Xếp các buổi trong 1 ngày thành các khối theo thời lượng; buổi chồng giờ
- * được chia cột cạnh nhau (thuật toán cụm chồng lấn như Google Calendar).
- */
-function layoutDaySessions(
-  items: { session: CalendarItem; start: number; end: number }[]
-): PositionedSession[] {
-  const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
-  const result: PositionedSession[] = [];
-  let cluster: typeof sorted = [];
-  let clusterEnd = -1;
-
-  const flush = () => {
-    const colEnds: number[] = [];
-    const placed = cluster.map((item) => {
-      let col = colEnds.findIndex((end) => end <= item.start);
-      if (col === -1) col = colEnds.length;
-      colEnds[col] = item.end;
-      return { item, col };
-    });
-    for (const { item, col } of placed) {
-      result.push({
-        session: item.session,
-        top: ((item.start - FIRST_HOUR * 60) / 60) * HOUR_PX,
-        height: (Math.max(item.end - item.start, MIN_BLOCK_MINUTES) / 60) * HOUR_PX,
-        column: col,
-        columns: colEnds.length,
-      });
-    }
-    cluster = [];
-  };
-
-  for (const item of sorted) {
-    if (cluster.length > 0 && item.start >= clusterEnd) flush();
-    cluster.push(item);
-    clusterEnd = cluster.length === 1 ? item.end : Math.max(clusterEnd, item.end);
-  }
-  if (cluster.length > 0) flush();
-  return result;
-}
-
 const DAY_LABELS =["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
 const VN_TIMEZONE = "Asia/Ho_Chi_Minh";
+const HIGHLIGHT_MS = 8000;
 
 interface VnTimeInfo {
   dateStr: string;
@@ -243,16 +192,18 @@ export function ScheduleCalendarView({
   availabilitySlots = [],
   classes = [],
   initialStudentId,
-  initialSession,
 }: ScheduleCalendarViewProps) {
   const { user } = useAuth();
 
   // Current view mode: "grid" or "timeline"
   const [viewMode, setViewMode] = useState<ScheduleViewMode>("grid");
+  useEffect(() => {
+    if (typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767px)").matches) setViewMode("timeline");
+  }, []);
 
   // Selected week starting date
   const [weekStart, setWeekStart] = useState(() =>
-    startOfWeek(initialSession ? new Date(initialSession.startAt) : new Date())
+    startOfWeek(new Date())
   );
 
   // Calendar sessions data state
@@ -267,7 +218,12 @@ export function ScheduleCalendarView({
   const [proposeInitialDate, setProposeInitialDate] = useState<Date | undefined>(undefined);
   const [proposeInitialHour, setProposeInitialHour] = useState<number>(8);
 
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialSession?.sessionId ?? null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Buổi học được nhấn mạnh (đến từ thông báo) và các buổi có thay đổi chưa xem
+  const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
+  const { bySession: changedSessions, markSessionSeen } = useSessionChangeNotifications();
 
   // 7 days of the selected week
   const weekDays = useMemo(
@@ -325,6 +281,55 @@ export function ScheduleCalendarView({
     fetchSessions();
   }, [fetchSessions]);
 
+  // AC7 & AC8: Deep link từ thông báo /…/schedule?sessionId=<id>&action=<action> qua hook dùng chung useDeepLinkParams
+  // Snapshot đổi định danh ở mỗi lần điều hướng mới, kể cả khi bấm lại cùng một buổi học
+  const deepLink = useDeepLinkParams(["sessionId", "action", "startAt"]);
+  const [detailAction, setDetailAction] = useState<"outcome" | null>(null);
+
+  useEffect(() => {
+    if (!deepLink.sessionId) return;
+    const targetId = deepLink.sessionId;
+    setSelectedSessionId(targetId);
+    setIsDetailOpen(true);
+    setDetailAction(deepLink.action === "outcome" ? "outcome" : null);
+    setHighlightedSessionId(targetId);
+    if (deepLink.startAt && Number.isFinite(Date.parse(deepLink.startAt))) {
+      setWeekStart(startOfWeek(new Date(deepLink.startAt)));
+    }
+  }, [deepLink]);
+
+  // Khi chi tiết buổi học tải xong, nhảy tới tuần chứa nó để người dùng thấy nó ngay trên lịch phía sau hộp thoại
+  const handleSessionLoaded = useCallback((session: { startAt: string }) => {
+    const target = startOfWeek(new Date(session.startAt));
+    if (Number.isNaN(target.getTime())) return;
+    setWeekStart((current) => (current.getTime() === target.getTime() ? current : target));
+  }, []);
+
+  // Hiệu ứng nhấn mạnh tự tắt sau vài giây
+  useEffect(() => {
+    if (!highlightedSessionId) return;
+    const timer = window.setTimeout(() => setHighlightedSessionId(null), HIGHLIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [highlightedSessionId]);
+
+  const openSession = useCallback(
+    (sessionId: string) => {
+      setSelectedSessionId(sessionId);
+      setIsDetailOpen(true);
+      markSessionSeen(sessionId);
+    },
+    [markSessionSeen]
+  );
+
+  /** Mở buổi học từ banner thay đổi: nhảy tuần + nhấn mạnh + mở chi tiết. */
+  const jumpToSession = useCallback(
+    (sessionId: string) => {
+      setHighlightedSessionId(sessionId);
+      openSession(sessionId);
+    },
+    [openSession]
+  );
+
   // Listen to Global Event Bus (edufit:schedule-updated) and StorageEvent to auto-reload
   useEffect(() => {
     const handleScheduleUpdated = () => {
@@ -380,11 +385,11 @@ export function ScheduleCalendarView({
   };
 
   // Các khối buổi học trong 1 ngày (múi giờ Việt Nam), đã tính vị trí theo thời lượng và cột chồng lấn
-  const getDayBlocks = (date: Date): PositionedSession[] => {
+  const getDayRanges = (date: Date): DaySessionRange[] => {
     const targetDateStr = formatLocalDateToIso(date);
     const dayStart = FIRST_HOUR * 60;
-    const dayEnd = (FIRST_HOUR + HOURS.length) * 60;
-    const items: { session: CalendarItem; start: number; end: number }[] = [];
+    const dayEnd = LAST_MINUTE;
+    const items: DaySessionRange[] = [];
     for (const s of sessions) {
       if (!s.startAt || !isValidCalendarGridStatus(s.status)) continue;
       const startInfo = getVietnamSessionTime(s.startAt);
@@ -401,7 +406,13 @@ export function ScheduleCalendarView({
       if (end <= start) continue;
       items.push({ session: s, start, end });
     }
-    return layoutDaySessions(items);
+    return items;
+  };
+
+  const getMilestoneText = (sessionId: string): string => {
+    const milestone = sessionMilestones[sessionId];
+    if (!milestone) return "";
+    return `${milestone.linkType === "ACTUAL" ? "Đã học: " : "Dự kiến: "}${milestone.milestones.map((m) => m.title).join(" · ")}`;
   };
 
   // Open propose modal from clicking empty cell
@@ -414,7 +425,7 @@ export function ScheduleCalendarView({
   // Open detail modal from clicking a session
   const handleSessionClick = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
-    setSelectedSessionId(sessionId);
+    openSession(sessionId);
   };
 
   const roleDescription =
@@ -427,27 +438,27 @@ export function ScheduleCalendarView({
       {/* Header */}
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-800">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand-strong">
             <CalendarClock className="size-3.5" />
             Múi giờ Việt Nam UTC+7
           </div>
-          <h1 className="font-heading text-2xl font-extrabold tracking-tight text-neutral-900 sm:text-3xl">
-            Lịch học & Điều phối thời gian
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+            Lịch học
           </h1>
-          <p className="mt-1 max-w-3xl text-sm text-neutral-500">{roleDescription}</p>
+          <p className="mt-1 max-w-3xl text-sm text-muted">{roleDescription}</p>
         </div>
 
         {/* Toolbar: Navigation, View Toggle, and Propose Action */}
         <div className="flex flex-wrap items-center gap-2">
           {/* View mode toggle: Grid vs Timeline */}
-          <div className="flex h-10 items-center rounded-xl border border-stone-200 bg-white p-0.5 shadow-2xs">
+          <div className="flex h-10 items-center rounded-xl border border-line bg-surface p-0.5 shadow-2xs">
             <button
               type="button"
               onClick={() => setViewMode("grid")}
-              className={`flex items-center gap-1.5 h-full px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 h-full px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                 viewMode === "grid"
-                  ? "bg-sky-600 text-white shadow-xs"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  ? "bg-brand text-white shadow-xs"
+                  : "text-ink-2 hover:text-ink"
               }`}
               title="Xem dạng Lưới lịch tuần"
             >
@@ -457,10 +468,10 @@ export function ScheduleCalendarView({
             <button
               type="button"
               onClick={() => setViewMode("timeline")}
-              className={`flex items-center gap-1.5 h-full px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 h-full px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                 viewMode === "timeline"
-                  ? "bg-sky-600 text-white shadow-xs"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  ? "bg-brand text-white shadow-xs"
+                  : "text-ink-2 hover:text-ink"
               }`}
               title="Xem dạng Dòng thời gian"
             >
@@ -473,27 +484,27 @@ export function ScheduleCalendarView({
           <button
             type="button"
             onClick={() => setWeekStart(startOfWeek(new Date()))}
-            className="h-10 rounded-xl border border-stone-200 bg-white px-3.5 text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer shadow-2xs"
+            className="h-10 rounded-xl border border-line bg-surface px-3.5 text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer shadow-2xs"
           >
             Hôm nay
           </button>
 
-          <div className="flex h-10 items-center rounded-xl border border-stone-200 bg-white shadow-2xs">
+          <div className="flex h-10 items-center rounded-xl border border-line bg-surface shadow-2xs">
             <button
               type="button"
               onClick={() => setWeekStart((current) => addDays(current, -7))}
-              className="grid size-10 place-items-center rounded-l-xl text-neutral-500 hover:bg-stone-50 cursor-pointer"
+              className="grid size-10 place-items-center rounded-l-xl text-muted hover:bg-paper cursor-pointer"
               aria-label="Tuần trước"
             >
               <ChevronLeft className="size-4" />
             </button>
-            <span className="min-w-32 px-2 text-center text-xs font-bold text-neutral-800">
+            <span className="min-w-32 px-2 text-center text-xs font-medium text-ink">
               {formatDate(weekStart)} - {formatFullDate(weekEnd)}
             </span>
             <button
               type="button"
               onClick={() => setWeekStart((current) => addDays(current, 7))}
-              className="grid size-10 place-items-center rounded-r-xl text-neutral-500 hover:bg-stone-50 cursor-pointer"
+              className="grid size-10 place-items-center rounded-r-xl text-muted hover:bg-paper cursor-pointer"
               aria-label="Tuần sau"
             >
               <ChevronRight className="size-4" />
@@ -508,7 +519,7 @@ export function ScheduleCalendarView({
               setProposeInitialHour(8);
               setIsProposeOpen(true);
             }}
-            className="flex h-10 items-center gap-2 rounded-xl bg-sky-600 px-4 text-xs font-bold text-white shadow-xs hover:bg-sky-700 cursor-pointer"
+            className="flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-xs font-medium text-white shadow-xs hover:bg-brand-deep cursor-pointer"
           >
             <CalendarPlus className="size-4" />
             Đề xuất lịch mới
@@ -520,211 +531,80 @@ export function ScheduleCalendarView({
       {error && (
         <div
           role="alert"
-          className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-900"
+          className="flex items-center justify-between rounded-2xl border border-danger-line bg-danger-soft p-4 text-xs text-danger-strong"
         >
           <div className="flex items-center gap-2.5">
-            <AlertCircle className="size-4 text-rose-600 shrink-0" />
+            <AlertCircle className="size-4 text-danger-strong shrink-0" />
             <span>{error}</span>
           </div>
           <button
             type="button"
             onClick={fetchSessions}
-            className="flex items-center gap-1 rounded-lg bg-rose-100 px-2.5 py-1 font-bold text-rose-800 hover:bg-rose-200 cursor-pointer"
+            className="flex items-center gap-1 rounded-lg bg-danger-soft px-2.5 py-1 font-medium text-danger-strong hover:bg-danger-line cursor-pointer"
           >
             <RotateCw className="size-3" /> Thử lại
           </button>
         </div>
       )}
 
+      {/* Thay đổi lịch chưa xem: chỉ rõ buổi học nào đổi, bấm để tới thẳng buổi đó */}
+      {changedSessions.size > 0 && (
+        <section
+          aria-label="Thay đổi lịch học chưa xem"
+          className="rounded-2xl border-2 border-danger-line bg-danger-soft p-4 shadow-xs"
+        >
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-danger-strong">
+            <BellRing className="size-4 animate-pulse" />
+            Có {changedSessions.size} buổi học vừa thay đổi mà bạn chưa xem
+          </div>
+          <ul className="flex flex-col gap-1.5">
+            {[...changedSessions.entries()].slice(0, 5).map(([sessionId, notes]) => (
+              <li key={sessionId}>
+                <button
+                  type="button"
+                  onClick={() => jumpToSession(sessionId)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl bg-surface px-3 py-2 text-left text-xs font-medium text-danger-strong ring-1 ring-danger-line hover:bg-danger-soft cursor-pointer"
+                >
+                  <span className="truncate">
+                    {notes[0].title}
+                    <span className="ml-2 font-medium text-danger-strong/80">{notes[0].shortText}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-xs text-white">
+                    Xem buổi học
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Main Content: Grid View or Timeline View */}
       {viewMode === "grid" ? (
-        <section className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-xs">
-          <div className="overflow-x-auto">
-            <div className="min-w-[880px]">
-              {/* Header Days Row */}
-              <div className="grid grid-cols-[72px_repeat(7,minmax(112px,1fr))] border-b border-stone-200 bg-stone-50/80">
-                <div className="border-r border-stone-200 p-3 text-center text-[10px] font-bold uppercase text-neutral-400">
-                  Giờ
-                </div>
-                {weekDays.map(({ label, date }) => {
-                  const isToday = formatLocalDateToIso(date) === todayInVietnam;
-                  return (
-                    <div
-                      key={label}
-                      className={`border-r border-stone-200 p-3 text-center last:border-r-0 ${
-                        isToday ? "bg-sky-50/50" : ""
-                      }`}
-                    >
-                      <div
-                        className={`text-[11px] font-bold ${
-                          isToday ? "text-sky-700 font-extrabold" : "text-neutral-500"
-                        }`}
-                      >
-                        {label} {isToday && "· Hôm nay"}
-                      </div>
-                      <div
-                        className={`mt-0.5 text-sm font-extrabold ${
-                          isToday ? "text-sky-900" : "text-neutral-900"
-                        }`}
-                      >
-                        {formatDate(date)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Loading Skeleton / Time grid */}
-              {loading && sessions.length === 0 ? (
-                <div className="p-12 text-center text-xs font-semibold text-neutral-400 animate-pulse">
-                  Đang đồng bộ dữ liệu lịch học...
-                </div>
-              ) : (
-                <div className="grid grid-cols-[72px_repeat(7,minmax(112px,1fr))]">
-                  {/* Time gutter */}
-                  <div className="relative border-r border-stone-200" style={{ height: GRID_HEIGHT }}>
-                    {HOURS.map((hour) => (
-                      <div
-                        key={hour}
-                        className="absolute right-2 text-[11px] font-semibold text-neutral-400"
-                        style={{ top: (hour - FIRST_HOUR) * HOUR_PX + 4 }}
-                      >
-                        {String(hour).padStart(2, "0")}:00
-                      </div>
-                    ))}
-                  </div>
-
-                  {weekDays.map((day, dayIndex) => {
-                    const blocks = getDayBlocks(day.date);
-                    return (
-                      <div
-                        key={day.label}
-                        data-testid={`calendar-day-${dayIndex}`}
-                        className="relative border-r border-stone-100 last:border-r-0"
-                        style={{ height: GRID_HEIGHT }}
-                      >
-                        {/* Hour slots: grid lines, availability, click to propose */}
-                        {HOURS.map((hour) => {
-                          const available = role === "TUTOR" && isAvailable(dayIndex + 1, hour);
-                          const label = `${String(hour).padStart(2, "0")}:00 ${day.label}`;
-                          return (
-                            <button
-                              key={hour}
-                              type="button"
-                              onClick={() => handleCellClick(day.date, hour)}
-                              className={`absolute inset-x-0 border-b border-stone-100 cursor-pointer transition-colors hover:bg-sky-50/40 focus-visible:outline-2 focus-visible:outline-sky-500 focus-visible:-outline-offset-2 ${
-                                hasExplicitAvailability && available ? "bg-emerald-50/40" : "bg-transparent"
-                              }`}
-                              style={{ top: (hour - FIRST_HOUR) * HOUR_PX, height: HOUR_PX }}
-                              aria-label={`Đề xuất lịch lúc ${label}`}
-                              title={`Bấm để đề xuất lịch lúc ${label}`}
-                            >
-                              {hasExplicitAvailability && available && (
-                                <span className="pointer-events-none absolute right-1 top-1 flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 opacity-60">
-                                  <Clock3 className="size-2.5" /> Khung rảnh
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-
-                        {/* Session blocks: height follows duration, overlaps split into columns */}
-                        {blocks.map(({ session: s, top, height, column, columns }) => {
-                          const isProposed = s.status === "PROPOSED";
-                          const isScheduled = s.status === "SCHEDULED";
-                          const isCompleted = s.status === "COMPLETED";
-                          const isAbsent = s.status === "ABSENT";
-
-                          const badgeColor = isScheduled
-                            ? "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100"
-                            : isProposed
-                            ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
-                            : isCompleted
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-                            : isAbsent
-                            ? "border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100"
-                            : "border-stone-300 bg-stone-50 text-stone-700";
-
-                          const statusText = isProposed
-                            ? "⚠️ Chờ xác nhận"
-                            : isScheduled
-                            ? "✓ Đã xếp lịch"
-                            : isCompleted
-                            ? "✓ Đã hoàn thành"
-                            : isAbsent
-                            ? "✕ Vắng mặt"
-                            : "";
-                          const milestone = sessionMilestones[s.sessionId];
-                          const milestoneText = milestone
-                            ? `${milestone.linkType === "ACTUAL" ? "Đã học: " : "Dự kiến: "}${milestone.milestones
-                                .map((m) => m.title)
-                                .join(" · ")}`
-                            : "";
-                          const className = getClassName(s.classId);
-
-                          return (
-                            <button
-                              key={s.sessionId}
-                              type="button"
-                              onClick={(e) => handleSessionClick(e, s.sessionId)}
-                              data-testid={`calendar-session-${s.sessionId}`}
-                              title={[formatVnSessionTime(s.startAt, s.endAt), className, statusText, milestoneText]
-                                .filter(Boolean)
-                                .join("\n")}
-                              className={`absolute z-10 h-(--block-h) overflow-hidden rounded-lg border px-1.5 py-1 text-left text-[10px] font-bold leading-tight shadow-2xs transition-shadow cursor-pointer hover:z-30 hover:h-auto hover:min-h-(--block-h) hover:shadow-md focus-visible:z-30 focus-visible:h-auto ${badgeColor}`}
-                              style={
-                                {
-                                  top: top + 1,
-                                  left: `calc(${(column / columns) * 100}% + 2px)`,
-                                  width: `calc(${100 / columns}% - 4px)`,
-                                  "--block-h": `${height - 2}px`,
-                                } as React.CSSProperties
-                              }
-                            >
-                              {/* Dòng 1: giờ + hình thức học */}
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="whitespace-nowrap">{formatVnSessionTime(s.startAt, s.endAt)}</span>
-                                {s.mode === "ONLINE" ? (
-                                  <Video className="size-3 shrink-0" />
-                                ) : (
-                                  <MapPin className="size-3 shrink-0" />
-                                )}
-                              </div>
-                              {/* Dòng 2: tên lớp */}
-                              <div className="min-w-0 break-words text-neutral-800">{className}</div>
-                              {/* Dòng 3: trạng thái + cột mốc */}
-                              <div className="flex min-w-0 flex-wrap gap-x-1 text-[9px] font-semibold">
-                                <span className="min-w-0 break-words">{statusText}</span>
-                                {milestone && (
-                                  <span
-                                    className="min-w-0 break-words text-amber-800"
-                                    data-testid={`session-milestones-${s.sessionId}`}
-                                    title={milestone.milestones.map((m) => m.title).join(" · ")}
-                                  >
-                                    {milestoneText}
-                                  </span>
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
+        <WeekTimeGrid
+          weekDays={weekDays}
+          todayIso={todayInVietnam}
+          loading={loading && sessions.length === 0}
+          toIso={formatLocalDateToIso}
+          getDayRanges={getDayRanges}
+          getClassName={getClassName}
+          formatTime={(session) => formatVnSessionTime(session.startAt, session.endAt)}
+          getMilestoneText={getMilestoneText}
+          changedSessionIds={changedSessions}
+          highlightedSessionId={highlightedSessionId}
+          isSlotAvailable={(dayNumber, hour) => role === "TUTOR" && isAvailable(dayNumber, hour)}
+          onSlotClick={handleCellClick}
+          onSessionClick={handleSessionClick}
+        />
       ) : (
         /* Timeline View */
         <ScheduleTimelineView
           sessions={sessions}
           classes={classes}
           role={role}
-          onSelectSession={(id) => {
-            setSelectedSessionId(id);
-          }}
+          changedSessionIds={changedSessions}
+          highlightedSessionId={highlightedSessionId}
+          onSelectSession={openSession}
           onProposeNew={() => {
             setProposeInitialDate(undefined);
             setProposeInitialHour(8);
@@ -757,8 +637,14 @@ export function ScheduleCalendarView({
 
       <SessionDetailModal
         sessionId={selectedSessionId}
-        isOpen={selectedSessionId !== null}
-        onClose={() => setSelectedSessionId(null)}
+        isOpen={isDetailOpen}
+        initialAction={detailAction}
+        onSessionLoaded={handleSessionLoaded}
+        onClose={() => {
+          setIsDetailOpen(false);
+          setSelectedSessionId(null);
+          setDetailAction(null);
+        }}
         onUpdated={() => {
           fetchSessions();
           if (typeof window !== "undefined") {

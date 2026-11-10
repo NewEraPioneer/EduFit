@@ -171,7 +171,6 @@ export interface ScheduleCalendarViewProps {
   availabilitySlots?: TutorAvailabilitySlot[];
   classes?: ConnectedClass[];
   initialStudentId?: string;
-  initialSession?: Pick<CalendarItem, "sessionId" | "startAt">;
 }
 
 export interface WeeklySlotPayload {
