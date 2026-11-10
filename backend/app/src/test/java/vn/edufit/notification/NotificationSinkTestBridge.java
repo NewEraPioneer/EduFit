@@ -14,7 +14,7 @@ import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.shared.notification.NotificationSink;
 
 @TestConfiguration(proxyBeanMethods = false)
-@Import({NotificationEventListener.class})
+@Import({NotificationEventListener.class, vn.edufit.notification.application.service.NotificationService.class})
 public class NotificationSinkTestBridge {
 
   @Bean

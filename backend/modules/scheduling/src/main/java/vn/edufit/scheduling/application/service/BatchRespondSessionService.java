@@ -4,7 +4,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +15,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.edufit.scheduling.api.event.SessionScheduledEvent;
+import vn.edufit.scheduling.api.event.ClassScheduleChangedEvent;
 import vn.edufit.scheduling.domain.model.SessionHistory;
 import vn.edufit.scheduling.domain.model.SessionStatus;
 import vn.edufit.scheduling.domain.model.TutoringSession;
@@ -122,6 +124,7 @@ public class BatchRespondSessionService {
             now
         ));
       }
+      publishBatchOutcome(ClassScheduleChangedEvent.BATCH_REJECTED, rejectedSessions, responderId);
       log.info("Từ chối hàng loạt đề xuất buổi học thành công: count={}", rejectedSessions.size());
       return rejectedSessions;
     }
@@ -200,7 +203,6 @@ public class BatchRespondSessionService {
 
     // 4c. Chuyển trạng thái sang SCHEDULED và lưu với cơ chế bẫy lỗi Exclusion Constraint
     List<TutoringSession> scheduledSessions = new ArrayList<>(lockedSessions.size());
-    List<SessionScheduledEvent> eventsToPublish = new ArrayList<>(lockedSessions.size());
     try {
       for (TutoringSession session : lockedSessions) {
         session.accept(responderId, now);
@@ -215,15 +217,6 @@ public class BatchRespondSessionService {
             null,
             now
         ));
-
-        eventsToPublish.add(SessionScheduledEvent.of(
-            saved.getSessionId(),
-            saved.getClassId(),
-            saved.getTutorId(),
-            saved.getStudentId(),
-            saved.getStartAt(),
-            saved.getEndAt()
-        ));
       }
     } catch (DataIntegrityViolationException ex) {
       log.warn("Bẫy lỗi GiST Exclusion Constraint khi xác nhận hàng loạt buổi học: {}", ex.getMessage());
@@ -233,10 +226,23 @@ public class BatchRespondSessionService {
       );
     }
 
-    // 4d. Phát domain event chỉ khi toàn bộ lô đã được lưu thành công vào cơ sở dữ liệu
-    eventsToPublish.forEach(eventPublisher::publishEvent);
+    // 4d. Chỉ phát sự kiện khi toàn bộ lô đã lưu thành công; một sự kiện cho mỗi lớp, không phải mỗi buổi
+    publishBatchOutcome(ClassScheduleChangedEvent.BATCH_ACCEPTED, scheduledSessions, responderId);
 
     log.info("Chấp thuận hàng loạt đề xuất buổi học thành công: count={}", scheduledSessions.size());
     return scheduledSessions;
+  }
+
+  private void publishBatchOutcome(String kind, List<TutoringSession> sessions, UUID actorUserId) {
+    Map<UUID, List<TutoringSession>> byClass = new LinkedHashMap<>();
+    for (TutoringSession session : sessions) {
+      byClass.computeIfAbsent(session.getClassId(), id -> new ArrayList<>()).add(session);
+    }
+    boolean accepted = ClassScheduleChangedEvent.BATCH_ACCEPTED.equals(kind);
+    byClass.forEach((classId, group) -> {
+      TutoringSession first = group.getFirst();
+      eventPublisher.publishEvent(ClassScheduleChangedEvent.of(classId, first.getTutorId(), first.getStudentId(),
+          actorUserId, kind, accepted ? 0 : group.size(), accepted ? group.size() : 0));
+    });
   }
 }

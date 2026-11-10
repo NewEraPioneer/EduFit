@@ -391,8 +391,13 @@ class RescheduleClassScheduleServiceTest {
     assertEquals(1, result.cancelledSessionCount());
     // Từ 02/11/2026 (Thứ 2) đến 30/11/2026 (Thứ 2) bao gồm 5 Thứ Hai và 4 Thứ Năm -> tổng cộng 9 buổi học mới được sinh ra
     assertEquals(9, result.generatedSessions().size());
-    verify(eventPublisher).publishEvent(any(SessionCancelledEvent.class));
-    verify(eventPublisher, org.mockito.Mockito.times(9)).publishEvent(any(SessionScheduledEvent.class));
+    // Cả lô chỉ phát MỘT sự kiện (người dùng nhận một thông báo cố định, không phải 1 + 9 thông báo).
+    var published = org.mockito.ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher).publishEvent(published.capture());
+    var change = (vn.edufit.scheduling.api.event.ClassScheduleChangedEvent) published.getValue();
+    assertEquals(1, change.cancelledCount());
+    assertEquals(9, change.generatedCount());
+    assertEquals(vn.edufit.scheduling.api.event.ClassScheduleChangedEvent.RECURRING_APPLIED, change.kind());
   }
 
   @Test

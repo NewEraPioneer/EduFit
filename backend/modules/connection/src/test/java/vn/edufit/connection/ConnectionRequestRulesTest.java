@@ -19,7 +19,6 @@ import vn.edufit.profile.api.dto.*;
 import vn.edufit.iam.api.*;
 import vn.edufit.iam.api.dto.UserSummaryView;
 import vn.edufit.shared.auth.CurrentUser;
-import vn.edufit.shared.notification.NotificationSink;
 import vn.edufit.shared.exception.*;
 
 class ConnectionRequestRulesTest {
@@ -31,7 +30,6 @@ class ConnectionRequestRulesTest {
   final IamFacade iam=mock(IamFacade.class);
   final ConnectionFacade facade=mock(ConnectionFacade.class);
   final ConnectionLock lock=mock(ConnectionLock.class);
-  final NotificationSink sink=mock(NotificationSink.class);
   final org.springframework.context.ApplicationEventPublisher events=mock(org.springframework.context.ApplicationEventPublisher.class);
   ConnectionRequestService service;
   @BeforeEach void setup() {
@@ -41,7 +39,7 @@ class ConnectionRequestRulesTest {
     when(profile.findTutorOfferings(tutor)).thenReturn(ConnectionTestFixtures.offerings(1, 4));
     when(profile.getTutorIdByUserId(tutorUser)).thenReturn(tutor);
     when(rows.save(any())).thenAnswer(call -> {var row=(ConnectionRequest)call.getArgument(0);org.springframework.test.util.ReflectionTestUtils.setField(row,"id",id);return row;});
-    service=new ConnectionRequestService(rows, classes, profile, iam, lock, sink, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now,ZoneOffset.UTC));
+    service=new ConnectionRequestService(rows, classes, profile, iam, lock, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), ConnectionTestDefaults.noScheduleConflicts(), ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now,ZoneOffset.UTC));
   }
   private void account(UUID user,String role,AccountStatus status) {
     when(iam.findUserSummaryById(user)).thenReturn(Optional.of(new UserSummaryView(user,"actor@test.invalid","Actor",AccountRole.valueOf(role),status)));
@@ -67,7 +65,6 @@ class ConnectionRequestRulesTest {
     verify(events).publishEvent(argThat((vn.edufit.connection.api.event.ConnectionRequestChangedEvent e) ->
         e.aggregateId().equals(id) && e.actorUserId().equals(user) && e.studentId().equals(student)
             && e.oldStatus() == null && "PENDING".equals(e.newStatus()) && e.classId() == null));
-    verifyNoInteractions(sink);
   }
   @ParameterizedTest @ValueSource(strings={"STUDENT","PARENT"}) void inactiveActorCannotCreateOrCancel(String role) {
     UUID user=role.equals("STUDENT")?studentUser:UUID.randomUUID();var actor=actor(user,role);
@@ -75,7 +72,7 @@ class ConnectionRequestRulesTest {
     account(user,role,AccountStatus.DEACTIVATED);
     assertThrows(ForbiddenOperationException.class,()->create(actor));
     assertThrows(ForbiddenOperationException.class,()->service.cancelRequest(actor,id));
-    verify(rows,never()).save(any());verifyNoInteractions(sink);verifyNoInteractions(events);
+    verify(rows,never()).save(any());verifyNoInteractions(events);
   }
   @Test void inactiveTutorAccountCannotReceiveRequest() {
     account(tutorUser,"TUTOR",AccountStatus.DEACTIVATED);
@@ -107,7 +104,7 @@ class ConnectionRequestRulesTest {
       when(rows.countByStudentIdAndStatus(student,"PENDING")).thenReturn(5L);
       when(rows.findByStudentIdAndStatus(student,"PENDING")).thenReturn(Collections.nCopies(5,new ConnectionRequest(student,tutor,goal,studentUser,List.of("Tue 19:00"),null,now)));
     }
-    assertInstanceOf(TransitionResult.Conflict.class,create(actor(studentUser,"STUDENT")));verify(rows,never()).save(any());verifyNoInteractions(sink);
+    assertInstanceOf(TransitionResult.Conflict.class,create(actor(studentUser,"STUDENT")));verify(rows,never()).save(any());
     verifyNoInteractions(events);
   }
   @Test void revokedParentCannotCreateOrCancel() {
@@ -178,7 +175,6 @@ class ConnectionRequestRulesTest {
     verify(events).publishEvent(argThat((vn.edufit.connection.api.event.ConnectionRequestChangedEvent e) ->
         e.aggregateId().equals(id) && e.actorUserId().equals(tutorUser) && e.studentId().equals(student)
             && "PENDING".equals(e.oldStatus()) && "REJECTED".equals(e.newStatus()) && e.classId() == null));
-    verifyNoInteractions(sink);
   }
   @Test void tutorAcceptCreatesExactlyOneClassAndPublishesBothEvents() {
     var row = pending(studentUser);
@@ -198,7 +194,6 @@ class ConnectionRequestRulesTest {
     verify(events).publishEvent(argThat((Object obj) -> obj instanceof vn.edufit.connection.api.event.TutoringClassCreatedEvent e
         && e.aggregateId().equals(classId) && e.actorUserId().equals(tutorUser) && e.studentId().equals(student)
         && "ACTIVE".equals(e.newStatus()) && id.equals(e.requestId()) && tutor.equals(e.tutorId()) && goal.equals(e.needId())));
-    verifyNoInteractions(sink);
   }
 
   @Test
@@ -304,7 +299,7 @@ class ConnectionRequestRulesTest {
     vn.edufit.connection.api.TutorScheduleConflictChecker checker = mock(vn.edufit.connection.api.TutorScheduleConflictChecker.class);
     when(checker.hasConflictWithScheduledSessions(tutor, List.of("Tue 19:00"))).thenReturn(true);
 
-    ConnectionRequestService serviceWithChecker = new ConnectionRequestService(rows, classes, profile, iam, lock, sink, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), checker, ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now, ZoneOffset.UTC));
+    ConnectionRequestService serviceWithChecker = new ConnectionRequestService(rows, classes, profile, iam, lock, facade, new ConnectionRequestInput("legacy-compatible"), events, ConnectionTestDefaults.expiryMock(), new vn.edufit.connection.application.policy.SlotConflictDetector(), checker, ConnectionTestDefaults.noScheduledSessions(), Clock.fixed(now, ZoneOffset.UTC));
 
     var ex = assertThrows(ResourceConflictException.class, () ->
         serviceWithChecker.respondRequest(actor(tutorUser, "TUTOR"), id, true, null));

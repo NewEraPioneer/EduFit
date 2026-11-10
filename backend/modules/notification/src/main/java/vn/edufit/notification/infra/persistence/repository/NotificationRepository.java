@@ -1,5 +1,6 @@
 package vn.edufit.notification.infra.persistence.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -44,4 +45,11 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   @Modifying
   @Query("UPDATE Notification n SET n.isRead = true WHERE n.userId = :userId AND n.isRead = false")
   int markAllAsReadByUserId(@Param("userId") UUID userId);
+
+  /**
+   * Đếm thông báo chưa đọc theo {@code type}; việc gộp type thành category làm ở
+   * {@code NotificationCategory} để query đơn giản, không phụ thuộc cách Hibernate render CASE.
+   */
+  @Query("SELECT n.type, COUNT(n) FROM Notification n WHERE n.userId = :userId AND n.isRead = false GROUP BY n.type")
+  List<Object[]> countUnreadByType(@Param("userId") UUID userId);
 }

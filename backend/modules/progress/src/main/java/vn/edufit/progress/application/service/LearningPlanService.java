@@ -17,6 +17,8 @@ import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.progress.application.dto.CreatePlanCommand;
 import vn.edufit.progress.application.dto.UpdateMilestoneStatusCommand;
 import vn.edufit.progress.application.dto.UpdatePlanCommand;
+import org.springframework.context.ApplicationEventPublisher;
+import vn.edufit.progress.api.event.MilestoneAchievedEvent;
 import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.model.Milestone;
 import vn.edufit.progress.domain.model.MilestoneStatus;
@@ -40,7 +42,7 @@ public class LearningPlanService {
   private final LearningPlanDomainRepository planRepository;
   private final PlanHistoryDomainRepository historyRepository;
   private final ProgressAccessGuard accessGuard;
-  private final MilestoneAchievementNotifier achievementNotifier;
+  private final ApplicationEventPublisher events;
   private final TopicCatalogService topicCatalog;
   private final Clock clock;
 
@@ -48,14 +50,14 @@ public class LearningPlanService {
       LearningPlanDomainRepository planRepository,
       PlanHistoryDomainRepository historyRepository,
       ProgressAccessGuard accessGuard,
-      MilestoneAchievementNotifier achievementNotifier,
+      ApplicationEventPublisher events,
       TopicCatalogService topicCatalog,
       Clock clock
   ) {
     this.planRepository = planRepository;
     this.historyRepository = historyRepository;
     this.accessGuard = accessGuard;
-    this.achievementNotifier = achievementNotifier;
+    this.events = events;
     this.topicCatalog = topicCatalog;
     this.clock = Objects.requireNonNull(clock);
   }
@@ -278,7 +280,8 @@ public class LearningPlanService {
     LearningPlan saved = planRepository.save(plan);
 
     if (req.status() == MilestoneStatus.ACHIEVED) {
-      achievementNotifier.notifyAchieved(cls, milestone);
+      events.publishEvent(MilestoneAchievedEvent.of(
+          cls.classId(), cls.studentId(), milestone.getMilestoneId(), milestone.getTitle()));
     }
 
     log.info("Cập nhật trạng thái milestone thành công: milestoneId={}, oldStatus={}, newStatus={}",

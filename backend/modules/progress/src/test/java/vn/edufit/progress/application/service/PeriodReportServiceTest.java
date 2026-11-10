@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
+import vn.edufit.progress.api.event.PeriodReportSentEvent;
 import vn.edufit.progress.application.dto.PeriodReportView;
 import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.model.Milestone;
@@ -39,7 +40,7 @@ import vn.edufit.progress.domain.repository.TopicDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ResourceConflictException;
-import vn.edufit.shared.notification.NotificationSink;
+import org.springframework.context.ApplicationEventPublisher;
 
 class PeriodReportServiceTest {
 
@@ -61,7 +62,7 @@ class PeriodReportServiceTest {
   private LearningPlanDomainRepository planRepository;
   private ConnectionFacade connectionFacade;
   private ProfileFacade profileFacade;
-  private NotificationSink notifications;
+  private ApplicationEventPublisher events;
   private PeriodReportService service;
   private ConnectionFacade.ClassDetailView cls;
 
@@ -71,7 +72,7 @@ class PeriodReportServiceTest {
     planRepository = mock(LearningPlanDomainRepository.class);
     connectionFacade = mock(ConnectionFacade.class);
     profileFacade = mock(ProfileFacade.class);
-    notifications = mock(NotificationSink.class);
+    events = mock(ApplicationEventPublisher.class);
     Clock clock = Clock.fixed(NOW, LearningPlan.BUSINESS_ZONE);
     ProgressAccessGuard guard = new ProgressAccessGuard(connectionFacade, profileFacade);
     ProgressOverviewService overview = new ProgressOverviewService(
@@ -79,7 +80,7 @@ class PeriodReportServiceTest {
         mock(PlanHistoryDomainRepository.class), mock(TopicDomainRepository.class), mock(SessionFacade.class),
         profileFacade, connectionFacade, clock);
     service = new PeriodReportService(reportRepository, planRepository, connectionFacade, profileFacade, guard,
-        overview, notifications, clock);
+        overview, events, clock);
 
     cls = new ConnectionFacade.ClassDetailView(classId, studentId, tutorId, null, "ACTIVE", CLASS_START, null, 200000L);
     when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(cls));
@@ -144,7 +145,7 @@ class PeriodReportServiceTest {
     assertThat(report.getSnapshot().achievedMilestones()).containsExactly("Phương trình bậc nhất");
     assertThat(report.getSnapshot().nextFocusTitle()).isEqualTo("Hình học không gian");
     assertThat(report.getSnapshot().onTrackStatus()).isNotBlank();
-    verify(notifications, never()).notify(any(), any(), any(), any(), any(), any(), any());
+    verify(events, never()).publishEvent(any(PeriodReportSentEvent.class));
   }
 
   @Test
@@ -167,10 +168,14 @@ class PeriodReportServiceTest {
 
     assertThat(due.getStatus()).isEqualTo(PeriodReport.Status.SENT);
     assertThat(due.getSentAt()).isEqualTo(NOW);
-    verify(notifications).notify(eq(studentUserId), eq(studentId), eq(PeriodReportService.NOTIFICATION_TYPE),
-        any(), any(), eq("PERIOD_REPORT"), eq(due.getReportId()));
-    verify(notifications).notify(eq(parentUserId), eq(studentId), eq(PeriodReportService.NOTIFICATION_TYPE),
-        any(), any(), eq("PERIOD_REPORT"), eq(due.getReportId()));
+    ArgumentCaptor<PeriodReportSentEvent> published = ArgumentCaptor.forClass(PeriodReportSentEvent.class);
+    verify(events).publishEvent(published.capture());
+    PeriodReportSentEvent event = published.getValue();
+    assertThat(event.reportId()).isEqualTo(due.getReportId());
+    assertThat(event.studentId()).isEqualTo(studentId);
+    assertThat(event.periodIndex()).isEqualTo(1);
+    assertThat(event.periodStart()).isEqualTo(PERIOD_START);
+    assertThat(event.periodEnd()).isEqualTo(PERIOD_END);
   }
 
   @Test

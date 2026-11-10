@@ -10,9 +10,11 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edufit.connection.api.ConnectionFacade;
+import vn.edufit.progress.api.event.MilestoneAchievedEvent;
 import vn.edufit.progress.application.dto.SessionFeedbackView;
 import vn.edufit.progress.application.dto.SubmitSessionFeedbackCommand;
 import vn.edufit.progress.domain.model.IndependenceLevel;
@@ -51,7 +53,7 @@ public class SessionFeedbackService {
   private final PlanHistoryDomainRepository historyRepository;
   private final SessionFacade sessionFacade;
   private final ProgressAccessGuard accessGuard;
-  private final MilestoneAchievementNotifier achievementNotifier;
+  private final ApplicationEventPublisher events;
   private final Clock clock;
 
   public SessionFeedbackService(
@@ -60,7 +62,7 @@ public class SessionFeedbackService {
       PlanHistoryDomainRepository historyRepository,
       SessionFacade sessionFacade,
       ProgressAccessGuard accessGuard,
-      MilestoneAchievementNotifier achievementNotifier,
+      ApplicationEventPublisher events,
       Clock clock
   ) {
     this.feedbackRepository = feedbackRepository;
@@ -68,7 +70,7 @@ public class SessionFeedbackService {
     this.historyRepository = historyRepository;
     this.sessionFacade = sessionFacade;
     this.accessGuard = accessGuard;
-    this.achievementNotifier = achievementNotifier;
+    this.events = events;
     this.clock = Objects.requireNonNull(clock);
   }
 
@@ -139,7 +141,8 @@ public class SessionFeedbackService {
 
     planRepository.save(plan);
     SessionFeedback saved = feedbackRepository.save(feedback);
-    newlyAchieved.forEach(m -> achievementNotifier.notifyAchieved(cls, m));
+    newlyAchieved.forEach(m -> events.publishEvent(
+        MilestoneAchievedEvent.of(cls.classId(), cls.studentId(), m.getMilestoneId(), m.getTitle())));
 
     log.info("Ghi phản hồi buổi học thành công: sessionId={}, milestones={}, achieved={}",
         sessionId, assessments.size(), newlyAchieved.size());
