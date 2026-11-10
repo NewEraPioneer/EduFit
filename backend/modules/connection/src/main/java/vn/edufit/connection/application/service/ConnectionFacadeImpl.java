@@ -16,6 +16,15 @@ public class ConnectionFacadeImpl implements ConnectionFacade {
   private final ParentStudentLinkRepository links;
   private final TutoringClassRepository classes;
 
+  @Override
+  @Transactional
+  public void updateAgreedSlots(UUID classId, List<String> slots) {
+    var cls = classes.findByIdAndStatus(classId, "ACTIVE")
+        .orElseThrow(() -> vn.edufit.shared.exception.EntityNotFoundException.of("Class", classId));
+    cls.updateAgreedSlots(slots);
+    classes.saveAndFlush(cls);
+  }
+
   public ConnectionFacadeImpl(ParentStudentLinkRepository links, TutoringClassRepository classes) {
     this.links = links;
     this.classes = classes;

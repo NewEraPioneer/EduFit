@@ -270,7 +270,7 @@ public class SessionController {
   public ResponseEntity<ApiResponse<RecurringProposalResponse>> getRecurringProposal(
       @PathVariable("proposalId") UUID proposalId
   ) {
-    RecurringRescheduleProposal proposal = rescheduleClassScheduleService.findProposalById(proposalId)
+    RecurringRescheduleProposal proposal = rescheduleClassScheduleService.findProposalById(proposalId, currentUser())
         .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đề xuất đổi lịch định kỳ với ID: " + proposalId));
     return ResponseEntity.ok(ApiResponse.success(RecurringProposalResponse.from(proposal), "Lấy thông tin đề xuất đổi lịch định kỳ thành công"));
   }
@@ -279,7 +279,7 @@ public class SessionController {
   public ResponseEntity<ApiResponse<RecurringProposalResponse>> getActiveRecurringProposal(
       @PathVariable("classId") UUID classId
   ) {
-    RecurringProposalResponse response = rescheduleClassScheduleService.findActiveProposalByClassId(classId)
+    RecurringProposalResponse response = rescheduleClassScheduleService.findActiveProposalByClassId(classId, currentUser())
         .map(RecurringProposalResponse::from)
         .orElse(null);
     return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin đề xuất đổi lịch định kỳ của lớp học"));

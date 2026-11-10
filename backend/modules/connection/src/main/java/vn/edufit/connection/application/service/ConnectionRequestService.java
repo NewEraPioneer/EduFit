@@ -271,10 +271,7 @@ public class ConnectionRequestService {
             .filter(java.util.Objects::nonNull)
             .toList();
         List<ConnectionRequest> activeRequests = requests.findAllById(activeReqIds);
-        List<String> activeSlots = activeRequests.stream()
-            .filter(r -> r.getDesiredSlots() != null)
-            .flatMap(r -> r.getDesiredSlots().stream())
-            .toList();
+        List<String> activeSlots = ClassAgreedSchedules.slots(activeClasses, activeRequests);
         List<String> conflicts = slotConflictDetector.findConflictingSlots(slots, activeSlots);
         if (!conflicts.isEmpty()) {
           throw new ResourceConflictException(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,
@@ -291,10 +288,10 @@ public class ConnectionRequestService {
   }
 
   private void requireStudentScheduleAvailable(UUID studentId, List<String> slots) {
-    List<UUID> requestIds = classes.findByStudentIdAndStatus(studentId, "ACTIVE").stream()
+    List<TutoringClass> activeClasses = classes.findByStudentIdAndStatus(studentId, "ACTIVE");
+    List<UUID> requestIds = activeClasses.stream()
         .map(TutoringClass::getConnectionRequestId).filter(Objects::nonNull).toList();
-    List<String> activeSlots = requests.findAllById(requestIds).stream()
-        .map(ConnectionRequest::getDesiredSlots).filter(Objects::nonNull).flatMap(List::stream).toList();
+    List<String> activeSlots = ClassAgreedSchedules.slots(activeClasses, requests.findAllById(requestIds));
     List<String> conflicts = slotConflictDetector.findConflictingSlots(slots, activeSlots);
     if (!conflicts.isEmpty()) {
       throw new ResourceConflictException(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,

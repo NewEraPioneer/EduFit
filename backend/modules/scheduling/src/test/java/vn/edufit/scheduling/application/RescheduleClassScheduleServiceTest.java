@@ -74,6 +74,7 @@ class RescheduleClassScheduleServiceTest {
 
   private Clock fixedClock;
   private RescheduleClassScheduleService service;
+  private TestRecurringProposals proposals;
 
   private final UUID classId = UUID.randomUUID();
   private final UUID tutorId = UUID.randomUUID();
@@ -93,13 +94,15 @@ class RescheduleClassScheduleServiceTest {
   @BeforeEach
   void setUp() {
     fixedClock = Clock.fixed(fixedNow, VIETNAM_ZONE);
+    proposals = new TestRecurringProposals();
     service = new RescheduleClassScheduleService(
         sessionRepository,
         historyRepository,
         connectionValidationPort,
         schedulingSecurityResolver,
         eventPublisher,
-        fixedClock
+        fixedClock,
+        proposals
     );
 
     tutorUser = SimpleCurrentUser.of(tutorUserId, "TUTOR");
@@ -391,6 +394,7 @@ class RescheduleClassScheduleServiceTest {
     assertEquals(1, result.cancelledSessionCount());
     // Từ 02/11/2026 (Thứ 2) đến 30/11/2026 (Thứ 2) bao gồm 5 Thứ Hai và 4 Thứ Năm -> tổng cộng 9 buổi học mới được sinh ra
     assertEquals(9, result.generatedSessions().size());
+    verify(connectionValidationPort).updateAgreedSlots(classId, List.of("MONDAY 18:00-20:00", "THURSDAY 18:00-20:00"));
     verify(eventPublisher).publishEvent(any(SessionCancelledEvent.class));
     verify(eventPublisher, org.mockito.Mockito.times(9)).publishEvent(any(SessionScheduledEvent.class));
   }
@@ -450,12 +454,27 @@ class RescheduleClassScheduleServiceTest {
     );
 
     assertTrue(proposal.isPending(fixedNow));
-    assertTrue(service.findActiveProposalByClassId(classId).isPresent());
+    assertTrue(service.findActiveProposalByClassId(classId, studentUser).isPresent());
 
     // Cascade cancel
     service.cancelActiveProposalForClass(classId, "Lớp đã kết thúc", fixedNow);
 
     assertFalse(proposal.isPending(fixedNow));
-    assertTrue(service.findActiveProposalByClassId(classId).isEmpty());
+    assertTrue(service.findActiveProposalByClassId(classId, studentUser).isEmpty());
+  }
+
+  @Test
+  void proposalSurvivesServiceRecreationAndReadRequiresClassMembership() {
+    when(connectionValidationPort.findActiveClassById(classId))
+        .thenReturn(Optional.of(new ActiveClassInfo(classId, studentId, tutorId, UUID.randomUUID())));
+    var saved = service.proposeRecurringSchedule(classId, today.plusDays(2), today.plusDays(30),
+        List.of("MONDAY 18:00-20:00"), SessionMode.ONLINE, null, null, tutorUser);
+    var restarted = new RescheduleClassScheduleService(sessionRepository, historyRepository,
+        connectionValidationPort, schedulingSecurityResolver, eventPublisher, fixedClock, proposals);
+    assertEquals(saved.getProposalId(), restarted.findProposalById(saved.getProposalId(), studentUser).orElseThrow().getProposalId());
+    verify(schedulingSecurityResolver).requireClassAccess(studentUser, classId);
+    doThrow(new ForbiddenOperationException("Không thuộc lớp")).when(schedulingSecurityResolver).requireClassAccess(otherUser, classId);
+    assertThrows(ForbiddenOperationException.class, () -> restarted.findProposalById(saved.getProposalId(), otherUser));
+    assertThrows(ForbiddenOperationException.class, () -> restarted.findActiveProposalByClassId(classId, otherUser));
   }
 }

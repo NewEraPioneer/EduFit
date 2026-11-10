@@ -12,10 +12,7 @@ import vn.edufit.shared.exception.InvalidOperationException;
 /**
  * Domain Aggregate đại diện cho một đề xuất đổi lịch học định kỳ của lớp học (UC4.8).
  *
- * <p>Theo Database Invariant (R4):
- * Không thêm bảng cơ sở dữ liệu mới; các đề xuất đổi lịch định kỳ đang chờ xử lý (in-flight)
- * được quản lý an toàn trên bộ nhớ RAM có thời gian hết hạn (TTL). Khi được đối tác chấp thuận,
- * các buổi học cụ thể mới được sinh ra và lưu bền vững vào bảng {@code tutoring_session}.
+ * <p>Đề xuất và phản hồi được lưu bền vững; lịch cụ thể chỉ được sinh sau đồng thuận hai phía.
  */
 public class RecurringRescheduleProposal {
 
@@ -137,7 +134,7 @@ public class RecurringRescheduleProposal {
   }
 
   public boolean isPending(Instant now) {
-    if (this.status == ProposalStatus.PENDING && this.expiresAt.isBefore(now)) {
+    if (this.status == ProposalStatus.PENDING && !now.isBefore(this.expiresAt)) {
       expire(now);
       return false;
     }
@@ -151,7 +148,7 @@ public class RecurringRescheduleProposal {
           "Đề xuất đổi lịch định kỳ không ở trạng thái PENDING. Trạng thái hiện tại: " + this.status
       );
     }
-    if (this.expiresAt.isBefore(now)) {
+    if (!now.isBefore(this.expiresAt)) {
       this.status = ProposalStatus.EXPIRED;
       throw new InvalidOperationException(
           ErrorCode.PROPOSAL_EXPIRED,
