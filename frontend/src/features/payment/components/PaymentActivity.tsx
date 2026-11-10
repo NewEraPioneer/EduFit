@@ -11,21 +11,21 @@ export function PaymentActivity({
   return (
     <section
       aria-label="Hoạt động gần đây"
-      className="self-start rounded-2xl border border-stone-200 bg-white p-5"
+      className="self-start rounded-2xl border border-line bg-surface p-5"
     >
       <div className="flex items-center gap-2">
-        <History className="size-4 text-neutral-500" />
-        <h2 className="font-bold">Hoạt động gần đây</h2>
+        <History className="size-4 text-muted" />
+        <h2 className="font-medium">Hoạt động gần đây</h2>
       </div>
       {entries.length ? (
-        <ul className="mt-4 divide-y divide-stone-100">
+        <ul className="mt-4 divide-y divide-line">
           {entries.slice(0, 4).map((e) => (
             <li key={e.id} className="flex items-start gap-3 py-4">
               <span
                 className={`mt-0.5 rounded-full p-2 ${
                   e.available_delta > 0
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-stone-100 text-neutral-500"
+                    ? "bg-success-soft text-success-strong"
+                    : "bg-sunken text-muted"
                 }`}
               >
                 {e.available_delta > 0 ? (
@@ -38,7 +38,7 @@ export function PaymentActivity({
                 <p className="text-sm font-medium">
                   {entryLabels[e.kind] ?? e.kind}
                 </p>
-                <p className="mt-1 text-xs text-neutral-500">
+                <p className="mt-1 text-xs text-muted">
                   {new Date(e.created_at).toLocaleDateString("vi-VN", {
                     day: "2-digit",
                     month: "2-digit",
@@ -47,15 +47,15 @@ export function PaymentActivity({
               </div>
               <div className="shrink-0 text-right">
                 <p
-                  className={`text-sm font-semibold ${
-                    e.available_delta > 0 ? "text-emerald-700" : ""
+                  className={`text-sm font-medium ${
+                    e.available_delta > 0 ? "text-success-strong" : ""
                   }`}
                 >
                   {e.available_delta > 0 ? "+" : ""}
                   {money(e.available_delta || e.held_delta)}
                 </p>
                 {e.available_delta === 0 && (
-                  <p className="mt-1 text-xs text-neutral-500">Từ tiền giữ</p>
+                  <p className="mt-1 text-xs text-muted">Từ tiền giữ</p>
                 )}
               </div>
             </li>
@@ -63,15 +63,15 @@ export function PaymentActivity({
         </ul>
       ) : (
         <div className="py-8 text-center">
-          <History className="mx-auto size-7 text-stone-300" />
-          <p className="mt-3 text-sm text-neutral-500">
+          <History className="mx-auto size-7 text-white/75" />
+          <p className="mt-3 text-sm text-muted">
             Giao dịch của bạn sẽ xuất hiện tại đây.
           </p>
         </div>
       )}
       <button
         onClick={onHistory}
-        className="mt-2 w-full rounded-xl border border-stone-200 py-3 text-sm font-semibold text-neutral-700 hover:bg-stone-50"
+        className="mt-2 w-full rounded-xl border border-line py-3 text-sm font-medium text-ink-2 hover:bg-paper"
       >
         Xem tất cả giao dịch
       </button>

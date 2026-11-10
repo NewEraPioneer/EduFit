@@ -100,7 +100,7 @@ describe("RevokeKycModal Component Tests", () => {
     // Báo lỗi validation
     await waitFor(() => {
       expect(
-        screen.getByText(/Vui lòng nhập lý do thu hồi rõ ràng \(tối thiểu 5 ký tự\)/i)
+        screen.getByText(/Nhập lý do thu hồi \(tối thiểu 5 ký tự\)/i)
       ).toBeInTheDocument();
     });
 
@@ -127,7 +127,7 @@ describe("RevokeKycModal Component Tests", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Vui lòng nhập lý do thu hồi rõ ràng \(tối thiểu 5 ký tự\)/i)
+        screen.getByText(/Nhập lý do thu hồi \(tối thiểu 5 ký tự\)/i)
       ).toBeInTheDocument();
     });
 

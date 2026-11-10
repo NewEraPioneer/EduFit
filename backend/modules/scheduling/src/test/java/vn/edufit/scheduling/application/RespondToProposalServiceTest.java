@@ -211,6 +211,13 @@ class RespondToProposalServiceTest {
     assertEquals("Thầy bận đột xuất vào giờ này", rejectedSession.getResponseReason());
     assertEquals(tutorUserId, rejectedSession.getRespondedBy());
     verify(sessionRepository).save(any(TutoringSession.class));
+
+    var published = org.mockito.ArgumentCaptor.forClass(vn.edufit.scheduling.api.event.SessionProposalRejectedEvent.class);
+    verify(eventPublisher).publishEvent(published.capture());
+    assertEquals(sessionId, published.getValue().sessionId());
+    assertEquals(proposedSession.getProposedBy(), published.getValue().proposedBy());
+    assertEquals(tutorUserId, published.getValue().rejectedBy());
+    assertEquals("Thầy bận đột xuất vào giờ này", published.getValue().reason());
   }
 
   @Test

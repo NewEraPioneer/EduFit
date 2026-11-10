@@ -10,6 +10,10 @@ export interface ScheduleTimelineViewProps {
   sessions: CalendarItem[];
   classes?: ConnectedClass[];
   role?: UserRole;
+  /** Các buổi có thay đổi chưa xem (khóa = sessionId) */
+  changedSessionIds?: ReadonlyMap<string, unknown>;
+  /** Buổi học đang được nhấn mạnh (đến từ thông báo) */
+  highlightedSessionId?: string | null;
   onSelectSession: (sessionId: string) => void;
   onProposeNew: () => void;
 }
@@ -18,6 +22,8 @@ export function ScheduleTimelineView({
   sessions,
   classes = [],
   role,
+  changedSessionIds,
+  highlightedSessionId,
   onSelectSession,
   onProposeNew,
 }: ScheduleTimelineViewProps) {
@@ -95,46 +101,46 @@ export function ScheduleTimelineView({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "PROPOSED":
-        return { text: "Chờ xác nhận", bg: "bg-amber-100 text-amber-800 border-amber-200" };
+        return { text: "Chờ xác nhận", bg: "bg-action-soft text-action-strong border-action-line" };
       case "SCHEDULED":
-        return { text: "Đã xếp lịch", bg: "bg-sky-100 text-sky-800 border-sky-200" };
+        return { text: "Đã xếp lịch", bg: "bg-brand-soft text-brand-strong border-brand-line" };
       case "COMPLETED":
-        return { text: "Đã hoàn thành", bg: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+        return { text: "Đã hoàn thành", bg: "bg-success-soft text-success-strong border-success-line" };
       case "ABSENT":
-        return { text: "Vắng mặt", bg: "bg-orange-100 text-orange-800 border-orange-200" };
+        return { text: "Vắng mặt", bg: "bg-action-soft text-action-strong border-action-line" };
       case "CANCELLED":
-        return { text: "Đã hủy", bg: "bg-rose-100 text-rose-800 border-rose-200" };
+        return { text: "Đã hủy", bg: "bg-danger-soft text-danger-strong border-danger-line" };
       case "REJECTED":
-        return { text: "Từ chối", bg: "bg-stone-200 text-stone-700 border-stone-300" };
+        return { text: "Từ chối", bg: "bg-line text-ink-2 border-line-strong" };
       case "EXPIRED":
-        return { text: "Hết hạn", bg: "bg-stone-200 text-stone-700 border-stone-300" };
+        return { text: "Hết hạn", bg: "bg-line text-ink-2 border-line-strong" };
       case "WITHDRAWN":
-        return { text: "Đã rút", bg: "bg-stone-200 text-stone-700 border-stone-300" };
+        return { text: "Đã rút", bg: "bg-line text-ink-2 border-line-strong" };
       default:
-        return { text: status, bg: "bg-stone-100 text-stone-700 border-stone-200" };
+        return { text: status, bg: "bg-sunken text-ink-2 border-line" };
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Tabs Switcher: Sắp diễn ra vs Lịch đã hủy */}
-      <div className="flex items-center gap-2 border-b border-stone-200 pb-3 dark:border-zinc-800">
+      <div className="flex items-center gap-2 border-b border-line pb-3">
         <button
           type="button"
           onClick={() => setActiveTab("active")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition-all cursor-pointer ${
             activeTab === "active"
-              ? "bg-sky-600 text-white shadow-xs"
-              : "bg-stone-100 text-neutral-600 hover:bg-stone-200 dark:bg-zinc-800 dark:text-zinc-300"
+              ? "bg-brand text-white shadow-xs"
+              : "bg-sunken text-ink-2 hover:bg-line"
           }`}
         >
           <Calendar className="size-3.5" />
           Sắp diễn ra & Hiệu lực
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               activeTab === "active"
                 ? "bg-white/20 text-white"
-                : "bg-stone-200 text-neutral-700 dark:bg-zinc-700 dark:text-zinc-300"
+                : "bg-line text-ink-2"
             }`}
           >
             {activeSessions.length}
@@ -143,19 +149,19 @@ export function ScheduleTimelineView({
         <button
           type="button"
           onClick={() => setActiveTab("cancelled")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition-all cursor-pointer ${
             activeTab === "cancelled"
-              ? "bg-rose-600 text-white shadow-xs"
-              : "bg-stone-100 text-neutral-600 hover:bg-stone-200 dark:bg-zinc-800 dark:text-zinc-300"
+              ? "bg-danger text-white shadow-xs"
+              : "bg-sunken text-ink-2 hover:bg-line"
           }`}
         >
           <Clock className="size-3.5" />
           Lịch đã hủy
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               activeTab === "cancelled"
                 ? "bg-white/20 text-white"
-                : "bg-stone-200 text-neutral-700 dark:bg-zinc-700 dark:text-zinc-300"
+                : "bg-line text-ink-2"
             }`}
           >
             {cancelledSessions.length}
@@ -164,11 +170,10 @@ export function ScheduleTimelineView({
       </div>
 
       {displayedSessions.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-stone-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-3xl border border-dashed border-line bg-surface p-8">
           {activeTab === "active" ? (
             <EmptyState
               icon={Calendar}
-              theme="sky"
               compact
               title="Không có buổi học nào trong khoảng thời gian này"
               description="Bạn chưa có buổi học hoặc đề xuất nào đang có hiệu lực trong tuần đã chọn. Bấm nút dưới đây để đề xuất buổi học mới."
@@ -181,7 +186,6 @@ export function ScheduleTimelineView({
           ) : (
             <EmptyState
               icon={AlertCircle}
-              theme="neutral"
               compact
               title="Không có buổi học nào bị hủy"
               description="Tất cả các buổi học của bạn trong khoảng thời gian này đều được duy trì bình thường, không có buổi nào bị hủy hoặc từ chối."
@@ -196,13 +200,13 @@ export function ScheduleTimelineView({
               <div className="flex items-center gap-2">
                 <span
                   className={`h-2 w-2 rounded-full ${
-                    activeTab === "active" ? "bg-sky-500" : "bg-rose-500"
+                    activeTab === "active" ? "bg-brand" : "bg-danger"
                   }`}
                 />
-                <h3 className="font-heading text-sm font-bold capitalize text-neutral-800 dark:text-zinc-200">
+                <h3 className="font-heading text-sm font-bold capitalize text-ink">
                   {formatDateHeader(dateKey)}
                 </h3>
-                <span className="text-xs font-semibold text-neutral-400">
+                <span className="text-xs font-medium text-muted">
                   ({items.length} {activeTab === "active" ? "buổi" : "buổi đã hủy"})
                 </span>
               </div>
@@ -218,40 +222,52 @@ export function ScheduleTimelineView({
                       type="button"
                       key={session.sessionId}
                       onClick={() => onSelectSession(session.sessionId)}
-                      className={`group relative flex flex-col justify-between w-full text-left rounded-2xl border bg-white p-5 shadow-2xs hover:shadow-md transition-all cursor-pointer dark:bg-zinc-900 ${
+                      data-changed={changedSessionIds?.has(session.sessionId) ? "true" : undefined}
+                      className={`group relative flex flex-col justify-between w-full text-left rounded-2xl border bg-surface p-5 shadow-2xs hover:shadow-md transition-all cursor-pointer ${
+                        highlightedSessionId === session.sessionId
+                          ? "ring-4 ring-danger animate-pulse"
+                          : changedSessionIds?.has(session.sessionId)
+                          ? "ring-2 ring-danger"
+                          : ""
+                      } ${
                         activeTab === "active"
-                          ? "border-stone-200 hover:border-sky-300 dark:border-zinc-800"
-                          : "border-rose-100 bg-rose-50/20 hover:border-rose-300 dark:border-rose-950/40"
+                          ? "border-line hover:border-brand-line"
+                          : "border-danger-line bg-danger-soft/20 hover:border-danger-line"
                       }`}
                     >
+                      {changedSessionIds?.has(session.sessionId) && (
+                        <span className="absolute -top-2 right-3 rounded-full bg-danger px-2 py-0.5 text-xs font-medium text-white shadow">
+                          Mới thay đổi
+                        </span>
+                      )}
                       <div>
                         {/* Top row: Time + Status badge */}
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 dark:text-zinc-100">
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-ink">
                             <Clock
                               className={`size-3.5 ${
-                                activeTab === "active" ? "text-sky-600" : "text-rose-500"
+                                activeTab === "active" ? "text-brand-strong" : "text-danger-strong"
                               }`}
                             />
                             {formatTimeRange(session.startAt, session.endAt)}
                           </div>
                           <span
-                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold ${badge.bg}`}
+                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${badge.bg}`}
                           >
                             {badge.text}
                           </span>
                         </div>
 
                         {/* Mode and place */}
-                        <div className="mt-3 flex items-center gap-2 text-xs text-neutral-600 dark:text-zinc-400">
+                        <div className="mt-3 flex items-center gap-2 text-xs text-ink-2">
                           {session.mode === "ONLINE" ? (
                             <>
-                              <Video className="size-3.5 text-sky-500 shrink-0" />
+                              <Video className="size-3.5 text-brand-strong shrink-0" />
                               <span className="truncate">Học trực tuyến (Online)</span>
                             </>
                           ) : (
                             <>
-                              <MapPin className="size-3.5 text-amber-500 shrink-0" />
+                              <MapPin className="size-3.5 text-action-strong shrink-0" />
                               <span className="truncate">
                                 {session.placeOrLink || "Dạy trực tiếp (Offline)"}
                               </span>
@@ -261,7 +277,7 @@ export function ScheduleTimelineView({
 
                         {/* Unified Friendly Class Name */}
                         <div
-                          className="mt-2 text-xs font-bold text-neutral-800 dark:text-zinc-200 truncate"
+                          className="mt-2 text-xs font-medium text-ink truncate"
                           title={classNameFormatted}
                         >
                           {classNameFormatted}
@@ -269,7 +285,7 @@ export function ScheduleTimelineView({
                       </div>
 
                       {/* Bottom row: Action link */}
-                      <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-sky-700 group-hover:text-sky-900 dark:border-zinc-800 dark:text-sky-400">
+                      <div className="mt-4 pt-3 border-t border-line flex items-center justify-between text-xs font-medium text-brand-strong group-hover:text-brand-strong">
                         <span>Xem chi tiết / Thao tác</span>
                         <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                       </div>

@@ -174,8 +174,8 @@ export function FamilyLinksManagementView() {
     <div className="space-y-6" data-testid="family-links-view">
       {/* Toast Notification */}
       {successToast && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-sm animate-in fade-in slide-in-from-top duration-300">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-success-soft text-success-strong border border-success-line shadow-sm animate-in fade-in slide-in-from-top duration-300">
+          <CheckCircle2 className="w-5 h-5 text-success-strong flex-shrink-0" />
           <p className="text-sm font-medium">{successToast}</p>
         </div>
       )}
@@ -184,21 +184,21 @@ export function FamilyLinksManagementView() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-ink">
               Liên kết Phụ huynh - Học sinh
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-soft text-brand-strong">
               Quan hệ bảo trợ
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted mt-1">
             Theo dõi, giám sát và quản lý các mối quan hệ liên kết giám hộ giữa tài khoản Phụ huynh và Học sinh
           </p>
         </div>
 
         <button
           onClick={handleRefresh}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm self-start sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-line-strong rounded-lg text-sm font-medium text-ink-2 bg-surface hover:bg-paper transition-colors shadow-sm self-start sm:self-auto"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           Làm mới
@@ -208,60 +208,60 @@ export function FamilyLinksManagementView() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Links */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600">
+        <div className="bg-surface p-5 rounded-2xl border border-line/80 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-brand-soft text-brand-strong">
             <HeartHandshake className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-medium text-muted">
               Tổng số liên kết
             </p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">
+            <p className="text-2xl font-bold text-ink mt-0.5">
               {stats ? stats.totalLinks.toLocaleString("vi-VN") : "--"}
             </p>
           </div>
         </div>
 
         {/* Active Links */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
+        <div className="bg-surface p-5 rounded-2xl border border-line/80 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-success-soft text-success-strong">
             <UserCheck className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-medium text-muted">
               Đang kết nối
             </p>
-            <p className="text-2xl font-bold text-emerald-600 mt-0.5">
+            <p className="text-2xl font-bold text-success-strong mt-0.5">
               {stats ? stats.activeLinks.toLocaleString("vi-VN") : "--"}
             </p>
           </div>
         </div>
 
         {/* Revoked Links */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-rose-50 text-rose-600">
+        <div className="bg-surface p-5 rounded-2xl border border-line/80 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-danger-soft text-danger-strong">
             <UserX className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-medium text-muted">
               Đã thu hồi / Hủy
             </p>
-            <p className="text-2xl font-bold text-rose-600 mt-0.5">
+            <p className="text-2xl font-bold text-danger-strong mt-0.5">
               {stats ? stats.revokedLinks.toLocaleString("vi-VN") : "--"}
             </p>
           </div>
         </div>
 
         {/* Unique Parents */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
+        <div className="bg-surface p-5 rounded-2xl border border-line/80 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-brand-soft text-brand-strong">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-medium text-muted">
               Phụ huynh bảo trợ
             </p>
-            <p className="text-2xl font-bold text-purple-600 mt-0.5">
+            <p className="text-2xl font-bold text-brand-strong mt-0.5">
               {stats ? stats.uniqueParents.toLocaleString("vi-VN") : "--"}
             </p>
           </div>
@@ -269,10 +269,10 @@ export function FamilyLinksManagementView() {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
+      <div className="bg-surface p-4 rounded-xl border border-line shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-lg self-start">
+          <div className="flex items-center gap-1.5 p-1 bg-sunken rounded-lg self-start">
             <button
               onClick={() => {
                 setSelectedStatus("ALL");
@@ -280,8 +280,8 @@ export function FamilyLinksManagementView() {
               }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                 selectedStatus === "ALL"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-surface text-ink shadow-sm"
+                  : "text-ink-2 hover:text-ink"
               }`}
             >
               Tất cả
@@ -293,8 +293,8 @@ export function FamilyLinksManagementView() {
               }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                 selectedStatus === "CONFIRMED"
-                  ? "bg-white text-emerald-700 shadow-sm"
-                  : "text-gray-600 hover:text-emerald-700"
+                  ? "bg-surface text-success-strong shadow-sm"
+                  : "text-ink-2 hover:text-success-strong"
               }`}
             >
               Đang liên kết
@@ -306,8 +306,8 @@ export function FamilyLinksManagementView() {
               }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                 selectedStatus === "REVOKED"
-                  ? "bg-white text-rose-700 shadow-sm"
-                  : "text-gray-600 hover:text-rose-700"
+                  ? "bg-surface text-danger-strong shadow-sm"
+                  : "text-ink-2 hover:text-danger-strong"
               }`}
             >
               Đã thu hồi
@@ -316,7 +316,7 @@ export function FamilyLinksManagementView() {
 
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Tìm theo tên hoặc email phụ huynh, học sinh..."
@@ -325,7 +325,7 @@ export function FamilyLinksManagementView() {
                 setSearchQuery(e.target.value);
                 setPage(0);
               }}
-              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full pl-9 pr-4 py-2 border border-line-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
             />
             {searchQuery && (
               <button
@@ -333,7 +333,7 @@ export function FamilyLinksManagementView() {
                   setSearchQuery("");
                   setPage(0);
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-semibold"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink-2 text-xs font-medium"
               >
                 Xóa
               </button>
@@ -343,19 +343,19 @@ export function FamilyLinksManagementView() {
       </div>
 
       {/* Main Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center text-gray-500">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mb-2" />
+          <div className="py-20 flex flex-col items-center justify-center text-muted">
+            <Loader2 className="w-8 h-8 animate-spin text-brand-strong mb-2" />
             <p className="text-sm">Đang tải dữ liệu liên kết...</p>
           </div>
         ) : error ? (
           <div className="py-16 px-4 text-center">
-            <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-3" />
-            <p className="text-gray-800 font-medium">{error}</p>
+            <AlertCircle className="w-10 h-10 text-danger-strong mx-auto mb-3" />
+            <p className="text-ink font-medium">{error}</p>
             <button
               onClick={handleRefresh}
-              className="mt-3 px-4 py-1.5 text-sm font-medium text-indigo-600 hover:underline"
+              className="mt-3 px-4 py-1.5 text-sm font-medium text-brand-strong hover:underline"
             >
               Thử lại
             </button>
@@ -376,7 +376,7 @@ export function FamilyLinksManagementView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <tr className="bg-paper border-b border-line text-xs font-medium text-muted">
                   <th className="py-3.5 px-4">Phụ huynh</th>
                   <th className="py-3.5 px-4 text-center">Trạng thái kết nối</th>
                   <th className="py-3.5 px-4">Học sinh</th>
@@ -384,28 +384,28 @@ export function FamilyLinksManagementView() {
                   <th className="py-3.5 px-4 text-right">Hành động</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 text-sm">
+              <tbody className="divide-y divide-line text-sm">
                 {links.map((link) => {
                   const isConfirmed = link.status === "CONFIRMED";
                   return (
                     <tr
                       key={link.linkId}
-                      className="hover:bg-gray-50/80 transition-colors"
+                      className="hover:bg-paper/80 transition-colors"
                       data-testid={`family-link-row-${link.linkId}`}
                     >
                       {/* Parent Column */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 font-semibold flex items-center justify-center text-xs flex-shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-brand-soft text-brand-strong font-medium flex items-center justify-center text-xs flex-shrink-0">
                             {link.parentFullName
                               ? link.parentFullName.charAt(0).toUpperCase()
                               : "P"}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-ink">
                               {link.parentFullName || "Chưa cập nhật tên"}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-muted">
                               {link.parentEmail || "--"}
                             </div>
                           </div>
@@ -417,19 +417,19 @@ export function FamilyLinksManagementView() {
                         <div className="inline-flex flex-col items-center gap-1">
                           <div className="flex items-center gap-1.5 text-xs font-medium">
                             {isConfirmed ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success-strong border border-success-line">
+                                <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
                                 Đang liên kết
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-soft text-danger-strong border border-danger-line">
+                                <span className="w-1.5 h-1.5 rounded-full bg-danger"></span>
                                 Đã thu hồi
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-gray-400 flex items-center gap-1">
-                            Bảo trợ <ArrowRight className="w-3 h-3 text-gray-400" />
+                          <div className="text-xs text-muted flex items-center gap-1">
+                            Bảo trợ <ArrowRight className="w-3 h-3 text-muted" />
                           </div>
                         </div>
                       </td>
@@ -437,16 +437,16 @@ export function FamilyLinksManagementView() {
                       {/* Student Column */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-sky-100 text-sky-700 font-semibold flex items-center justify-center text-xs flex-shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-brand-soft text-brand-strong font-medium flex items-center justify-center text-xs flex-shrink-0">
                             {link.studentFullName
                               ? link.studentFullName.charAt(0).toUpperCase()
                               : "H"}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-ink">
                               {link.studentFullName || "Chưa cập nhật tên"}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-muted">
                               {link.studentEmail || "--"}
                             </div>
                           </div>
@@ -455,12 +455,12 @@ export function FamilyLinksManagementView() {
 
                       {/* Timestamps */}
                       <td className="py-3.5 px-4">
-                        <div className="text-xs text-gray-600 flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                        <div className="text-xs text-ink-2 flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-muted" />
                           <span>Xác nhận: {formatDate(link.confirmedAt)}</span>
                         </div>
                         {link.revokedAt && (
-                          <div className="text-[11px] text-rose-600 mt-0.5">
+                          <div className="text-xs text-danger-strong mt-0.5">
                             Hủy lúc: {formatDate(link.revokedAt)}
                           </div>
                         )}
@@ -471,7 +471,7 @@ export function FamilyLinksManagementView() {
                         {isConfirmed ? (
                           <button
                             onClick={() => handleOpenRevokeModal(link)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-danger-strong bg-danger-soft hover:bg-danger-soft border border-danger-line transition-colors"
                             data-testid={`revoke-btn-${link.linkId}`}
                           >
                             <ShieldAlert className="w-3.5 h-3.5" />
@@ -480,7 +480,7 @@ export function FamilyLinksManagementView() {
                         ) : (
                           <button
                             onClick={() => setDetailLink(link)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-ink-2 bg-sunken hover:bg-line transition-colors"
                             data-testid={`view-reason-btn-${link.linkId}`}
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -498,7 +498,7 @@ export function FamilyLinksManagementView() {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="p-4 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
+          <div className="p-4 border-t border-line flex items-center justify-between text-sm text-ink-2">
             <span>
               Tổng cộng <strong>{totalElements}</strong> liên kết (Trang{" "}
               {page + 1}/{totalPages})
@@ -507,14 +507,14 @@ export function FamilyLinksManagementView() {
               <button
                 disabled={page === 0}
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
-                className="p-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 border border-line-strong rounded-lg hover:bg-paper disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 disabled={page >= totalPages - 1}
                 onClick={() => setPage((p) => p + 1)}
-                className="p-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 border border-line-strong rounded-lg hover:bg-paper disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -526,38 +526,38 @@ export function FamilyLinksManagementView() {
       {/* Revoke Confirmation Modal */}
       {selectedLinkToRevoke && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           data-testid="revoke-confirm-modal"
         >
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150 my-auto">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+          <div className="bg-surface rounded-2xl max-w-dialog-confirm w-full p-6 shadow-xl border border-line animate-in fade-in zoom-in-95 duration-150 my-auto">
+            <div className="w-12 h-12 rounded-full bg-danger-soft text-danger-strong flex items-center justify-center mb-4">
               <ShieldAlert className="w-6 h-6" />
             </div>
 
-            <h3 className="text-lg font-bold text-gray-900">
+            <h3 className="text-lg font-bold text-ink">
               Xác nhận thu hồi liên kết bảo trợ
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-muted mt-1">
               Bạn đang chuẩn bị hủy liên kết giữa Phụ huynh{" "}
-              <strong className="text-gray-800">
+              <strong className="text-ink">
                 {selectedLinkToRevoke.parentFullName}
               </strong>{" "}
               và Học sinh{" "}
-              <strong className="text-gray-800">
+              <strong className="text-ink">
                 {selectedLinkToRevoke.studentFullName}
               </strong>
               . Hành động này sẽ ngắt quyền giám sát học tập của phụ huynh.
             </p>
 
             {revokeError && (
-              <div className="mt-3 p-3 rounded-lg bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
+              <div className="mt-3 p-3 rounded-lg bg-danger-soft text-danger-strong text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{revokeError}</span>
               </div>
             )}
 
             <div className="mt-4">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-ink-2 mb-1">
                 Lý do thu hồi (Bắt buộc cho Quản trị viên)
               </label>
               <textarea
@@ -565,7 +565,7 @@ export function FamilyLinksManagementView() {
                 placeholder="Nhập lý do thu hồi (vd: Yêu cầu xác thực tài khoản sai lệch, tranh chấp khiếu nại...)"
                 value={revokeReason}
                 onChange={(e) => setRevokeReason(e.target.value)}
-                className="w-full p-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                className="w-full p-2.5 text-sm border border-line-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-danger focus:border-danger"
               />
             </div>
 
@@ -574,7 +574,7 @@ export function FamilyLinksManagementView() {
                 type="button"
                 onClick={handleCloseRevokeModal}
                 disabled={isSubmittingRevoke}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-ink-2 hover:bg-sunken rounded-lg transition-colors"
               >
                 Hủy bỏ
               </button>
@@ -582,7 +582,7 @@ export function FamilyLinksManagementView() {
                 type="button"
                 onClick={handleConfirmRevoke}
                 disabled={isSubmittingRevoke}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-danger hover:bg-danger-deep rounded-lg shadow-sm transition-colors disabled:opacity-50"
               >
                 {isSubmittingRevoke && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -597,52 +597,52 @@ export function FamilyLinksManagementView() {
       {/* Revoke Detail Modal */}
       {detailLink && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           data-testid="link-detail-modal"
         >
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100 my-auto">
+          <div className="bg-surface rounded-2xl max-w-dialog-confirm w-full p-6 shadow-xl border border-line my-auto">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-danger-soft text-danger-strong flex items-center justify-center">
                 <Info className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900">
+                <h3 className="text-base font-medium text-ink">
                   Thông tin thu hồi liên kết
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   Chi tiết về việc chấm dứt quan hệ liên kết
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3 text-sm bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+            <div className="space-y-3 text-sm bg-paper p-3.5 rounded-xl border border-line">
               <div>
-                <span className="text-xs text-gray-500 block">Phụ huynh</span>
-                <span className="font-medium text-gray-800">
+                <span className="text-xs text-muted block">Phụ huynh</span>
+                <span className="font-medium text-ink">
                   {detailLink.parentFullName} ({detailLink.parentEmail})
                 </span>
               </div>
               <div>
-                <span className="text-xs text-gray-500 block">Học sinh</span>
-                <span className="font-medium text-gray-800">
+                <span className="text-xs text-muted block">Học sinh</span>
+                <span className="font-medium text-ink">
                   {detailLink.studentFullName} ({detailLink.studentEmail})
                 </span>
               </div>
               <div>
-                <span className="text-xs text-gray-500 block">Thời gian xác nhận</span>
-                <span className="text-gray-700">
+                <span className="text-xs text-muted block">Thời gian xác nhận</span>
+                <span className="text-ink-2">
                   {formatDate(detailLink.confirmedAt)}
                 </span>
               </div>
               <div>
-                <span className="text-xs text-gray-500 block">Thời gian thu hồi</span>
-                <span className="text-rose-600 font-medium">
+                <span className="text-xs text-muted block">Thời gian thu hồi</span>
+                <span className="text-danger-strong font-medium">
                   {formatDate(detailLink.revokedAt)}
                 </span>
               </div>
-              <div className="pt-1 border-t border-gray-200">
-                <span className="text-xs text-gray-500 block">Lý do thu hồi</span>
-                <p className="text-gray-800 font-medium mt-0.5 whitespace-pre-wrap">
+              <div className="pt-1 border-t border-line">
+                <span className="text-xs text-muted block">Lý do thu hồi</span>
+                <p className="text-ink font-medium mt-0.5 whitespace-pre-wrap">
                   {detailLink.revokeReason || "Không có lý do cụ thể"}
                 </p>
               </div>
@@ -652,7 +652,7 @@ export function FamilyLinksManagementView() {
               <button
                 type="button"
                 onClick={() => setDetailLink(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-ink-2 hover:bg-sunken rounded-lg transition-colors"
               >
                 Đóng
               </button>

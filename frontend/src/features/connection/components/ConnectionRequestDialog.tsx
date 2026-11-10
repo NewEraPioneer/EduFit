@@ -138,38 +138,38 @@ export function ConnectionRequestDialog({
     : [];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 p-4 backdrop-blur-xs overflow-y-auto">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="connection-title"
-        className="w-full max-w-lg space-y-4 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-5 sm:p-6 shadow-2xl my-auto"
+        className="w-full max-w-dialog space-y-4 rounded-3xl bg-surface border border-line p-5 sm:p-6 shadow-2xl my-auto"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-stone-100 dark:border-stone-800 pb-3">
+        <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
           <div className="min-w-0">
-            <h3 id="connection-title" className="text-base font-bold text-neutral-900 dark:text-neutral-100">
+            <h3 id="connection-title" className="text-base font-medium text-ink">
               Gửi yêu cầu kết nối gia sư
             </h3>
             {tutor && (
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 break-words">
-                Gia sư: <span className="font-semibold text-neutral-800 dark:text-neutral-200">{tutor.displayName}</span>
+              <p className="text-xs text-muted mt-0.5 break-words">
+                Gia sư: <span className="font-medium text-ink">{tutor.displayName}</span>
               </p>
             )}
           </div>
           <button type="button" onClick={onClose} aria-label="Đóng hộp thoại"
-            className="size-7 shrink-0 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-stone-100 dark:hover:bg-stone-800 text-sm">
+            className="size-7 shrink-0 rounded-full flex items-center justify-center text-muted hover:text-ink-2 hover:bg-sunken text-sm">
             ✕
           </button>
         </div>
 
         {loading ? (
-          <p className="text-xs text-neutral-500 inline-flex items-center gap-2"><Loader2 className="size-4 animate-spin" />Đang tải nhu cầu học…</p>
+          <p className="text-xs text-muted inline-flex items-center gap-2"><Loader2 className="size-4 animate-spin" />Đang tải nhu cầu học…</p>
         ) : eligible.length === 0 ? (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-800 p-4 flex items-start gap-2.5">
-              <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1 text-xs text-amber-900 dark:text-amber-200">
-                <p className="font-bold">Chưa có nhu cầu học cho môn gia sư này dạy</p>
+            <div className="rounded-2xl border border-action-line bg-action-soft/70 p-4 flex items-start gap-2.5">
+              <AlertCircle className="size-5 text-action-strong shrink-0 mt-0.5" />
+              <div className="space-y-1 text-xs text-action-strong">
+                <p className="font-medium">Chưa có nhu cầu học cho môn gia sư này dạy</p>
                 <p>Gia sư cần biết lớp, môn, mục tiêu và lịch học để chuẩn bị. Tạo nhu cầu cho một môn bên dưới.</p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export function ConnectionRequestDialog({
               {(subjectsTaught.length > 0 ? subjectsTaught : [null]).map((offering) => (
                 <button key={offering?.subjectId ?? "any"} type="button"
                   onClick={() => setNeedDialog({ need: null, subjectId: offering?.subjectId })}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold text-neutral-800 hover:bg-stone-50">
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-line text-xs font-medium text-ink hover:bg-paper">
                   <Plus className="size-3.5" />
                   {offering ? `Tạo nhu cầu môn ${offeringName({ subjectName: offering.subjectName, trackName: null })}` : "Tạo nhu cầu học"}
                 </button>
@@ -185,17 +185,17 @@ export function ConnectionRequestDialog({
             </div>
             <div className="flex justify-end">
               <button type="button" onClick={onClose}
-                className="rounded-full border border-stone-200 dark:border-stone-700 px-5 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-stone-50">
+                className="rounded-full border border-line px-5 py-2 text-xs font-medium text-ink-2 hover:bg-paper">
                 Đóng
               </button>
             </div>
           </div>
         ) : (
           <form onSubmit={send} className="space-y-4">
-            <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+            <label className="block text-xs font-medium text-ink-2">
               Nhu cầu học gửi kèm yêu cầu
               <select value={needId} onChange={(event) => { setSlotDraft(null); setNeedId(event.target.value); }}
-                className="mt-1 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-2 text-xs font-medium text-neutral-900 dark:text-neutral-100">
+                className="mt-1 w-full rounded-xl border border-line bg-paper p-2 text-xs font-medium text-ink">
                 {eligible.map((need) => (
                   <option key={need.needId} value={need.needId}>
                     {needTitle(need)}{need.status === "INCOMPLETE" ? " (cần bổ sung)" : ""}
@@ -205,23 +205,23 @@ export function ConnectionRequestDialog({
             </label>
 
             {selected && (
-              <div className="rounded-2xl border border-stone-100 dark:border-stone-800 bg-stone-50/80 dark:bg-stone-800/50 p-3.5 space-y-2">
+              <div className="rounded-2xl border border-line bg-paper/80 p-3.5 space-y-2">
                 <LearningNeedSummary need={selected} />
                 {selected.status === "INCOMPLETE" && (
                   <button type="button" onClick={() => setNeedDialog({ need: selected })}
-                    className="px-3 py-1.5 rounded-xl bg-[#006DCC] text-white text-xs font-bold">
+                    className="px-3 py-1.5 rounded-xl bg-brand text-white text-xs font-medium">
                     Bổ sung: {describeMissing(selected.missingFields)}
                   </button>
                 )}
-                {fitLoading && <p className="text-[11px] text-neutral-500">Đang so khớp với gia sư…</p>}
+                {fitLoading && <p className="text-xs text-muted">Đang so khớp với gia sư…</p>}
                 {fit && (
-                  <div className="space-y-1.5 pt-1 border-t border-stone-200/70">
-                    <p className="text-xs text-neutral-700 dark:text-neutral-300 break-words">
+                  <div className="space-y-1.5 pt-1 border-t border-line/70">
+                    <p className="text-xs text-ink-2 break-words">
                       Gói dạy: <strong>{fit.offeringName}</strong> · {formatVnd(fit.pricePerSession)}/buổi · {Math.round(fit.matchScore)}% phù hợp
                     </p>
                     <FitChecks checks={fit.checks} />
                     {fit.checks.some((check) => !check.matched) && (
-                      <p className="text-[11px] text-amber-700">Vẫn có thể gửi; gia sư sẽ thấy các điểm chưa khớp để cân nhắc.</p>
+                      <p className="text-xs text-action-strong">Vẫn có thể gửi; gia sư sẽ thấy các điểm chưa khớp để cân nhắc.</p>
                     )}
                   </div>
                 )}
@@ -229,45 +229,45 @@ export function ConnectionRequestDialog({
             )}
 
             {selected?.status === "ACTIVE" && (
-              <details className="rounded-2xl border border-stone-200 bg-white p-3.5">
-                <summary className="cursor-pointer text-xs font-semibold text-sky-700">Đổi lịch đề xuất cho gia sư này</summary>
-                <p className="mt-2 text-xs text-neutral-600">Lịch ban đầu lấy từ nhu cầu học. Thay đổi ở đây chỉ áp dụng cho yêu cầu gửi đến gia sư này.</p>
-                {!proposedSlots.length && <p className="mt-2 text-xs text-sky-700">Không có lịch riêng: yêu cầu sẽ dùng lịch của nhu cầu học.</p>}
-                <button type="button" onClick={() => setSlotDraft(null)} className="mt-2 text-xs font-semibold text-sky-700 underline">Lấy lại lịch mới nhất của nhu cầu</button>
+              <details className="rounded-2xl border border-line bg-surface p-3.5">
+                <summary className="cursor-pointer text-xs font-medium text-brand-strong">Đổi lịch đề xuất cho gia sư này</summary>
+                <p className="mt-2 text-xs text-ink-2">Lịch ban đầu lấy từ nhu cầu học. Thay đổi ở đây chỉ áp dụng cho yêu cầu gửi đến gia sư này.</p>
+                {!proposedSlots.length && <p className="mt-2 text-xs text-brand-strong">Không có lịch riêng: yêu cầu sẽ dùng lịch của nhu cầu học.</p>}
+                <button type="button" onClick={() => setSlotDraft(null)} className="mt-2 text-xs font-medium text-brand-strong underline">Lấy lại lịch mới nhất của nhu cầu</button>
                 <div className="mt-3 max-h-64 overflow-y-auto">
                   <AvailabilitySlotPicker slots={proposedSlots} onChange={setProposedSlots} showValidation={false} title="Lịch muốn đề xuất" />
                 </div>
               </details>
             )}
 
-            <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+            <label className="block text-xs font-medium text-ink-2">
               Lời nhắn gửi gia sư (không bắt buộc)
               <textarea
-                className="mt-1 w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-2.5 text-xs text-neutral-900 dark:text-neutral-100"
+                className="mt-1 w-full rounded-xl border border-line bg-surface p-2.5 text-xs text-ink"
                 maxLength={MESSAGE_MAX}
                 rows={3}
                 placeholder="Ví dụ: Mong muốn học thử buổi đầu tiên, cần củng cố phần hình học..."
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
               />
-              <span className="block text-right text-[11px] font-normal text-neutral-400">{message.length}/{MESSAGE_MAX}</span>
+              <span className="block text-right text-xs font-normal text-muted">{message.length}/{MESSAGE_MAX}</span>
             </label>
 
-            {error && <p role="alert" className="text-xs text-rose-700 dark:text-rose-400 font-medium">{error}</p>}
-            {!slotValidation.valid && selected?.status === "ACTIVE" && <p role="alert" className="text-xs font-medium text-rose-700">{slotValidation.message}</p>}
+            {error && <p role="alert" className="text-xs text-danger-strong font-medium">{error}</p>}
+            {!slotValidation.valid && selected?.status === "ACTIVE" && <p role="alert" className="text-xs font-medium text-danger-strong">{slotValidation.message}</p>}
 
             <div className="flex flex-wrap justify-between gap-3 pt-1">
               <button type="button" onClick={() => setNeedDialog({ need: null, subjectId: selected?.subjectId })}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[#006DCC]">
+                className="inline-flex items-center gap-1 text-xs font-medium text-brand-strong">
                 <Plus className="size-3.5" />Nhu cầu khác
               </button>
               <div className="flex gap-3">
                 <button type="button" disabled={busy} onClick={onClose}
-                  className="rounded-full border border-stone-200 dark:border-stone-700 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-stone-50">
+                  className="rounded-full border border-line px-4 py-2 text-xs font-medium text-ink-2 hover:bg-paper">
                   Đóng
                 </button>
                 <button disabled={busy || !selected || selected.status !== "ACTIVE" || !slotValidation.valid}
-                  className="rounded-full bg-blue-700 px-5 py-2 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-50">
+                  className="rounded-full bg-brand px-5 py-2 text-xs font-medium text-white hover:bg-brand-deep disabled:opacity-50">
                   {busy ? "Đang gửi…" : "Xác nhận gửi yêu cầu"}
                 </button>
               </div>

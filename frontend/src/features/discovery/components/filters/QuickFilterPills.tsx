@@ -27,9 +27,9 @@ const DAY_OPTIONS = [
   { value: 7, label: "Chủ Nhật" },
 ];
 
-const activePill = "bg-[#006DCC] text-white border-transparent";
+const activePill = "bg-brand text-white border-transparent";
 const idlePill =
-  "bg-card border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800";
+  "bg-card border border-line text-ink-2 hover:bg-paper";
 
 /** Ô chọn dạng pill; giá trị rỗng nghĩa là không lọc. */
 function PillSelect({ label, value, options, onChange, disabled = false }: {
@@ -49,12 +49,12 @@ function PillSelect({ label, value, options, onChange, disabled = false }: {
         disabled={disabled}
         className={`appearance-none max-w-[14rem] truncate pl-3 pr-7 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed ${active ? activePill : idlePill}`}
       >
-        <option value="" className="text-neutral-900 bg-card">{label}</option>
+        <option value="" className="text-ink bg-card">{label}</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value} className="text-neutral-900 bg-card">{option.label}</option>
+          <option key={option.value} value={option.value} className="text-ink bg-card">{option.label}</option>
         ))}
       </select>
-      <ChevronDown className={`size-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${active ? "text-white" : "text-neutral-400"}`} />
+      <ChevronDown className={`size-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${active ? "text-white" : "text-muted"}`} />
     </div>
   );
 }
@@ -150,17 +150,17 @@ export function QuickFilterPills({
         onClick={() => onUpdateFilters({ minRating: params.minRating === 4.5 ? undefined : 4.5 })}
         className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shadow-2xs ${params.minRating === 4.5 ? activePill : idlePill}`}
       >
-        Rating 4.5+ {params.minRating === 4.5 && "★"}
+        Từ 4,5 sao {params.minRating === 4.5 && "★"}
       </button>
 
       <button
         type="button"
         aria-expanded={showAdvanced}
         onClick={onToggleAdvanced}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer shadow-2xs ${
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer shadow-2xs ${
           showAdvanced
-            ? "bg-sky-50 dark:bg-sky-950 border-sky-300 dark:border-sky-800 text-[#006DCC]"
-            : "bg-card border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-neutral-300 hover:bg-stone-50 dark:hover:bg-stone-800"
+            ? "bg-brand-soft border-brand-line text-brand-strong"
+            : "bg-card border-line text-ink-2 hover:bg-paper"
         }`}
       >
         <SlidersHorizontal className="size-3" />
@@ -174,7 +174,7 @@ export function QuickFilterPills({
             onClearKeywordInput();
             onResetFilters();
           }}
-          className="text-xs font-medium text-[#006DCC] hover:underline cursor-pointer ml-1"
+          className="text-xs font-medium text-brand-strong hover:underline cursor-pointer ml-1"
         >
           Xóa bộ lọc
         </button>

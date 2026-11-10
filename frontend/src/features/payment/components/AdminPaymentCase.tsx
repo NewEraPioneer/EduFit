@@ -70,14 +70,14 @@ export function AdminPaymentCase({ id }: { id: string }) {
   }
   return (
     <main className="mx-auto max-w-4xl space-y-5 pb-8">
-      <Link href="/admin/disputes" className="text-sm text-sky-700 underline">
+      <Link href="/admin/disputes" className="text-sm text-brand-strong underline">
         Quay lại danh sách hồ sơ
       </Link>
       <h1 className="text-2xl font-bold">Hồ sơ học phí buổi học</h1>
       {error && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
+          className="rounded-lg bg-danger-soft p-3 text-sm text-danger-strong"
         >
           {error}
         </p>
@@ -93,9 +93,9 @@ export function AdminPaymentCase({ id }: { id: string }) {
           {["AWAITING_ADMIN", "ADMIN_REVIEW"].includes(session.status) && (
             <form
               onSubmit={submit}
-              className="space-y-4 rounded-2xl border border-amber-200 bg-white p-5"
+              className="space-y-4 rounded-2xl border border-action-line bg-surface p-5"
             >
-              <h2 className="font-bold">
+              <h2 className="font-medium">
                 Quyết định sau khi xem xét bằng chứng
               </h2>
               <p className="text-sm">
@@ -103,7 +103,7 @@ export function AdminPaymentCase({ id }: { id: string }) {
                 còn lại hoàn người trả. Nhập 0 để hoàn toàn bộ.
               </p>
               {session.sessionStatus !== "COMPLETED" && (
-                <p className="rounded-lg bg-amber-50 p-3 text-sm">
+                <p className="rounded-lg bg-action-soft p-3 text-sm">
                   Lịch học chưa ghi nhận hoàn thành. Admin cần đối chiếu bằng
                   chứng trước khi quyết định tính học phí.
                 </p>
@@ -179,7 +179,7 @@ export function AdminPaymentCase({ id }: { id: string }) {
                 <div
                   role="region"
                   aria-label="Xem lại quyết định"
-                  className="space-y-2 rounded-lg bg-amber-50 p-4 text-sm"
+                  className="space-y-2 rounded-lg bg-action-soft p-4 text-sm"
                 >
                   <p>
                     Hoàn ví người trả:{" "}
@@ -203,7 +203,7 @@ export function AdminPaymentCase({ id }: { id: string }) {
               )}
               <button
                 disabled={!valid || busy}
-                className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold disabled:opacity-50"
+                className="rounded-lg bg-action px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
                 {review ? "Xác nhận phân xử" : "Xem lại quyết định"}
               </button>

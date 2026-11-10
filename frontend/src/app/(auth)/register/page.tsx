@@ -14,7 +14,7 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="w-full max-w-md p-8 bg-white rounded-3xl border border-stone-200 shadow-md text-center text-sm text-neutral-500">
+        <div className="w-full max-w-md p-8 bg-surface rounded-3xl border border-line shadow-md text-center text-sm text-muted">
           Đang tải biểu mẫu đăng ký...
         </div>
       }

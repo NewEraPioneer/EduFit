@@ -1,0 +1,27 @@
+@startuml
+!include style.iuml
+title Nhóm 1: Tài khoản, hồ sơ, xác minh
+left to right direction
+actor User as U
+actor Student as S
+actor Tutor as T
+actor Admin as A
+actor "AI Provider" as AI <<hệ thống ngoài>>
+rectangle "Nhóm 1" {
+  usecase "UC1.1-1.4\nĐăng ký, đăng nhập,\nđăng xuất, mật khẩu" as UC11
+  usecase "UC1.5-1.6\nHồ sơ gia sư" as UC15
+  usecase "UC1.7\nAI gợi ý bio" as UC17
+  usecase "UC1.8-1.9\nHồ sơ học sinh" as UC18
+  usecase "UC1.10\nGửi yêu cầu xác minh" as UC110
+  usecase "UC1.11\nTải bằng cấp" as UC111
+  usecase "UC1.12\nDuyệt xác minh" as UC112
+}
+U --> UC11
+T --> UC15
+S --> UC18
+T --> UC110
+A --> UC112
+UC17 .up.> UC15 : <<extend>>
+UC111 .up.> UC110 : <<include>>
+UC17 -- AI
+@enduml

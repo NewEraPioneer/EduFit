@@ -71,30 +71,30 @@ export function LearningNeedManager({ studentId, defaults, onChange }: LearningN
   return (
     <section className="space-y-3" aria-labelledby="learning-needs-heading">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="learning-needs-heading" className="font-heading font-bold text-base text-neutral-900">Nhu cầu học</h3>
+        <h3 id="learning-needs-heading" className="font-heading font-bold text-base text-ink">Nhu cầu học</h3>
         <button type="button" onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#006DCC] text-white text-xs font-bold hover:bg-[#005BB0]">
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand text-white text-xs font-medium hover:bg-brand-deep">
           <Plus className="size-4" />Thêm nhu cầu
         </button>
       </div>
 
-      {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}
-      {loading && <p className="text-xs text-neutral-500 inline-flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" />Đang tải…</p>}
+      {error && <p role="alert" className="text-xs text-danger-strong">{error}</p>}
+      {loading && <p className="text-xs text-muted inline-flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" />Đang tải…</p>}
       {!loading && needs.length === 0 && (
-        <p className="text-sm text-neutral-500">Chưa có nhu cầu học nào. Thêm nhu cầu để AI gợi ý gia sư phù hợp.</p>
+        <p className="text-sm text-muted">Chưa có nhu cầu học nào. Thêm nhu cầu để AI gợi ý gia sư phù hợp.</p>
       )}
 
       <ul className="space-y-2">
         {needs.map((need) => (
-          <li key={need.needId} className="p-4 rounded-2xl border border-stone-200 bg-white flex flex-col sm:flex-row sm:items-start gap-3">
+          <li key={need.needId} className="p-4 rounded-2xl border border-line bg-surface flex flex-col sm:flex-row sm:items-start gap-3">
             <div className="flex-1 min-w-0"><LearningNeedSummary need={need} /></div>
             <div className="flex gap-2 shrink-0">
               <button type="button" onClick={() => setEditing(need)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-200 text-xs font-semibold text-neutral-700 hover:bg-stone-50">
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-line text-xs font-medium text-ink-2 hover:bg-paper">
                 <Pencil className="size-3.5" />Sửa
               </button>
               <button type="button" onClick={() => archive(need)} disabled={archivingId === need.needId}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-200 text-xs font-semibold text-neutral-600 hover:bg-stone-50 disabled:opacity-50">
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-line text-xs font-medium text-ink-2 hover:bg-paper disabled:opacity-50">
                 {archivingId === need.needId ? <Loader2 className="size-3.5 animate-spin" /> : <Archive className="size-3.5" />}Lưu trữ
               </button>
             </div>

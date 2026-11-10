@@ -53,11 +53,11 @@ export function PaymentDialog({
             onClose();
         }
       }}
-      className={`m-auto max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-stone-950/50 ${
+      className={`m-auto max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-night/50 ${
         wide ? "max-w-4xl" : "max-w-xl"
       }`}
     >
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-stone-100 bg-white px-5 py-4">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-surface px-5 py-4">
         <h2 id={titleId} className="text-lg font-bold">
           {title}
         </h2>
@@ -66,7 +66,7 @@ export function PaymentDialog({
           aria-label="Đóng popup"
           disabled={busy}
           onClick={onClose}
-          className="rounded-full p-2 text-neutral-500 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-amber-600 disabled:opacity-40"
+          className="rounded-full p-2 text-muted hover:bg-sunken focus-visible:outline-2 focus-visible:outline-action disabled:opacity-40"
         >
           <X className="size-5" />
         </button>

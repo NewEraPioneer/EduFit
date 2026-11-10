@@ -27,14 +27,14 @@ export function ParentKpiGrid({ child }: ParentKpiGridProps) {
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-        <div className="flex items-center justify-between text-neutral-400">
-          <span className="text-xs font-bold uppercase tracking-wider">Số buổi đã học</span>
-          <Calendar className="size-4 text-emerald-600" />
+      <div className="card-lift bg-surface p-5 rounded-2xl border border-line/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between text-muted">
+          <span className="text-xs font-medium">Số buổi đã học</span>
+          <Calendar className="size-4 text-success-strong" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-extrabold font-heading text-neutral-900">{child.completedLessons}</div>
-          <div className="text-[11px] text-neutral-500 font-semibold mt-0.5">
+          <div className="text-2xl font-bold font-heading text-ink">{child.completedLessons}</div>
+          <div className="text-xs text-muted font-medium mt-0.5">
             {child.attendanceRate !== null
               ? `Chuyên cần ${child.attendanceRate}%`
               : "Chưa có buổi học kết thúc"}
@@ -42,16 +42,16 @@ export function ParentKpiGrid({ child }: ParentKpiGridProps) {
         </div>
       </div>
 
-      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-        <div className="flex items-center justify-between text-neutral-400">
-          <span className="text-xs font-bold uppercase tracking-wider">Tiến độ mục tiêu</span>
-          <TrendingUp className="size-4 text-sky-600" />
+      <div className="card-lift bg-surface p-5 rounded-2xl border border-line/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between text-muted">
+          <span className="text-xs font-medium">Tiến độ mục tiêu</span>
+          <TrendingUp className="size-4 text-brand-strong" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-extrabold font-heading text-neutral-900">
+          <div className="text-2xl font-bold font-heading text-ink">
             {child.progressPercent !== null ? `${child.progressPercent}%` : "—"}
           </div>
-          <div className="text-[11px] text-neutral-500 font-semibold mt-0.5 truncate">
+          <div className="text-xs text-muted font-medium mt-0.5 truncate">
             {child.progressPercent !== null
               ? child.goalTitle || "Theo lộ trình của gia sư"
               : "Gia sư chưa lập lộ trình học"}
@@ -59,28 +59,28 @@ export function ParentKpiGrid({ child }: ParentKpiGridProps) {
         </div>
       </div>
 
-      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-        <div className="flex items-center justify-between text-neutral-400">
-          <span className="text-xs font-bold uppercase tracking-wider">Học phí</span>
-          <CreditCard className="size-4 text-amber-600" />
+      <div className="card-lift bg-surface p-5 rounded-2xl border border-line/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between text-muted">
+          <span className="text-xs font-medium">Học phí</span>
+          <CreditCard className="size-4 text-action-strong" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-extrabold font-heading text-neutral-900"><Link href="/parent/billing" className="hover:underline">Xem học phí</Link></div>
-          <div className="text-[11px] text-neutral-500 font-semibold mt-0.5">Chi tiết trong ví học phí</div>
+          <div className="text-2xl font-bold font-heading text-ink"><Link href="/parent/billing" className="hover:underline">Xem học phí</Link></div>
+          <div className="text-xs text-muted font-medium mt-0.5">Chi tiết trong ví học phí</div>
         </div>
       </div>
 
-      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-        <div className="flex items-center justify-between text-neutral-400">
-          <span className="text-xs font-bold uppercase tracking-wider">Buổi học kế tiếp</span>
-          <Clock className="size-4 text-emerald-600" />
+      <div className="card-lift bg-surface p-5 rounded-2xl border border-line/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between text-muted">
+          <span className="text-xs font-medium">Buổi học kế tiếp</span>
+          <Clock className="size-4 text-success-strong" />
         </div>
         <div className="mt-3">
-          <div className="text-sm font-extrabold text-neutral-900 truncate">
+          <div className="text-sm font-medium text-ink truncate">
             {nextSession ?? "Chưa có buổi sắp tới"}
           </div>
           {nextSession && (
-            <div className="text-[11px] text-neutral-400 font-medium mt-0.5">Đã được hai bên xác nhận</div>
+            <div className="text-xs text-muted font-medium mt-0.5">Đã được hai bên xác nhận</div>
           )}
         </div>
       </div>

@@ -65,7 +65,7 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
   if (isLoading || !user || state === "checking") {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="size-8 text-amber-500 animate-spin" />
+        <Loader2 className="size-8 text-action-strong animate-spin" />
       </div>
     );
   }
@@ -76,13 +76,13 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
         role="alert"
         className="min-h-[50vh] flex flex-col items-center justify-center gap-3 text-center px-4"
       >
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-ink-2">
           Không thể kiểm tra hồ sơ của bạn lúc này. Vui lòng kiểm tra kết nối và thử lại.
         </p>
         <button
           type="button"
           onClick={retry}
-          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors cursor-pointer"
+          className="px-4 py-2 rounded-xl bg-action hover:bg-action-deep text-on-action text-xs font-medium transition-colors cursor-pointer"
         >
           Thử lại
         </button>

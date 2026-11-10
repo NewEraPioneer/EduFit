@@ -61,7 +61,7 @@ export function AdminProfileForm() {
     e.preventDefault();
 
     if (!fullName.trim()) {
-      showToast("Vui lòng nhập họ và tên hiển thị của Quản trị viên!", "error");
+      showToast("Nhập họ và tên hiển thị của quản trị viên.", "error");
       return;
     }
 
@@ -141,9 +141,9 @@ export function AdminProfileForm() {
 
   if (loading) {
     return (
-      <div className="p-12 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-stone-200">
-        <Loader2 className="size-6 text-purple-600 animate-spin" />
-        <span className="text-xs text-neutral-500 font-medium">
+      <div className="p-12 flex flex-col items-center justify-center gap-3 bg-surface rounded-3xl border border-line">
+        <Loader2 className="size-6 text-brand-strong animate-spin" />
+        <span className="text-xs text-muted font-medium">
           Đang nạp dữ liệu hồ sơ quản trị viên...
         </span>
       </div>
@@ -155,18 +155,18 @@ export function AdminProfileForm() {
       {/* 1. Thông Tin Quản Trị Viên */}
       <form
         onSubmit={handleSaveInfo}
-        className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-6"
+        className="bg-surface p-6 sm:p-8 rounded-3xl border border-line/90 shadow-xs space-y-6"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-stone-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-line">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-900 rounded-full text-xs font-bold mb-2">
-              <ShieldAlert className="size-3.5 text-purple-600" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-soft text-brand-strong rounded-full text-xs font-medium mb-2">
+              <ShieldAlert className="size-3.5 text-brand-strong" />
               <span>Hồ Sơ Quản Trị Viên (System Admin)</span>
             </div>
-            <h3 className="font-heading text-xl font-bold text-neutral-900">
-              Thông tin phân quyền & Trách nhiệm điều hành
+            <h3 className="font-heading text-xl font-bold text-ink">
+              Phân quyền và trách nhiệm điều hành
             </h3>
-            <p className="text-xs text-neutral-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Tài khoản nắm quyền cao nhất trong phê duyệt hồ sơ gia sư và xử lý khiếu nại
             </p>
           </div>
@@ -174,7 +174,7 @@ export function AdminProfileForm() {
           <button
             type="submit"
             disabled={savingInfo}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand hover:bg-brand-deep active:scale-[0.99] text-white font-medium text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
           >
             {savingInfo ? (
               <Loader2 className="size-4 animate-spin" />
@@ -188,65 +188,65 @@ export function AdminProfileForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Tên Quản trị viên */}
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Họ và tên hiển thị <span className="text-rose-500">*</span>
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
+              Họ và tên hiển thị <span className="text-danger-strong">*</span>
             </label>
             <div className="relative">
-              <User className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="VD: Quản Trị Viên EduFit"
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-neutral-900 font-medium"
+                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium"
               />
             </div>
           </div>
 
           {/* Email quản trị (read-only) */}
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
               Email quản trị chính
             </label>
             <div className="relative">
-              <Mail className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 disabled
                 value={user?.email ?? ""}
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-100 border border-stone-200 rounded-xl text-neutral-500 font-medium cursor-not-allowed"
+                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-sunken border border-line rounded-xl text-muted font-medium cursor-not-allowed"
               />
             </div>
           </div>
 
           {/* Phòng ban / Bộ phận */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
               Bộ phận / Phòng ban phụ trách
             </label>
             <div className="relative">
-              <Building className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Building className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                placeholder="VD: Ban Kiểm Duyệt Hồ Sơ Gia Sư & Quản Trị Nền Tảng"
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-neutral-900 font-medium"
+                placeholder="VD: Ban kiểm duyệt hồ sơ gia sư và quản trị nền tảng"
+                className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-brand focus:ring-2 focus:ring-brand/20 text-ink font-medium"
               />
             </div>
           </div>
         </div>
 
         {/* Thẻ quyền hạn hệ thống */}
-        <div className="p-4 bg-purple-50/60 rounded-2xl border border-purple-100 flex items-start gap-3">
-          <ShieldCheck className="size-5 text-purple-600 shrink-0 mt-0.5" />
+        <div className="p-4 bg-brand-soft/60 rounded-2xl border border-brand-line flex items-start gap-3">
+          <ShieldCheck className="size-5 text-brand-strong shrink-0 mt-0.5" />
           <div className="text-xs">
-            <span className="font-bold text-purple-900 block mb-0.5">
+            <span className="font-medium text-brand-strong block mb-0.5">
               Đặc quyền Quản trị viên (Super Admin Role - RBAC)
             </span>
-            <span className="text-purple-700 leading-relaxed block">
-              Tài khoản này được cấp quyền truy cập toàn diện: Duyệt hồ sơ xác minh KYC gia sư (UC1.8 / UC1.9), quản lý trạng thái tài khoản, can thiệp giải quyết sự cố lớp học, và xem nhật ký kiểm toán hệ thống.
+            <span className="text-brand-strong leading-relaxed block">
+              Tài khoản này có quyền duyệt hồ sơ xác minh KYC gia sư, quản lý trạng thái tài khoản, giải quyết sự cố lớp học và xem nhật ký kiểm toán.
             </span>
           </div>
         </div>
@@ -255,18 +255,18 @@ export function AdminProfileForm() {
       {/* 2. Đổi Mật Khẩu Bảo Mật */}
       <form
         onSubmit={handleChangePassword}
-        className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/90 shadow-xs space-y-6"
+        className="bg-surface p-6 sm:p-8 rounded-3xl border border-line/90 shadow-xs space-y-6"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-stone-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-line">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-900 rounded-full text-xs font-bold mb-2">
-              <KeyRound className="size-3.5 text-amber-600" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-action-soft text-action-strong rounded-full text-xs font-medium mb-2">
+              <KeyRound className="size-3.5 text-action-strong" />
               <span>Bảo Mật Tài Khoản (Security Settings)</span>
             </div>
-            <h3 className="font-heading text-xl font-bold text-neutral-900">
+            <h3 className="font-heading text-xl font-bold text-ink">
               Đổi mật khẩu đăng nhập
             </h3>
-            <p className="text-xs text-neutral-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Tuân thủ chuẩn mã hóa Argon2 (NFR-01) bảo vệ chống tấn công Brute-force
             </p>
           </div>
@@ -274,7 +274,7 @@ export function AdminProfileForm() {
           <button
             type="submit"
             disabled={changingPassword || !currentPassword || !newPassword}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-night hover:bg-night active:scale-[0.99] text-white font-medium text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
           >
             {changingPassword ? (
               <Loader2 className="size-4 animate-spin" />
@@ -287,8 +287,8 @@ export function AdminProfileForm() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Mật khẩu hiện tại <span className="text-rose-500">*</span>
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
+              Mật khẩu hiện tại <span className="text-danger-strong">*</span>
             </label>
             <input
               type="password"
@@ -296,13 +296,13 @@ export function AdminProfileForm() {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 text-neutral-900 font-medium"
+              className="w-full px-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-line-strong focus:ring-2 focus:ring-line-strong/10 text-ink font-medium"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Mật khẩu mới <span className="text-rose-500">*</span>
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
+              Mật khẩu mới <span className="text-danger-strong">*</span>
             </label>
             <input
               type="password"
@@ -310,13 +310,13 @@ export function AdminProfileForm() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Tối thiểu 8 ký tự"
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 text-neutral-900 font-medium"
+              className="w-full px-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-line-strong focus:ring-2 focus:ring-line-strong/10 text-ink font-medium"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Xác nhận mật khẩu mới <span className="text-rose-500">*</span>
+            <label className="block text-xs font-medium text-ink-2 mb-1.5">
+              Xác nhận mật khẩu mới <span className="text-danger-strong">*</span>
             </label>
             <input
               type="password"
@@ -324,7 +324,7 @@ export function AdminProfileForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Nhập lại mật khẩu mới"
-              className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 text-neutral-900 font-medium"
+              className="w-full px-3.5 py-2.5 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-line-strong focus:ring-2 focus:ring-line-strong/10 text-ink font-medium"
             />
           </div>
         </div>

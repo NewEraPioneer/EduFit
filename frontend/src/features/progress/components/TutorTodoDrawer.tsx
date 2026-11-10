@@ -94,12 +94,12 @@ export function TutorTodoDrawer() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 rounded-xl text-xs font-bold shadow-2xs transition-colors shrink-0 cursor-pointer"
+        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-action-soft hover:bg-action-soft border border-action-line text-action-strong rounded-xl text-xs font-medium shadow-2xs transition-colors shrink-0 cursor-pointer"
       >
         <ClipboardList className="size-3.5" />
         <span>Việc cần làm</span>
         <span
-          className="rounded-full bg-amber-500 px-1.5 text-[10px] text-white"
+          className="rounded-full bg-action px-1.5 text-xs text-on-action"
           aria-label={`${total} việc cần làm`}
           data-testid="tutor-todo-count"
         >
@@ -108,34 +108,34 @@ export function TutorTodoDrawer() {
       </button>
 
       {open && (
-        <div role="dialog" aria-modal="true" aria-labelledby="tutor-todo-title" className="fixed inset-0 z-40 flex justify-end bg-stone-900/40">
-          <div className="h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl p-5 space-y-5">
+        <div role="dialog" aria-modal="true" aria-labelledby="tutor-todo-title" className="fixed inset-0 z-40 flex justify-end bg-night/40">
+          <div className="h-full w-full max-w-dialog-confirm overflow-y-auto bg-surface shadow-2xl p-5 space-y-5">
             <div className="flex items-center justify-between">
-              <h2 id="tutor-todo-title" className="font-heading text-base font-bold text-neutral-900">
+              <h2 id="tutor-todo-title" className="font-heading text-base font-bold text-ink">
                 Việc cần làm
               </h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Đóng"
-                className="grid size-8 place-items-center rounded-full text-neutral-400 hover:bg-stone-100 cursor-pointer"
+                className="grid size-8 place-items-center rounded-full text-muted hover:bg-sunken cursor-pointer"
               >
                 <X className="size-4" />
               </button>
             </div>
 
             {error && (
-              <p role="alert" className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800">
+              <p role="alert" className="rounded-xl bg-danger-soft border border-danger-line p-3 text-xs text-danger-strong">
                 {error}
               </p>
             )}
             {loading && (
-              <p className="flex items-center gap-2 text-xs text-neutral-500">
+              <p className="flex items-center gap-2 text-xs text-muted">
                 <Loader2 className="size-3.5 animate-spin" /> Đang tải…
               </p>
             )}
             {!loading && todos && total === 0 && (
-              <p className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-900">
+              <p className="rounded-2xl bg-success-soft border border-success-line p-4 text-xs text-success-strong">
                 Không còn việc nào cần làm. Mọi buổi học đã có phản hồi và lộ trình đều đúng hạn.
               </p>
             )}
@@ -147,7 +147,7 @@ export function TutorTodoDrawer() {
                     <span>
                       <strong>{s.studentName ?? "Học sinh"}</strong> · {formatDateTime(s.startAt)}
                       {s.late && (
-                        <span className="ml-1 rounded-full bg-stone-200 px-1.5 py-0.5 text-[10px] font-bold text-neutral-700">
+                        <span className="ml-1 rounded-full bg-line px-1.5 py-0.5 text-xs font-medium text-ink-2">
                           Bổ sung muộn
                         </span>
                       )}
@@ -155,7 +155,7 @@ export function TutorTodoDrawer() {
                     <button
                       type="button"
                       onClick={() => void openFeedback(s)}
-                      className="shrink-0 min-h-8 px-2.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold cursor-pointer"
+                      className="shrink-0 min-h-8 px-2.5 rounded-lg bg-success text-white text-xs font-medium cursor-pointer"
                     >
                       Phản hồi
                     </button>
@@ -171,7 +171,7 @@ export function TutorTodoDrawer() {
                     <span>
                       <strong>{c.studentName ?? "Học sinh"}</strong> · {c.classTitle}
                     </span>
-                    <Link href={TUTOR_CLASSES_HREF} className="shrink-0 text-[11px] font-bold text-amber-700 underline">
+                    <Link href={TUTOR_CLASSES_HREF} className="shrink-0 text-xs font-medium text-action-strong underline">
                       Lập lộ trình
                     </Link>
                   </li>
@@ -197,7 +197,7 @@ export function TutorTodoDrawer() {
                     <span>
                       <strong>{c.studentName ?? "Học sinh"}</strong> · {c.classTitle}
                     </span>
-                    <Link href={TUTOR_CLASSES_HREF} className="shrink-0 text-[11px] font-bold text-amber-700 underline">
+                    <Link href={TUTOR_CLASSES_HREF} className="shrink-0 text-xs font-medium text-action-strong underline">
                       Đặt hạn cuối
                     </Link>
                   </li>
@@ -254,10 +254,10 @@ export function TutorTodoDrawer() {
 function TodoSection({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
     <section className="space-y-2" aria-label={title}>
-      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-600">
-        {title} <span className="text-neutral-400">({count})</span>
+      <h3 className="text-xs font-medium text-ink-2">
+        {title} <span className="text-muted">({count})</span>
       </h3>
-      <ul className="space-y-2 text-xs text-neutral-800">{children}</ul>
+      <ul className="space-y-2 text-xs text-ink">{children}</ul>
     </section>
   );
 }

@@ -59,11 +59,11 @@ describe("CreateLearningPlanModal — lộ trình 3–8 cột mốc, hạn cuố
     vi.mocked(progressApi.createPlanTemplate).mockResolvedValue({ success: true, data: template({ mine: true }) });
   });
 
-  const fillRoadmap = async (user: ReturnType<typeof userEvent.setup>) => {
+  const fillRoadmap = async (_user: ReturnType<typeof userEvent.setup>) => {
     const titles = screen.getAllByPlaceholderText(/Nắm vững Định lý Vi-ét/i);
     for (const [idx, m] of ROADMAP.entries()) {
-      await user.type(titles[idx], m.title);
-      await user.type(screen.getByLabelText(`Tiêu chí 1 của cột mốc ${idx + 1}`), m.criterion);
+      fireEvent.change(titles[idx], { target: { value: m.title } });
+      fireEvent.change(screen.getByLabelText(`Tiêu chí 1 của cột mốc ${idx + 1}`), { target: { value: m.criterion } });
     }
     fireEvent.change(screen.getByLabelText(/Hạn dự kiến \*/), { target: { value: FIXTURE_TEXT.finalTargetDate } });
   };

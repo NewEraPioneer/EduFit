@@ -22,22 +22,21 @@ interface StudentActiveClassesProps {
 export function StudentActiveClasses({ classes = [] }: StudentActiveClassesProps) {
   if (classes.length === 0) {
     return (
-      <div className="bg-white dark:bg-stone-900 p-6 sm:p-7 rounded-3xl border border-stone-200/80 dark:border-stone-800 shadow-xs space-y-4">
+      <div className="bg-surface p-6 sm:p-7 rounded-3xl border border-line/80 shadow-xs space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="font-heading text-base sm:text-lg font-bold text-neutral-900 dark:text-stone-100">
+          <h3 className="font-heading text-base sm:text-lg font-bold text-ink">
             Lớp học đang diễn ra
           </h3>
-          <span className="text-xs text-neutral-400 dark:text-stone-400 font-medium">0 lớp</span>
+          <span className="text-xs text-muted font-medium">0 lớp</span>
         </div>
 
         <EmptyState
           icon={BookOpenCheck}
-          theme="amber"
           compact
           title="Bạn chưa đăng ký lớp học nào"
-          description="Khám phá mạng lưới gia sư chuyên môn cao (Toán, Tiếng Anh, Vật Lý...) đã qua xác minh năng lực và bắt đầu lộ trình học tập hiệu quả."
+          description="Tìm gia sư Toán, Tiếng Anh, Vật lý... đã được xác minh năng lực để bắt đầu lớp học."
           action={{
-            label: "Khám phá danh sách gia sư",
+            label: "Xem danh sách gia sư",
             href: "/student/tutors",
             icon: Search,
           }}
@@ -52,12 +51,12 @@ export function StudentActiveClasses({ classes = [] }: StudentActiveClassesProps
   }
 
   return (
-    <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200/80 shadow-xs">
+    <div className="bg-surface p-6 sm:p-7 rounded-3xl border border-line/80 shadow-xs">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-heading text-base sm:text-lg font-bold text-neutral-900">
+        <h3 className="font-heading text-base sm:text-lg font-bold text-ink">
           Lớp học đang diễn ra
         </h3>
-        <Link href="/student/classes" className="text-xs text-amber-600 font-bold hover:underline">
+        <Link href="/student/classes" className="text-xs text-action-strong font-medium hover:underline">
           Xem tất cả ({classes.length})
         </Link>
       </div>
@@ -66,21 +65,21 @@ export function StudentActiveClasses({ classes = [] }: StudentActiveClassesProps
         {classes.map((cls, idx) => (
           <div
             key={idx}
-            className={`p-4 rounded-2xl border border-stone-200 ${cls.borderColor} transition-colors flex flex-col justify-between gap-3`}
+            className={`p-4 rounded-2xl border border-line ${cls.borderColor} transition-colors flex flex-col justify-between gap-3`}
           >
             <div className="flex items-center justify-between">
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${cls.badgeColor}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${cls.badgeColor}`}>
                 {cls.subject}
               </span>
-              <span className="text-xs text-neutral-400 font-medium">{cls.frequency}</span>
+              <span className="text-xs text-muted font-medium">{cls.frequency}</span>
             </div>
             <div>
-              <h4 className="text-sm font-bold text-neutral-900">{cls.title}</h4>
-              <p className="text-xs text-neutral-500 mt-0.5">Gia sư: {cls.tutor}</p>
+              <h4 className="text-sm font-medium text-ink">{cls.title}</h4>
+              <p className="text-xs text-muted mt-0.5">Gia sư: {cls.tutor}</p>
             </div>
-            <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs text-neutral-500">
+            <div className="pt-2 border-t border-line flex items-center justify-between text-xs text-muted">
               <span>{cls.progress}</span>
-              <ChevronRight className="size-4 text-neutral-400" />
+              <ChevronRight className="size-4 text-muted" />
             </div>
           </div>
         ))}

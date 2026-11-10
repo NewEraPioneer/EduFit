@@ -89,8 +89,8 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const local: FieldErrors = {};
-    if (!subjectId) local.subjectId = "Vui lòng chọn môn học.";
-    if (needsTrack && !trackId) local.trackId = "Vui lòng chọn nhánh môn.";
+    if (!subjectId) local.subjectId = "Chọn môn học.";
+    if (needsTrack && !trackId) local.trackId = "Chọn nhánh môn.";
     if (levelIds.length === 0) local.levelIds = "Vui lòng chọn ít nhất một khối lớp.";
     if (goalTagIds.length === 0) local.goalTagIds = "Vui lòng chọn ít nhất một mục tiêu nhận dạy.";
     if (needsTextbook && textbookIds.length === 0) local.textbookSeriesIds = "Vui lòng chọn bộ sách bạn dạy được.";
@@ -131,12 +131,12 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {formError && (
-        <div role="alert" className="px-3.5 py-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">{formError}</div>
+        <div role="alert" className="px-3.5 py-3 rounded-xl bg-danger-soft border border-danger-line text-xs text-danger-strong">{formError}</div>
       )}
 
       <fieldset className="space-y-2" disabled={editing}>
-        <legend className="text-xs font-bold text-neutral-700">
-          1. Môn dạy{editing && <span className="font-normal text-neutral-400"> · không đổi được sau khi tạo</span>}
+        <legend className="text-xs font-medium text-ink-2">
+          1. Môn dạy{editing && <span className="font-normal text-muted"> · không đổi được sau khi tạo</span>}
         </legend>
         <div className="flex flex-wrap gap-1.5">
           {catalog.subjects.map((subject) => (
@@ -151,7 +151,7 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
 
       {needsTrack && (
         <fieldset className="space-y-2" disabled={editing}>
-          <legend className="text-xs font-bold text-neutral-700">Nhánh môn</legend>
+          <legend className="text-xs font-medium text-ink-2">Nhánh môn</legend>
           <div className="flex flex-wrap gap-1.5">
             {tracks.map((track) => (
               <button key={track.trackId} type="button" aria-pressed={trackId === track.trackId}
@@ -165,9 +165,9 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
       )}
 
       <fieldset className="space-y-2">
-        <legend className="text-xs font-bold text-neutral-700">2. Khối lớp nhận dạy</legend>
+        <legend className="text-xs font-medium text-ink-2">2. Khối lớp nhận dạy</legend>
         {levels.length === 0 ? (
-          <p className="text-xs text-neutral-400">{subjectId ? "Chọn nhánh môn trước." : "Chọn môn trước."}</p>
+          <p className="text-xs text-muted">{subjectId ? "Chọn nhánh môn trước." : "Chọn môn trước."}</p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {levels.map((level) => (
@@ -182,9 +182,9 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="text-xs font-bold text-neutral-700">3. Mục tiêu nhận dạy</legend>
+        <legend className="text-xs font-medium text-ink-2">3. Mục tiêu nhận dạy</legend>
         {goals.length === 0 ? (
-          <p className="text-xs text-neutral-400">Chọn khối lớp trước.</p>
+          <p className="text-xs text-muted">Chọn khối lớp trước.</p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {goals.map((goal) => (
@@ -198,7 +198,7 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
         )}
         <FieldError message={errors.goalTagIds} />
         {premiumChosen.length > 0 && (
-          <p className="flex items-start gap-1.5 text-[11px] text-amber-800 bg-amber-50 rounded-xl px-3 py-2">
+          <p className="flex items-start gap-1.5 text-xs text-action-strong bg-action-soft rounded-xl px-3 py-2">
             <ShieldAlert className="size-3.5 shrink-0 mt-0.5" />
             <span>
               {premiumChosen.map((goal) => goal.name).join(", ")} cần minh chứng chuyên môn (thành tích HSG, chứng chỉ...).
@@ -210,7 +210,7 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
 
       {needsTextbook && (
         <fieldset className="space-y-2">
-          <legend className="text-xs font-bold text-neutral-700">Bộ sách dạy được</legend>
+          <legend className="text-xs font-medium text-ink-2">Bộ sách dạy được</legend>
           <div className="flex flex-wrap gap-1.5">
             {textbooks.map((series) => (
               <button key={series.seriesId} type="button" aria-pressed={textbookIds.includes(series.seriesId)}
@@ -225,7 +225,7 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
 
       {needsExamProvince && (
         <fieldset className="space-y-2">
-          <legend className="text-xs font-bold text-neutral-700">Tỉnh/thành luyện đề thi vào 10</legend>
+          <legend className="text-xs font-medium text-ink-2">Tỉnh/thành luyện đề thi vào 10</legend>
           <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-1 -m-1">
             {catalog.provinces.map((province) => (
               <button key={province.provinceId} type="button" aria-pressed={examProvinceIds.includes(province.provinceId)}
@@ -239,7 +239,7 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
         </fieldset>
       )}
 
-      <label className="block text-xs font-bold text-neutral-700">
+      <label className="block text-xs font-medium text-ink-2">
         4. Học phí mỗi buổi (VNĐ)
         <input type="number" min={0} step={10000} inputMode="numeric" value={price}
           onChange={(e) => setPrice(e.target.value)} placeholder="Ví dụ: 200000" className={inputClass} />
@@ -248,11 +248,11 @@ export function TutorOfferingForm({ catalog, offering, onSaved, onCancel }: Tuto
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel}
-          className="px-4 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 hover:bg-stone-100">
+          className="px-4 py-2.5 rounded-xl text-sm font-medium text-ink-2 hover:bg-sunken">
           Hủy
         </button>
         <button type="submit" disabled={saving}
-          className="px-5 py-2.5 rounded-xl bg-[#006DCC] text-white text-sm font-bold hover:bg-[#005BB0] disabled:opacity-60 inline-flex items-center justify-center gap-2">
+          className="px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-medium hover:bg-brand-deep disabled:opacity-60 inline-flex items-center justify-center gap-2">
           {saving && <Loader2 className="size-4 animate-spin" />}{editing ? "Lưu gói dạy" : "Thêm gói dạy"}
         </button>
       </div>

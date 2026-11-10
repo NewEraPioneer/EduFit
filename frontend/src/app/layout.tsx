@@ -1,25 +1,34 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { Be_Vietnam_Pro, Familjen_Grotesk, Literata } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ToastProvider } from "@/shared/ui/Toast";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
+// Cả ba font đều có trong danh mục Fontshare, giấy phép SIL OFL, đủ dấu tiếng Việt.
+const heading = Familjen_Grotesk({
   variable: "--font-heading",
   subsets: ["latin", "vietnamese"],
   display: "swap",
 });
 
-const inter = Inter({
+const body = Be_Vietnam_Pro({
   variable: "--font-sans",
   subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+});
+
+const voice = Literata({
+  variable: "--font-voice",
+  subsets: ["latin", "vietnamese"],
+  style: "italic",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "EduFit - Học đúng cách, Tiến bộ rõ ràng",
-  description: "EduFit giúp bạn tìm gia sư hợp mục tiêu, học theo kế hoạch riêng và nhìn thấy mình tốt lên sau mỗi buổi học.",
+  title: "EduFit - Học đúng cách, tiến bộ rõ ràng",
+  description: "Tìm gia sư hợp mục tiêu. Học theo kế hoạch riêng. Xem kết quả sau mỗi buổi học.",
   icons: {
     icon: [
       { url: "/icon.png", sizes: "32x32", type: "image/png" },
@@ -36,7 +45,7 @@ export const metadata: Metadata = {
  * RootLayout: Khung xương giao diện chung của toàn bộ ứng dụng EduFit
  * 
  * Tích hợp:
- * - Font typography: Bricolage Grotesque (Tiêu đề) và Inter (Nội dung) theo chuẩn thiết kế Figma.
+ * - Font: Familjen Grotesk cho tiêu đề và số, Be Vietnam Pro cho nội dung, Literata nghiêng cho lời của gia sư.
  * - <AuthProvider>: Cung cấp trạng thái phiên đăng nhập (Stateful Session) xuyên suốt mọi trang.
  */
 export default function RootLayout({
@@ -48,7 +57,7 @@ export default function RootLayout({
     <html
       lang="vi"
       data-scroll-behavior="smooth"
-      className={`${bricolage.variable} ${inter.variable} h-full antialiased`}
+      className={`${heading.variable} ${body.variable} ${voice.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -69,7 +78,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="min-h-full flex flex-col font-sans bg-stone-50 dark:bg-stone-950 text-neutral-900 dark:text-stone-100 transition-colors duration-200"
+        className="min-h-full flex flex-col font-sans bg-paper text-ink"
         suppressHydrationWarning
       >
         <ThemeProvider>
