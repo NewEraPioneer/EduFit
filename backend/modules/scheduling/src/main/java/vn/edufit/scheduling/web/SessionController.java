@@ -321,6 +321,14 @@ public class SessionController {
     return ResponseEntity.ok(ApiResponse.success(SessionResponse.from(session), "Lấy thông tin buổi học thành công"));
   }
 
+  public record MeetingLink(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=255) String link) {}
+
+  @org.springframework.web.bind.annotation.PatchMapping("/sessions/{id}/meeting-link")
+  public ResponseEntity<ApiResponse<SessionResponse>> updateMeetingLink(@PathVariable UUID id, @Valid @RequestBody MeetingLink request) {
+    return ResponseEntity.ok(ApiResponse.success(SessionResponse.from(
+        getSessionDetailService.updateMeetingLink(id,currentUser(),request.link())), "Đã cập nhật phòng học"));
+  }
+
   @GetMapping("/calendar")
   public ResponseEntity<ApiResponse<List<CalendarItemResponse>>> getCalendar(
       @RequestParam("from") Instant from,

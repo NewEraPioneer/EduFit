@@ -28,6 +28,8 @@ public interface SessionFacade {
    * @return {@link Optional} chứa {@link SessionSummaryView} nếu tìm thấy.
    */
   Optional<SessionSummaryView> findSessionById(UUID sessionId);
+  Optional<SessionSummaryView> lockSessionById(UUID sessionId);
+  Optional<String> findMeetingLink(UUID sessionId);
 
   /**
    * Lấy danh sách các khung giờ bận (đã chốt lịch SCHEDULED) của Gia sư trong một khoảng thời gian.

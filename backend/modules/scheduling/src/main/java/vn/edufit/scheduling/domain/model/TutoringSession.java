@@ -360,6 +360,13 @@ public class TutoringSession {
     this.endAt = Objects.requireNonNull(newEndAt, "newEndAt không được null");
   }
 
+  public void updateMeetingLink(String link) {
+    if (mode != SessionMode.ONLINE || (status != SessionStatus.SCHEDULED && status != SessionStatus.PROPOSED)) {
+      throw new InvalidOperationException(ErrorCode.INVALID_OPERATION, "Chỉ cập nhật phòng học trực tuyến trước khi ghi nhận kết quả");
+    }
+    placeOrLink = Objects.requireNonNull(link);
+  }
+
   private void validateNotTerminal() {
     if (this.status.isTerminal()) {
       throw new InvalidOperationException(

@@ -149,7 +149,8 @@ class SchedulingSecurityAdversarialTest {
         sessionRepository, historyRepository, securityResolver, eventPublisher, clock
     );
     recordSessionOutcomeService = new RecordSessionOutcomeService(
-        sessionRepository, historyRepository, securityResolver, progressSyncPort, eventPublisher, clock
+        sessionRepository, historyRepository, securityResolver, progressSyncPort, eventPublisher, clock,
+        mock(vn.edufit.scheduling.api.SessionFundingGuard.class)
     );
     getCalendarService = new GetCalendarService(sessionRepository, securityResolver);
 

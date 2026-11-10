@@ -558,7 +558,9 @@ export function SessionDetailModal({
                     {session.mode === "ONLINE" ? "Trực tuyến (Online)" : "Trực tiếp (Offline)"}
                   </div>
                   <div className="text-[11px] text-neutral-500 mt-0.5 truncate">
-                    {session.placeOrLink ? (
+                    {session.mode === "ONLINE" && ["PROPOSED", "SCHEDULED"].includes(session.status) ? (
+                      "Phòng học được mở ở phần thanh toán sau khi đã giữ học phí và đến giờ học."
+                    ) : session.placeOrLink ? (
                       session.mode === "ONLINE" ? (
                         <a
                           href={session.placeOrLink}
@@ -588,7 +590,7 @@ export function SessionDetailModal({
                 />
               )}
 
-              {(["STUDENT", "PARENT", "TUTOR"] as string[]).includes(role) && ["SCHEDULED", "COMPLETED", "ABSENT", "CANCELLED"].includes(session.status) && <SessionBillingPanel sessionId={session.sessionId} role={role as "STUDENT" | "PARENT" | "TUTOR"} />}
+              {(["STUDENT", "PARENT", "TUTOR"] as string[]).includes(role) && ["SCHEDULED", "COMPLETED", "ABSENT", "CANCELLED"].includes(session.status) && <SessionBillingPanel sessionId={session.sessionId} mode={session.mode} role={role as "STUDENT" | "PARENT" | "TUTOR"} />}
 
               {/* Banner đề xuất dời lịch học (UC4.4) */}
               {rescheduleProposal && rescheduleProposal.status === "PENDING" && (
@@ -982,7 +984,8 @@ export function SessionDetailModal({
                         <button
                           type="button"
                           onClick={() => setShowOutcomeModal(true)}
-                          disabled={actionLoading}
+                          disabled={actionLoading || Date.now() < new Date(session.endAt).getTime()}
+                          title={Date.now() < new Date(session.endAt).getTime() ? "Chỉ ghi nhận kết quả sau giờ kết thúc buổi học" : undefined}
                           className="h-10 px-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <FileText className="size-3.5" />

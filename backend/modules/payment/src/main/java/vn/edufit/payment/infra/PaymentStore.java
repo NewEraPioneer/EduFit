@@ -134,6 +134,18 @@ public class PaymentStore {
         (r,n) -> r.getObject("class_id", UUID.class), user);
   }
 
+  public Instant learningStartedAt(UUID session) {
+    return db.query("select learning_started_at from payment_charge where session_id=?",
+        (r,n) -> r.getTimestamp(1) == null ? null : r.getTimestamp(1).toInstant(), session)
+        .stream().filter(Objects::nonNull).findFirst().orElse(null);
+  }
+
+  public void recordLearningStart(UUID session, UUID actor, Instant now) {
+    int changed = db.update("update payment_charge set learning_started_at=?,learning_started_by=?"
+        + " where session_id=? and learning_started_at is null", Timestamp.from(now), actor, session);
+    if (changed > 0) audit(actor, session, "LESSON_STARTED", "Tuition reserved before lesson access");
+  }
+
   public List<Charge> pending() {
     return db.query(
         "select * from payment_charge where status not in ('SETTLED','REFUNDED','EXPIRED') order by"

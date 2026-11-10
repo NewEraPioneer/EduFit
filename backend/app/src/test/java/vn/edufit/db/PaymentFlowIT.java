@@ -215,6 +215,26 @@ class PaymentFlowIT {
     now.set(end);
   }
 
+  @Test void lessonRequiresReservedTuitionAndStartingTwiceDoesNotChargeAgain() {
+    var source = new SessionSummaryView(sessionId,classId,tutorId,studentId,end.minusSeconds(5400),end,
+        "ONLINE","SCHEDULED",false,end.minusSeconds(7200));
+    when(sessions.findSessionById(sessionId)).thenReturn(Optional.of(source));
+    when(sessions.lockSessionById(sessionId)).thenReturn(Optional.of(source));
+    when(sessions.findMeetingLink(sessionId)).thenReturn(Optional.of("https://meet.google.com/defense-demo"));
+    db.update("update tutoring_session set status='SCHEDULED' where session_id=?",sessionId);
+    var lesson = new PaymentLessonService(store,service,sessions,new PaymentTime(Clock.fixed(now.get(),ZoneOffset.UTC)));
+    assertThrows(RuntimeException.class, () -> lesson.start(actor(studentUser,"STUDENT"),sessionId));
+    service.fund(actor(parentUser,"PARENT"),sessionId,300000);
+    var balance = store.wallet(parentUser);
+    assertEquals("https://meet.google.com/defense-demo",lesson.start(actor(studentUser,"STUDENT"),sessionId).meetingLink());
+    lesson.start(actor(tutorUser,"TUTOR"),sessionId);
+    assertEquals(balance,store.wallet(parentUser));
+    assertEquals(1,db.queryForObject("select count(*) from payment_audit where reference_id=? and action='LESSON_STARTED'",Integer.class,sessionId));
+    when(connections.hasConfirmedParentLink(parentUser,studentId)).thenReturn(false);
+    assertEquals(parentUser,service.get(actor(parentUser,"PARENT"),sessionId).payerId());
+    assertEquals(List.of(classId),store.payerClassIds(parentUser));
+  }
+
   void confirmTutor() {
     service.act(actor(tutorUser, "TUTOR"), sessionId, "confirm", null, null);
   }
@@ -609,14 +629,17 @@ class PaymentFlowIT {
         Flyway.configure()
             .dataSource(ds)
             .schemas(schema)
-            .locations("classpath:db/migration", "classpath:db/seed")
+            .locations("classpath:db/migration")
             .target("1.16")
             .load();
-    assertEquals(MigrationScripts.countUpTo("1.16", MigrationScripts.MIGRATION, MigrationScripts.SEED),
+    assertEquals(MigrationScripts.countUpTo("1.16", MigrationScripts.MIGRATION),
         old.migrate().migrationsExecuted);
     var jdbc = new JdbcTemplate(ds);
-    UUID user =
-        jdbc.queryForObject("select user_id from account where role='TUTOR' limit 1", UUID.class);
+    // A schema upgrade preserves real customer balances. Demo seed belongs to a
+    // fresh demonstration DB and is covered separately by DemoJourneySeedIT.
+    UUID user = UUID.randomUUID();
+    jdbc.update("insert into account(user_id,email,full_name,role) values (?,?,?,'TUTOR')",
+        user, user + "@payment-upgrade.test", "Existing payout customer");
     UUID id = UUID.randomUUID();
     jdbc.update("insert into payment_wallet(user_id,available,held) values (?,40000,50000)", user);
     jdbc.update(
@@ -629,10 +652,10 @@ class PaymentFlowIT {
         Flyway.configure()
             .dataSource(ds)
             .schemas(schema)
-            .locations("classpath:db/migration", "classpath:db/seed")
+            .locations("classpath:db/migration")
             .target(MigrationScripts.schemaHead())
             .load();
-    assertEquals(MigrationScripts.countAfter("1.16", MigrationScripts.MIGRATION, MigrationScripts.SEED),
+    assertEquals(MigrationScripts.countAfter("1.16", MigrationScripts.MIGRATION),
         upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);

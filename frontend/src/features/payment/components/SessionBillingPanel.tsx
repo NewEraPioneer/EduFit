@@ -5,21 +5,31 @@ import {
   paymentApi,
   paymentError,
   type PaymentSession,
+  type LearningAccess,
 } from "../api/paymentApi";
 import { SessionPaymentCard } from "./SessionPaymentCard";
+import { schedulingApi } from "@/features/scheduling/api/schedulingApi";
 export function SessionBillingPanel({
   sessionId,
   role,
+  mode,
 }: {
   sessionId: string;
   role: "STUDENT" | "PARENT" | "TUTOR";
+  mode?: string;
 }) {
   const [session, setSession] = useState<PaymentSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [learning, setLearning] = useState<LearningAccess | null>(null);
+  const [meetingLink, setMeetingLink] = useState("");
   const load = useCallback(async () => {
     const result = await paymentApi.session(sessionId);
     setSession(result.data ?? null);
+    if (result.data?.sessionStatus === "SCHEDULED") {
+      const readiness = await paymentApi.learningAccess(sessionId);
+      setLearning(readiness.data ?? null);
+    } else setLearning(null);
   }, [sessionId]);
   useEffect(() => {
     let alive = true;
@@ -29,6 +39,10 @@ export function SessionBillingPanel({
         if (alive) {
           setSession(result.data ?? null);
           setError(null);
+          if (result.data?.sessionStatus === "SCHEDULED") {
+            const readiness = await paymentApi.learningAccess(sessionId);
+            if (alive) setLearning(readiness.data ?? null);
+          } else setLearning(null);
         }
       } catch (e) {
         if (alive) setError(paymentError(e));
@@ -89,6 +103,39 @@ export function SessionBillingPanel({
         !error && (
           <p className="text-sm text-neutral-500">Đang kiểm tra học phí…</p>
         )
+      )}
+      {session?.sessionStatus === "SCHEDULED" && learning && (
+        <div className="space-y-2 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+          <p>{learning.message}</p>
+          {learning.startedAt && <p className="text-xs">Đã ghi nhận bắt đầu lúc {new Date(learning.startedAt).toLocaleTimeString("vi-VN")}</p>}
+          {learning.canStart && !learning.startedAt && (
+            <button type="button" disabled={busy} className="rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
+              onClick={() => void execute(async () => {
+                const result = await paymentApi.startLesson(sessionId);
+                if (result.data) setLearning(result.data);
+              })}>
+              {busy ? "Đang xử lý…" : "Bắt đầu buổi học"}
+            </button>
+          )}
+          {learning.canStart && learning.meetingLink && (
+            <a className="inline-block rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white" href={learning.meetingLink} target="_blank" rel="noopener noreferrer">Vào phòng học</a>
+          )}
+        </div>
+      )}
+      {role === "TUTOR" && mode === "ONLINE" && session?.sessionStatus === "SCHEDULED" && (
+        <details className="rounded-xl border border-stone-200 p-3 text-sm">
+          <summary className="cursor-pointer font-semibold">Cập nhật phòng học trực tuyến</summary>
+          <form className="mt-3 flex flex-wrap gap-2" onSubmit={(event) => {
+            event.preventDefault();
+            void execute(() => schedulingApi.updateMeetingLink(sessionId, meetingLink.trim()));
+          }}>
+            <label className="w-full text-xs" htmlFor={`meeting-link-${sessionId}`}>Link phòng học (http/https)</label>
+            <input id={`meeting-link-${sessionId}`} type="url" required maxLength={255} value={meetingLink}
+              onChange={(event) => setMeetingLink(event.target.value)} placeholder="https://meet.google.com/..."
+              className="min-w-0 flex-1 rounded-lg border border-stone-300 px-3 py-2" />
+            <button type="submit" disabled={busy} className="rounded-lg border px-3 py-2 font-semibold disabled:opacity-50">Lưu link</button>
+          </form>
+        </details>
       )}
     </section>
   );

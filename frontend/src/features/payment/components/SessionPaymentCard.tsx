@@ -50,7 +50,7 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
     s.status,
   );
   const canComplete =
-    s.canActAsTutor && s.sessionStatus === "SCHEDULED" && afterEnd;
+    s.canActAsTutor && s.sessionStatus === "SCHEDULED" && afterEnd && pending;
   const tutorNet = s.amount - Math.floor((s.amount * s.commissionBps) / 10000);
   const button =
     "rounded-lg border border-stone-300 px-3 py-2 text-sm font-semibold disabled:opacity-50 hover:bg-stone-50";
@@ -290,7 +290,7 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
             {mode === "fund"
               ? `Giữ ${money(
                   s.amount,
-                )} từ ví cho buổi học này? Tiền chỉ chuyển sau thời hạn phản hồi hoặc quyết định Admin.`
+                )} từ ví của tài khoản đang đăng nhập cho buổi học này? Tiền chỉ chuyển sau thời hạn phản hồi hoặc quyết định Admin.`
               : mode === "confirm"
                 ? "Chỉ xác nhận việc học đã diễn ra. Học phí tiếp tục được giữ đến hết thời hạn phản hồi."
                 : mode === "complete"
