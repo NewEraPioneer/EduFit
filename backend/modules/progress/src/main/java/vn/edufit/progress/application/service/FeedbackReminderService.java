@@ -10,10 +10,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.edufit.profile.api.ProfileFacade;
-import vn.edufit.profile.api.dto.TutorSummaryDto;
+import vn.edufit.progress.api.event.FeedbackReminderDueEvent;
 import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.policy.FeedbackTimingPolicy;
 import vn.edufit.progress.domain.policy.FeedbackTimingPolicy.ReminderStage;
@@ -22,7 +22,6 @@ import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
 import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
 import vn.edufit.scheduling.api.dto.SessionSummaryView;
-import vn.edufit.shared.notification.NotificationSink;
 
 /**
  * Nhắc gia sư hoàn tất phản hồi 10 giây đã "để sau" (mục 3.6): mốc +12h và +24h kể từ khi buổi học kết thúc,
@@ -39,8 +38,7 @@ public class FeedbackReminderService {
   private final SessionFeedbackDomainRepository feedbackRepository;
   private final FeedbackReminderDomainRepository reminderRepository;
   private final LearningPlanDomainRepository planRepository;
-  private final ProfileFacade profileFacade;
-  private final NotificationSink notifications;
+  private final ApplicationEventPublisher events;
   private final Clock clock;
 
   public FeedbackReminderService(
@@ -48,16 +46,14 @@ public class FeedbackReminderService {
       SessionFeedbackDomainRepository feedbackRepository,
       FeedbackReminderDomainRepository reminderRepository,
       LearningPlanDomainRepository planRepository,
-      ProfileFacade profileFacade,
-      NotificationSink notifications,
+      ApplicationEventPublisher events,
       Clock clock
   ) {
     this.sessionFacade = sessionFacade;
     this.feedbackRepository = feedbackRepository;
     this.reminderRepository = reminderRepository;
     this.planRepository = planRepository;
-    this.profileFacade = profileFacade;
-    this.notifications = notifications;
+    this.events = events;
     this.clock = Objects.requireNonNull(clock);
   }
 
@@ -84,28 +80,14 @@ public class FeedbackReminderService {
       Optional<ReminderStage> stage = FeedbackTimingPolicy.dueStage(
           s.endAt(), now, sent.getOrDefault(s.sessionId(), Set.of()));
       if (stage.isEmpty()) continue;
-      Optional<UUID> tutorUserId = profileFacade.findTutorById(s.tutorId()).map(TutorSummaryDto::userId);
-      if (tutorUserId.isEmpty()) continue;
-
-      notifications.notify(
-          tutorUserId.get(),
-          s.studentId(),
-          NOTIFICATION_TYPE,
-          "Nhắc phản hồi buổi học",
-          message(stage.get()),
-          "SESSION",
-          s.sessionId());
+      long hours = stage.get().after().toHours();
+      events.publishEvent(FeedbackReminderDueEvent.of(
+          s.sessionId(), s.classId(), s.studentId(), s.tutorId(),
+          hours, FeedbackTimingPolicy.LATE_AFTER.toHours() - hours));
       reminderRepository.recordSent(s.sessionId(), stage.get(), now);
       count++;
     }
     if (count > 0) log.info("Đã nhắc gia sư phản hồi {} buổi học", count);
     return count;
-  }
-
-  private static String message(ReminderStage stage) {
-    long hours = stage.after().toHours();
-    long left = FeedbackTimingPolicy.LATE_AFTER.toHours() - hours;
-    return "Buổi học đã kết thúc " + hours + " giờ nhưng chưa có phản hồi 10 giây. Sau " + left
-        + " giờ nữa phản hồi sẽ được đánh dấu \"bổ sung muộn\".";
   }
 }

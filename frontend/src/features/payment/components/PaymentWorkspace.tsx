@@ -94,7 +94,7 @@ export function PaymentWorkspace({
     <div className="mx-auto max-w-6xl space-y-6 pb-8">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
+          <p className="text-xs font-medium text-action-strong">
             EduFit / Thanh toán
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -104,7 +104,7 @@ export function PaymentWorkspace({
                 ? "Ví học phí gia đình"
                 : "Ví học phí"}
           </h1>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-muted">
             {role === "TUTOR"
               ? "Theo dõi buổi dạy, quản lý thu nhập và rút về ngân hàng."
               : "Quản lý tiền học và phản hồi từng buổi tại một nơi."}
@@ -113,7 +113,7 @@ export function PaymentWorkspace({
         <button
           disabled={busy}
           onClick={() => void load()}
-          className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-stone-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium text-ink-2 hover:bg-paper"
         >
           <RefreshCw className={`size-4 ${busy ? "animate-spin" : ""}`} />
           Làm mới
@@ -122,7 +122,7 @@ export function PaymentWorkspace({
       {error && (
         <p
           role="alert"
-          className="rounded-xl bg-red-50 p-4 text-sm text-red-800"
+          className="rounded-xl bg-danger-soft p-4 text-sm text-danger-strong"
         >
           {error}
         </p>
@@ -130,7 +130,7 @@ export function PaymentWorkspace({
       {notice && (
         <p
           role="status"
-          className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"
+          className="rounded-xl bg-success-soft p-3 text-sm text-success-strong"
         >
           {notice}
         </p>
@@ -138,14 +138,14 @@ export function PaymentWorkspace({
       {!data ? (
         <div
           role="status"
-          className="animate-pulse space-y-4 rounded-2xl border border-stone-200 bg-white p-8"
+          className="animate-pulse space-y-4 rounded-2xl border border-line bg-surface p-8"
         >
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             {error
               ? "Chưa tải được dữ liệu ví. Bấm làm mới để thử lại."
               : "Đang tải ví và học phí…"}
           </p>
-          <div className="h-12 w-48 rounded-lg bg-stone-100" />
+          <div className="h-12 w-48 rounded-lg bg-sunken" />
         </div>
       ) : (
         <>

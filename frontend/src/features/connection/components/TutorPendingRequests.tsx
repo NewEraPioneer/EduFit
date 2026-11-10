@@ -27,8 +27,10 @@ import {
 } from "./StudentPedagogicalProfileModal";
 import { FitChecks } from "@/features/discovery/components/FitChecks";
 import { formatMoney } from "@/features/learning-needs/catalogRules";
+import { useDeepLinkParams } from "@/shared/hooks";
 
 export function TutorPendingRequests() {
+  const { requestId } = useDeepLinkParams(["requestId"]);
   const [items, setItems] = useState<TutorInboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,17 +110,17 @@ export function TutorPendingRequests() {
       {toast && (
         <div
           data-testid="toast-notification"
-          className={`fixed bottom-5 right-5 z-50 flex items-center justify-between gap-3 rounded-2xl p-4 text-xs font-semibold text-white shadow-xl backdrop-blur-md transition-all ${
+          className={`fixed bottom-5 right-5 z-50 flex items-center justify-between gap-3 rounded-2xl p-4 text-xs font-medium text-white shadow-xl backdrop-blur-md transition-all ${
             toast.type === "success"
-              ? "bg-emerald-900/95 border border-emerald-700/60"
-              : "bg-rose-900/95 border border-rose-700/60"
+              ? "bg-success/95 border border-success/60"
+              : "bg-danger/95 border border-danger/60"
           }`}
         >
           <div className="flex items-center gap-2.5">
             {toast.type === "success" ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-success-strong shrink-0" />
             ) : (
-              <XCircle className="h-4 w-4 text-rose-400 shrink-0" />
+              <XCircle className="h-4 w-4 text-danger-strong shrink-0" />
             )}
             <span>{toast.message}</span>
           </div>
@@ -134,30 +136,30 @@ export function TutorPendingRequests() {
       )}
 
       {/* Header & Filter Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
-            <Inbox className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-xl font-bold tracking-tight text-ink flex items-center gap-2.5">
+            <Inbox className="h-6 w-6 text-brand-strong" />
             Hộp thư Yêu cầu Kết nối
             {pendingCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+              <span className="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand-strong">
                 {pendingCount} chờ xử lý
               </span>
             )}
           </h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-sm text-muted mt-1">
             Xem và xử lý các yêu cầu học kèm từ học sinh và phụ huynh gửi đến bạn.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800/80">
+          <div className="inline-flex rounded-xl bg-sunken p-1">
             <button
               onClick={() => setFilter("PENDING")}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                 filter === "PENDING"
-                  ? "bg-white text-zinc-900 shadow-xs dark:bg-zinc-700 dark:text-zinc-100"
-                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  ? "bg-surface text-ink shadow-xs"
+                  : "text-ink-2 hover:text-ink"
               }`}
             >
               Chờ xử lý ({pendingCount})
@@ -166,8 +168,8 @@ export function TutorPendingRequests() {
               onClick={() => setFilter("ALL")}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                 filter === "ALL"
-                  ? "bg-white text-zinc-900 shadow-xs dark:bg-zinc-700 dark:text-zinc-100"
-                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  ? "bg-surface text-ink shadow-xs"
+                  : "text-ink-2 hover:text-ink"
               }`}
             >
               Tất cả ({items.length})
@@ -177,7 +179,7 @@ export function TutorPendingRequests() {
           <button
             onClick={() => void fetchInbox()}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs hover:bg-zinc-50 active:scale-95 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 shadow-xs hover:bg-paper active:scale-95 disabled:opacity-50"
             title="Làm mới danh sách"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -188,14 +190,14 @@ export function TutorPendingRequests() {
 
       {/* Error State */}
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-300 flex items-center justify-between">
+        <div className="rounded-2xl border border-danger-line bg-danger-soft/70 p-4 text-sm text-danger-strong flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <XCircle className="h-5 w-5 text-rose-600 shrink-0" />
+            <XCircle className="h-5 w-5 text-danger-strong shrink-0" />
             <span>{error}</span>
           </div>
           <button
             onClick={() => void fetchInbox()}
-            className="rounded-lg bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-200"
+            className="rounded-lg bg-danger-soft px-3 py-1 text-xs font-medium text-danger-strong hover:bg-danger-line"
           >
             Thử lại
           </button>
@@ -208,17 +210,17 @@ export function TutorPendingRequests() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs animate-pulse dark:border-zinc-800 dark:bg-zinc-900 space-y-4"
+              className="rounded-2xl border border-line bg-surface p-5 shadow-xs animate-pulse space-y-4"
             >
               <div className="flex items-center justify-between">
-                <div className="h-4 w-32 rounded-md bg-zinc-200 dark:bg-zinc-800" />
-                <div className="h-6 w-20 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-4 w-32 rounded-md bg-line" />
+                <div className="h-6 w-20 rounded-full bg-line" />
               </div>
               <div className="space-y-2">
-                <div className="h-3 w-48 rounded-md bg-zinc-200 dark:bg-zinc-800" />
-                <div className="h-3 w-36 rounded-md bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-3 w-48 rounded-md bg-line" />
+                <div className="h-3 w-36 rounded-md bg-line" />
               </div>
-              <div className="h-10 w-full rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+              <div className="h-10 w-full rounded-xl bg-line" />
             </div>
           ))}
         </div>
@@ -226,16 +228,16 @@ export function TutorPendingRequests() {
 
       {/* Empty State */}
       {!loading && !error && filteredItems.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/50 py-14 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500 mb-3">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line-strong bg-paper/50 py-14 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sunken text-muted mb-3">
             <Inbox className="h-6 w-6" />
           </div>
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          <h3 className="text-base font-medium text-ink">
             {filter === "PENDING"
               ? "Chưa có yêu cầu kết nối nào đang chờ"
               : "Không tìm thấy yêu cầu kết nối nào"}
           </h3>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
+          <p className="mt-1 text-sm text-muted max-w-sm">
             {filter === "PENDING"
               ? "Khi có học sinh hoặc phụ huynh gửi lời mời học kèm, thông tin yêu cầu sẽ hiển thị tại đây để bạn duyệt hoặc từ chối."
               : "Danh sách hiện tại trống. Bạn có thể chuyển sang bộ lọc khác để kiểm tra."}
@@ -251,37 +253,42 @@ export function TutorPendingRequests() {
             const isAccepted = item.status === "ACCEPTED";
             const isRejected = item.status === "REJECTED";
 
+            const isHighlighted = item.requestId === requestId;
+
             return (
               <div
                 key={item.requestId}
+                data-testid={`request-card-${item.requestId}`}
                 className={`relative flex flex-col justify-between rounded-2xl border p-5 shadow-xs transition-all ${
-                  item.hasSlotConflict && isPending
-                    ? "border-amber-300 bg-amber-50/20 dark:border-amber-900/60 dark:bg-amber-950/10"
-                    : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                  isHighlighted
+                    ? "ring-2 ring-brand bg-brand-soft/40 border-brand"
+                    : item.hasSlotConflict && isPending
+                      ? "border-action-line bg-action-soft/20"
+                      : "border-line bg-surface"
                 }`}
               >
                 <div>
                   {/* Top Header: Student Info & Status */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 font-bold text-sm">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand-strong font-medium text-sm">
                         {item.studentDisplayName
                           ? item.studentDisplayName.charAt(0).toUpperCase()
                           : "HS"}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <h4 className="font-medium text-ink flex items-center gap-2">
                           {item.studentDisplayName || "Học sinh ẩn danh"}
-                          <span className="text-xs font-normal text-zinc-400">
+                          <span className="text-xs font-normal text-muted">
                             ({item.senderRole === "PARENT" ? "Phụ huynh gửi" : "Học sinh"})
                           </span>
                         </h4>
-                        <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                          <GraduationCap className="h-3.5 w-3.5 text-zinc-400" />
+                        <div className="flex items-center gap-2 text-xs text-muted mt-0.5">
+                          <GraduationCap className="h-3.5 w-3.5 text-muted" />
                           <span className="break-words">{inboxNeedTitle(item.need)}</span>
                         </div>
                         {inboxNeedDetails(item.need).length > 0 && (
-                          <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 break-words">
+                          <p className="mt-1 text-xs text-muted break-words">
                             {inboxNeedDetails(item.need).join(" · ")}
                           </p>
                         )}
@@ -292,25 +299,25 @@ export function TutorPendingRequests() {
                     {/* Status Badge */}
                     <div>
                       {isPending && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand-strong">
                           <Clock className="h-3 w-3" />
                           Chờ phản hồi
                         </span>
                       )}
                       {isAccepted && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-xs font-medium text-success-strong">
                           <CheckCircle2 className="h-3 w-3" />
                           Đã chấp thuận
                         </span>
                       )}
                       {isRejected && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sunken px-2.5 py-1 text-xs font-medium text-ink-2">
                           <XCircle className="h-3 w-3" />
                           Đã từ chối
                         </span>
                       )}
                       {!isPending && !isAccepted && !isRejected && (
-                        <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                        <span className="inline-flex items-center rounded-full bg-sunken px-2.5 py-1 text-xs font-medium text-ink-2">
                           {item.status}
                         </span>
                       )}
@@ -321,11 +328,11 @@ export function TutorPendingRequests() {
                   {item.hasSlotConflict && isPending && (
                     <div
                       data-testid="conflict-warning"
-                      className="mt-3.5 rounded-xl border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 flex items-start gap-2"
+                      className="mt-3.5 rounded-xl border border-action-line bg-action-soft p-2.5 text-xs text-action-strong flex items-start gap-2"
                     >
-                      <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <AlertTriangle className="h-4 w-4 text-action-strong shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-semibold">Cảnh báo trùng khung giờ:</span> Lịch bận
+                        <span className="font-medium">Cảnh báo trùng khung giờ:</span> Lịch bận
                         trùng với khung giờ yêu cầu:{" "}
                         <span className="font-medium underline">
                           {item.conflictingSlots?.join(", ") || "Khung giờ đã bận"}
@@ -335,10 +342,10 @@ export function TutorPendingRequests() {
                   )}
 
                   {/* Details: Slots, Area, Budget */}
-                  <div className="mt-4 space-y-2.5 text-xs text-zinc-600 dark:text-zinc-300">
+                  <div className="mt-4 space-y-2.5 text-xs text-ink-2">
                     {/* Desired Slots */}
                     <div>
-                      <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                      <span className="font-medium text-ink-2">
                         Khung giờ mong muốn:
                       </span>
                       <div className="mt-1 flex flex-wrap gap-1.5">
@@ -350,35 +357,35 @@ export function TutorPendingRequests() {
                             return (
                               <span
                                 key={idx}
-                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 font-mono text-[11px] ${
+                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 font-mono text-xs ${
                                   isConflict
-                                    ? "border border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
-                                    : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                                    ? "border border-action-line bg-action-soft text-action-strong"
+                                    : "bg-sunken text-ink-2"
                                 }`}
                               >
                                 <Calendar className="h-3 w-3 opacity-70" />
                                 {slot}
                                 {isConflict && (
-                                  <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                                  <AlertTriangle className="h-3 w-3 text-action-strong" />
                                 )}
                               </span>
                             );
                           })
                         ) : (
-                          <span className="italic text-zinc-400">Chưa chỉ định khung giờ</span>
+                          <span className="italic text-muted">Chưa chỉ định khung giờ</span>
                         )}
                       </div>
                     </div>
 
                     {/* Location & Budget */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-zinc-500 dark:text-zinc-400 pt-1">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted pt-1">
                       <div className="flex items-center gap-1 min-w-0">
-                        <MapPin className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                        <MapPin className="h-3.5 w-3.5 text-muted shrink-0" />
                         <span className="break-words">{inboxNeedPlace(item.need)}</span>
                       </div>
                       {item.need.budgetMaxPerSession != null && (
                         <div className="flex items-center gap-1">
-                          <DollarSign className="h-3.5 w-3.5 text-zinc-400" />
+                          <DollarSign className="h-3.5 w-3.5 text-muted" />
                           <span>Ngân sách tối đa: {formatMoney(item.need.budgetMaxPerSession)}/buổi</span>
                         </div>
                       )}
@@ -386,12 +393,12 @@ export function TutorPendingRequests() {
 
                     {/* Message */}
                     {item.message && (
-                      <div className="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800 mt-2">
-                        <div className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 font-medium mb-1">
+                      <div className="rounded-xl bg-paper p-3 border border-line mt-2">
+                        <div className="flex items-center gap-1.5 text-muted font-medium mb-1">
                           <MessageSquare className="h-3 w-3" />
                           <span>Lời nhắn:</span>
                         </div>
-                        <p className="text-zinc-700 dark:text-zinc-300 italic line-clamp-3">
+                        <p className="text-ink-2 italic line-clamp-3">
                           &quot;{item.message}&quot;
                         </p>
                       </div>
@@ -400,11 +407,11 @@ export function TutorPendingRequests() {
                 </div>
 
                 {/* Card Actions */}
-                <div className="mt-5 flex items-center justify-between gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <div className="mt-5 flex items-center justify-between gap-2.5 pt-3 border-t border-line">
                   <button
                     type="button"
                     onClick={() => handleOpenProfileModal(item)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-brand-line bg-brand-soft/60 px-3.5 py-2 text-xs font-medium text-brand-strong hover:bg-brand-soft transition-colors cursor-pointer"
                   >
                     Xem hồ sơ chi tiết
                   </button>
@@ -412,13 +419,13 @@ export function TutorPendingRequests() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleOpenModal(item, "REJECT")}
-                        className="rounded-xl border border-zinc-300 px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-300 dark:border-zinc-700 dark:text-rose-400 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                        className="rounded-xl border border-line-strong px-3.5 py-2 text-xs font-medium text-danger-strong hover:bg-danger-soft hover:border-danger-line transition-colors cursor-pointer"
                       >
                         Từ chối
                       </button>
                       <button
                         onClick={() => handleOpenModal(item, "APPROVE")}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-success px-4 py-2 text-xs font-medium text-white shadow-xs hover:bg-success-deep active:scale-95 transition-all cursor-pointer"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Chấp thuận tạo lớp

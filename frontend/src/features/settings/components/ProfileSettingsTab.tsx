@@ -16,11 +16,11 @@ interface ProfileSettingsTabProps {
 export function ProfileSettingsTab({ role = "STUDENT" }: ProfileSettingsTabProps) {
   return (
     <div className="space-y-6">
-      <div className="pb-4 border-b border-stone-100">
-        <h2 className="font-heading text-xl font-bold text-neutral-900">
+      <div className="pb-4 border-b border-line">
+        <h2 className="font-heading text-xl font-bold text-ink">
           Hồ sơ cá nhân
         </h2>
-        <p className="text-xs text-neutral-500 mt-1">
+        <p className="text-xs text-muted mt-1">
           {role === "TUTOR"
             ? "Thông tin chuyên môn, môn giảng dạy, khu vực và giới thiệu bản thân hiển thị tới phụ huynh & học sinh."
             : role === "STUDENT"

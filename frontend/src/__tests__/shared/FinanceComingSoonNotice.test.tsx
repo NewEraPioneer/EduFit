@@ -22,7 +22,7 @@ describe("FinanceComingSoonNotice & Role Finance Pages", () => {
     expect(screen.getByText("Sắp ra mắt")).toBeInTheDocument();
     expect(screen.getByText("Chính sách thanh toán học phí hiện hành")).toBeInTheDocument();
 
-    const dashboardLink = screen.getByRole("link", { name: /Quay lại Dashboard/i });
+    const dashboardLink = screen.getByRole("link", { name: /Quay lại trang chủ/i });
     expect(dashboardLink).toHaveAttribute("href", "/student/dashboard");
 
     const scheduleLink = screen.getByRole("link", { name: /Xem lịch học/i });
@@ -40,7 +40,7 @@ describe("FinanceComingSoonNotice & Role Finance Pages", () => {
     );
 
     expect(screen.getByText("CỔNG PHỤ HUYNH")).toBeInTheDocument();
-    const dashboardLink = screen.getByRole("link", { name: /Quay lại Dashboard/i });
+    const dashboardLink = screen.getByRole("link", { name: /Quay lại trang chủ/i });
     expect(dashboardLink).toHaveAttribute("href", "/parent/dashboard");
 
     const scheduleLink = screen.getByRole("link", { name: /Xem lịch học/i });
@@ -58,7 +58,7 @@ describe("FinanceComingSoonNotice & Role Finance Pages", () => {
     );
 
     expect(screen.getByText("CỔNG GIA SƯ")).toBeInTheDocument();
-    const dashboardLink = screen.getByRole("link", { name: /Quay lại Dashboard/i });
+    const dashboardLink = screen.getByRole("link", { name: /Quay lại trang chủ/i });
     expect(dashboardLink).toHaveAttribute("href", "/tutor/dashboard");
 
     const scheduleLink = screen.getByRole("link", { name: /Xem lịch dạy/i });

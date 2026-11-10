@@ -42,7 +42,7 @@ import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.exception.ResourceConflictException;
-import vn.edufit.shared.notification.NotificationSink;
+import org.springframework.context.ApplicationEventPublisher;
 
 class SessionFeedbackServiceTest {
 
@@ -57,7 +57,7 @@ class SessionFeedbackServiceTest {
   private LearningPlanDomainRepository planRepository;
   private SessionFacade sessionFacade;
   private ProfileFacade profileFacade;
-  private NotificationSink notifications;
+  private ApplicationEventPublisher events;
   private SessionFeedbackService service;
   private CurrentUser tutor;
   private Milestone milestone;
@@ -69,14 +69,14 @@ class SessionFeedbackServiceTest {
     sessionFacade = mock(SessionFacade.class);
     ConnectionFacade connectionFacade = mock(ConnectionFacade.class);
     profileFacade = mock(ProfileFacade.class);
-    notifications = mock(NotificationSink.class);
+    events = mock(ApplicationEventPublisher.class);
     service = new SessionFeedbackService(
         feedbackRepository,
         planRepository,
         mock(PlanHistoryDomainRepository.class),
         sessionFacade,
         new ProgressAccessGuard(connectionFacade, profileFacade),
-        new MilestoneAchievementNotifier(connectionFacade, profileFacade, notifications),
+        events,
         Clock.fixed(now, ZoneId.of("UTC"))
     );
 

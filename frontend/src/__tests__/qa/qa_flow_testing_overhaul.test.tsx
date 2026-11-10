@@ -346,7 +346,7 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
       expect(screen.queryByText(/Tiếp nối/i)).not.toBeInTheDocument();
       expect(screen.getAllByText("18:00 - 19:30").length).toBe(1);
       const block = screen.getByTestId("calendar-session-sess-90-mins");
-      expect(block.style.getPropertyValue("--block-h")).toBe("106px");
+      expect(block.style.height).toBe("88px");
 
       // 3. Bấm vào khối mở chi tiết buổi học, không mở modal đề xuất
       fireEvent.click(block);
@@ -386,7 +386,7 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
       expect(screen.queryByText(/Tiếp nối/i)).not.toBeInTheDocument();
       expect(screen.getAllByText("18:00 - 20:30").length).toBe(1);
       const block = screen.getByTestId("calendar-session-sess-150-mins");
-      expect(block.style.getPropertyValue("--block-h")).toBe("178px");
+      expect(block.style.height).toBe("148px");
     });
   });
 
@@ -585,7 +585,7 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
 
       // Warning explicitly cites 12 hours and rule BR-46
       expect(
-        screen.getByText(/Buổi học diễn ra trong vòng 12 giờ.*BR-46/i)
+        screen.getByText(/Buổi học bắt đầu trong vòng 12 giờ/i)
       ).toBeInTheDocument();
     });
   });

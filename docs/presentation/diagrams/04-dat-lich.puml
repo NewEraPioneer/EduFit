@@ -1,0 +1,24 @@
+@startuml
+!include style.iuml
+title Luồng 4: Đặt lịch đồng thuận và chống trùng lịch
+[*] --> PROPOSED : Một bên đề xuất\n(bắt đầu sau ít nhất 2 giờ, dài 30-240 phút)
+PROPOSED --> SCHEDULED : Bên còn lại chấp nhận\nvà kiểm tra trùng lịch hai phía
+PROPOSED --> REJECTED : Bên còn lại từ chối
+PROPOSED --> WITHDRAWN : Người đề xuất rút lại
+PROPOSED --> EXPIRED : Quá hạn phản hồi
+SCHEDULED --> COMPLETED : Gia sư ghi kết quả:\nbuổi học đã diễn ra
+SCHEDULED --> ABSENT : Gia sư ghi kết quả:\nvắng mặt
+SCHEDULED --> CANCELLED : Một bên hủy trước giờ học
+COMPLETED --> [*]
+ABSENT --> [*]
+CANCELLED --> [*]
+REJECTED --> [*]
+WITHDRAWN --> [*]
+EXPIRED --> [*]
+note right of SCHEDULED
+  Chốt chặn cuối: ràng buộc loại trừ
+  của PostgreSQL. Một gia sư hoặc học sinh
+  không có hai buổi SCHEDULED chồng giờ.
+  Đổi lịch giữ buổi cũ cho đến khi được chấp nhận.
+end note
+@enduml

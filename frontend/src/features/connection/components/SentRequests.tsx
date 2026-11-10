@@ -55,7 +55,7 @@ export function SentRequests({ studentId }: SentRequestsProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold">Yêu cầu đã gửi</h3>
+        <h3 className="font-medium">Yêu cầu đã gửi</h3>
         <button
           className="rounded-full border px-4 py-2 text-sm"
           onClick={load}
@@ -64,12 +64,12 @@ export function SentRequests({ studentId }: SentRequestsProps) {
           Làm mới
         </button>
       </div>
-      {error && <p role="alert" className="text-rose-700">{error}</p>}
+      {error && <p role="alert" className="text-danger-strong">{error}</p>}
       {loading && <p>Đang tải…</p>}
       {!loading && !error && !requests.length && <p>Chưa có yêu cầu kết nối.</p>}
       {requests.map((request) => (
-        <div className="rounded-2xl border bg-white p-4 text-sm" key={request.requestId}>
-          <p className="font-semibold">{tutorNames[request.tutorId] || "Đang tải tên gia sư…"}</p>
+        <div className="rounded-2xl border bg-surface p-4 text-sm" key={request.requestId}>
+          <p className="font-medium">{tutorNames[request.tutorId] || "Đang tải tên gia sư…"}</p>
           <p>{statusLabels[request.status] || request.status}</p>
           <p>Đã gửi {new Date(request.createdAt).toLocaleString("vi-VN")}</p>
         </div>

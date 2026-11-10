@@ -5,7 +5,7 @@ import { StudentDiscoveryView } from "@/features/discovery/components/views/Stud
 
 export default function StudentTutorsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-neutral-500">Đang tải danh sách gia sư...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-muted">Đang tải danh sách gia sư...</div>}>
       <StudentDiscoveryView />
     </Suspense>
   );

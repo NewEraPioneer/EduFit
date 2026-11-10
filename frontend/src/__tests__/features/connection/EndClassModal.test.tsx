@@ -81,7 +81,7 @@ describe("EndClassModal Component", () => {
     const submitBtn = screen.getByRole("button", { name: "Xác nhận kết thúc lớp" });
     fireEvent.click(submitBtn);
 
-    expect(await screen.findByText("Vui lòng nhập lý do kết thúc lớp học.")).toBeInTheDocument();
+    expect(await screen.findByText("Nhập lý do kết thúc lớp học.")).toBeInTheDocument();
     expect(connectionApi.endClass).not.toHaveBeenCalled();
   });
 

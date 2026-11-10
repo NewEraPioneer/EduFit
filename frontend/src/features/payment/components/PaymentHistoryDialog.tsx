@@ -70,7 +70,7 @@ export function PaymentHistoryDialog({
     <PaymentDialog title="Giao dịch của tôi" onClose={onClose} wide>
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-1 rounded-xl bg-stone-100 p-1">
+          <div className="flex gap-1 rounded-xl bg-sunken p-1">
             {(
               [
                 ["entries", "Biến động số dư"],
@@ -84,8 +84,8 @@ export function PaymentHistoryDialog({
                   setTab(key);
                   setOffset(0);
                 }}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold ${
-                  tab === key ? "bg-white shadow-sm" : "text-neutral-500"
+                className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                  tab === key ? "bg-surface shadow-sm" : "text-muted"
                 }`}
               >
                 {label}
@@ -96,7 +96,7 @@ export function PaymentHistoryDialog({
             aria-label="Làm mới giao dịch"
             disabled={loading}
             onClick={() => setReload((n) => n + 1)}
-            className="rounded-lg border border-stone-200 p-2"
+            className="rounded-lg border border-line p-2"
           >
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -104,7 +104,7 @@ export function PaymentHistoryDialog({
         {error && (
           <p
             role="alert"
-            className="rounded-xl bg-red-50 p-3 text-sm text-red-700"
+            className="rounded-xl bg-danger-soft p-3 text-sm text-danger-strong"
           >
             {error}
           </p>
@@ -112,7 +112,7 @@ export function PaymentHistoryDialog({
         {loading ? (
           <p
             role="status"
-            className="py-8 text-center text-sm text-neutral-500"
+            className="py-8 text-center text-sm text-muted"
           >
             Đang tải giao dịch…
           </p>
@@ -121,7 +121,7 @@ export function PaymentHistoryDialog({
             {data?.entries.length ? (
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-stone-200 text-xs text-neutral-500">
+                  <tr className="border-b border-line text-xs text-muted">
                     <th className="pb-3 pr-4 font-medium">Giao dịch</th>
                     <th className="pb-3 pr-4 text-right font-medium">
                       Khả dụng
@@ -131,24 +131,24 @@ export function PaymentHistoryDialog({
                 </thead>
                 <tbody>
                   {data.entries.map((e) => (
-                    <tr key={e.id} className="border-b border-stone-100">
+                    <tr key={e.id} className="border-b border-line">
                       <td className="py-3 pr-4">
                         <p className="font-medium">
                           {entryLabels[e.kind] ?? e.kind}
                         </p>
-                        <p className="mt-1 text-xs text-neutral-500">
+                        <p className="mt-1 text-xs text-muted">
                           {new Date(e.created_at).toLocaleString("vi-VN")}
                         </p>
                       </td>
                       <td
-                        className={`whitespace-nowrap py-3 pr-4 text-right font-semibold ${
-                          e.available_delta > 0 ? "text-emerald-700" : ""
+                        className={`whitespace-nowrap py-3 pr-4 text-right font-medium ${
+                          e.available_delta > 0 ? "text-success-strong" : ""
                         }`}
                       >
                         {e.available_delta > 0 ? "+" : ""}
                         {money(e.available_delta)}
                       </td>
-                      <td className="whitespace-nowrap py-3 text-right text-neutral-500">
+                      <td className="whitespace-nowrap py-3 text-right text-muted">
                         {money(e.held_delta)}
                       </td>
                     </tr>
@@ -156,7 +156,7 @@ export function PaymentHistoryDialog({
                 </tbody>
               </table>
             ) : (
-              <p className="py-8 text-center text-sm text-neutral-500">
+              <p className="py-8 text-center text-sm text-muted">
                 Chưa có giao dịch trên trang này.
               </p>
             )}
@@ -166,15 +166,15 @@ export function PaymentHistoryDialog({
             {data?.topups.map((t) => (
               <div
                 key={t.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 p-4"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4"
               >
                 <div className="flex items-start gap-3">
-                  <ArrowDownLeft className="mt-1 size-4 text-emerald-700" />
+                  <ArrowDownLeft className="mt-1 size-4 text-success-strong" />
                   <div>
-                    <p className="text-sm font-semibold">
+                    <p className="text-sm font-medium">
                       Nạp {money(t.amount)}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500">
+                    <p className="mt-1 text-xs text-muted">
                       {t.status === "PAID"
                         ? "Đã cộng ví"
                         : t.status === "CANCELLED"
@@ -187,7 +187,7 @@ export function PaymentHistoryDialog({
                 {t.status === "PENDING" && t.checkout_url && (
                   <button
                     onClick={() => setCheckout(checkoutFromTopup(t))}
-                    className="rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold"
+                    className="rounded-lg border border-line px-3 py-2 text-sm font-medium"
                   >
                     Xem QR
                   </button>
@@ -197,12 +197,12 @@ export function PaymentHistoryDialog({
             {data?.withdrawals.map((w) => (
               <div
                 key={w.id}
-                className="flex items-start gap-3 rounded-xl border border-stone-200 p-4"
+                className="flex items-start gap-3 rounded-xl border border-line p-4"
               >
-                <ArrowUpRight className="mt-1 size-4 text-neutral-500" />
+                <ArrowUpRight className="mt-1 size-4 text-muted" />
                 <div>
-                  <p className="text-sm font-semibold">Rút {money(w.amount)}</p>
-                  <p className="mt-1 text-xs text-neutral-500">
+                  <p className="text-sm font-medium">Rút {money(w.amount)}</p>
+                  <p className="mt-1 text-xs text-muted">
                     {w.bank_name} · •••• {w.bank_account.slice(-4)} ·{" "}
                     {w.status === "PAID"
                       ? "Đã chuyển"
@@ -212,20 +212,20 @@ export function PaymentHistoryDialog({
                           ? "Chờ duyệt"
                           : "Đã hoàn về ví"}
                   </p>
-                  <p className="mt-1 text-xs text-neutral-500">
+                  <p className="mt-1 text-xs text-muted">
                     {new Date(w.created_at).toLocaleDateString("vi-VN")}
                   </p>
                 </div>
               </div>
             ))}
             {!data?.topups.length && !data?.withdrawals.length && (
-              <p className="py-8 text-center text-sm text-neutral-500">
+              <p className="py-8 text-center text-sm text-muted">
                 Chưa có yêu cầu trên trang này.
               </p>
             )}
           </div>
         )}
-        <footer className="flex items-center justify-between gap-3 border-t border-stone-100 pt-4 text-sm">
+        <footer className="flex items-center justify-between gap-3 border-t border-line pt-4 text-sm">
           <button
             disabled={offset === 0 || loading}
             onClick={() => setOffset((n) => Math.max(0, n - 50))}
@@ -234,7 +234,7 @@ export function PaymentHistoryDialog({
             <ChevronLeft className="size-4" />
             Trước
           </button>
-          <span className="text-xs text-neutral-500">
+          <span className="text-xs text-muted">
             Trang {offset / 50 + 1}
           </span>
           <button

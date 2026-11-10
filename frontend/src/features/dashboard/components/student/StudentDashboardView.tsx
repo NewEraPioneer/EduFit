@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useId } from "react";
-import Link from "next/link";
-import { Search, CheckCircle2, TrendingUp, Calendar } from "lucide-react";
+import { Search } from "lucide-react";
+import { Button } from "@/shared/ui/Button";
+import { PageHeader } from "@/shared/ui/PageHeader";
 import { StudentGoalProgressCard } from "./StudentGoalProgressCard";
 import { StudentNextSessionCard, type SessionInfo } from "./StudentNextSessionCard";
 import { StudentActiveClasses } from "./StudentActiveClasses";
@@ -151,16 +152,16 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
 
   const activeList = rawClasses.filter((c) => c.status === "ACTIVE");
   const badgeColors = [
-    "bg-sky-50 text-sky-800",
-    "bg-amber-50 text-amber-800",
-    "bg-emerald-50 text-emerald-800",
-    "bg-purple-50 text-purple-800",
+    "bg-brand-soft text-brand-strong",
+    "bg-action-soft text-action-strong",
+    "bg-success-soft text-success-strong",
+    "bg-brand-soft text-brand-strong",
   ];
   const borderColors = [
-    "hover:border-sky-300",
-    "hover:border-amber-300",
-    "hover:border-emerald-300",
-    "hover:border-purple-300",
+    "hover:border-brand-line",
+    "hover:border-action-line",
+    "hover:border-success-line",
+    "hover:border-brand-line",
   ];
 
   const mappedActive = activeList.map((c, idx) => ({
@@ -182,8 +183,8 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       completed: profile?.profileComplete === true,
     },
     {
-      title: "Khám phá & Chọn gia sư",
-      description: "Xem hồ sơ bằng cấp, đánh giá sao hoặc nhận danh sách AI Match chuẩn xác.",
+      title: "Tìm và chọn gia sư",
+      description: "Xem hồ sơ bằng cấp, đánh giá sao hoặc nhận gợi ý AI Match phù hợp.",
       href: "/student/tutors",
       actionText: "Tìm gia sư",
       completed: rawClasses.length > 0,
@@ -192,7 +193,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
       title: "Gửi yêu cầu kết nối gia sư",
       description: "Gửi yêu cầu kèm khung giờ mong muốn để thống nhất lịch học với gia sư.",
       href: "/student/tutors",
-      actionText: "Khám phá môn học",
+      actionText: "Xem môn học",
       completed: rawClasses.length > 0,
     },
   ];
@@ -212,26 +213,16 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
-      {/* 1. Greeting & Quick Search Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-stone-100 tracking-tight">
-            Chào {studentName} 👋
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-500 dark:text-stone-300 mt-1 font-medium">
-            {nextSession
-              ? `Bạn có buổi học ${nextSession.lessonTitle} lúc ${nextSession.timeSlot}`
-              : "Chào mừng bạn đến với EduFit! Hãy bắt đầu bằng việc tìm gia sư phù hợp."}
-          </p>
-        </div>
-        <Link
-          href="/student/tutors"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-neutral-900 font-bold text-xs rounded-xl shadow-xs transition-all hover:scale-[1.02] shrink-0"
-        >
-          <Search className="size-4" />
-          <span>Tìm gia sư</span>
-        </Link>
-      </div>
+      <PageHeader
+        title={`Chào ${studentName}`}
+        description={nextSession ? `Buổi tiếp theo: ${nextSession.lessonTitle}, ${nextSession.timeSlot}.` : "Tìm gia sư để bắt đầu buổi học đầu tiên."}
+        actions={
+          <Button href="/student/tutors" size="sm" variant={activeList.length === 0 ? "primary" : "secondary"}>
+            <Search className="size-4" />
+            <span>Tìm gia sư</span>
+          </Button>
+        }
+      />
 
       {/* 2. Banner Hướng dẫn thao tác cho người mới (Onboarding Guide) */}
       <OnboardingGuideBanner
@@ -255,7 +246,7 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
                     aria-expanded={extraProgress === "expanded"}
                     aria-controls={extraProgressId}
                     onClick={() => setExtraProgress((state) => state === "expanded" ? "collapsed" : "expanded")}
-                    className="rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:border-stone-700 dark:bg-stone-900 dark:text-amber-300 dark:hover:bg-stone-800"
+                    className="rounded-xl border border-line bg-surface px-4 py-2 text-sm font-medium text-action-strong hover:bg-action-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
                   >
                     {extraProgress === "expanded"
                       ? "Thu gọn"
@@ -269,11 +260,11 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
             </section>
           )}
           {(learningNeeds.length > 1 || (learningNeeds.length === 1 && activeList.length === 0)) && (
-            <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-xs" aria-labelledby="student-needs-heading">
-              <h3 id="student-needs-heading" className="font-heading text-base font-bold text-neutral-900">Tất cả môn và nhu cầu học</h3>
+            <section className="rounded-3xl border border-line bg-surface p-5 shadow-xs" aria-labelledby="student-needs-heading">
+              <h3 id="student-needs-heading" className="font-heading text-base font-bold text-ink">Tất cả môn và nhu cầu học</h3>
               <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                 {learningNeeds.map((need) => (
-                  <li key={need.needId} className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-medium text-neutral-800">
+                  <li key={need.needId} className="rounded-xl border border-line bg-paper px-3 py-2 text-xs font-medium text-ink">
                     {needTitle(need)}
                   </li>
                 ))}
@@ -284,47 +275,20 @@ export function StudentDashboardView({ user }: StudentDashboardViewProps) {
         </div>
 
         {/* Side Column (4 Cols) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="order-first space-y-6 lg:order-none lg:col-span-4">
           <StudentNextSessionCard session={nextSession} />
-          {/* Micro Metrics */}
-          <div className="grid grid-cols-1 gap-3.5">
-            <div className="p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex items-center gap-3.5">
-              <div className="size-11 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="size-5" />
+          <dl className="grid grid-cols-3 divide-x divide-line rounded-2xl border border-line bg-surface py-4 lg:grid-cols-1 lg:divide-x-0 lg:divide-y lg:py-0">
+            {[
+              { label: "Buổi đã học", value: `${totalCompleted} / ${totalPlanned}` },
+              { label: "Chuyên cần", value: attendanceRate !== null ? `${attendanceRate}%` : "—" },
+              { label: "Buổi trong 7 ngày tới", value: String(upcomingWeekCount) },
+            ].map((metric) => (
+              <div key={metric.label} className="px-3 text-center lg:flex lg:items-center lg:justify-between lg:p-4 lg:text-left">
+                <dt className="text-xs text-muted lg:text-sm">{metric.label}</dt>
+                <dd className="font-heading text-2xl font-bold text-ink">{metric.value}</dd>
               </div>
-              <div>
-                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Buổi học đã hoàn thành</div>
-                <div className="text-xl font-extrabold font-heading text-neutral-900 dark:text-stone-100">
-                  {`${totalCompleted} / ${totalPlanned}`}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex items-center gap-3.5">
-              <div className="size-11 rounded-xl bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 flex items-center justify-center shrink-0">
-                <TrendingUp className="size-5" />
-              </div>
-              <div>
-                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Chuyên cần</div>
-                <div className="text-xl font-extrabold font-heading text-neutral-900 dark:text-stone-100">
-                  {attendanceRate !== null ? `${attendanceRate}%` : "—"}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex items-center gap-3.5">
-              <div className="size-11 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0">
-                <Calendar className="size-5" />
-              </div>
-              <div>
-                <div className="text-[11px] text-neutral-500 dark:text-stone-300 font-semibold">Buổi đã chốt trong 7 ngày tới</div>
-                <div className="text-xl font-extrabold font-heading text-neutral-900 dark:text-stone-100">
-                  {upcomingWeekCount} buổi
-                </div>
-              </div>
-            </div>
-          </div>
-
+            ))}
+          </dl>
         </div>
       </div>
     </div>

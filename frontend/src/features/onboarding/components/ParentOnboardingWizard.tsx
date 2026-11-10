@@ -66,7 +66,7 @@ export function ParentOnboardingWizard() {
     e.preventDefault();
     const targetEmail = inputEmail.trim().toLowerCase();
     if (!targetEmail) {
-      showToast("Vui lòng nhập địa chỉ email tài khoản học sinh của con!", "error");
+      showToast("Nhập email tài khoản học sinh của con.", "error");
       return;
     }
 
@@ -126,16 +126,16 @@ export function ParentOnboardingWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 font-sans flex flex-col justify-between">
+    <div className="min-h-screen bg-paper font-sans flex flex-col justify-between">
       {/* 1. Header Bar */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-30 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      <header className="bg-surface border-b border-line sticky top-0 z-30 px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <EduFitLogo href="/" />
-          <div className="hidden sm:flex items-center gap-2 pl-6 border-l border-stone-200 text-xs text-neutral-500">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 text-emerald-800 font-semibold rounded-full">
+          <div className="hidden sm:flex items-center gap-2 pl-6 border-l border-line text-xs text-muted">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-success-soft text-success-strong font-medium rounded-full">
               THIẾT LẬP NHANH
             </span>
-            <span>Liên kết con để bắt đầu đồng hành</span>
+            <span>Liên kết tài khoản của con</span>
           </div>
         </div>
 
@@ -143,7 +143,7 @@ export function ParentOnboardingWizard() {
           <Link
             href={safeReturnUrl || "/parent/dashboard"}
             onClick={() => markOnboardingDone("parent", user?.id)}
-            className="text-xs text-neutral-500 hover:text-neutral-900 transition-colors"
+            className="text-xs text-muted hover:text-ink transition-colors"
           >
             Bỏ qua để vào sau
           </Link>
@@ -153,30 +153,30 @@ export function ParentOnboardingWizard() {
       {/* 2. Main Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 space-y-6">
         {/* Left/Top Tip Box */}
-        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white rounded-3xl p-5 sm:p-6 border border-emerald-100 flex items-start gap-4">
-          <div className="size-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+        <div className="bg-success-soft rounded-3xl p-5 sm:p-6 border border-success-line flex items-start gap-4">
+          <div className="size-10 rounded-2xl bg-success-soft text-success-strong flex items-center justify-center shrink-0">
             <Lightbulb className="size-5" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+            <h3 className="text-xs font-medium text-success-strong">
               Cách liên kết tài khoản con em
             </h3>
-            <p className="text-xs text-emerald-900 leading-relaxed">
+            <p className="text-xs text-success-strong leading-relaxed">
               Nhập chính xác địa chỉ email tài khoản học sinh của con em bạn. Hệ thống sẽ gửi lời mời trực tiếp đến tài khoản học sinh. Con bạn chỉ cần mở ứng dụng và xác nhận <strong>"Đồng ý liên kết"</strong> là hoàn tất!
             </p>
           </div>
         </div>
 
         {/* Main Linking Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200/90 shadow-xs space-y-6">
+        <div className="bg-surface rounded-3xl p-6 sm:p-8 border border-line/90 shadow-xs space-y-6">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">
+            <span className="text-xs font-medium text-success-strong">
               BƯỚC 1: GỬI LỜI MỜI LIÊN KẾT HỌC SINH
             </span>
-            <h2 className="font-heading text-2xl font-bold text-neutral-900">
+            <h2 className="font-heading text-2xl font-bold text-ink">
               Kết nối với tài khoản học sinh của con
             </h2>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted">
               Liên kết giúp phụ huynh đồng bộ tiến độ học tập, theo dõi thời khóa biểu và nhận phản hồi sau mỗi buổi dạy của gia sư.
             </p>
           </div>
@@ -184,29 +184,29 @@ export function ParentOnboardingWizard() {
           {/* Form Gửi Lời Mời */}
           <form
             onSubmit={handleSendInvitation}
-            className="p-5 bg-stone-50 border border-stone-200 rounded-3xl space-y-3"
+            className="p-5 bg-paper border border-line rounded-3xl space-y-3"
           >
-            <label className="block text-xs font-bold text-neutral-700">
-              EMAIL TÀI KHOẢN HỌC SINH CỦA CON <span className="text-rose-500">*</span>
+            <label className="block text-xs font-medium text-ink-2">
+              EMAIL TÀI KHOẢN HỌC SINH CỦA CON <span className="text-danger-strong">*</span>
             </label>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="relative flex-1">
-                <Mail className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
                   value={inputEmail}
                   onChange={(e) => setInputEmail(e.target.value)}
                   placeholder="VD: email.cua.con@gmail.com"
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-2xl text-xs font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full pl-10 pr-4 py-3 bg-surface border border-line-strong rounded-2xl text-xs font-medium text-ink placeholder:text-muted focus:outline-hidden focus:border-success focus:ring-2 focus:ring-success/20"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={sending || !inputEmail.trim()}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs rounded-2xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-success hover:bg-success-deep active:scale-[0.99] text-white font-medium text-xs rounded-2xl shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
               >
                 {sending ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -216,7 +216,7 @@ export function ParentOnboardingWizard() {
                 <span>{sending ? "Đang gửi..." : "Gửi lời mời liên kết"}</span>
               </button>
             </div>
-            <p className="text-[11px] text-neutral-400">
+            <p className="text-xs text-muted">
               Lưu ý: Học sinh phải có tài khoản EduFit đang kích hoạt để nhận lời mời.
             </p>
           </form>
@@ -224,24 +224,24 @@ export function ParentOnboardingWizard() {
           {/* Danh sách học sinh đã kết nối & Lời mời đang chờ */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-neutral-700 uppercase tracking-wider">
+              <label className="text-xs font-medium text-ink-2">
                 Trạng thái liên kết hồ sơ con em ({links.length} đã kết nối, {invitations.length} đang chờ)
               </label>
             </div>
 
             {loading ? (
-              <div className="p-8 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col items-center justify-center gap-2 text-neutral-400">
-                <Loader2 className="size-5 animate-spin text-emerald-600" />
+              <div className="p-8 bg-paper rounded-2xl border border-line flex flex-col items-center justify-center gap-2 text-muted">
+                <Loader2 className="size-5 animate-spin text-success-strong" />
                 <span className="text-xs">Đang tải danh sách liên kết...</span>
               </div>
             ) : links.length === 0 && invitations.length === 0 ? (
-              <div className="p-8 text-center bg-stone-50 border border-dashed border-stone-300 rounded-3xl space-y-2">
-                <Users className="size-8 text-neutral-300 mx-auto" />
-                <p className="text-xs font-bold text-neutral-700">
+              <div className="p-8 text-center bg-paper border border-dashed border-line-strong rounded-3xl space-y-2">
+                <Users className="size-8 text-white/75 mx-auto" />
+                <p className="text-xs font-medium text-ink-2">
                   Chưa có tài khoản con em nào được kết nối
                 </p>
-                <p className="text-[11px] text-neutral-500 max-w-sm mx-auto">
-                  Hãy nhập email học sinh của con bạn ở trên để gửi lời mời liên kết ngay bây giờ, hoặc bạn có thể bỏ qua để thực hiện sau.
+                <p className="text-xs text-muted max-w-sm mx-auto">
+                  Nhập email học sinh ở trên để gửi lời mời liên kết, hoặc bỏ qua và làm sau.
                 </p>
               </div>
             ) : (
@@ -250,23 +250,23 @@ export function ParentOnboardingWizard() {
                 {links.map((link) => (
                   <div
                     key={link.linkId}
-                    className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-4"
+                    className="p-4 bg-success-soft/50 border border-success-line rounded-2xl flex items-center justify-between gap-4"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center">
+                      <div className="size-10 rounded-xl bg-success text-white font-medium flex items-center justify-center">
                         <GraduationCap className="size-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-neutral-900">
+                          <h4 className="text-xs font-medium text-ink">
                             Học sinh mã: {link.studentId}
                           </h4>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-full text-[10px]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-success-soft text-success-strong font-medium rounded-full text-xs">
                             <CheckCircle2 className="size-3" />
                             Đã liên kết
                           </span>
                         </div>
-                        <p className="text-[11px] text-neutral-500 mt-0.5">
+                        <p className="text-xs text-muted mt-0.5">
                           {link.confirmedAt
                             ? `Đã xác nhận ngày: ${new Date(link.confirmedAt).toLocaleDateString("vi-VN")}`
                             : "Đã sẵn sàng đồng bộ lịch học & kết quả"}
@@ -280,22 +280,22 @@ export function ParentOnboardingWizard() {
                 {invitations.map((item) => (
                   <div
                     key={item.invitationId}
-                    className="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl flex items-center justify-between gap-4"
+                    className="p-4 bg-action-soft/50 border border-action-line rounded-2xl flex items-center justify-between gap-4"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-xl bg-amber-500 text-white font-bold flex items-center justify-center">
+                      <div className="size-10 rounded-xl bg-action text-on-action font-medium flex items-center justify-center">
                         <Clock className="size-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-neutral-900">
+                          <h4 className="text-xs font-medium text-ink">
                             Đang chờ học sinh chấp nhận
                           </h4>
-                          <span className="inline-flex items-center px-2 py-0.5 bg-amber-100 text-amber-800 font-bold rounded-full text-[10px]">
+                          <span className="inline-flex items-center px-2 py-0.5 bg-action-soft text-action-strong font-medium rounded-full text-xs">
                             Đang chờ
                           </span>
                         </div>
-                        <p className="text-[11px] text-neutral-500 mt-0.5">
+                        <p className="text-xs text-muted mt-0.5">
                           Mã lời mời: {item.invitationId.slice(0, 8)} · Hết hạn:{" "}
                           {new Date(item.expiresAt).toLocaleDateString("vi-VN")}
                         </p>
@@ -306,7 +306,7 @@ export function ParentOnboardingWizard() {
                       type="button"
                       disabled={busyId === item.invitationId}
                       onClick={() => handleWithdrawInvitation(item.invitationId)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-xl border border-rose-200 transition-colors disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-danger-strong hover:bg-danger-soft rounded-xl border border-danger-line transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       {busyId === item.invitationId ? (
                         <Loader2 className="size-3.5 animate-spin" />
@@ -322,26 +322,26 @@ export function ParentOnboardingWizard() {
           </div>
 
           {/* Action Footer */}
-          <div className="flex items-center justify-end pt-4 border-t border-stone-100">
+          <div className="flex items-center justify-end pt-4 border-t border-line">
             <button
               type="button"
               disabled={submitting}
               onClick={handleComplete}
-              className="inline-flex items-center gap-2 px-7 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-7 py-3 bg-success hover:bg-success-deep active:scale-[0.99] text-white font-medium text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 cursor-pointer"
             >
               {submitting ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <ArrowRight className="size-4" />
               )}
-              <span>{submitting ? "Đang hoàn tất..." : "Hoàn tất & vào Dashboard →"}</span>
+              <span>{submitting ? "Đang hoàn tất..." : "Hoàn tất và vào trang chủ"}</span>
             </button>
           </div>
         </div>
       </main>
 
       {/* 3. Footer */}
-      <footer className="border-t border-stone-200 py-4 px-6 text-center text-[11px] text-neutral-400">
+      <footer className="border-t border-line py-4 px-6 text-center text-xs text-muted">
         © 2026 EduFit Platform. Đồng hành cùng phụ huynh và học sinh trên con đường tri thức.
       </footer>
     </div>

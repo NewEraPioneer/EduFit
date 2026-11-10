@@ -90,20 +90,20 @@ export function RespondRequestModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 my-auto">
+      <div className="relative w-full max-w-dialog rounded-2xl bg-surface p-6 shadow-2xl border border-line my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center justify-between pb-4 border-b border-line">
           <div className="flex items-center gap-3">
             <div
               className={`flex h-10 w-10 items-center justify-center rounded-full ${
                 isApprove
-                  ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400"
-                  : "bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400"
+                  ? "bg-success-soft text-success-strong"
+                  : "bg-danger-soft text-danger-strong"
               }`}
             >
               {isApprove ? (
@@ -115,13 +115,13 @@ export function RespondRequestModal({
             <div>
               <h3
                 id="modal-title"
-                className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+                className="text-lg font-bold text-ink"
               >
                 {isApprove ? "Chấp thuận yêu cầu kết nối" : "Từ chối yêu cầu kết nối"}
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-muted">
                 Học sinh:{" "}
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="font-medium text-ink-2">
                   {request.studentDisplayName || "Học sinh"}
                 </span>{" "}
                 • Môn: {request.need.subjectName || "Chưa xác định"}
@@ -131,7 +131,7 @@ export function RespondRequestModal({
           <button
             onClick={onClose}
             disabled={submitting}
-            className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors"
+            className="rounded-lg p-1.5 text-muted hover:bg-sunken hover:text-ink-2 transition-colors"
             aria-label="Đóng modal"
           >
             <X className="h-5 w-5" />
@@ -141,19 +141,19 @@ export function RespondRequestModal({
         {/* Body Form */}
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {/* Tóm tắt nhu cầu học */}
-          <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-800/40 text-xs space-y-2">
-            <p className="font-semibold text-neutral-800 dark:text-zinc-100 break-words">{inboxNeedTitle(request.need)}</p>
+          <div className="rounded-xl border border-line bg-paper/70 p-3.5 text-xs space-y-2">
+            <p className="font-medium text-ink break-words">{inboxNeedTitle(request.need)}</p>
             {inboxNeedDetails(request.need).length > 0 && (
-              <p className="text-neutral-600 dark:text-zinc-300 break-words">{inboxNeedDetails(request.need).join(" · ")}</p>
+              <p className="text-ink-2 break-words">{inboxNeedDetails(request.need).join(" · ")}</p>
             )}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-neutral-500 dark:text-zinc-400">Hình thức:</span>
-              <span className="font-semibold text-neutral-800 dark:text-zinc-100 break-words">{inboxNeedPlace(request.need)}</span>
+              <span className="text-muted">Hình thức:</span>
+              <span className="font-medium text-ink break-words">{inboxNeedPlace(request.need)}</span>
             </div>
             {request.need.budgetMaxPerSession != null && (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-neutral-500 dark:text-zinc-400">Ngân sách tối đa:</span>
-                <span className="font-semibold text-neutral-800 dark:text-zinc-100">
+                <span className="text-muted">Ngân sách tối đa:</span>
+                <span className="font-medium text-ink">
                   {formatMoney(request.need.budgetMaxPerSession)}/buổi
                 </span>
               </div>
@@ -163,11 +163,11 @@ export function RespondRequestModal({
 
           {/* Slot conflict warning banner if approving */}
           {isApprove && request.hasSlotConflict && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="rounded-xl border border-action-line bg-action-soft/70 p-3.5 text-sm text-action-strong flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-action-strong shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium">Phát hiện xung đột khung giờ!</p>
-                <p className="text-xs mt-0.5 text-amber-800 dark:text-amber-400">
+                <p className="text-xs mt-0.5 text-action-strong">
                   Một hoặc nhiều khung giờ học sinh mong muốn (
                   {request.conflictingSlots?.join(", ") || "Slot bận"}) đang trùng với lịch
                   dạy khác của bạn. Khi duyệt, lớp học vẫn được tạo nhưng bạn cần chủ động
@@ -179,13 +179,13 @@ export function RespondRequestModal({
 
           {/* 2-Step notice banner if approving */}
           {isApprove && (
-            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300">
-              <p className="font-semibold text-blue-950 dark:text-blue-200">
+            <div className="rounded-xl border border-brand-line bg-brand-soft/70 p-3.5 text-xs text-brand-strong">
+              <p className="font-medium text-brand-strong">
                 Quy trình 2 bước tạo lớp học:
               </p>
               <p className="mt-1">
                 Lớp học sẽ được tạo ở trạng thái{" "}
-                <span className="font-semibold text-amber-700 dark:text-amber-400">
+                <span className="font-medium text-action-strong">
                   &quot;Chờ thống nhất lịch học&quot;
                 </span>
                 . Buổi học chỉ chính thức lên lịch (SCHEDULED) sau khi hai bên đề xuất và xác nhận
@@ -196,8 +196,8 @@ export function RespondRequestModal({
 
           {/* Error alerts */}
           {apiError && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300 flex items-start gap-2.5">
-              <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div className="rounded-xl border border-danger-line bg-danger-soft p-3.5 text-sm text-danger-strong flex items-start gap-2.5">
+              <AlertCircle className="h-5 w-5 text-danger-strong shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium">Không thể hoàn tất thao tác</p>
                 <p className="text-xs mt-0.5">{apiError}</p>
@@ -209,7 +209,7 @@ export function RespondRequestModal({
           <div>
             <label
               htmlFor="respond-reason"
-              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              className="block text-sm font-medium text-ink-2"
             >
               {isApprove ? "Lời nhắn cho học sinh (tùy chọn):" : "Lý do từ chối (bắt buộc):"}
             </label>
@@ -230,13 +230,13 @@ export function RespondRequestModal({
               disabled={submitting}
               className={`mt-1.5 w-full rounded-xl border p-3 text-sm transition-colors focus:outline-hidden ${
                 validationError
-                  ? "border-rose-300 bg-rose-50/30 text-rose-900 focus:border-rose-500 dark:border-rose-800 dark:bg-rose-950/20 dark:text-rose-200"
-                  : "border-zinc-300 bg-white text-zinc-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  ? "border-danger-line bg-danger-soft/30 text-danger-strong focus:border-danger"
+                  : "border-line-strong bg-surface text-ink focus:border-brand focus:ring-1 focus:ring-brand"
               }`}
             />
-            <div className="flex items-center justify-between mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center justify-between mt-1 text-xs text-muted">
               {validationError ? (
-                <span className="text-rose-600 dark:text-rose-400 font-medium">
+                <span className="text-danger-strong font-medium">
                   {validationError}
                 </span>
               ) : (
@@ -247,12 +247,12 @@ export function RespondRequestModal({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+              className="rounded-xl px-4 py-2.5 text-sm font-medium text-ink-2 hover:bg-sunken transition-colors"
             >
               Hủy
             </button>
@@ -261,8 +261,8 @@ export function RespondRequestModal({
               disabled={submitting}
               className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white shadow-xs transition-all ${
                 isApprove
-                  ? "bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:bg-emerald-400"
-                  : "bg-rose-600 hover:bg-rose-700 active:scale-95 disabled:bg-rose-400"
+                  ? "bg-success hover:bg-success-deep active:scale-95 disabled:bg-success"
+                  : "bg-danger hover:bg-danger-deep active:scale-95 disabled:bg-danger"
               }`}
             >
               {submitting ? (
