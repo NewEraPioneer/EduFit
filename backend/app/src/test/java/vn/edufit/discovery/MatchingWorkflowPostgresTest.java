@@ -203,7 +203,8 @@ class MatchingWorkflowPostgresTest {
   @EnableTransactionManagement
   @EnableJpaRepositories(basePackages = {"vn.edufit.discovery.infra.persistence.repository", "vn.edufit.connection.infra.persistence.repository"})
   @Import({TutorMatchingService.class, DiscoveryFacadeImpl.class, DiscoveryQueryService.class,
-      vn.edufit.discovery.application.service.NeedAccessService.class, ConnectionFacadeImpl.class})
+      vn.edufit.discovery.application.service.NeedAccessService.class, ConnectionFacadeImpl.class,
+      vn.edufit.connection.application.policy.SlotConflictDetector.class})
   static class Config {
     @Bean DataSource dataSource() {
       var source = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
