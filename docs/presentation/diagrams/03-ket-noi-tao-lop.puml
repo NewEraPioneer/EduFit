@@ -1,0 +1,32 @@
+@startuml
+!include style.iuml
+title Luồng 3: Kết nối Parent - Student và tạo lớp học
+start
+partition "Liên kết Parent - Student" {
+  :Student hoặc Parent gửi lời mời liên kết;
+  if (Bên được mời phản hồi) then (Chấp nhận)
+    :Liên kết CONFIRMED;
+  else (Từ chối hoặc quá hạn 14 ngày)
+    :Lời mời kết thúc;
+    stop
+  endif
+}
+partition "Yêu cầu học với gia sư" {
+  :Student, hoặc Parent thay mặt, gửi yêu cầu\nđến gia sư VERIFIED (kèm mục tiêu, khung giờ);
+  :Yêu cầu PENDING;
+  if (Gia sư phản hồi) then (Chấp nhận)
+    :Kiểm tra lại khung giờ mong muốn;
+    :Tạo lớp ACTIVE trong một giao dịch;
+    :Thông báo cho học sinh và phụ huynh;
+  else (Từ chối hoặc quá hạn 7 ngày)
+    :Yêu cầu kết thúc;
+    stop
+  endif
+}
+note right
+  Student hoặc Admin được thu hồi liên kết.
+  Thu hồi: Parent mất quyền xem ngay,
+  dữ liệu đã tạo vẫn giữ nguyên.
+end note
+stop
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+!include style.iuml
+title Luồng 6: Đánh giá và thông báo
+actor "Student / Parent" as L
+participant "review" as REV
+participant "scheduling" as SCH
+participant "notification" as NOTI
+actor Tutor
+L -> REV : Gửi đánh giá (1-5 sao, 10-1000 ký tự)
+REV -> SCH : Có ít nhất một buổi COMPLETED\nvới gia sư này?
+alt Chưa có
+  REV --> L : Từ chối
+else Đã có
+  REV -> REV : Mỗi cặp Student - gia sư\nchỉ một đánh giá
+  REV --> L : Lưu đánh giá
+  REV --> NOTI : Sự kiện đã có đánh giá
+  NOTI --> Tutor : Thông báo trong ứng dụng
+end
+SCH --> NOTI : Sự kiện lịch học\n(đề xuất, xác nhận, kết quả)
+NOTI --> L : Thông báo (Parent chỉ thấy khi\nliên kết còn CONFIRMED)
+note over NOTI : Thông báo giữ 90 ngày
+@enduml

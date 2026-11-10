@@ -1,0 +1,27 @@
+@startuml
+!include style.iuml
+title Luồng 7: Ví nội bộ và thanh toán payOS
+actor "Student / Parent" as P
+participant "payment" as PAY
+participant "payOS" as OS
+actor Tutor
+actor Admin
+P -> PAY : Nạp ví (nhập số tiền)
+PAY -> OS : Tạo checkout, hiện QR trong popup
+P -> OS : Quét QR trả tiền ngân hàng
+OS --> PAY : Webhook hoặc receipt
+PAY -> PAY : Đối soát với yêu cầu đã lưu\nrồi mới cộng available
+P -> PAY : Cấp tiền cho buổi học
+PAY -> PAY : available chuyển sang held (FUNDED)
+note right of PAY : Buổi học xong, chờ 24 giờ phản hồi
+alt Không có vấn đề
+  PAY -> PAY : SETTLED: giảm held,\ncộng ví gia sư, ghi hoa hồng
+else Có tranh chấp (mở trong 48 giờ)
+  PAY --> Admin : Chuyển Admin xử lý, tiền vẫn được giữ
+  Admin -> PAY : Quyết định: tất toán hoặc hoàn về ví người trả
+end
+Tutor -> PAY : Yêu cầu rút tiền
+PAY -> PAY : Giữ tiền lúc yêu cầu
+Admin -> PAY : Duyệt chi (thủ công hoặc payOS)
+note over PAY : Ví nội bộ là số dư trong DB.\nTiền thật nằm ở ngân hàng.
+@enduml

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 900" width="1800" height="900">
+  <defs>
+    <!-- Marker for open arrowhead (2px stroke, no fill, sharp corner) -->
+    <marker id="open-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+      <polyline points="2,2 10,6 2,10" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1800" height="900" fill="#FFFFFF"/>
+
+  <!-- ==================== ARROWS (DASHED, 2px, OPEN ARROWHEAD) ==================== -->
+  <!-- 1. notification --> review -->
+  <path d="M 305.0 112.5 L 415.0 112.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 2. notification --> payment -->
+  <path d="M 220.0 57.5 L 220.0 20 L 900.0 20 L 900.0 57.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 3. review --> scheduling -->
+  <path d="M 540.0 167.5 L 540.0 337.5 L 775.0 337.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 4. payment --> scheduling -->
+  <path d="M 900.0 167.5 L 900.0 282.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 5. progress --> scheduling -->
+  <path d="M 1260.0 167.5 L 1260.0 337.5 L 1025.0 337.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 6. scheduling --> connection -->
+  <path d="M 900.0 392.5 L 900.0 507.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 7. discovery --> connection -->
+  <path d="M 305.0 562.5 L 775.0 562.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 8. connection --> profile -->
+  <path d="M 1025.0 562.5 L 1135.0 562.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 9. profile --> ai -->
+  <path d="M 1385.0 562.5 L 1495.0 562.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 10. connection --> iam -->
+  <path d="M 900.0 617.5 L 900.0 732.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 11. verification --> profile -->
+  <path d="M 1260.0 732.5 L 1260.0 617.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 12. verification --> iam -->
+  <path d="M 1135.0 787.5 L 1025.0 787.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+  <!-- 13. verification --> storage -->
+  <path d="M 1385.0 787.5 L 1495.0 787.5" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#open-arrow)"/>
+
+  <!-- ==================== PACKAGES (250x110, TAB 90x25, FONT >=28px) ==================== -->
+  <!-- Package: notification -->
+  <g id="pkg-notification">
+    <rect x="55.0" y="32.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="55.0" y="57.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="180.0" y="112.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">notification</text>
+  </g>
+  <!-- Package: review -->
+  <g id="pkg-review">
+    <rect x="415.0" y="32.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="415.0" y="57.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="540.0" y="112.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">review</text>
+  </g>
+  <!-- Package: payment -->
+  <g id="pkg-payment">
+    <rect x="775.0" y="32.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="775.0" y="57.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="900.0" y="112.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">payment</text>
+  </g>
+  <!-- Package: progress -->
+  <g id="pkg-progress">
+    <rect x="1135.0" y="32.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="1135.0" y="57.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="1260.0" y="112.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">progress</text>
+  </g>
+  <!-- Package: scheduling -->
+  <g id="pkg-scheduling">
+    <rect x="775.0" y="257.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="775.0" y="282.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="900.0" y="337.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">scheduling</text>
+  </g>
+  <!-- Package: discovery -->
+  <g id="pkg-discovery">
+    <rect x="55.0" y="482.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="55.0" y="507.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="180.0" y="562.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">discovery</text>
+  </g>
+  <!-- Package: connection -->
+  <g id="pkg-connection">
+    <rect x="775.0" y="482.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="775.0" y="507.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="900.0" y="562.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">connection</text>
+  </g>
+  <!-- Package: profile -->
+  <g id="pkg-profile">
+    <rect x="1135.0" y="482.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="1135.0" y="507.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="1260.0" y="562.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">profile</text>
+  </g>
+  <!-- Package: ai -->
+  <g id="pkg-ai">
+    <rect x="1495.0" y="482.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="1495.0" y="507.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="1620.0" y="562.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">ai</text>
+  </g>
+  <!-- Package: shared -->
+  <g id="pkg-shared">
+    <rect x="55.0" y="707.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="55.0" y="732.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="180.0" y="787.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">shared</text>
+  </g>
+  <!-- Package: iam -->
+  <g id="pkg-iam">
+    <rect x="775.0" y="707.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="775.0" y="732.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="900.0" y="787.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">iam</text>
+  </g>
+  <!-- Package: verification -->
+  <g id="pkg-verification">
+    <rect x="1135.0" y="707.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="1135.0" y="732.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="1260.0" y="787.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">verification</text>
+  </g>
+  <!-- Package: storage -->
+  <g id="pkg-storage">
+    <rect x="1495.0" y="707.5" width="90" height="25" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <rect x="1495.0" y="732.5" width="250" height="110" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+    <text x="1620.0" y="787.5" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30px" font-weight="normal" fill="#000000" text-anchor="middle" dominant-baseline="central">storage</text>
+  </g>
+
+  <!-- ==================== FOOTNOTE FOR SHARED ==================== -->
+  <text x="900" y="878" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20px" font-style="italic" fill="#333333" text-anchor="middle">Tất cả package đều phụ thuộc shared (mũi tên được lược bỏ để dễ đọc).</text>
+</svg>
