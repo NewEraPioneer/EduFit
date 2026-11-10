@@ -9,25 +9,48 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.connection.infra.persistence.repository.ParentStudentLinkRepository;
 import vn.edufit.connection.infra.persistence.repository.TutoringClassRepository;
+import vn.edufit.connection.infra.persistence.repository.ConnectionRequestRepository;
+import vn.edufit.connection.application.policy.SlotConflictDetector;
+import vn.edufit.connection.infra.persistence.entity.TutoringClass;
+import vn.edufit.shared.exception.ErrorCode;
+import vn.edufit.shared.exception.ResourceConflictException;
 
 @Service
 @Transactional(readOnly = true)
 public class ConnectionFacadeImpl implements ConnectionFacade {
   private final ParentStudentLinkRepository links;
   private final TutoringClassRepository classes;
+  private final ConnectionRequestRepository requests;
+  private final SlotConflictDetector conflicts;
 
   @Override
   @Transactional
   public void updateAgreedSlots(UUID classId, List<String> slots) {
     var cls = classes.findByIdAndStatus(classId, "ACTIVE")
         .orElseThrow(() -> vn.edufit.shared.exception.EntityNotFoundException.of("Class", classId));
+    requireNoRecurringConflict(classId, slots,
+        classes.findByStudentIdAndStatus(cls.getStudentId(), "ACTIVE"), "học sinh");
+    requireNoRecurringConflict(classId, slots,
+        classes.findByTutorIdAndStatus(cls.getTutorId(), "ACTIVE"), "gia sư");
     cls.updateAgreedSlots(slots);
     classes.saveAndFlush(cls);
   }
 
-  public ConnectionFacadeImpl(ParentStudentLinkRepository links, TutoringClassRepository classes) {
+  private void requireNoRecurringConflict(UUID classId, List<String> slots, List<TutoringClass> activeClasses, String owner) {
+    var others = activeClasses.stream().filter(c -> !classId.equals(c.getId())).toList();
+    var ids = others.stream().map(TutoringClass::getConnectionRequestId).filter(java.util.Objects::nonNull).toList();
+    var overlap = conflicts.findConflictingSlots(slots,
+        ClassAgreedSchedules.slots(others, requests.findAllById(ids)));
+    if (!overlap.isEmpty()) throw new ResourceConflictException(ErrorCode.SLOT_CONFLICT_WITH_ACTIVE_SCHEDULE,
+        "Lịch định kỳ mới trùng với lớp đang hoạt động của " + owner + ": " + String.join(", ", overlap));
+  }
+
+  public ConnectionFacadeImpl(ParentStudentLinkRepository links, TutoringClassRepository classes,
+      ConnectionRequestRepository requests, SlotConflictDetector conflicts) {
     this.links = links;
     this.classes = classes;
+    this.requests = requests;
+    this.conflicts = conflicts;
   }
 
   @Override
