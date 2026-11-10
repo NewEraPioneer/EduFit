@@ -56,6 +56,22 @@ const mockSessions = [
 ];
 
 describe("ScheduleCalendarView Component", () => {
+  it("thông báo mở đúng tuần và đúng chi tiết buổi học", async () => {
+    const linked = { ...mockSessions[0], startAt: "2027-03-17T08:00:00.000Z", endAt: "2027-03-17T09:30:00.000Z",
+      proposedBy: "user-tutor-1", expiresAt: "2027-03-16T08:00:00.000Z", version: 1, createdAt: "2027-03-14T08:00:00.000Z" };
+    vi.spyOn(schedulingApi, "getSessionDetail").mockResolvedValue({ success: true, data: linked });
+    render(<ScheduleCalendarView role="TUTOR" />);
+    fireEvent(window, new CustomEvent("edufit:open-session", { detail: linked.sessionId }));
+    await waitFor(() => {
+      expect(schedulingApi.getCalendar).toHaveBeenCalledWith(expect.objectContaining({
+        from: expect.any(String), to: expect.any(String),
+      }));
+      const last = vi.mocked(schedulingApi.getCalendar).mock.calls.at(-1)![0];
+      expect(Date.parse(last.from)).toBeLessThanOrEqual(Date.parse(linked.startAt));
+      expect(Date.parse(last.to)).toBeGreaterThan(Date.parse(linked.endAt));
+    });
+    expect(await screen.findByText("Chi tiết buổi học")).toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({

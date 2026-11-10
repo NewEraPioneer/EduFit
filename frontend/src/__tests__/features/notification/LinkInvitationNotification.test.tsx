@@ -26,6 +26,17 @@ describe("thông báo lời mời liên kết", () => {
     expect(countChanged).toHaveBeenCalledWith(0);
   });
 
+  it("mở đúng buổi học từ thông báo đổi lịch", async () => {
+    vi.spyOn(notificationApi, "getNotifications").mockResolvedValue({ success: true, data: {
+      items: [{ notificationId: "reschedule", type: "SESSION_UPDATE", title: "Đổi lịch buổi học", shortText: "Có lịch mới",
+        targetType: "SESSION", targetId: "session-demo", isRead: true, createdAt: "2026-11-10T00:00:00Z" }],
+      page: 0, size: 20, totalElements: 1, totalPages: 1, unreadCount: 0,
+    } });
+    render(<NotificationDropdown role="TUTOR" />);
+    fireEvent.click(await screen.findByRole("button", { name: /Đổi lịch buổi học/ }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/tutor/schedule?sessionId=session-demo"));
+  });
+
   it("đưa gia sư đến nơi duyệt yêu cầu kết nối khi nhận CONNECTION_REQUEST", async () => {
     vi.spyOn(notificationApi, "getNotifications").mockResolvedValue({ success: true, data: {
       items: [{ notificationId: "notification-2", type: "CONNECTION_REQUEST", title: "Yêu cầu kết nối mới", shortText: "Học sinh muốn học", isRead: false, createdAt: "2026-10-18T00:00:00Z" }],

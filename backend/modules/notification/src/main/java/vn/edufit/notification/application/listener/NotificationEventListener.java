@@ -188,6 +188,21 @@ public class NotificationEventListener {
     notifyBoth(event.tutorId(), event.studentId(), "Buổi học đã chốt lịch", "Buổi học đã được xác nhận vào lịch học", "SESSION", event.sessionId());
   }
 
+  @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+  @Transactional
+  public void onRescheduleProposed(vn.edufit.scheduling.api.event.SessionRescheduleProposedEvent event) {
+    resolveRecipientAndNotify(event.tutorId(), event.studentId(), event.proposedBy(),
+        "Có yêu cầu đổi lịch buổi học", "Xem lịch mới và chấp nhận hoặc từ chối trước hạn phản hồi", "SESSION", event.sessionId());
+  }
+
+  @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+  @Transactional
+  public void onRescheduleClosed(vn.edufit.scheduling.api.event.SessionRescheduleClosedEvent event) {
+    String title = "REJECTED".equals(event.status()) ? "Yêu cầu đổi lịch đã bị từ chối" : "Yêu cầu đổi lịch đã đóng";
+    repository.save(new Notification(event.proposedBy(), event.studentId(), "SESSION_RESCHEDULE_" + event.status(),
+        title, "Lịch đề xuất chưa được áp dụng. Mở buổi học để xem trạng thái hiện tại.", "SESSION", event.sessionId(), event.occurredAt()));
+  }
+
   @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, fallbackExecution = false)
   @Transactional
   public void onSessionRescheduled(SessionRescheduledEvent event) {

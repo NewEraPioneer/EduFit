@@ -64,9 +64,10 @@ export function getNotificationRoute(
     targetType === "SESSION" ||
     targetType === "RESCHEDULE_PROPOSAL"
   ) {
-    if (normalizedRole === "TUTOR") return "/tutor/schedule";
-    if (normalizedRole === "PARENT") return "/parent/schedule";
-    return "/student/schedule";
+    const base = normalizedRole === "TUTOR" ? "/tutor/schedule"
+      : normalizedRole === "PARENT" ? "/parent/schedule" : "/student/schedule";
+    const sessionTarget = ["SESSION", "TUTORING_SESSION", "SESSION_PROPOSAL", "SESSION_UPDATE"].includes(targetType);
+    return sessionTarget && item.targetId ? `${base}?sessionId=${encodeURIComponent(item.targetId)}` : base;
   }
 
   // 3. Yêu cầu kết nối / Mời học (Connection Requests)
@@ -238,6 +239,10 @@ export function NotificationDropdown({
     const destination = getNotificationRoute(item, role);
     if (destination) {
       router.push(destination);
+      // Also open when the calendar is already mounted and only its query changes.
+      if (destination.includes("/schedule?sessionId=") && item.targetId) {
+        window.dispatchEvent(new CustomEvent("edufit:open-session", { detail: item.targetId }));
+      }
     }
     onClose?.();
   };

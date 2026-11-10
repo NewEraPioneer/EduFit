@@ -119,6 +119,9 @@ public class ExpireProposalsJob {
       try {
         proposal.expire(now);
         proposalRepository.save(proposal);
+        sessionRepository.findById(proposal.getSessionId()).ifPresent(session ->
+            eventPublisher.publishEvent(new vn.edufit.scheduling.api.event.SessionRescheduleClosedEvent(
+                java.util.UUID.randomUUID(), now, session.getSessionId(), session.getStudentId(), proposal.getProposedBy(), "EXPIRED")));
 
         historyRepository.save(SessionHistory.create(
             proposal.getSessionId(),

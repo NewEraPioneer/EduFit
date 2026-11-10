@@ -244,6 +244,7 @@ export function ScheduleCalendarView({
   classes = [],
   initialStudentId,
   initialSession,
+  onLinkedStudentResolved,
 }: ScheduleCalendarViewProps) {
   const { user } = useAuth();
 
@@ -268,6 +269,40 @@ export function ScheduleCalendarView({
   const [proposeInitialHour, setProposeInitialHour] = useState<number>(8);
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialSession?.sessionId ?? null);
+  const [linkedSessionStudent, setLinkedSessionStudent] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (role === "PARENT" && linkedSessionStudent && initialStudentId && linkedSessionStudent !== initialStudentId) {
+      setSelectedSessionId(null);
+    }
+  }, [role, linkedSessionStudent, initialStudentId]);
+
+  useEffect(() => {
+    let alive = true;
+    let generation = 0;
+    const open = async (id: string) => {
+      const request = ++generation;
+      try {
+        const response = await schedulingApi.getSessionDetail(id);
+        if (!alive || request !== generation || !response.success || !response.data) return;
+        const session = response.data;
+        setWeekStart(startOfWeek(new Date(session.startAt)));
+        setSelectedSessionId(session.sessionId);
+        setLinkedSessionStudent(session.studentId);
+        if (role === "PARENT") onLinkedStudentResolved?.(session.studentId);
+      } catch {
+        if (alive && request === generation) setError("Không mở được buổi học từ thông báo. Vui lòng kiểm tra quyền truy cập.");
+      }
+    };
+    const id = new URLSearchParams(window.location.search).get("sessionId");
+    if (id && !initialSession) void open(id);
+    const handle = (event: Event) => {
+      const id = (event as CustomEvent<unknown>).detail;
+      if (typeof id === "string" && id) void open(id);
+    };
+    window.addEventListener("edufit:open-session", handle);
+    return () => { alive = false; window.removeEventListener("edufit:open-session", handle); };
+  }, [role, initialSession, onLinkedStudentResolved]);
 
   // 7 days of the selected week
   const weekDays = useMemo(

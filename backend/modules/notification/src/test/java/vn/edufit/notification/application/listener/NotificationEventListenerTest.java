@@ -89,6 +89,31 @@ class NotificationEventListenerTest {
   }
 
   @Test
+  void rejectedRescheduleNotifiesOriginalProposerWithSessionTarget() {
+    UUID proposer = UUID.randomUUID(), session = UUID.randomUUID();
+    listener.onRescheduleClosed(new vn.edufit.scheduling.api.event.SessionRescheduleClosedEvent(
+        UUID.randomUUID(), Instant.now(), session, UUID.randomUUID(), proposer, "REJECTED"));
+    verify(repository).save(org.mockito.ArgumentMatchers.argThat(n -> n.getUserId().equals(proposer)
+        && n.getTargetId().equals(session) && n.getType().equals("SESSION_RESCHEDULE_REJECTED")));
+  }
+
+  @Test
+  void proposingRescheduleNotifiesCounterparty() {
+    UUID tutor = UUID.randomUUID(), student = UUID.randomUUID(), tutorUser = UUID.randomUUID(), studentUser = UUID.randomUUID();
+    TutorSummaryDto summary = org.mockito.Mockito.mock(TutorSummaryDto.class);
+    when(summary.userId()).thenReturn(tutorUser);
+    when(profileFacade.findTutorById(tutor)).thenReturn(Optional.of(summary));
+    when(profileFacade.findStudentById(student)).thenReturn(Optional.of(
+        new vn.edufit.profile.api.dto.StudentSummaryDto(student, studentUser, null, null, null, true)));
+    UUID session = UUID.randomUUID();
+    listener.onRescheduleProposed(vn.edufit.scheduling.api.event.SessionRescheduleProposedEvent.of(
+        UUID.randomUUID(), session, UUID.randomUUID(), tutor, student, tutorUser,
+        Instant.now().plusSeconds(86400), Instant.now().plusSeconds(90000), "Đổi lịch", Instant.now().plusSeconds(3600)));
+    verify(repository).save(org.mockito.ArgumentMatchers.argThat(n -> n.getUserId().equals(studentUser)
+        && n.getTargetId().equals(session)));
+  }
+
+  @Test
   @DisplayName("onReviewSubmitted: Lưu notification cho tutor userId")
   void onReviewSubmitted_savesNotificationForTutor() {
     UUID tutorProfileId = UUID.randomUUID();

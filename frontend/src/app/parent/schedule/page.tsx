@@ -145,11 +145,11 @@ export default function ParentSchedulePage() {
 
       {/* Calendar View with initialStudentId passed */}
       <ScheduleCalendarView
-        key={activeStudentId || "empty"}
         role="PARENT"
         availabilitySlots={[]}
         classes={classes}
         initialStudentId={activeStudentId}
+        onLinkedStudentResolved={setSelectedStudentId}
       />
     </div>
   );

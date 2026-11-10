@@ -172,6 +172,7 @@ export interface ScheduleCalendarViewProps {
   classes?: ConnectedClass[];
   initialStudentId?: string;
   initialSession?: Pick<CalendarItem, "sessionId" | "startAt">;
+  onLinkedStudentResolved?: (studentId: string) => void;
 }
 
 export interface WeeklySlotPayload {

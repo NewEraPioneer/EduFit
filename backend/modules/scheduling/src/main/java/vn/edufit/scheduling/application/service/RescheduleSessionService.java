@@ -193,6 +193,8 @@ public class RescheduleSessionService {
     if (!accept) {
       proposal.reject(responderId, responseReason, now);
       SessionRescheduleProposal updatedProposal = proposalRepository.save(proposal);
+      eventPublisher.publishEvent(new vn.edufit.scheduling.api.event.SessionRescheduleClosedEvent(
+          UUID.randomUUID(), now, session.getSessionId(), session.getStudentId(), proposal.getProposedBy(), "REJECTED"));
 
       historyRepository.save(SessionHistory.create(
           session.getSessionId(),
