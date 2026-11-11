@@ -10,7 +10,9 @@ export default function StudentDashboardPage() {
     <OnboardingGate>
       {(user) => (
         <div className="space-y-6">
-          <StudentLinkInvitations variant="dashboard-banner" />
+          <React.Suspense fallback={null}>
+            <StudentLinkInvitations variant="dashboard-banner" />
+          </React.Suspense>
           <StudentDashboardView user={user} />
         </div>
       )}

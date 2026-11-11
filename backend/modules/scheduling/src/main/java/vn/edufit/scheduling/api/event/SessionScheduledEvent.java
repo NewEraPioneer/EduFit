@@ -17,7 +17,8 @@ public record SessionScheduledEvent(
     UUID tutorId,
     UUID studentId,
     Instant startAt,
-    Instant endAt
+    Instant endAt,
+    UUID actorUserId
 ) implements BaseDomainEvent {
 
   public static SessionScheduledEvent of(
@@ -26,7 +27,8 @@ public record SessionScheduledEvent(
       UUID tutorId,
       UUID studentId,
       Instant startAt,
-      Instant endAt
+      Instant endAt,
+      UUID actorUserId
   ) {
     return new SessionScheduledEvent(
         UUID.randomUUID(),
@@ -36,7 +38,8 @@ public record SessionScheduledEvent(
         tutorId,
         studentId,
         startAt,
-        endAt
+        endAt,
+        actorUserId
     );
   }
 

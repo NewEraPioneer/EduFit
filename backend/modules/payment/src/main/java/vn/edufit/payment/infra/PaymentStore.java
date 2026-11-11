@@ -17,21 +17,14 @@ import vn.edufit.shared.exception.InvalidOperationException;
 public class PaymentStore {
   private final JdbcTemplate db;
   private final TransactionTemplate tx;
-  private final vn.edufit.shared.notification.NotificationSink notifications;
   private final org.springframework.context.ApplicationEventPublisher events;
 
   public PaymentStore(JdbcTemplate db, org.springframework.transaction.PlatformTransactionManager manager,
-      vn.edufit.shared.notification.NotificationSink notifications,
       org.springframework.context.ApplicationEventPublisher events) {
     this.db = Objects.requireNonNull(db);
     this.tx = new TransactionTemplate(Objects.requireNonNull(manager));
-    // Thông báo và PaymentSessionChangedEvent là một phần của nghiệp vụ thanh toán, không được nuốt mất
-    this.notifications = Objects.requireNonNull(notifications);
+    // Các event thanh toán là một phần của nghiệp vụ, không được nuốt mất; payment không soạn thông báo
     this.events = Objects.requireNonNull(events);
-  }
-
-  public void notice(UUID user, UUID ref, String type, String title, String text) {
-    notifications.notify(user, null, "PAYMENT_" + type, title, text, "PAYMENT_WALLET", ref);
   }
 
   // One DB row serializes monetary mutations across application instances. No network calls inside.
@@ -84,27 +77,9 @@ public class PaymentStore {
         available,
         held,
         ref);
-    if (user != null) {
-      String title =
-          switch (kind) {
-            case "TOPUP" -> "Nạp tiền thành công";
-            case "WITHDRAW_RESERVED" -> "Đã tiếp nhận yêu cầu rút tiền";
-            case "WITHDRAW_PAID" -> "Rút tiền thành công";
-            case "WITHDRAW_REJECTED", "WITHDRAW_FAILED" -> "Khoản rút đã được hoàn về ví";
-            default -> null;
-          };
-      if (title != null)
-        notice(
-            user,
-            ref,
-            kind,
-            title,
-            "Số dư thay đổi "
-                + available
-                + " VND; đang giữ thay đổi "
-                + held
-                + " VND. Xem sổ ví để biết chi tiết.");
-    }
+    if (user != null)
+      events.publishEvent(
+          vn.edufit.payment.api.event.WalletBalanceChangedEvent.of(user, ref, kind, available, held));
   }
 
   public void audit(UUID actor, UUID ref, String action, String detail) {
@@ -180,7 +155,8 @@ public class PaymentStore {
     db.update("insert into payment_case_message(id,session_id,author_id,side,message) values (?,?,?,?,?)",
         id, c.sessionId(), author, side, text);
     events.publishEvent(new vn.edufit.payment.api.event.PaymentSessionChangedEvent(UUID.randomUUID(),
-        Instant.now(), c.sessionId(), c.payerId(), c.tutorUserId(), c.studentId(), "CASE_MESSAGE", c.state().reviewDeadline()));
+        Instant.now(), c.sessionId(), c.payerId(), c.tutorUserId(), c.studentId(), "CASE_MESSAGE", c.state().reviewDeadline(),
+        c.state().status, author));
   }
 
   public void insert(Charge c) {
@@ -224,7 +200,7 @@ public class PaymentStore {
     if (opened || !s.status.equals(old.get("status")))
       events.publishEvent(new vn.edufit.payment.api.event.PaymentSessionChangedEvent(
           UUID.randomUUID(), Instant.now(), c.sessionId(), c.payerId(), c.tutorUserId(), c.studentId(),
-          s.status, s.reviewDeadline()));
+          s.status, s.reviewDeadline(), s.status, null));
   }
 
   private Charge mapCharge(ResultSet r, int n) throws SQLException {

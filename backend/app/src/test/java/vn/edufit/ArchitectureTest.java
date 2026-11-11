@@ -55,6 +55,20 @@ public class ArchitectureTest {
       .should().dependOnClassesThat().resideInAPackage("vn.edufit.notification..")
       .allowEmptyShould(false);
 
+  /** Progress/payment phát sự kiện nghiệp vụ; soạn câu chữ và chọn người nhận là việc của module notification. */
+  @ArchTest
+  static final ArchRule progress_and_payment_should_publish_events_not_compose_notifications = noClasses()
+      .that().resideInAnyPackage("vn.edufit.progress..", "vn.edufit.payment..")
+      .should().dependOnClassesThat().resideInAPackage("vn.edufit.shared.notification..")
+      .allowEmptyShould(false);
+
+  /** Một đường ghi duy nhất: listener đi qua NotificationService, không chạm repository/entity. */
+  @ArchTest
+  static final ArchRule notification_listeners_should_write_through_the_service = noClasses()
+      .that().resideInAPackage("vn.edufit.notification.application.listener..")
+      .should().dependOnClassesThat().resideInAPackage("vn.edufit.notification.infra..")
+      .allowEmptyShould(false);
+
   @ArchTest
   static final ArchRule root_packages_should_have_no_dependency_cycles = slices()
       .matching("vn.edufit.(*)..").should().beFreeOfCycles().allowEmptyShould(false);

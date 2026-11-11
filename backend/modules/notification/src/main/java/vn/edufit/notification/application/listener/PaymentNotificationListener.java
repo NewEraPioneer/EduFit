@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 import vn.edufit.iam.api.IamFacade;
 import vn.edufit.payment.api.event.PaymentSessionChangedEvent;
+import vn.edufit.payment.api.event.WalletBalanceChangedEvent;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.shared.notification.NotificationSink;
 
@@ -18,6 +19,23 @@ public class PaymentNotificationListener {
   public PaymentNotificationListener(NotificationSink sink, ProfileFacade profiles, IamFacade accounts) {
     this.sink = sink; this.profiles = profiles; this.accounts = accounts;
   }
+  @org.springframework.context.event.EventListener
+  @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+  public void onWalletChanged(WalletBalanceChangedEvent event) {
+    String title = switch (event.kind()) {
+      case "TOPUP" -> "Nạp tiền thành công";
+      case "WITHDRAW_RESERVED" -> "Đã tiếp nhận yêu cầu rút tiền";
+      case "WITHDRAW_PAID" -> "Rút tiền thành công";
+      case "WITHDRAW_REJECTED", "WITHDRAW_FAILED" -> "Khoản rút đã được hoàn về ví";
+      default -> null;
+    };
+    if (title == null) return;
+    sink.notify(event.userId(), null, "PAYMENT_" + event.kind(), title,
+        "Số dư thay đổi " + event.availableDelta() + " VND; đang giữ thay đổi " + event.heldDelta()
+            + " VND. Xem sổ ví để biết chi tiết.",
+        "PAYMENT_WALLET", event.referenceId());
+  }
+
   @org.springframework.context.event.EventListener
   @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
   public void onChange(PaymentSessionChangedEvent event) {
@@ -38,7 +56,12 @@ public class PaymentNotificationListener {
     profiles.findStudentById(event.studentId()).ifPresent(student -> {
       if (student.userId() != null) recipients.add(student.userId());
     });
-    if (Set.of("AWAITING_ADMIN", "ADMIN_REVIEW").contains(event.state())) recipients.addAll(accounts.findActiveAdminIds());
+    // Admin cần biết khi hồ sơ chuyển sang họ, và khi có tin nhắn mới lúc hồ sơ đang ở tay họ.
+    Set<String> adminStates = Set.of("AWAITING_ADMIN", "ADMIN_REVIEW");
+    if (adminStates.contains(event.state())
+        || ("CASE_MESSAGE".equals(event.state()) && adminStates.contains(event.sessionStatus())))
+      recipients.addAll(accounts.findActiveAdminIds());
+    recipients.remove(event.actorUserId()); // người vừa viết không tự nhận thông báo về chính mình
     String detail = "AWAITING_CONFIRMATION".equals(event.state())
         ? "Hạn phản hồi: " + java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy").withZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).format(event.reviewDeadline()) + " (giờ Việt Nam)" + ". Xác nhận đã học không kết thúc thời hạn báo vấn đề."
         : "Mở chi tiết buổi học để xem trạng thái tiền, phản hồi và bước tiếp theo.";

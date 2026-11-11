@@ -73,7 +73,6 @@ class PaymentFlowIT {
   void setup() {
     db = new JdbcTemplate(datasource);
     store = new PaymentStore(db, new DataSourceTransactionManager(datasource),
-        mock(vn.edufit.shared.notification.NotificationSink.class),
         mock(org.springframework.context.ApplicationEventPublisher.class));
     db.execute(
         "truncate"
@@ -201,6 +200,14 @@ class PaymentFlowIT {
           store.move(parentUser, 1000000, 0, "seed:" + sessionId, "TOPUP", sessionId);
           return null;
         });
+  }
+
+  /** Schema nâng cấp chỉ có migration (không có seed) nên test tự tạo tài khoản cần dùng. */
+  static UUID account(JdbcTemplate jdbc, String role) {
+    UUID id = UUID.randomUUID();
+    jdbc.update("insert into account(user_id,email,password_hash,full_name,role) values (?,?,?,?,?)",
+        id, id + "@test.local", "x", role, role);
+    return id;
   }
 
   CurrentUser actor(UUID id, String role) {
@@ -580,14 +587,13 @@ class PaymentFlowIT {
 
   @Test
   void notificationAndWalletCommitTogetherAndDuplicateWebhookNotifiesOnlyOnce() {
-    var sink = mock(vn.edufit.shared.notification.NotificationSink.class);
-    var notified = new PaymentStore(db, new DataSourceTransactionManager(datasource), sink,
-        mock(org.springframework.context.ApplicationEventPublisher.class));
+    var sink = mock(org.springframework.context.ApplicationEventPublisher.class);
+    var notified = new PaymentStore(db, new DataSourceTransactionManager(datasource), sink);
     var topup = store.locked(() -> store.createTopup(parentUser, 30000, "PAYOS", end));
     UUID id = (UUID) topup.get("id");
     doThrow(new IllegalStateException("notification unavailable"))
         .when(sink)
-        .notify(any(), isNull(), anyString(), anyString(), anyString(), anyString(), any());
+        .publishEvent(any(Object.class));
     assertThrows(
         RuntimeException.class,
         () ->
@@ -606,15 +612,13 @@ class PaymentFlowIT {
             return null;
           });
     assertEquals(1030000, store.wallet(parentUser).available());
-    verify(sink, times(1))
-        .notify(
-            eq(parentUser),
-            isNull(),
-            eq("PAYMENT_TOPUP"),
-            anyString(),
-            anyString(),
-            eq("PAYMENT_WALLET"),
-            eq(id));
+    var published = org.mockito.ArgumentCaptor.forClass(Object.class);
+    verify(sink, times(1)).publishEvent(published.capture());
+    var event = (vn.edufit.payment.api.event.WalletBalanceChangedEvent) published.getValue();
+    assertEquals(parentUser, event.userId());
+    assertEquals("TOPUP", event.kind());
+    assertEquals(id, event.referenceId());
+    assertEquals(30000, event.availableDelta());
   }
 
   @Test
@@ -635,11 +639,7 @@ class PaymentFlowIT {
     assertEquals(MigrationScripts.countUpTo("1.16", MigrationScripts.MIGRATION),
         old.migrate().migrationsExecuted);
     var jdbc = new JdbcTemplate(ds);
-    // A schema upgrade preserves real customer balances. Demo seed belongs to a
-    // fresh demonstration DB and is covered separately by DemoJourneySeedIT.
-    UUID user = UUID.randomUUID();
-    jdbc.update("insert into account(user_id,email,full_name,role) values (?,?,?,'TUTOR')",
-        user, user + "@payment-upgrade.test", "Existing payout customer");
+    UUID user = account(jdbc, "TUTOR");
     UUID id = UUID.randomUUID();
     jdbc.update("insert into payment_wallet(user_id,available,held) values (?,40000,50000)", user);
     jdbc.update(
@@ -715,7 +715,7 @@ class PaymentFlowIT {
     assertEquals(MigrationScripts.countUpTo("1.17", MigrationScripts.MIGRATION, MigrationScripts.SEED),
         old.migrate().migrationsExecuted);
     var jdbc = new JdbcTemplate(ds);
-    UUID owner = jdbc.queryForObject("select user_id from account where role='PARENT' limit 1", UUID.class);
+    UUID owner = account(jdbc, "PARENT");
     UUID id = UUID.randomUUID();
     jdbc.update("insert into payment_topup(id,user_id,amount,provider,status,expires_at)"
         + " values (?,?,100000,'PAYOS','PENDING',now())", id, owner);
@@ -835,7 +835,7 @@ class PaymentFlowIT {
     fund();
     db.update("update payment_charge set status='FUNDED',review_started_at=null where session_id=?", sessionId);
     var guarded = new PaymentStore(db, new DataSourceTransactionManager(datasource),
-        (user, student, type, title, text, target, id) -> {}, event -> { throw new IllegalStateException("Notification persistence failed"); });
+        event -> { throw new IllegalStateException("Notification persistence failed"); });
     var app = new SessionPaymentService(guarded, new PaymentAccess(profiles, connections), sessions, profiles, connections, new PaymentTime(Clock.fixed(end, ZoneOffset.UTC)));
     assertThrows(RuntimeException.class, () -> app.outcomeRecorded(sessionId, end));
     assertNull(store.find(sessionId).orElseThrow().state().reviewStartedAt);

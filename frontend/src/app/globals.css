@@ -1,531 +1,222 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Màu lấy từ logo EduFit. Mọi component dùng tên ngữ nghĩa; đổi theme chỉ đổi các biến này. */
 :root {
-  --background: #fafaf9;
-  --foreground: #171717;
   color-scheme: light;
+  --paper: #f5f7f4;
+  --surface: #ffffff;
+  --sunken: #ebefea;
+  --line: #d9dfda;
+  --line-strong: #b4bdb8;
+  --ink: #16233f;
+  --ink-2: #3a4761;
+  --muted: #5a6579;
+  --night: #16233f;
+
+  --brand: #2f4e8c;
+  --brand-deep: #243d70;
+  --brand-soft: #e6ecf7;
+  --brand-line: #bfcde6;
+  --brand-strong: #2f4e8c;
+  --brand-tint: #bfd0ee;
+
+  --action: #f4ad45;
+  --action-deep: #e29526;
+  --action-soft: #fdf1dd;
+  --action-line: #f5d8a8;
+  --action-strong: #855000;
+  --action-tint: #f9d08f;
+  --on-action: #16233f;
+
+  --success: #2f6b3f;
+  --success-deep: #245531;
+  --success-soft: #e4f1e2;
+  --success-line: #b9d8b3;
+  --success-strong: #2a6138;
+  --success-tint: #bfe0b4;
+
+  --danger: #b3261e;
+  --danger-deep: #8f1d17;
+  --danger-soft: #fbe9e7;
+  --danger-line: #f0c2bd;
+  --danger-strong: #a3221b;
+  --danger-tint: #f6c7c2;
 }
 
 .dark {
-  --background: #1c1917;
-  --foreground: #f5f5f4;
   color-scheme: dark;
+  --paper: #0e1526;
+  --surface: #172036;
+  --sunken: #1f2a44;
+  --line: #2c3856;
+  --line-strong: #46557a;
+  --ink: #eef2f8;
+  --ink-2: #c7d0df;
+  --muted: #9aa7bc;
+  --night: #24314f;
+
+  --brand: #466bb8;
+  --brand-deep: #38589c;
+  --brand-soft: #1e2c4c;
+  --brand-line: #34497a;
+  --brand-strong: #a9c1f0;
+
+  --action-soft: #33280f;
+  --action-line: #5a4520;
+  --action-strong: #f4ad45;
+
+  --success-soft: #17301f;
+  --success-line: #2b5236;
+  --success-strong: #8fd19e;
+
+  --danger-soft: #3a1a1a;
+  --danger-line: #6a2a26;
+  --danger-strong: #f4a59e;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-night: var(--night);
+
+  --color-brand: var(--brand);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-line: var(--brand-line);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-tint: var(--brand-tint);
+
+  --color-action: var(--action);
+  --color-action-deep: var(--action-deep);
+  --color-action-soft: var(--action-soft);
+  --color-action-line: var(--action-line);
+  --color-action-strong: var(--action-strong);
+  --color-action-tint: var(--action-tint);
+  --color-on-action: var(--on-action);
+
+  --color-success: var(--success);
+  --color-success-deep: var(--success-deep);
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-success-strong: var(--success-strong);
+  --color-success-tint: var(--success-tint);
+
+  --color-danger: var(--danger);
+  --color-danger-deep: var(--danger-deep);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-tint: var(--danger-tint);
+
   --font-heading: var(--font-heading);
   --font-sans: var(--font-sans);
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-  overflow-x: hidden;
-}
-
-.dark body {
-  background-color: #1c1917;
-  color: #f5f5f4;
-}
-
-/* =========================================================================
-   DARK THEME PALETTE OVERRIDES (Warm stone aesthetic & WCAG AAA contrast)
-   Use :not([class*="dark:"]) to guarantee explicit Tailwind utilities always win.
-   ========================================================================= */
-
-.dark .bg-white:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #24201e;
-}
-
-.dark .to-white:not([class*="dark:to-"]) {
-  --tw-gradient-to: #24201e var(--tw-gradient-to-position);
-}
-
-.dark .bg-stone-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #171513;
-}
-
-/* All semi-transparent stone surfaces turn into dark inset panels */
-.dark [class*="bg-stone-50\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark [class*="bg-stone-100\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(23, 21, 19, 0.75);
-}
-
-/* Chỉ nền trắng gần đục (>= /50). Lớp phủ trắng mờ (/10, /20...) trên nền màu giữ nguyên như thiết kế. */
-.dark .bg-white\/50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-white\/60:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-white\/70:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-white\/75:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-white\/80:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-white\/85:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-white\/90:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-white\/95:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(36, 32, 30, 0.85);
-}
-
-.dark .bg-\[\#F7F6F3\]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark [class*="bg-\[\#F7F6F3\]"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-\[\#FEFAF2\]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark [class*="bg-\[\#FEFAF2\]"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #24201e;
-}
-
-.dark .bg-stone-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #2c2826;
-}
-
-.dark .bg-stone-200:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #3b3633;
-}
-
-.dark .border-stone-100:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-stone-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark [class*="border-stone-200\/"]:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-stone-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark [class*="border-stone-300\/"]:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: #44403c;
-}
-
-.dark .divide-stone-100 > :not([hidden]) ~ :not([hidden]),
-.dark .divide-stone-200 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #44403c;
-}
-
-/* --- High-contrast text hierarchy: Stone Palette --- */
-.dark .text-stone-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-stone-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-.dark .text-stone-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #f5f5f4;
-}
-
-.dark .text-stone-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #e7e5e4;
-}
-
-.dark .text-stone-600:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #d6d3d1;
-}
-
-.dark .text-stone-500:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #a8a29e;
-}
-
-/* 400 = chữ phụ mờ nhất nhưng vẫn đạt WCAG AA (>= 4.5:1) trên nền trang và thẻ */
-.dark .text-stone-400:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #8f8a85;
-}
-
-.dark .hover\:bg-stone-50:hover:not([class*="dark:hover:bg-"]) {
-  background-color: #2c2826;
-}
-
-.dark .hover\:bg-stone-100:hover:not([class*="dark:hover:bg-"]) {
-  background-color: #3b3633;
-}
-
-.dark .hover\:text-stone-900:hover:not([class*="dark:hover:text-"]),
-.dark .hover\:text-stone-800:hover:not([class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-/* --- High-contrast text hierarchy: Neutral Palette --- */
-.dark .text-neutral-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-neutral-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-.dark .text-neutral-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #f5f5f4;
-}
-
-.dark .text-neutral-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #e7e5e4;
-}
-
-.dark .text-neutral-600:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #d4d4d4;
-}
-
-.dark .text-neutral-500:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #a3a3a3;
-}
-
-.dark .text-neutral-400:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #8f8f8f;
-}
-
-.dark .hover\:text-neutral-900:hover:not([class*="dark:hover:text-"]),
-.dark .hover\:text-neutral-800:hover:not([class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-/* =========================================================================
-   DARK THEME: ZINC PALETTE OVERRIDES
-   ========================================================================= */
-
-.dark .bg-zinc-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #171513;
-}
-
-.dark [class*="bg-zinc-50\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(23, 21, 19, 0.75);
-}
-
-.dark .bg-zinc-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #2c2826;
-}
-
-.dark [class*="bg-zinc-100\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(44, 40, 38, 0.75);
-}
-
-.dark .border-zinc-100:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-zinc-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark [class*="border-zinc-200\/"]:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-zinc-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: #44403c;
-}
-
-.dark .divide-zinc-100 > :not([hidden]) ~ :not([hidden]),
-.dark .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #44403c;
-}
-
-.dark .text-zinc-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-zinc-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-.dark .text-zinc-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #f5f5f4;
-}
-
-.dark .text-zinc-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #e7e5e4;
-}
-
-.dark .text-zinc-600:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #d4d4d4;
-}
-
-.dark .text-zinc-500:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #a3a3a3;
-}
-
-.dark .text-zinc-400:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #8f8f8f;
-}
-
-.dark .hover\:bg-zinc-50:hover:not([class*="dark:hover:bg-"]) {
-  background-color: #2c2826;
-}
-
-.dark .hover\:bg-zinc-100:hover:not([class*="dark:hover:bg-"]) {
-  background-color: #3b3633;
-}
-
-.dark .hover\:text-zinc-900:hover:not([class*="dark:hover:text-"]),
-.dark .hover\:text-zinc-800:hover:not([class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-/* =========================================================================
-   DARK THEME: GRAY PALETTE OVERRIDES
-   ========================================================================= */
-
-.dark .bg-gray-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #24201e;
-}
-
-.dark [class*="bg-gray-50\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(36, 32, 30, 0.75);
-}
-
-.dark .bg-gray-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #2c2826;
-}
-
-.dark [class*="bg-gray-100\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(44, 40, 38, 0.75);
-}
-
-.dark .border-gray-100:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-gray-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark [class*="border-gray-200\/"]:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-gray-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: #44403c;
-}
-
-.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
-.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #44403c;
-}
-
-.dark .text-gray-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-gray-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-.dark .text-gray-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #f5f5f4;
-}
-
-.dark .text-gray-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #e7e5e4;
-}
-
-.dark .text-gray-600:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #d4d4d4;
-}
-
-.dark .text-gray-500:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #a3a3a3;
-}
-
-.dark .text-gray-400:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #8f8f8f;
-}
-
-.dark .hover\:bg-gray-50:hover:not([class*="dark:hover:bg-"]),
-.dark [class*="hover\:bg-gray-50"]:hover:not([class*="dark:hover:bg-"]) {
-  background-color: #2c2826;
-}
-
-.dark .hover\:bg-gray-100:hover:not([class*="dark:hover:bg-"]) {
-  background-color: #3b3633;
-}
-
-.dark .hover\:text-gray-900:hover:not([class*="dark:hover:text-"]),
-.dark .hover\:text-gray-800:hover:not([class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-.dark .hover\:text-gray-700:hover:not([class*="dark:hover:text-"]) {
-  color: #ffffff;
-}
-
-/* =========================================================================
-   DARK THEME: BADGES & SEMANTIC STATUS COLORS (No more dark-on-dark text)
-   ========================================================================= */
-
-/* --- Emerald / Success / Verified --- */
-.dark .text-emerald-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-emerald-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-emerald-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #6ee7b7;
-}
-
-.dark .text-emerald-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #a7f3d0;
-}
-
-.dark .text-emerald-600:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #34d399;
-}
-
-.dark .bg-emerald-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-emerald-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(6, 78, 59, 0.45);
-}
-
-.dark .border-emerald-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-emerald-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: rgba(16, 185, 129, 0.35);
-}
-
-/* --- Amber / Warning / Pending / Rating --- */
-.dark .text-amber-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-amber-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-amber-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #fde047;
-}
-
-.dark .text-amber-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #fef08a;
-}
-
-.dark .text-amber-600:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #fbbf24;
-}
-
-.dark .bg-amber-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-amber-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(120, 53, 15, 0.45);
-}
-
-.dark .border-amber-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-amber-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: rgba(245, 158, 11, 0.35);
-}
-
-/* --- Sky & Blue / Info / Active --- */
-.dark .text-sky-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-sky-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-sky-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-blue-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-blue-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-blue-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #7dd3fc;
-}
-
-.dark .text-sky-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-blue-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #bae6fd;
-}
-
-.dark .text-sky-600:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-blue-600:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-\[\#006DCC\]:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark [class*="text-\[\#006DCC\]"]:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #38bdf8;
-}
-
-.dark .bg-sky-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark [class*="bg-sky-50\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-sky-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark [class*="bg-sky-100\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-blue-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark [class*="bg-blue-50\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-blue-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark [class*="bg-blue-100\/"]:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(12, 74, 110, 0.45);
-}
-
-.dark .border-sky-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-sky-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-blue-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-blue-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-\[\#006DCC\]:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark [class*="border-\[\#006DCC\]"]:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: rgba(56, 189, 248, 0.5);
-}
-
-/* --- Rose & Red / Danger / Rejected / Overdue --- */
-.dark .text-rose-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-rose-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-rose-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-red-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-red-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-red-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #fda4af;
-}
-
-.dark .bg-rose-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-rose-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-red-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-red-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(136, 19, 55, 0.45);
-}
-
-.dark .border-rose-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-rose-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-red-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-red-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: rgba(244, 63, 94, 0.35);
-}
-
-/* --- Purple & Indigo / AI / Highlights --- */
-.dark .text-purple-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-purple-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-purple-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-indigo-800:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-indigo-900:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-indigo-950:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #d8b4fe;
-}
-
-.dark .text-purple-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark .text-indigo-700:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #e9d5ff;
-}
-
-.dark .bg-purple-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-purple-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-indigo-50:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark .bg-indigo-100:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: rgba(88, 28, 135, 0.45);
-}
-
-.dark .border-purple-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-purple-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-indigo-200:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark .border-indigo-300:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: rgba(168, 85, 247, 0.35);
-}
-
-/* Ô nhập: mỗi thuộc tính chỉ ghi đè khi component không tự khai báo class dark: tương ứng */
-.dark input:not([type="checkbox"]):not([type="radio"]),
-.dark select,
-.dark textarea {
-  color-scheme: dark;
-}
-
-.dark input:not([type="checkbox"]):not([type="radio"]):not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark select:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]),
-.dark textarea:not([class*="dark:bg-"]):not(:hover[class*="dark:hover:bg-"]) {
-  background-color: #24201e;
-}
-
-.dark input:not([type="checkbox"]):not([type="radio"]):not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark select:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]),
-.dark textarea:not([class*="dark:text-"]):not(:hover[class*="dark:hover:text-"]) {
-  color: #f5f5f4;
-}
-
-.dark input:not([type="checkbox"]):not([type="radio"]):not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark select:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]),
-.dark textarea:not([class*="dark:border-"]):not(:hover[class*="dark:hover:border-"]) {
-  border-color: #44403c;
-}
-
-.dark input:not([class*="dark:placeholder:"])::placeholder,
-.dark textarea:not([class*="dark:placeholder:"])::placeholder,
-.dark [class*="placeholder:text-"]:not([class*="dark:placeholder:"])::placeholder {
-  color: #8f8a85;
+  --font-voice: var(--font-voice);
+
+  /* Chữ nhỏ nhất của ứng dụng là 13px. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.90625rem;
+  --text-sm--line-height: 1.375rem;
+
+  --ease-jelly: linear(0, 0.35 8%, 0.82 18%, 1.09 28%, 1.14 34%, 1.08 44%, 0.98 58%, 1.01 76%, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Bề rộng dialog: xác nhận ngắn, biểu mẫu, nội dung dày. */
+  --container-dialog-confirm: 32rem;
+  --container-dialog: 48rem;
+  --container-dialog-wide: 70rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--action-line);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand-strong);
+    outline-offset: 2px;
+  }
+
+  /* Nút thạch: co khi nhấn, nảy lại khi thả, áp dụng cho mọi nút trong ứng dụng. */
+  button:not([data-still]),
+  a[data-jelly] {
+    transition:
+      transform 420ms var(--ease-jelly),
+      background-color 160ms,
+      border-color 160ms,
+      color 160ms,
+      box-shadow 160ms;
+  }
+
+  button:not([data-still]):not(:disabled):active,
+  a[data-jelly]:active {
+    transform: scale(0.95, 0.92);
+    transition-duration: 90ms;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  @media (pointer: coarse) {
+    button:not([data-compact], [style*="height"]),
+    nav a,
+    a[data-jelly],
+    select,
+    input:not([type="checkbox"], [type="radio"], [type="range"]) {
+      min-height: 44px;
+    }
+    button:not([data-compact], [style*="height"]) {
+      min-width: 44px;
+    }
+  }
 }
 
 .font-heading {
-  font-family: var(--font-heading), var(--font-sans), sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
+  letter-spacing: -0.015em;
 }
 
-/* =========================================================================
-   ANIMATIONS & MICRO-INTERACTIONS
-   ========================================================================= */
-
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  100% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes float-delayed {
-  0% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  100% {
-    transform: translateY(-6px) rotate(1deg);
-  }
+.font-voice {
+  font-family: var(--font-voice), Georgia, serif;
+  font-style: italic;
 }
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -534,68 +225,169 @@ body {
 }
 
 @keyframes pulseSubtle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
-    transform: scale(1);
   }
   50% {
-    opacity: 0.85;
-    transform: scale(1.03);
+    opacity: 0.6;
   }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
+  from {
     background-position: 200% 0;
   }
+  to {
+    background-position: -200% 0;
+  }
 }
 
-.animate-float {
-  animation: float 4s ease-in-out infinite alternate;
+/* Vòng lặp liền mạch: khung 0% và 100% luôn giống hệt nhau. */
+@keyframes loop-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
 }
 
-.animate-float-delayed {
-  animation: float-delayed 5s ease-in-out 1s infinite alternate;
+@keyframes loop-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loop-dash {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes loop-bar {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeInUp 0.5s var(--ease-out-soft) both;
 }
 
 .animate-pulse-subtle {
-  animation: pulseSubtle 3s ease-in-out infinite;
+  animation: pulseSubtle 2.4s ease-in-out infinite;
 }
 
-/* Hiệu ứng thẻ nổi tương tác (Card Hover Lift) */
-.card-interactive {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+.loop-breathe {
+  animation: loop-breathe 4s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
 }
 
-.card-interactive:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+.loop-orbit {
+  animation: loop-orbit 8s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
 }
 
-/* Hiệu ứng Nút bấm tương tác cao cấp (Button Micro-interactions) */
+.loop-dash {
+  animation: loop-dash 1.6s linear infinite;
+}
+
+.loop-bar {
+  animation: loop-bar 2.4s ease-in-out infinite;
+  transform-origin: bottom;
+  transform-box: fill-box;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--sunken) 25%, var(--line) 50%, var(--sunken) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Thẻ nhấc nhẹ khi rê chuột, biểu tượng ở hàng đầu nảy theo. */
+.card-lift {
+  transition:
+    transform 320ms var(--ease-out-soft),
+    box-shadow 320ms var(--ease-out-soft),
+    border-color 200ms;
+}
+
+.card-lift > :first-child svg {
+  transition: transform 420ms var(--ease-jelly);
+}
+
+@media (hover: hover) {
+  .card-lift:hover {
+    transform: translateY(-3px);
+    border-color: var(--line-strong);
+    box-shadow: 0 14px 28px -18px color-mix(in srgb, var(--ink) 38%, transparent);
+  }
+
+  .card-lift:hover > :first-child svg {
+    transform: scale(1.14) rotate(-5deg);
+  }
+}
+
+/* Thanh tiến độ chạy từ trái sang khi thẻ xuất hiện. */
+.bar-grow {
+  transform-origin: left;
+  animation: bar-grow 700ms var(--ease-out-soft) both;
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
 .btn-interactive {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.btn-interactive:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px -6px rgba(0, 0, 0, 0.15);
+  transition: transform 420ms var(--ease-jelly), background-color 160ms;
 }
 
 .btn-interactive:active {
-  transform: translateY(0px) scale(0.97);
+  transform: scale(0.95, 0.92);
 }
 
-/* Hiệu ứng Glassmorphism */
 .glass-effect {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+/* Bento lướt: thẻ đang chọn giãn ra, hai thẻ còn lại thu lại. */
+.bento-glide {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .bento-glide {
+    grid-template-columns: var(--c1, 1.6fr) var(--c2, 1fr) var(--c3, 1fr);
+    transition: grid-template-columns 520ms var(--ease-jelly);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

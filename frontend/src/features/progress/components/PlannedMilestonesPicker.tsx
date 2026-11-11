@@ -55,8 +55,8 @@ export function PlannedMilestonesPicker({ sessionId, plan, editable, onChange }:
 
   if (current?.linkType === "ACTUAL") {
     return (
-      <p className="flex items-start gap-1.5 text-xs text-neutral-700" data-testid="session-actual-milestones">
-        <BookOpen className="size-3.5 text-amber-600 shrink-0 mt-px" />
+      <p className="flex items-start gap-1.5 text-xs text-ink-2" data-testid="session-actual-milestones">
+        <BookOpen className="size-3.5 text-action-strong shrink-0 mt-px" />
         Đã học: {current.milestones.map((m) => m.title).join(" · ")}
       </p>
     );
@@ -65,8 +65,8 @@ export function PlannedMilestonesPicker({ sessionId, plan, editable, onChange }:
   if (!editable) {
     if (!current) return null;
     return (
-      <p className="flex items-start gap-1.5 text-xs text-neutral-700" data-testid="session-planned-milestones">
-        <BookOpen className="size-3.5 text-amber-600 shrink-0 mt-px" />
+      <p className="flex items-start gap-1.5 text-xs text-ink-2" data-testid="session-planned-milestones">
+        <BookOpen className="size-3.5 text-action-strong shrink-0 mt-px" />
         Dự kiến học: {current.milestones.map((m) => m.title).join(" · ")}
       </p>
     );
@@ -102,8 +102,8 @@ export function PlannedMilestonesPicker({ sessionId, plan, editable, onChange }:
 
   return (
     <section className="space-y-2" aria-labelledby={`planned-heading-${sessionId}`}>
-      <h4 id={`planned-heading-${sessionId}`} className="text-xs font-bold text-neutral-800">
-        Dự kiến học <span className="font-normal text-neutral-400">(tùy chọn, tối đa {MAX_PLANNED_MILESTONES} cột mốc)</span>
+      <h4 id={`planned-heading-${sessionId}`} className="text-xs font-medium text-ink">
+        Dự kiến học <span className="font-normal text-muted">(tùy chọn, tối đa {MAX_PLANNED_MILESTONES} cột mốc)</span>
       </h4>
       <div className="flex flex-wrap gap-1.5">
         {options.map((m) => (
@@ -112,10 +112,10 @@ export function PlannedMilestonesPicker({ sessionId, plan, editable, onChange }:
             type="button"
             aria-pressed={selected.includes(m.milestoneId)}
             onClick={() => toggle(m.milestoneId)}
-            className={`min-h-9 rounded-full border px-3 text-xs font-semibold cursor-pointer ${
+            className={`min-h-9 rounded-full border px-3 text-xs font-medium cursor-pointer ${
               selected.includes(m.milestoneId)
-                ? "border-amber-500 bg-amber-50 text-amber-900"
-                : "border-stone-200 bg-white text-neutral-600"
+                ? "border-action bg-action-soft text-action-strong"
+                : "border-line bg-surface text-ink-2"
             }`}
           >
             {m.title}
@@ -127,13 +127,13 @@ export function PlannedMilestonesPicker({ sessionId, plan, editable, onChange }:
           type="button"
           onClick={save}
           disabled={saving}
-          className="min-h-9 px-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          className="min-h-9 px-3 rounded-xl border border-action-line bg-action-soft text-action-strong text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
         >
           {saving && <Loader2 className="size-3.5 animate-spin" />}
           Lưu dự kiến
         </button>
         {message && (
-          <span role={message.tone === "error" ? "alert" : "status"} className={`text-[11px] ${message.tone === "error" ? "text-rose-700" : "text-emerald-700"}`}>
+          <span role={message.tone === "error" ? "alert" : "status"} className={`text-xs ${message.tone === "error" ? "text-danger-strong" : "text-success-strong"}`}>
             {message.text}
           </span>
         )}

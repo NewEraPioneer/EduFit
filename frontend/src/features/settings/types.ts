@@ -2,7 +2,6 @@ export type SettingsTabId =
   | "profile"
   | "account"
   | "appearance"
-  | "notifications"
   | "display";
 
 export interface SettingsTabItem {

@@ -14,6 +14,7 @@ import vn.edufit.notification.web.response.MarkAllReadResponse;
 import vn.edufit.notification.web.response.MarkReadResponse;
 import vn.edufit.notification.web.response.NotificationListResponse;
 import vn.edufit.notification.web.response.UnreadCountResponse;
+import vn.edufit.notification.web.response.UnreadSummaryResponse;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.response.ApiResponse;
 
@@ -63,6 +64,15 @@ public class NotificationController {
   public ResponseEntity<ApiResponse<UnreadCountResponse>> getUnreadCount() {
     UnreadCountResponse response = notificationService.getUnreadCount(currentUser());
     return ResponseEntity.ok(ApiResponse.success(response, "Lấy số lượng thông báo chưa đọc thành công"));
+  }
+
+  /**
+   * Lấy tóm tắt số lượng thông báo chưa đọc theo danh mục (phục vụ chấm sidebar và floating toast).
+   */
+  @GetMapping("/unread-summary")
+  public ResponseEntity<ApiResponse<UnreadSummaryResponse>> getUnreadSummary() {
+    UnreadSummaryResponse response = notificationService.getUnreadSummary(currentUser());
+    return ResponseEntity.ok(ApiResponse.success(response, "Lấy tóm tắt thông báo chưa đọc thành công"));
   }
 
   /**

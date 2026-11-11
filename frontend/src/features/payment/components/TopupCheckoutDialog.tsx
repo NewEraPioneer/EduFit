@@ -94,7 +94,7 @@ function PayosFrame({ url, verify }: { url: string; verify: () => void }) {
       {!ready && !error && (
         <p
           role="status"
-          className="flex items-center justify-center gap-2 py-10 text-sm text-neutral-500"
+          className="flex items-center justify-center gap-2 py-10 text-sm text-muted"
         >
           <LoaderCircle className="size-4 animate-spin" />
           Đang tải mã QR…
@@ -110,7 +110,7 @@ function PayosFrame({ url, verify }: { url: string; verify: () => void }) {
         }
       />
       {error && (
-        <div className="space-y-3 rounded-xl bg-amber-50 p-4 text-sm">
+        <div className="space-y-3 rounded-xl bg-action-soft p-4 text-sm">
           <p role="alert">{error}</p>
           {validCheckoutUrl(url) && (
             <button
@@ -120,7 +120,7 @@ function PayosFrame({ url, verify }: { url: string; verify: () => void }) {
                 setReady(false);
                 setAttempt((a) => a + 1);
               }}
-              className="font-semibold underline"
+              className="font-medium underline"
             >
               Hiển thị lại mã QR
             </button>
@@ -172,14 +172,14 @@ export function TopupCheckoutDialog({
     >
       {paid ? (
         <div role="status" className="space-y-4 py-6 text-center">
-          <CheckCircle2 className="mx-auto size-14 text-emerald-600" />
+          <CheckCircle2 className="mx-auto size-14 text-success-strong" />
           <h3 className="text-xl font-bold">Nạp tiền thành công</h3>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-ink-2">
             Giao dịch đã được xác minh. Số dư ví được cập nhật từ hệ thống.
           </p>
           <button
             onClick={onClose}
-            className="rounded-xl bg-stone-900 px-6 py-3 text-sm font-semibold text-white"
+            className="rounded-xl bg-night px-6 py-3 text-sm font-medium text-white"
           >
             Về ví của tôi
           </button>
@@ -193,11 +193,11 @@ export function TopupCheckoutDialog({
           }
         >
           <div className="text-center md:col-start-1">
-            <p className="text-sm text-neutral-500">Số tiền cần chuyển</p>
+            <p className="text-sm text-muted">Số tiền cần chuyển</p>
             <p className="mt-1 text-3xl font-bold tracking-tight">
               {checkout.amount ? money(checkout.amount) : "Theo mã QR bên dưới"}
             </p>
-            <p className="mt-2 text-sm text-neutral-500">
+            <p className="mt-2 text-sm text-muted">
               Mở ứng dụng ngân hàng và quét mã để nạp vào ví.
             </p>
           </div>
@@ -211,7 +211,7 @@ export function TopupCheckoutDialog({
           ) : (
             <div className="space-y-4">
               {validManualQr(checkout.qrUrl) ? (
-                <div className="mx-auto max-w-xs rounded-2xl border border-stone-200 bg-white p-3">
+                <div className="mx-auto max-w-xs rounded-2xl border border-line bg-surface p-3">
                   {/* A payment QR must be shown directly, without Next image optimization/caching. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -222,14 +222,14 @@ export function TopupCheckoutDialog({
                   />
                 </div>
               ) : (
-                <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm">
+                <p role="alert" className="rounded-lg bg-action-soft p-3 text-sm">
                   Chưa tải được ảnh QR. Kiểm tra thông tin chuyển khoản hoặc
                   liên hệ hỗ trợ.
                 </p>
               )}
-              <div className="rounded-xl bg-stone-50 p-4 text-sm">
+              <div className="rounded-xl bg-paper p-4 text-sm">
                 <p>{checkout.bankHolder}</p>
-                <p className="font-semibold">{checkout.bankAccount}</p>
+                <p className="font-medium">{checkout.bankAccount}</p>
                 {checkout.description && (
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <span>
@@ -249,7 +249,7 @@ export function TopupCheckoutDialog({
                           );
                         }
                       }}
-                      className="rounded-lg border bg-white p-2"
+                      className="rounded-lg border bg-surface p-2"
                     >
                       {copied ? (
                         <Check className="size-4" />
@@ -260,7 +260,7 @@ export function TopupCheckoutDialog({
                   </div>
                 )}
               </div>
-              <p className="text-sm text-amber-800">
+              <p className="text-sm text-action-strong">
                 Admin xác minh giao dịch thực tế trước khi cộng ví.
               </p>
             </div>
@@ -268,7 +268,7 @@ export function TopupCheckoutDialog({
           {error && (
             <p
               role="alert"
-              className="rounded-lg bg-red-50 p-3 text-sm text-red-700 md:col-start-1"
+              className="rounded-lg bg-danger-soft p-3 text-sm text-danger-strong md:col-start-1"
             >
               {error}
             </p>
@@ -277,7 +277,7 @@ export function TopupCheckoutDialog({
             <button
               disabled={checking}
               onClick={() => void verify()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-300 md:col-start-1 px-4 py-3 text-sm font-semibold disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-line-strong md:col-start-1 px-4 py-3 text-sm font-medium disabled:opacity-50"
             >
               <RefreshCw
                 className={`size-4 ${checking ? "animate-spin" : ""}`}
@@ -288,13 +288,13 @@ export function TopupCheckoutDialog({
           {verified === "PENDING" && (
             <p
               role="status"
-              className="text-center text-sm text-amber-800 md:col-start-1"
+              className="text-center text-sm text-action-strong md:col-start-1"
             >
               Chưa nhận được xác nhận thanh toán. Ví sẽ tự cập nhật khi giao
               dịch được xác minh.
             </p>
           )}
-          <p className="flex items-start gap-2 border-t border-stone-100 pt-4 text-xs leading-relaxed text-neutral-500 md:col-start-1">
+          <p className="flex items-start gap-2 border-t border-line pt-4 text-xs leading-relaxed text-muted md:col-start-1">
             <ShieldCheck className="mt-0.5 size-4 shrink-0" />
             Đóng popup không hủy yêu cầu nạp. Nếu đã chuyển tiền, hãy chờ xác
             minh trước khi tạo yêu cầu khác.

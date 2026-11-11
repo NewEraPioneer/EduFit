@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import vn.edufit.connection.api.ConnectionFacade;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
+import vn.edufit.progress.api.event.MilestoneAchievedEvent;
 import vn.edufit.progress.application.dto.CreatePlanCommand;
 import vn.edufit.progress.application.dto.UpdateMilestoneStatusCommand;
 import vn.edufit.progress.application.dto.UpdatePlanCommand;
@@ -39,7 +40,7 @@ import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.exception.ResourceConflictException;
-import vn.edufit.shared.notification.NotificationSink;
+import org.springframework.context.ApplicationEventPublisher;
 
 class LearningPlanServiceTest {
 
@@ -49,7 +50,7 @@ class LearningPlanServiceTest {
   private PlanHistoryDomainRepository historyRepository;
   private ConnectionFacade connectionFacade;
   private ProfileFacade profileFacade;
-  private NotificationSink notifications;
+  private ApplicationEventPublisher events;
   private TopicDomainRepository topicRepository;
   private LearningPlanService planService;
 
@@ -68,7 +69,7 @@ class LearningPlanServiceTest {
     historyRepository = mock(PlanHistoryDomainRepository.class);
     connectionFacade = mock(ConnectionFacade.class);
     profileFacade = mock(ProfileFacade.class);
-    notifications = mock(NotificationSink.class);
+    events = mock(ApplicationEventPublisher.class);
     topicRepository = mock(TopicDomainRepository.class);
     Clock fixedClock = Clock.fixed(fixedInstant, ZoneId.of("UTC"));
 
@@ -76,7 +77,7 @@ class LearningPlanServiceTest {
         planRepository,
         historyRepository,
         new ProgressAccessGuard(connectionFacade, profileFacade),
-        new MilestoneAchievementNotifier(connectionFacade, profileFacade, notifications),
+        events,
         new TopicCatalogService(topicRepository, new ProgressAccessGuard(connectionFacade, profileFacade),
             new ClassNeedResolver(profileFacade), fixedClock),
         fixedClock
@@ -235,14 +236,8 @@ class LearningPlanServiceTest {
   @DisplayName("updateMilestoneStatus: Chốt ACHIEVED khi đã tick đủ tiêu chí và gửi thông báo")
   void updateMilestoneStatus_AchievedNotification() {
     UUID milestoneId = UUID.randomUUID();
-    UUID studentUserId = UUID.randomUUID();
-    UUID parentUserId = UUID.randomUUID();
     planWith(milestone(milestoneId, MilestoneStatus.IN_PROGRESS, null, true, true));
 
-    StudentSummaryDto studentDto = mock(StudentSummaryDto.class);
-    when(studentDto.userId()).thenReturn(studentUserId);
-    when(profileFacade.findStudentById(studentId)).thenReturn(Optional.of(studentDto));
-    when(connectionFacade.findConfirmedParentUserIds(studentId)).thenReturn(List.of(parentUserId));
 
     LearningPlan updated = planService.updateMilestoneStatus(tutor, milestoneId,
         new UpdateMilestoneStatusCommand(0, MilestoneStatus.ACHIEVED, today, null));
@@ -250,10 +245,11 @@ class LearningPlanServiceTest {
     Milestone m = updated.getMilestones().getFirst();
     assertThat(m.getStatus()).isEqualTo(MilestoneStatus.ACHIEVED);
     assertThat(m.getAchievedDate()).isEqualTo(today);
-    verify(notifications).notify(
-        eq(studentUserId), eq(studentId), eq("MILESTONE_ACHIEVED"), any(), any(), eq("MILESTONE"), eq(milestoneId));
-    verify(notifications).notify(
-        eq(parentUserId), eq(studentId), eq("MILESTONE_ACHIEVED"), any(), any(), eq("MILESTONE"), eq(milestoneId));
+    ArgumentCaptor<MilestoneAchievedEvent> published = ArgumentCaptor.forClass(MilestoneAchievedEvent.class);
+    verify(events).publishEvent(published.capture());
+    assertThat(published.getValue().studentId()).isEqualTo(studentId);
+    assertThat(published.getValue().milestoneId()).isEqualTo(milestoneId);
+    assertThat(published.getValue().milestoneTitle()).isEqualTo(m.getTitle());
   }
 
   @Test

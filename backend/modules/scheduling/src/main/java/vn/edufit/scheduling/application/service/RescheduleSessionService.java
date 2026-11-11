@@ -12,6 +12,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edufit.scheduling.api.event.SessionRescheduleProposedEvent;
+import vn.edufit.scheduling.api.event.SessionRescheduleRejectedEvent;
 import vn.edufit.scheduling.api.event.SessionRescheduledEvent;
 import vn.edufit.scheduling.domain.model.ProposalStatus;
 import vn.edufit.scheduling.domain.model.SessionHistory;
@@ -206,6 +207,18 @@ public class RescheduleSessionService {
       ));
 
       log.info("Đã từ chối đề xuất đổi lịch: proposalId={}", proposalId);
+
+      eventPublisher.publishEvent(SessionRescheduleRejectedEvent.of(
+          proposalId,
+          session.getSessionId(),
+          session.getClassId(),
+          session.getTutorId(),
+          session.getStudentId(),
+          proposal.getProposedBy(),
+          responderId,
+          responseReason
+      ));
+
       return updatedProposal;
     }
 
@@ -268,7 +281,8 @@ public class RescheduleSessionService {
         session.getTutorId(),
         session.getStudentId(),
         proposal.getNewStartAt(),
-        proposal.getNewEndAt()
+        proposal.getNewEndAt(),
+        responderId
     ));
 
     log.info(

@@ -18,8 +18,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.edufit.scheduling.api.event.SessionCancelledEvent;
-import vn.edufit.scheduling.api.event.SessionScheduledEvent;
+import vn.edufit.scheduling.api.event.ClassScheduleChangedEvent;
 import vn.edufit.scheduling.application.port.ConnectionValidationPort;
 import vn.edufit.scheduling.domain.model.CancelReason;
 import vn.edufit.scheduling.domain.model.ProposalStatus;
@@ -273,17 +272,6 @@ public class RescheduleClassScheduleService {
           "Hủy do áp dụng lịch định kỳ mới UC4.8",
           now
       ));
-
-      eventPublisher.publishEvent(SessionCancelledEvent.of(
-          session.getSessionId(),
-          session.getClassId(),
-          session.getTutorId(),
-          session.getStudentId(),
-          responderId,
-          CancelReason.SCHEDULE_CONFLICT.name(),
-          "Hủy để áp dụng lịch học định kỳ mới (UC4.8)",
-          false
-      ));
     }
     int cancelledCount = existingScheduledSessions.size();
 
@@ -364,15 +352,6 @@ public class RescheduleClassScheduleService {
                   "Sinh tự động từ lịch định kỳ UC4.8",
                   now
               ));
-
-              eventPublisher.publishEvent(SessionScheduledEvent.of(
-                  saved.getSessionId(),
-                  saved.getClassId(),
-                  saved.getTutorId(),
-                  saved.getStudentId(),
-                  saved.getStartAt(),
-                  saved.getEndAt()
-              ));
             }
           }
         }
@@ -389,6 +368,11 @@ public class RescheduleClassScheduleService {
     proposal.accept(responderId, now);
     proposals.save(proposal);
     connectionValidationPort.updateAgreedSlots(proposal.getClassId(), proposal.getNewWeeklySlots());
+
+    // Một sự kiện cho cả lô: người dùng nhận đúng một thông báo cố định thay vì một thông báo cho mỗi buổi.
+    eventPublisher.publishEvent(ClassScheduleChangedEvent.of(
+        proposal.getClassId(), proposal.getTutorId(), proposal.getStudentId(), responderId,
+        ClassScheduleChangedEvent.RECURRING_APPLIED, cancelledCount, generatedSessions.size()));
 
     log.info(
         "Chấp thuận đổi lịch định kỳ UC4.8 thành công: proposalId={}, cancelledCount={}, generatedCount={}",

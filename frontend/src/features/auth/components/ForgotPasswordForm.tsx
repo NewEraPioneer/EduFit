@@ -15,19 +15,19 @@ const SUBTITLES: Record<PasswordResetStep, string> = {
 };
 
 const INPUT_CLASS =
-  "w-full pl-10 pr-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all text-neutral-900 placeholder:text-neutral-400";
+  "w-full pl-10 pr-4 py-2.5 text-xs bg-paper border border-line rounded-2xl focus:bg-surface focus:outline-hidden focus:border-action focus:ring-2 focus:ring-action/20 transition-all text-ink placeholder:text-muted";
 const SUBMIT_CLASS =
-  "w-full py-3 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-bold text-xs rounded-2xl shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50";
+  "w-full py-3 bg-action hover:bg-action-deep active:scale-[0.99] text-on-action font-medium text-xs rounded-2xl shadow-md shadow-ink/10 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50";
 
 function Criterion({ ok, label }: { ok: boolean; label: string }) {
   return (
     <div className="flex items-center gap-2">
       {ok ? (
-        <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+        <CheckCircle2 className="size-3.5 text-success-strong shrink-0" />
       ) : (
-        <XCircle className="size-3.5 text-neutral-400 shrink-0" />
+        <XCircle className="size-3.5 text-muted shrink-0" />
       )}
-      <span className={ok ? "text-emerald-700 font-medium" : "text-neutral-500"}>{label}</span>
+      <span className={ok ? "text-success-strong font-medium" : "text-muted"}>{label}</span>
     </div>
   );
 }
@@ -40,15 +40,15 @@ export function ForgotPasswordForm() {
   const { step } = flow;
 
   return (
-    <div className="w-full max-w-md bg-white rounded-3xl border border-stone-200/90 shadow-xl shadow-stone-200/50 p-6 sm:p-8 space-y-6">
+    <div className="w-full max-w-md bg-surface rounded-3xl border border-line/90 shadow-xl shadow-ink/10 p-6 sm:p-8 space-y-6">
       <AuthCardHeader title="Quên mật khẩu?" subtitle={SUBTITLES[step]} />
 
-      <ol className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider" aria-label="Các bước">
+      <ol className="flex items-center justify-center gap-2 text-xs font-medium" aria-label="Các bước">
         {(["email", "code", "password"] as const).map((item, index) => (
           <li
             key={item}
             aria-current={item === step ? "step" : undefined}
-            className={item === step ? "text-amber-600" : "text-neutral-400"}
+            className={item === step ? "text-action-strong" : "text-muted"}
           >
             {index + 1}. {item === "email" ? "Email" : item === "code" ? "Mã xác thực" : "Mật khẩu mới"}
           </li>
@@ -56,12 +56,12 @@ export function ForgotPasswordForm() {
       </ol>
 
       {flow.generalError && (
-        <div role="alert" className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-2xl">
+        <div role="alert" className="p-3.5 bg-danger-soft border border-danger-line text-danger-strong text-xs rounded-2xl">
           {flow.generalError}
         </div>
       )}
       {flow.notice && (
-        <div role="status" className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-2xl">
+        <div role="status" className="p-3.5 bg-success-soft border border-success-line text-success-strong text-xs rounded-2xl">
           {flow.notice}
         </div>
       )}
@@ -69,11 +69,11 @@ export function ForgotPasswordForm() {
       {step === "email" && (
         <form onSubmit={flow.handleEmailSubmit} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="forgotEmail" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+            <label htmlFor="forgotEmail" className="block text-xs font-medium text-ink-2 mb-1.5">
               Địa chỉ Email đã đăng ký
             </label>
             <div className="relative">
-              <Mail className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 id="forgotEmail"
                 type="email"
@@ -86,7 +86,7 @@ export function ForgotPasswordForm() {
               />
             </div>
             {flow.fieldError && (
-              <p className="text-[11px] text-rose-600 font-medium mt-1 pl-1">{flow.fieldError}</p>
+              <p className="text-xs text-danger-strong font-medium mt-1 pl-1">{flow.fieldError}</p>
             )}
           </div>
           <button id="forgotEmailSubmit" type="submit" disabled={flow.isSubmitting} className={SUBMIT_CLASS}>
@@ -98,8 +98,8 @@ export function ForgotPasswordForm() {
 
       {step === "code" && (
         <form onSubmit={flow.handleCodeSubmit} className="space-y-4" noValidate>
-          <p className="text-xs text-neutral-600 leading-relaxed">
-            Nếu <strong className="text-neutral-900 break-all">{flow.email}</strong> đã đăng ký tài khoản EduFit,
+          <p className="text-xs text-ink-2 leading-relaxed">
+            Nếu <strong className="text-ink break-all">{flow.email}</strong> đã đăng ký tài khoản EduFit,
             mã 6 số đã được gửi tới hộp thư này. Mã có hiệu lực trong 10 phút.
           </p>
           <OtpCodeInput
@@ -122,7 +122,7 @@ export function ForgotPasswordForm() {
             <button
               type="button"
               onClick={flow.restart}
-              className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 font-medium cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-medium cursor-pointer"
             >
               <ArrowLeft className="size-3.5" />
               <span>Đổi email</span>
@@ -139,11 +139,11 @@ export function ForgotPasswordForm() {
       {step === "password" && (
         <form onSubmit={flow.handlePasswordSubmit} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="newPassword" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+            <label htmlFor="newPassword" className="block text-xs font-medium text-ink-2 mb-1.5">
               Mật khẩu mới
             </label>
             <div className="relative">
-              <Lock className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 id="newPassword"
                 type="password"
@@ -157,16 +157,16 @@ export function ForgotPasswordForm() {
               />
             </div>
             {flow.passwordErrors.newPassword && (
-              <p className="text-[11px] text-rose-600 font-medium mt-1 pl-1">{flow.passwordErrors.newPassword}</p>
+              <p className="text-xs text-danger-strong font-medium mt-1 pl-1">{flow.passwordErrors.newPassword}</p>
             )}
           </div>
 
           <div>
-            <label htmlFor="confirmNewPassword" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+            <label htmlFor="confirmNewPassword" className="block text-xs font-medium text-ink-2 mb-1.5">
               Xác nhận mật khẩu mới
             </label>
             <div className="relative">
-              <Lock className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 id="confirmNewPassword"
                 type="password"
@@ -179,15 +179,15 @@ export function ForgotPasswordForm() {
               />
             </div>
             {flow.passwordErrors.confirmPassword && (
-              <p className="text-[11px] text-rose-600 font-medium mt-1 pl-1">
+              <p className="text-xs text-danger-strong font-medium mt-1 pl-1">
                 {flow.passwordErrors.confirmPassword}
               </p>
             )}
           </div>
 
-          <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200/80 space-y-1.5 text-xs">
-            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
-              Yêu cầu mật khẩu (BR-02):
+          <div className="p-3 bg-paper rounded-2xl border border-line/80 space-y-1.5 text-xs">
+            <span className="text-xs font-medium text-muted block">
+              Yêu cầu mật khẩu:
             </span>
             <Criterion ok={flow.passwordCriteria.hasMinLength} label="Tối thiểu 8 ký tự" />
             <Criterion ok={flow.passwordCriteria.hasLetter} label="Ít nhất 1 chữ cái (a-z, A-Z)" />
@@ -209,7 +209,7 @@ export function ForgotPasswordForm() {
       <div className="text-center">
         <Link
           href="/login"
-          className="inline-flex items-center justify-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 font-medium transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 text-xs text-muted hover:text-ink font-medium transition-colors"
         >
           <ArrowLeft className="size-3.5" />
           <span>Quay lại trang Đăng nhập</span>

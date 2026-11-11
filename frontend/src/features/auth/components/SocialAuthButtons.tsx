@@ -165,8 +165,8 @@ export function SocialAuthButtons({ label = "Hoặc tiếp tục với" }: Socia
     <>
       <div className="space-y-4">
         <div className="relative flex items-center justify-center">
-          <div className="border-t border-stone-200 w-full" />
-          <span className="bg-white px-3 text-xs text-neutral-400 absolute">{label}</span>
+          <div className="border-t border-line w-full" />
+          <span className="bg-surface px-3 text-xs text-muted absolute">{label}</span>
         </div>
 
         <div className="w-full relative min-h-[44px] flex items-center justify-center">
@@ -184,10 +184,10 @@ export function SocialAuthButtons({ label = "Hoặc tiếp tục với" }: Socia
               type="button"
               onClick={handleFallbackClick}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-stone-200 rounded-xl text-xs font-semibold text-neutral-700 hover:bg-stone-50 transition-colors shadow-xs cursor-pointer disabled:opacity-50 absolute inset-0 bg-white"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-line rounded-xl text-xs font-medium text-ink-2 hover:bg-paper transition-colors shadow-xs cursor-pointer disabled:opacity-50 absolute inset-0 bg-surface"
             >
               {loading ? (
-                <Loader2 className="size-4 animate-spin text-amber-500" />
+                <Loader2 className="size-4 animate-spin text-action-strong" />
               ) : (
                 <svg className="size-4" viewBox="0 0 24 24">
                   <path

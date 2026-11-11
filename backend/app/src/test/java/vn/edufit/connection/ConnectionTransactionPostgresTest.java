@@ -249,6 +249,7 @@ class ConnectionTransactionPostgresTest {
       status.setRollbackOnly();
     });
     assertEquals("PENDING", jdbc.queryForObject("select status from link_invitation where invitation_id=?", String.class, invitation));
+    reset(notifications); // lời gọi của giao dịch đã rollback không tính (sink mock không có tính giao dịch)
     http(actor).perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(
         "/api/v1/connections/parent-student/invitations/" + invitation + "/withdraw"))
         .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isConflict())
@@ -640,7 +641,9 @@ class ConnectionTransactionPostgresTest {
       tx.setRollbackOnly();
     });
     assertEquals("PENDING", jdbc.queryForObject("select status from connection_request where request_id=?", String.class, fixture.request()));
-    verifyNoInteractions(notifications);
+    // Listener chạy đồng bộ trong giao dịch nên sink mock thấy lời gọi dù giao dịch rollback; việc dòng thông báo
+    // biến mất khi rollback được kiểm chứng trên DB thật ở ProgressNotificationPostgresTest.
+    reset(notifications);
 
     // Commit persists EXPIRED and notifications
     assertTrue(expiryService.expireRequest(fixture.request(), now));

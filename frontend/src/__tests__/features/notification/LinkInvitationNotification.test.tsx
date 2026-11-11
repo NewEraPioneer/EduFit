@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NotificationDropdown } from "@/features/notification/components/NotificationDropdown";
 import { notificationApi } from "@/features/notification/api/notificationApi";
+import { NotificationProvider } from "@/features/notification/context/NotificationContext";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -14,16 +15,15 @@ describe("thông báo lời mời liên kết", () => {
       items: [{ notificationId: "notification-1", type: "LINK_INVITED", title: "Lời mời liên kết", shortText: "Bạn có lời mời", isRead: false, createdAt: "2026-10-18T00:00:00Z" }],
       page: 0, size: 20, totalElements: 1, totalPages: 1, unreadCount: 1,
     } });
+    vi.spyOn(notificationApi, "getUnreadSummary").mockResolvedValue({ success: true, data: { total: 1, byCategory: {} } });
     vi.spyOn(notificationApi, "markAsRead").mockResolvedValue({ success: true, data: { notificationId: "notification-1", isRead: true } });
   });
 
   it("đưa học sinh đến nơi xử lý lời mời", async () => {
-    const countChanged = vi.fn();
-    render(<NotificationDropdown role="STUDENT" onUnreadCountChange={countChanged} />);
+    render(<NotificationProvider><NotificationDropdown role="STUDENT" /></NotificationProvider>);
     fireEvent.click(await screen.findByRole("button", { name: /Lời mời liên kết/ }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/student/family"));
     expect(notificationApi.markAsRead).toHaveBeenCalledWith("notification-1");
-    expect(countChanged).toHaveBeenCalledWith(0);
   });
 
   it("mở đúng buổi học từ thông báo đổi lịch", async () => {
@@ -32,7 +32,7 @@ describe("thông báo lời mời liên kết", () => {
         targetType: "SESSION", targetId: "session-demo", isRead: true, createdAt: "2026-11-10T00:00:00Z" }],
       page: 0, size: 20, totalElements: 1, totalPages: 1, unreadCount: 0,
     } });
-    render(<NotificationDropdown role="TUTOR" />);
+    render(<NotificationProvider><NotificationDropdown role="TUTOR" /></NotificationProvider>);
     fireEvent.click(await screen.findByRole("button", { name: /Đổi lịch buổi học/ }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/tutor/schedule?sessionId=session-demo"));
   });
@@ -42,7 +42,7 @@ describe("thông báo lời mời liên kết", () => {
       items: [{ notificationId: "notification-2", type: "CONNECTION_REQUEST", title: "Yêu cầu kết nối mới", shortText: "Học sinh muốn học", isRead: false, createdAt: "2026-10-18T00:00:00Z" }],
       page: 0, size: 20, totalElements: 1, totalPages: 1, unreadCount: 1,
     } });
-    render(<NotificationDropdown role="TUTOR" />);
+    render(<NotificationProvider><NotificationDropdown role="TUTOR" /></NotificationProvider>);
     fireEvent.click(await screen.findByRole("button", { name: /Yêu cầu kết nối mới/ }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/tutor/requests"));
   });
@@ -52,7 +52,7 @@ describe("thông báo lời mời liên kết", () => {
       items: [{ notificationId: "notification-3", type: "SESSION_PROPOSED", title: "Đề xuất buổi học", shortText: "Buổi học mới", isRead: false, createdAt: "2026-10-18T00:00:00Z" }],
       page: 0, size: 20, totalElements: 1, totalPages: 1, unreadCount: 1,
     } });
-    render(<NotificationDropdown role="STUDENT" />);
+    render(<NotificationProvider><NotificationDropdown role="STUDENT" /></NotificationProvider>);
     fireEvent.click(await screen.findByRole("button", { name: /Đề xuất buổi học/ }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/student/schedule"));
   });
@@ -62,7 +62,7 @@ describe("thông báo lời mời liên kết", () => {
       items: [{ notificationId: "notification-4", type: "REVIEW_RECEIVED", title: "Đánh giá mới", shortText: "5 sao từ học sinh", isRead: false, createdAt: "2026-10-18T00:00:00Z" }],
       page: 0, size: 20, totalElements: 1, totalPages: 1, unreadCount: 1,
     } });
-    render(<NotificationDropdown role="TUTOR" />);
+    render(<NotificationProvider><NotificationDropdown role="TUTOR" /></NotificationProvider>);
     fireEvent.click(await screen.findByRole("button", { name: /Đánh giá mới/ }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/tutor/reviews"));
   });
@@ -72,7 +72,7 @@ describe("thông báo lời mời liên kết", () => {
       items: [{ notificationId: "notification-5", type: "MILESTONE_COMPLETED", title: "Hoàn thành cột mốc", shortText: "Bạn đã đạt cột mốc mới", isRead: false, createdAt: "2026-10-18T00:00:00Z" }],
       page: 0, size: 20, totalElements: 1, totalPages: 1, unreadCount: 1,
     } });
-    render(<NotificationDropdown role="STUDENT" />);
+    render(<NotificationProvider><NotificationDropdown role="STUDENT" /></NotificationProvider>);
     fireEvent.click(await screen.findByRole("button", { name: /Hoàn thành cột mốc/ }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/student/progress"));
   });

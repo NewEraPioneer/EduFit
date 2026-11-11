@@ -170,7 +170,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
 
   const onboardingSteps = [
     {
-      title: "Thiết lập gói dạy & Lịch rảnh",
+      title: "Thiết lập gói dạy và lịch rảnh",
       description: "Khai báo môn, lớp, mục tiêu, học phí từng gói và các khung giờ bạn sẵn sàng nhận lớp.",
       href: hasOfferings && !hasAvailabilitySlots ? "/tutor/schedule" : "/tutor/profile",
       actionText: hasOfferings
@@ -195,7 +195,7 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
         isProfileVerified,
     },
     {
-      title: "Nhận yêu cầu & Bắt đầu dạy",
+      title: "Nhận yêu cầu và bắt đầu dạy",
       description: "Chấp nhận yêu cầu kết nối từ học sinh, phụ huynh để mở lớp học 1-1.",
       href: "/tutor/requests",
       actionText: "Xem hàng đợi",
@@ -208,10 +208,10 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
       {/* 1. Header Greeting & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-            Chào Thầy/Cô {tutorName} 👋
+          <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+            Chào Thầy/Cô {tutorName}
           </h2>
-          <p className="text-xs sm:text-sm text-neutral-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-muted mt-1 font-medium">
             {todayUpcomingCount > 0 || pendingRequests.length > 0
               ? `Hôm nay bạn có ${todayUpcomingCount} buổi dạy kèm và ${pendingRequests.length} yêu cầu đang chờ phản hồi.`
               : upcomingClasses.length > 0
@@ -223,14 +223,14 @@ export function TutorDashboardView({ user }: TutorDashboardViewProps) {
           <TutorTodoDrawer />
           <Link
             href="/tutor/schedule"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-neutral-800 rounded-xl text-xs font-bold shadow-2xs transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface hover:bg-paper border border-line text-ink rounded-xl text-xs font-medium shadow-2xs transition-colors shrink-0"
           >
-            <Clock className="size-3.5 text-neutral-500" />
+            <Clock className="size-3.5 text-muted" />
             <span>Cập nhật lịch rảnh</span>
           </Link>
           <Link
             href="/tutor/profile"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-brand hover:bg-brand-deep text-white rounded-xl text-xs font-medium shadow-xs transition-colors shrink-0"
           >
             <Plus className="size-3.5" />
             <span>Chỉnh sửa hồ sơ</span>

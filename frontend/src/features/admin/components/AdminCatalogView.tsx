@@ -95,14 +95,14 @@ export function AdminCatalogView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 flex items-center justify-center">
+            <div className="size-8 rounded-xl bg-brand-soft text-brand-strong flex items-center justify-center">
               <BookOpen className="size-4" />
             </div>
-            <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-stone-100 tracking-tight">
+            <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink tracking-tight">
               Quản lý Danh mục Môn học
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-neutral-500 dark:text-stone-400 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-muted mt-1 font-medium">
             Thiết lập danh mục các môn học và phân môn được phép gia sư đăng ký dạy và học sinh tìm kiếm.
           </p>
         </div>
@@ -112,7 +112,7 @@ export function AdminCatalogView() {
             type="button"
             onClick={fetchSubjects}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-800 text-neutral-700 dark:text-stone-300 rounded-xl text-xs font-semibold shadow-2xs transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface hover:bg-paper border border-line text-ink-2 rounded-xl text-xs font-medium shadow-2xs transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin" : ""}`} />
             <span>Tải lại</span>
@@ -120,7 +120,7 @@ export function AdminCatalogView() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-brand hover:bg-brand-deep text-white rounded-xl text-xs font-medium shadow-xs transition-colors shrink-0 cursor-pointer"
           >
             <Plus className="size-4" />
             <span>Thêm môn học mới</span>
@@ -129,30 +129,30 @@ export function AdminCatalogView() {
       </div>
 
       {/* 2. Foreign Key Protection Notice */}
-      <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/40 text-amber-900 dark:text-amber-300 text-xs flex items-start gap-3">
-        <Info className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+      <div className="p-4 rounded-2xl bg-action-soft/70 border border-action-line/80 text-action-strong text-xs flex items-start gap-3">
+        <Info className="size-4 shrink-0 text-action-strong mt-0.5" />
         <div className="leading-relaxed">
-          <span className="font-bold">Chính sách bảo toàn toàn vẹn dữ liệu EduFit:</span>{" "}
+          <span className="font-medium">Chính sách bảo toàn toàn vẹn dữ liệu EduFit:</span>{" "}
           Hệ thống nghiêm cấm xóa cứng (Hard Delete) môn học để bảo vệ toàn vẹn khóa ngoại (Foreign Key)
-          với hồ sơ gia sư, yêu cầu học tập và lịch học đã diễn ra. Hãy sử dụng cơ chế Bật/Tắt trạng thái hoạt động (Soft-toggle) khi cần ẩn môn học khỏi giao diện tìm kiếm mới.
+          với hồ sơ gia sư, yêu cầu học tập và lịch học đã diễn ra. Để ẩn môn học, hãy tắt trạng thái hoạt động của môn đó khỏi kết quả tìm kiếm mới.
         </div>
       </div>
 
       {/* 3. Feedback Notification */}
       {noticeMessage && (
-        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-150">
-          <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+        <div className="p-3.5 rounded-2xl bg-success-soft border border-success-line text-success-strong text-xs font-medium flex items-center gap-2 animate-in fade-in duration-150">
+          <CheckCircle2 className="size-4 text-success-strong" />
           <span>{noticeMessage}</span>
         </div>
       )}
 
       {error && (
-        <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-danger-soft border border-danger-line text-danger-strong text-xs flex items-center justify-between">
           <span>{error}</span>
           <button
             type="button"
             onClick={fetchSubjects}
-            className="underline font-bold ml-2 hover:text-red-900 dark:hover:text-red-300"
+            className="underline font-medium ml-2 hover:text-danger-strong"
           >
             Thử lại
           </button>
@@ -160,26 +160,26 @@ export function AdminCatalogView() {
       )}
 
       {/* 4. Filter & Search Controls */}
-      <div className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-surface p-4 rounded-2xl border border-line/80 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-stone-500" />
+          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm theo tên môn, mã hoặc slug..."
-            className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-xs text-neutral-900 dark:text-stone-100 bg-stone-50/50 dark:bg-stone-800/50 outline-none focus:border-purple-600 focus:bg-white dark:focus:bg-stone-900 transition-all"
+            className="w-full pl-9 pr-3 py-2 rounded-xl border border-line text-xs text-ink bg-paper/50 outline-none focus:border-brand focus:bg-surface transition-all"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-neutral-500 dark:text-stone-400 font-medium whitespace-nowrap">
+          <span className="text-xs text-muted font-medium whitespace-nowrap">
             Danh mục:
           </span>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-xs text-neutral-900 dark:text-stone-100 bg-white dark:bg-stone-800 outline-none focus:border-purple-600 transition-all"
+            className="px-3 py-2 rounded-xl border border-line text-xs text-ink bg-surface outline-none focus:border-brand transition-all"
           >
             <option value="ALL">Tất cả danh mục ({subjects.length})</option>
             {categories.map((cat) => (
@@ -192,23 +192,23 @@ export function AdminCatalogView() {
       </div>
 
       {/* 5. Main Table Container */}
-      <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/80 dark:border-stone-800 shadow-xs overflow-hidden transition-colors">
+      <div className="bg-surface rounded-3xl border border-line/80 shadow-xs overflow-hidden transition-colors">
         {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="size-6 text-purple-700 dark:text-purple-400 animate-spin" />
-            <span className="text-xs text-neutral-500 dark:text-stone-400 font-medium">
+            <Loader2 className="size-6 text-brand-strong animate-spin" />
+            <span className="text-xs text-muted font-medium">
               Đang tải danh mục môn học...
             </span>
           </div>
         ) : filteredSubjects.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <div className="size-12 rounded-2xl bg-stone-100 dark:bg-stone-800 text-neutral-400 dark:text-stone-500 flex items-center justify-center mx-auto">
+            <div className="size-12 rounded-2xl bg-sunken text-muted flex items-center justify-center mx-auto">
               <BookOpen className="size-6" />
             </div>
-            <h4 className="text-sm font-bold text-neutral-900 dark:text-stone-100">
+            <h4 className="text-sm font-medium text-ink">
               Không tìm thấy môn học nào
             </h4>
-            <p className="text-xs text-neutral-500 dark:text-stone-400 max-w-sm mx-auto">
+            <p className="text-xs text-muted max-w-sm mx-auto">
               {searchQuery || categoryFilter !== "ALL"
                 ? "Không có môn học nào khớp với bộ lọc tìm kiếm hiện tại. Hãy thử thay đổi từ khóa."
                 : "Chưa có môn học nào trong danh mục. Hãy nhấn 'Thêm môn học mới' để khởi tạo."}
@@ -220,7 +220,7 @@ export function AdminCatalogView() {
                   setSearchQuery("");
                   setCategoryFilter("ALL");
                 }}
-                className="text-xs font-bold text-purple-700 dark:text-purple-400 hover:underline cursor-pointer"
+                className="text-xs font-medium text-brand-strong hover:underline cursor-pointer"
               >
                 Đặt lại bộ lọc
               </button>
@@ -230,7 +230,7 @@ export function AdminCatalogView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-800/40 text-[11px] font-bold text-neutral-500 dark:text-stone-400 uppercase tracking-wider">
+                <tr className="border-b border-line bg-paper/70 text-xs font-medium text-muted">
                   <th className="py-3.5 px-4 sm:px-6">Tên môn học</th>
                   <th className="py-3.5 px-4">Mã / Slug</th>
                   <th className="py-3.5 px-4">Danh mục</th>
@@ -239,20 +239,20 @@ export function AdminCatalogView() {
                   <th className="py-3.5 px-4 sm:px-6 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100 dark:divide-stone-800 text-xs">
+              <tbody className="divide-y divide-line text-xs">
                 {filteredSubjects.map((subject) => {
                   const isToggling = togglingId === subject.id;
                   return (
                     <tr
                       key={subject.id}
-                      className="hover:bg-stone-50/60 dark:hover:bg-stone-800/40 transition-colors"
+                      className="hover:bg-paper/60 transition-colors"
                     >
                       <td className="py-3.5 px-4 sm:px-6">
-                        <div className="font-bold text-neutral-900 dark:text-stone-100">
+                        <div className="font-medium text-ink">
                           {subject.name}
                         </div>
                         {subject.description && (
-                          <div className="text-[11px] text-neutral-500 dark:text-stone-400 line-clamp-1 mt-0.5">
+                          <div className="text-xs text-muted line-clamp-1 mt-0.5">
                             {subject.description}
                           </div>
                         )}
@@ -260,34 +260,34 @@ export function AdminCatalogView() {
                       <td className="py-3.5 px-4">
                         <div className="flex flex-col gap-0.5">
                           {subject.code && (
-                            <span className="font-mono text-[11px] font-semibold text-purple-700 dark:text-purple-400">
+                            <span className="font-mono text-xs font-medium text-brand-strong">
                               {subject.code}
                             </span>
                           )}
-                          <span className="font-mono text-[10px] text-neutral-400 dark:text-stone-500">
+                          <span className="font-mono text-xs text-muted">
                             /{subject.slug || subject.name.toLowerCase().replace(/\s+/g, "-")}
                           </span>
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 text-neutral-700 dark:text-stone-300 text-[11px] font-medium">
+                        <span className="px-2.5 py-1 rounded-lg bg-sunken text-ink-2 text-xs font-medium">
                           {subject.category || "Chung"}
                         </span>
                       </td>
                       <td className="py-3.5 px-4">
                         {subject.isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success-strong border border-success-line">
                             <CheckCircle2 className="size-3" />
                             <span>Hoạt động</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 dark:bg-stone-800 text-neutral-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sunken text-muted border border-line">
                             <XCircle className="size-3" />
                             <span>Tạm ẩn</span>
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-neutral-500 dark:text-stone-400 font-mono text-[11px]">
+                      <td className="py-3.5 px-4 text-muted font-mono text-xs">
                         {subject.createdAt
                           ? new Date(subject.createdAt).toLocaleDateString("vi-VN")
                           : "Hệ thống"}
@@ -297,10 +297,10 @@ export function AdminCatalogView() {
                           type="button"
                           onClick={() => handleToggleStatus(subject)}
                           disabled={isToggling}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50 ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer disabled:opacity-50 ${
                             subject.isActive
-                              ? "bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800"
-                              : "bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800"
+                              ? "bg-action-soft hover:bg-action-soft text-action-strong border border-action-line/80"
+                              : "bg-success-soft hover:bg-success-soft text-success-strong border border-success-line/80"
                           }`}
                         >
                           {isToggling ? (

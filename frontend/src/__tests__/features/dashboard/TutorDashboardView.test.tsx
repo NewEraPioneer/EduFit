@@ -88,7 +88,7 @@ describe("TutorDashboardView Component", () => {
 
     render(<TutorDashboardView user={mockUser} />);
 
-    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng 👋")).toBeInTheDocument();
+    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng")).toBeInTheDocument();
 
     // KPI: 3 completed / 17 planned sessions
     expect(await screen.findByText("3 / 17")).toBeInTheDocument();
@@ -137,7 +137,7 @@ describe("TutorDashboardView Component", () => {
 
     render(<TutorDashboardView user={mockUser} />);
 
-    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng 👋")).toBeInTheDocument();
+    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng")).toBeInTheDocument();
 
     // Buổi học tương lai SCHEDULED hiển thị với badge 'Đã chốt lịch'
     expect(await screen.findByText("Đã chốt lịch")).toBeInTheDocument();
@@ -170,7 +170,7 @@ describe("TutorDashboardView Component", () => {
 
     render(<TutorDashboardView user={mockUser} />);
 
-    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng 👋")).toBeInTheDocument();
+    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng")).toBeInTheDocument();
 
     // Bước KYC vẫn phải hiển thị nút "Bổ sung bằng cấp" thay vì "Nộp bằng cấp"
     expect(screen.getByRole("link", { name: /Bổ sung bằng cấp/i })).toBeInTheDocument();
@@ -198,7 +198,7 @@ describe("TutorDashboardView Component", () => {
 
     render(<TutorDashboardView user={mockUser} />);
 
-    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng 👋")).toBeInTheDocument();
+    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng")).toBeInTheDocument();
 
     const scheduleLink = screen.getByRole("link", { name: /Cài lịch rảnh/i });
     expect(scheduleLink).toBeInTheDocument();
@@ -227,7 +227,7 @@ describe("TutorDashboardView Component", () => {
 
     render(<TutorDashboardView user={mockUser} />);
 
-    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng 👋")).toBeInTheDocument();
+    expect(await screen.findByText("Chào Thầy/Cô Thầy Hưng")).toBeInTheDocument();
 
     // Bước 2 hiển thị nút "Đang chờ duyệt"
     expect(screen.getByRole("link", { name: /Đang chờ duyệt/i })).toBeInTheDocument();

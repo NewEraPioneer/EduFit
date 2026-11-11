@@ -1,7 +1,9 @@
 "use client";
 
+import { DateField } from "@/shared/ui/DateField";
+import { TimeField } from "@/shared/ui/TimeField";
 import { SessionBillingPanel } from "@/features/payment/components/SessionBillingPanel";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Clock,
@@ -32,6 +34,9 @@ import type { UserRole } from "@/shared/ui/Sidebar";
 import { formatLocalDateToIso, formatLocalTime } from "@/shared/utils/dateTime";
 import { PlannedMilestonesPicker, SessionOutcomeModal, progressApi, type PlanResponse } from "@/features/progress";
 
+export const canRecordSessionOutcome = (status?: string, role?: string): boolean =>
+  status === "SCHEDULED" && role === "TUTOR";
+
 export interface SessionDetailModalProps {
   sessionId: string | null;
   isOpen: boolean;
@@ -40,6 +45,9 @@ export interface SessionDetailModalProps {
   role: UserRole;
   currentUserId?: string;
   classes?: ConnectedClass[];
+  initialAction?: "outcome" | null;
+  /** Gọi khi tải xong chi tiết buổi học (vd. để lịch nhảy tới đúng tuần) */
+  onSessionLoaded?: (session: SessionDetail) => void;
 }
 
 export function SessionDetailModal({
@@ -50,7 +58,13 @@ export function SessionDetailModal({
   role,
   currentUserId,
   classes = [],
+  initialAction,
+  onSessionLoaded,
 }: SessionDetailModalProps) {
+  const onSessionLoadedRef = useRef(onSessionLoaded);
+  useEffect(() => {
+    onSessionLoadedRef.current = onSessionLoaded;
+  });
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [rescheduleProposal, setRescheduleProposal] = useState<RescheduleProposal | null>(null);
   const [showRescheduleRejectInput, setShowRescheduleRejectInput] = useState(false);
@@ -90,6 +104,7 @@ export function SessionDetailModal({
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [classPlan, setClassPlan] = useState<PlanResponse | null>(null);
   const [plannedMilestoneIds, setPlannedMilestoneIds] = useState<string[]>([]);
+  const handledActionRef = useRef<string | null>(null);
 
   // Track session ID during render to avoid cascading renders in useEffect (React 19 pattern)
   const [prevSessionId, setPrevSessionId] = useState<string | null>(null);
@@ -98,13 +113,21 @@ export function SessionDetailModal({
     setRescheduleProposal(null);
     setShowRescheduleRejectInput(false);
     setRescheduleRejectReason("");
+    setShowOutcomeModal(false);
   } else if (!isOpen && prevSessionId !== null) {
     setPrevSessionId(null);
     setSession(null);
     setRescheduleProposal(null);
     setShowRescheduleRejectInput(false);
     setRescheduleRejectReason("");
+    setShowOutcomeModal(false);
   }
+
+  useEffect(() => {
+    if (!isOpen) {
+      handledActionRef.current = null;
+    }
+  }, [isOpen]);
 
   // Fetch session details on mount / id change
   useEffect(() => {
@@ -116,6 +139,17 @@ export function SessionDetailModal({
           if (!ignore) {
             if (res.success && res.data) {
               setSession(res.data);
+              onSessionLoadedRef.current?.(res.data);
+              const canRecord = canRecordSessionOutcome(res.data.status, role);
+              const actionKey = `${sessionId}:${initialAction}`;
+              if (
+                canRecord &&
+                initialAction === "outcome" &&
+                handledActionRef.current !== actionKey
+              ) {
+                handledActionRef.current = actionKey;
+                setShowOutcomeModal(true);
+              }
               const start = new Date(res.data.startAt);
               const end = new Date(res.data.endAt);
               if (!Number.isNaN(start.getTime())) {
@@ -165,7 +199,7 @@ export function SessionDetailModal({
     return () => {
       ignore = true;
     };
-  }, [isOpen, sessionId]);
+  }, [isOpen, sessionId, initialAction, role]);
 
   if (!isOpen || !sessionId) return null;
 
@@ -189,19 +223,19 @@ export function SessionDetailModal({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "PROPOSED":
-        return { text: "Chờ xác nhận", bg: "bg-amber-100 text-amber-800 border-amber-200" };
+        return { text: "Chờ xác nhận", bg: "bg-action-soft text-action-strong border-action-line" };
       case "SCHEDULED":
-        return { text: "Đã xếp lịch", bg: "bg-sky-100 text-sky-800 border-sky-200" };
+        return { text: "Đã xếp lịch", bg: "bg-brand-soft text-brand-strong border-brand-line" };
       case "COMPLETED":
-        return { text: "Đã hoàn thành", bg: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+        return { text: "Đã hoàn thành", bg: "bg-success-soft text-success-strong border-success-line" };
       case "CANCELLED":
-        return { text: "Đã hủy", bg: "bg-rose-100 text-rose-800 border-rose-200" };
+        return { text: "Đã hủy", bg: "bg-danger-soft text-danger-strong border-danger-line" };
       case "REJECTED":
-        return { text: "Từ chối", bg: "bg-stone-200 text-stone-700 border-stone-300" };
+        return { text: "Từ chối", bg: "bg-line text-ink-2 border-line-strong" };
       case "EXPIRED":
-        return { text: "Hết hạn", bg: "bg-stone-200 text-stone-700 border-stone-300" };
+        return { text: "Hết hạn", bg: "bg-line text-ink-2 border-line-strong" };
       default:
-        return { text: status, bg: "bg-stone-100 text-stone-700 border-stone-200" };
+        return { text: status, bg: "bg-sunken text-ink-2 border-line" };
     }
   };
 
@@ -322,7 +356,7 @@ export function SessionDetailModal({
     setIsConflict(false);
 
     if (!newDateStr || !newStartTimeStr || !newEndTimeStr) {
-      setErrorMessage("Vui lòng chọn ngày và giờ bắt đầu/kết thúc hợp lệ.");
+      setErrorMessage("Chọn ngày và giờ bắt đầu, kết thúc hợp lệ.");
       return;
     }
     const startDateTime = new Date(`${newDateStr}T${newStartTimeStr}:00`);
@@ -415,30 +449,30 @@ export function SessionDetailModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="session-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-night/60 backdrop-blur-xs overflow-y-auto"
     >
-      <div className="relative w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      <div className="relative w-full max-w-dialog overflow-hidden rounded-3xl bg-surface shadow-2xl border border-line animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-xl bg-sky-100 text-sky-800">
+            <div className="grid size-9 place-items-center rounded-xl bg-brand-soft text-brand-strong">
               <CalendarClock className="size-5" />
             </div>
             <div>
-              <h2 id="session-modal-title" className="text-base font-bold text-neutral-900">
+              <h2 id="session-modal-title" className="text-base font-medium text-ink">
                 Chi tiết buổi học
               </h2>
               {session && (
                 <div className="flex flex-wrap items-center gap-2 mt-0.5">
                   <span
-                    className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold ${statusBadge.bg}`}
+                    className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${statusBadge.bg}`}
                   >
                     {statusBadge.text}
                   </span>
-                  <span className="text-xs font-bold text-sky-950 dark:text-sky-300">
+                  <span className="text-xs font-medium text-brand-strong">
                     {currentClassName}
                   </span>
-                  <span className="text-[11px] font-medium text-neutral-400">
+                  <span className="text-xs font-medium text-muted">
                     • Mã: {session.sessionId.slice(0, 8)}... ({role})
                   </span>
                 </div>
@@ -448,7 +482,7 @@ export function SessionDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-8 place-items-center rounded-full text-neutral-400 hover:bg-stone-100 hover:text-neutral-700 transition-colors"
+            className="grid size-8 place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink-2 transition-colors"
             aria-label="Đóng"
           >
             <X className="size-4" />
@@ -460,9 +494,9 @@ export function SessionDetailModal({
           {/* Skeleton loading state */}
           {loading && (
             <div className="space-y-4 animate-pulse">
-              <div className="h-14 rounded-2xl bg-stone-100" />
-              <div className="h-10 rounded-xl bg-stone-100" />
-              <div className="h-20 rounded-2xl bg-stone-100" />
+              <div className="h-14 rounded-2xl bg-sunken" />
+              <div className="h-10 rounded-xl bg-sunken" />
+              <div className="h-20 rounded-2xl bg-sunken" />
             </div>
           )}
 
@@ -472,13 +506,13 @@ export function SessionDetailModal({
               role="alert"
               className={`flex items-start gap-3 rounded-2xl p-4 text-xs font-medium leading-relaxed ${
                 isConflict
-                  ? "bg-rose-50 text-rose-800 border border-rose-200"
-                  : "bg-amber-50 text-amber-800 border border-amber-200"
+                  ? "bg-danger-soft text-danger-strong border border-danger-line"
+                  : "bg-action-soft text-action-strong border border-action-line"
               }`}
             >
-              <AlertTriangle className={`size-4 shrink-0 mt-0.5 ${isConflict ? "text-rose-600" : "text-amber-600"}`} />
+              <AlertTriangle className={`size-4 shrink-0 mt-0.5 ${isConflict ? "text-danger-strong" : "text-action-strong"}`} />
               <div>
-                <p className="font-bold">{isConflict ? "Khung giờ bị trùng lịch!" : "Có lỗi xảy ra"}</p>
+                <p className="font-medium">{isConflict ? "Khung giờ bị trùng lịch!" : "Có lỗi xảy ra"}</p>
                 <p className="mt-0.5">{errorMessage}</p>
               </div>
             </div>
@@ -487,14 +521,14 @@ export function SessionDetailModal({
           {session && !loading && (
             <>
               {/* Thẻ thông tin lớp học */}
-              <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+              <div className="rounded-2xl border border-brand-line bg-brand-soft/60 p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-sky-800">
-                    <BookOpen className="size-3.5 text-sky-600" />
+                  <div className="flex items-center gap-2 text-xs font-medium text-brand-strong">
+                    <BookOpen className="size-3.5 text-brand-strong" />
                     <span>Lớp học</span>
                   </div>
                   {currentClass?.status && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-brand-soft text-brand-strong">
                       {currentClass.status === "ACTIVE"
                         ? "Đang hoạt động"
                         : currentClass.status === "ENDED"
@@ -503,14 +537,14 @@ export function SessionDetailModal({
                     </span>
                   )}
                 </div>
-                <div className="text-sm font-bold text-neutral-900 mt-1">
+                <div className="text-sm font-medium text-ink mt-1">
                   {currentClassName}
                 </div>
                 {(currentClass?.subjectName ||
                   currentClass?.educationLevelName ||
                   currentClass?.tutorName ||
                   currentClass?.studentName) && (
-                  <div className="text-xs text-neutral-600 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                  <div className="text-xs text-ink-2 mt-1 flex flex-wrap gap-x-4 gap-y-1">
                     {currentClass.subjectName && (
                       <span>
                         Môn học: <b>{currentClass.subjectName}</b>
@@ -536,28 +570,28 @@ export function SessionDetailModal({
               </div>
               {/* Thẻ thời gian và hình thức */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4">
-                  <div className="flex items-center gap-2 text-xs font-bold text-neutral-500 mb-1">
+                <div className="rounded-2xl border border-line bg-paper/70 p-4">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted mb-1">
                     <Clock className="size-3.5" />
                     Thời gian diễn ra
                   </div>
-                  <div className="text-xs font-bold text-neutral-900">
+                  <div className="text-xs font-medium text-ink">
                     {formatDateTime(session.startAt)}
                   </div>
-                  <div className="text-[11px] text-neutral-500 mt-0.5">
+                  <div className="text-xs text-muted mt-0.5">
                     Đến: {formatDateTime(session.endAt)}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4">
-                  <div className="flex items-center gap-2 text-xs font-bold text-neutral-500 mb-1">
+                <div className="rounded-2xl border border-line bg-paper/70 p-4">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted mb-1">
                     {session.mode === "ONLINE" ? <Video className="size-3.5" /> : <MapPin className="size-3.5" />}
                     Hình thức tổ chức
                   </div>
-                  <div className="text-xs font-bold text-neutral-900">
+                  <div className="text-xs font-medium text-ink">
                     {session.mode === "ONLINE" ? "Trực tuyến (Online)" : "Trực tiếp (Offline)"}
                   </div>
-                  <div className="text-[11px] text-neutral-500 mt-0.5 truncate">
+                  <div className="text-xs text-muted mt-0.5 truncate">
                     {session.mode === "ONLINE" && ["PROPOSED", "SCHEDULED"].includes(session.status) ? (
                       "Phòng học được mở ở phần thanh toán sau khi đã giữ học phí và đến giờ học."
                     ) : session.placeOrLink ? (
@@ -566,7 +600,7 @@ export function SessionDetailModal({
                           href={session.placeOrLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sky-600 hover:underline"
+                          className="inline-flex items-center gap-1 text-brand-strong hover:underline"
                         >
                           Mở liên kết phòng học <ExternalLink className="size-2.5" />
                         </a>
@@ -597,46 +631,46 @@ export function SessionDetailModal({
                 <div
                   role="region"
                   aria-label="Đề xuất đổi lịch học"
-                  className="rounded-2xl border border-sky-300 bg-sky-50/90 p-4 text-xs text-sky-950 space-y-3 shadow-xs"
+                  className="rounded-2xl border border-brand-line bg-brand-soft/90 p-4 text-xs text-brand-strong space-y-3 shadow-xs"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-bold text-sky-900">
-                      <RotateCcw className="size-4 text-sky-600" />
-                      <span className="text-sm font-extrabold">Đề xuất đổi lịch học (UC4.4)</span>
+                    <div className="flex items-center gap-2 font-medium text-brand-strong">
+                      <RotateCcw className="size-4 text-brand-strong" />
+                      <span className="text-sm font-medium">Đề xuất đổi lịch học (UC4.4)</span>
                     </div>
-                    <span className="rounded-full bg-sky-200/80 px-2.5 py-0.5 text-[10px] font-extrabold text-sky-800">
+                    <span className="rounded-full bg-brand-line/80 px-2.5 py-0.5 text-xs font-medium text-brand-strong">
                       Chờ phản hồi
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 text-neutral-800">
+                  <div className="space-y-1.5 text-ink">
                     <div>
-                      <span className="font-semibold text-neutral-600">Thời gian đề xuất mới: </span>
-                      <span className="font-bold text-sky-900 text-xs">
+                      <span className="font-medium text-ink-2">Thời gian đề xuất mới: </span>
+                      <span className="font-medium text-brand-strong text-xs">
                         {formatDateTime(rescheduleProposal.newStartAt)} - {formatLocalTime(rescheduleProposal.newEndAt)}
                       </span>
                     </div>
                     {rescheduleProposal.reason && (
                       <div className="flex items-start gap-1">
-                        <span className="font-semibold text-neutral-600 shrink-0">Lý do: </span>
-                        <span className="italic text-neutral-700">{rescheduleProposal.reason}</span>
+                        <span className="font-medium text-ink-2 shrink-0">Lý do: </span>
+                        <span className="italic text-ink-2">{rescheduleProposal.reason}</span>
                       </div>
                     )}
                   </div>
 
                   {currentUserId && rescheduleProposal.proposedBy === currentUserId ? (
-                    <div className="text-[11px] font-medium text-sky-700 italic pt-1 border-t border-sky-200/60">
+                    <div className="text-xs font-medium text-brand-strong italic pt-1 border-t border-brand-line/60">
                       Bạn đã gửi đề xuất dời lịch này. Đang chờ đối phương xác nhận.
                     </div>
                   ) : (
-                    <div className="pt-2 border-t border-sky-200/60 space-y-2">
+                    <div className="pt-2 border-t border-brand-line/60 space-y-2">
                       {!showRescheduleRejectInput ? (
                         <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
                             disabled={actionLoading}
                             onClick={() => setShowRescheduleRejectInput(true)}
-                            className="h-8 px-3.5 rounded-xl border border-stone-300 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer disabled:opacity-50"
+                            className="h-8 px-3.5 rounded-xl border border-line-strong bg-surface text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer disabled:opacity-50"
                           >
                             Từ chối
                           </button>
@@ -644,7 +678,7 @@ export function SessionDetailModal({
                             type="button"
                             disabled={actionLoading}
                             onClick={() => void handleRespondReschedule(true)}
-                            className="h-8 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
+                            className="h-8 px-4 rounded-xl bg-success hover:bg-success-deep text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
                           >
                             {actionLoading ? (
                               <Loader2 className="size-3 animate-spin" />
@@ -661,14 +695,14 @@ export function SessionDetailModal({
                             value={rescheduleRejectReason}
                             onChange={(e) => setRescheduleRejectReason(e.target.value)}
                             placeholder="Nhập lý do từ chối (tùy chọn)..."
-                            className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs text-neutral-800 focus:outline-sky-500"
+                            className="w-full rounded-xl border border-line-strong bg-surface px-3 py-1.5 text-xs text-ink focus:outline-brand"
                           />
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
                               disabled={actionLoading}
                               onClick={() => setShowRescheduleRejectInput(false)}
-                              className="h-7 px-2.5 rounded-lg text-xs font-medium text-neutral-600 hover:bg-stone-100 cursor-pointer"
+                              className="h-7 px-2.5 rounded-lg text-xs font-medium text-ink-2 hover:bg-sunken cursor-pointer"
                             >
                               Hủy
                             </button>
@@ -676,7 +710,7 @@ export function SessionDetailModal({
                               type="button"
                               disabled={actionLoading}
                               onClick={() => void handleRespondReschedule(false)}
-                              className="h-7 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer disabled:opacity-50"
+                              className="h-7 px-3 rounded-lg bg-danger hover:bg-danger-deep text-white text-xs font-medium cursor-pointer disabled:opacity-50"
                             >
                               {actionLoading ? "Đang xử lý..." : "Xác nhận từ chối"}
                             </button>
@@ -690,17 +724,17 @@ export function SessionDetailModal({
 
               {/* Lời nhắn / Ghi chú lặp lại */}
               {(session.repeatNote || session.message) && (
-                <div className="rounded-2xl border border-stone-200 bg-white p-4 space-y-2">
+                <div className="rounded-2xl border border-line bg-surface p-4 space-y-2">
                   {session.repeatNote && (
-                    <div className="text-xs text-neutral-600">
-                      <span className="font-bold text-neutral-800">Chu kỳ học:</span> {session.repeatNote}
+                    <div className="text-xs text-ink-2">
+                      <span className="font-medium text-ink">Chu kỳ học:</span> {session.repeatNote}
                     </div>
                   )}
                   {session.message && (
-                    <div className="text-xs text-neutral-600 flex items-start gap-2">
-                      <MessageSquare className="size-3.5 text-neutral-400 shrink-0 mt-0.5" />
+                    <div className="text-xs text-ink-2 flex items-start gap-2">
+                      <MessageSquare className="size-3.5 text-muted shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold text-neutral-800">Lời nhắn:</span> {session.message}
+                        <span className="font-medium text-ink">Lời nhắn:</span> {session.message}
                       </div>
                     </div>
                   )}
@@ -709,24 +743,24 @@ export function SessionDetailModal({
 
               {/* Thông tin hủy (nếu đã hủy) */}
               {session.status === "CANCELLED" && (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50/60 p-4 text-xs text-rose-900 space-y-1">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <Ban className="size-4 text-rose-600" />
+                <div className="rounded-2xl border border-danger-line bg-danger-soft/60 p-4 text-xs text-danger-strong space-y-1">
+                  <div className="font-medium flex items-center gap-1.5">
+                    <Ban className="size-4 text-danger-strong" />
                     Buổi học đã bị hủy
                   </div>
                   {session.cancelReason && (
                     <div>
-                      <span className="font-semibold">Lý do:</span> {session.cancelReason}
+                      <span className="font-medium">Lý do:</span> {session.cancelReason}
                     </div>
                   )}
                   {session.cancelComment && (
                     <div>
-                      <span className="font-semibold">Ghi chú:</span> {session.cancelComment}
+                      <span className="font-medium">Ghi chú:</span> {session.cancelComment}
                     </div>
                   )}
                   {session.isLateCancel && (
-                    <div className="font-bold text-rose-700 mt-1">
-                      ⚠️ Buổi học này bị hủy sát giờ (&lt; 12 giờ trước giờ học).
+                    <div className="font-medium text-danger-strong mt-1">
+                      Buổi học này bị hủy sát giờ (&lt; 12 giờ trước giờ học).
                     </div>
                   )}
                 </div>
@@ -736,17 +770,17 @@ export function SessionDetailModal({
               {showRescheduleForm && (
                 <form
                   onSubmit={handleReschedule}
-                  className="rounded-2xl border border-sky-200 bg-sky-50/50 p-4 space-y-3"
+                  className="rounded-2xl border border-brand-line bg-brand-soft/50 p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
-                      <RotateCcw className="size-3.5 text-sky-700" />
+                    <span className="text-xs font-medium text-brand-strong flex items-center gap-1.5">
+                      <RotateCcw className="size-3.5 text-brand-strong" />
                       Đề xuất dời lịch học sang thời gian mới
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowRescheduleForm(false)}
-                      className="text-[11px] text-neutral-500 hover:text-neutral-800 cursor-pointer"
+                      className="text-xs text-muted hover:text-ink cursor-pointer"
                     >
                       Đóng
                     </button>
@@ -754,45 +788,43 @@ export function SessionDetailModal({
 
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-neutral-700 mb-1">Ngày mới</label>
-                      <input
-                        type="date"
+                      <label className="block text-xs font-medium text-ink-2 mb-1">Ngày mới</label>
+                      <DateField
+                        aria-label="Ngày mới"
                         value={newDateStr}
-                        onChange={(e) => setNewDateStr(e.target.value)}
-                        className="w-full rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs text-neutral-800"
+                        onChange={(value) => setNewDateStr(value)}
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-neutral-700 mb-1">Giờ bắt đầu</label>
-                      <input
-                        type="time"
+                      <label className="block text-xs font-medium text-ink-2 mb-1">Giờ bắt đầu</label>
+                      <TimeField
+                        aria-label="Giờ bắt đầu mới"
                         value={newStartTimeStr}
-                        onChange={(e) => setNewStartTimeStr(e.target.value)}
-                        className="w-full rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs text-neutral-800"
+                        onChange={(value) => setNewStartTimeStr(value)}
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-neutral-700 mb-1">Giờ kết thúc</label>
-                      <input
-                        type="time"
+                      <label className="block text-xs font-medium text-ink-2 mb-1">Giờ kết thúc</label>
+                      <TimeField
+                        aria-label="Giờ kết thúc mới"
                         value={newEndTimeStr}
-                        onChange={(e) => setNewEndTimeStr(e.target.value)}
-                        className="w-full rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs text-neutral-800"
+                        onChange={(value) => setNewEndTimeStr(value)}
                         required
+                        startFrom={newStartTimeStr}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-700 mb-1">Lý do dời lịch</label>
+                    <label className="block text-xs font-medium text-ink-2 mb-1">Lý do dời lịch</label>
                     <input
                       type="text"
                       placeholder="Lý do bận việc đột xuất..."
                       value={rescheduleReason}
                       onChange={(e) => setRescheduleReason(e.target.value)}
-                      className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-neutral-800"
+                      className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                       maxLength={500}
                     />
                   </div>
@@ -801,14 +833,14 @@ export function SessionDetailModal({
                     <button
                       type="button"
                       onClick={() => setShowRescheduleForm(false)}
-                      className="h-8 px-3 rounded-lg border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer"
+                      className="h-8 px-3 rounded-lg border border-line bg-surface text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer"
                     >
                       Hủy bỏ
                     </button>
                     <button
                       type="submit"
                       disabled={actionLoading}
-                      className="h-8 px-3.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="h-8 px-3.5 rounded-lg bg-brand hover:bg-brand-deep text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       {actionLoading ? <Loader2 className="size-3 animate-spin" /> : <RotateCcw className="size-3" />}
                       Gửi yêu cầu dời lịch
@@ -821,37 +853,36 @@ export function SessionDetailModal({
               {showCancelForm && (
                 <form
                   onSubmit={handleCancelSession}
-                  className="rounded-2xl border border-rose-200 bg-rose-50/50 p-4 space-y-3"
+                  className="rounded-2xl border border-danger-line bg-danger-soft/50 p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
-                      <Ban className="size-3.5 text-rose-700" />
+                    <span className="text-xs font-medium text-danger-strong flex items-center gap-1.5">
+                      <Ban className="size-3.5 text-danger-strong" />
                       Xác nhận hủy buổi học
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowCancelForm(false)}
-                      className="text-[11px] text-neutral-500 hover:text-neutral-800 cursor-pointer"
+                      className="text-xs text-muted hover:text-ink cursor-pointer"
                     >
                       Đóng
                     </button>
                   </div>
 
                   {isWithin24Hours && (
-                    <div className="rounded-xl border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900">
-                      ⚠️ Cảnh báo: Buổi học diễn ra trong vòng 12 giờ (Buổi học diễn ra trong vòng 24 giờ theo quy định cũ). Hành động này sẽ được ghi nhận là Hủy Sát Giờ
-                      (Late Cancellation) theo quy định BR-46.
+                    <div className="rounded-xl border border-action-line bg-action-soft p-2.5 text-xs text-action-strong">
+                      Buổi học bắt đầu trong vòng 12 giờ. Hệ thống sẽ ghi nhận đây là hủy muộn.
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-700 mb-1">
-                      Lý do hủy buổi học <span className="text-rose-500">*</span>
+                    <label className="block text-xs font-medium text-ink-2 mb-1">
+                      Lý do hủy buổi học <span className="text-danger-strong">*</span>
                     </label>
                     <select
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value as CancelReason)}
-                      className="w-full rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs font-semibold text-neutral-800"
+                      className="w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-xs font-medium text-ink"
                     >
                       <option value="SCHEDULE_CONFLICT">Trùng lịch đột xuất (Schedule conflict)</option>
                       <option value="PERSONAL_REASON">Lý do cá nhân / sức khỏe (Personal reason)</option>
@@ -861,13 +892,13 @@ export function SessionDetailModal({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-700 mb-1">Ghi chú giải thích</label>
+                    <label className="block text-xs font-medium text-ink-2 mb-1">Ghi chú giải thích</label>
                     <textarea
                       rows={2}
                       placeholder="Giải thích thêm về lý do hủy để đối phương nắm thông tin..."
                       value={cancelComment}
                       onChange={(e) => setCancelComment(e.target.value)}
-                      className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-neutral-800"
+                      className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                       maxLength={500}
                     />
                   </div>
@@ -876,14 +907,14 @@ export function SessionDetailModal({
                     <button
                       type="button"
                       onClick={() => setShowCancelForm(false)}
-                      className="h-8 px-3 rounded-lg border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer"
+                      className="h-8 px-3 rounded-lg border border-line bg-surface text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer"
                     >
                       Quay lại
                     </button>
                     <button
                       type="submit"
                       disabled={actionLoading}
-                      className="h-8 px-3.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="h-8 px-3.5 rounded-lg bg-danger hover:bg-danger-deep text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       {actionLoading ? <Loader2 className="size-3 animate-spin" /> : <Ban className="size-3" />}
                       Xác nhận hủy buổi học
@@ -896,26 +927,26 @@ export function SessionDetailModal({
               {showRejectForm && (
                 <form
                   onSubmit={handleRejectProposal}
-                  className="rounded-2xl border border-stone-200 bg-stone-50 p-4 space-y-3"
+                  className="rounded-2xl border border-line bg-paper p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-neutral-800">Từ chối đề xuất buổi học</span>
+                    <span className="text-xs font-medium text-ink">Từ chối đề xuất buổi học</span>
                     <button
                       type="button"
                       onClick={() => setShowRejectForm(false)}
-                      className="text-[11px] text-neutral-500 hover:text-neutral-800 cursor-pointer"
+                      className="text-xs text-muted hover:text-ink cursor-pointer"
                     >
                       Đóng
                     </button>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-700 mb-1">Lý do từ chối (Tùy chọn)</label>
+                    <label className="block text-xs font-medium text-ink-2 mb-1">Lý do từ chối (Tùy chọn)</label>
                     <input
                       type="text"
                       placeholder="Không phù hợp khung giờ này..."
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
-                      className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-neutral-800"
+                      className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                       maxLength={500}
                     />
                   </div>
@@ -923,14 +954,14 @@ export function SessionDetailModal({
                     <button
                       type="button"
                       onClick={() => setShowRejectForm(false)}
-                      className="h-8 px-3 rounded-lg border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer"
+                      className="h-8 px-3 rounded-lg border border-line bg-surface text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer"
                     >
                       Hủy bỏ
                     </button>
                     <button
                       type="submit"
                       disabled={actionLoading}
-                      className="h-8 px-3.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="h-8 px-3.5 rounded-lg bg-night hover:bg-night text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       {actionLoading ? <Loader2 className="size-3 animate-spin" /> : <XCircle className="size-3" />}
                       Gửi từ chối
@@ -941,12 +972,12 @@ export function SessionDetailModal({
 
               {/* Action Buttons Footer (when forms are closed) */}
               {!showRescheduleForm && !showCancelForm && !showRejectForm && (
-                <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-stone-100">
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-line">
                   {/* Trạng thái PROPOSED: Xác nhận hoặc Từ chối */}
                   {session.status === "PROPOSED" && (
                     <>
                       {isAuthor ? (
-                        <div className="mr-auto text-xs font-medium text-amber-700">
+                        <div className="mr-auto text-xs font-medium text-action-strong">
                           Bạn đã gửi đề xuất này. Đang chờ đối phương xác nhận.
                         </div>
                       ) : (
@@ -955,7 +986,7 @@ export function SessionDetailModal({
                             type="button"
                             onClick={() => setShowRejectForm(true)}
                             disabled={actionLoading}
-                            className="h-10 px-4 rounded-xl border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer disabled:opacity-50"
+                            className="h-10 px-4 rounded-xl border border-line bg-surface text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer disabled:opacity-50"
                           >
                             Từ chối
                           </button>
@@ -963,7 +994,7 @@ export function SessionDetailModal({
                             type="button"
                             onClick={handleAcceptProposal}
                             disabled={actionLoading}
-                            className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            className="h-10 px-4 rounded-xl bg-success hover:bg-success-deep text-white text-xs font-medium shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                           >
                             {actionLoading ? (
                               <Loader2 className="size-3.5 animate-spin" />
@@ -980,13 +1011,13 @@ export function SessionDetailModal({
                   {/* Trạng thái SCHEDULED: Đổi lịch hoặc Hủy */}
                   {session.status === "SCHEDULED" && (
                     <>
-                      {role === "TUTOR" && (
+                      {canRecordSessionOutcome(session.status, role) && (
                         <button
                           type="button"
                           onClick={() => setShowOutcomeModal(true)}
                           disabled={actionLoading || Date.now() < new Date(session.endAt).getTime()}
                           title={Date.now() < new Date(session.endAt).getTime() ? "Chỉ ghi nhận kết quả sau giờ kết thúc buổi học" : undefined}
-                          className="h-10 px-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="h-10 px-4 rounded-xl border border-success-line bg-success-soft text-success-strong hover:bg-success-soft text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <FileText className="size-3.5" />
                           Ghi nhận biên bản
@@ -996,7 +1027,7 @@ export function SessionDetailModal({
                         type="button"
                         onClick={() => setShowRescheduleForm(true)}
                         disabled={actionLoading}
-                        className="h-10 px-4 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="h-10 px-4 rounded-xl border border-brand-line bg-brand-soft text-brand-strong hover:bg-brand-soft text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         <RotateCcw className="size-3.5" />
                         Đổi lịch học
@@ -1005,7 +1036,7 @@ export function SessionDetailModal({
                         type="button"
                         onClick={handleOpenCancelForm}
                         disabled={actionLoading}
-                        className="h-10 px-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="h-10 px-4 rounded-xl border border-danger-line bg-danger-soft text-danger-strong hover:bg-danger-soft text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         <Ban className="size-3.5" />
                         Hủy buổi học
@@ -1016,7 +1047,7 @@ export function SessionDetailModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="h-10 px-4 rounded-xl border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer"
+                    className="h-10 px-4 rounded-xl border border-line bg-surface text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer"
                   >
                     Đóng
                   </button>

@@ -101,7 +101,7 @@ describe("QA R1: Quản lý Lịch học & Chế độ xem kép (Scheduling Core
 
       render(<ScheduleCalendarView role="TUTOR" availabilitySlots={[]} />);
 
-      expect(screen.getByText("Lịch học & Điều phối thời gian")).toBeInTheDocument();
+      expect(screen.getByText("Lịch học")).toBeInTheDocument();
       expect(screen.getByText("Múi giờ Việt Nam UTC+7")).toBeInTheDocument();
 
       await waitFor(() => {
@@ -353,7 +353,7 @@ describe("QA R1: Quản lý Lịch học & Chế độ xem kép (Scheduling Core
 
       // Cảnh báo hủy sát giờ xuất hiện
       expect(
-        screen.getByText(/Buổi học diễn ra trong vòng 24 giờ.*Late Cancellation/i)
+        screen.getByText(/Buổi học bắt đầu trong vòng 12 giờ/i)
       ).toBeInTheDocument();
 
       // Submit hủy

@@ -44,7 +44,7 @@ public class OverdueOutcomeReminderJob {
    * Quét và gửi thông báo nhắc nhở Gia sư hoàn thành ghi nhận kết quả ca học.
    */
   @Scheduled(cron = "${edufit.scheduling.jobs.overdue-outcome.cron:0 0 * * * *}")
-  @Transactional(readOnly = true)
+  @Transactional // không readOnly: job phát event có tác dụng phụ
   public void scanAndRemindOverdueOutcomes() {
     Instant now = clock.instant();
     log.debug("Bắt đầu tác vụ quét nhắc nhở ghi nhận kết quả buổi học tại: {}", now);

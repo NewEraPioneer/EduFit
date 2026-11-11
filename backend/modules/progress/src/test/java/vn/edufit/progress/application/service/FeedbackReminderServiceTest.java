@@ -24,6 +24,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
+import org.mockito.ArgumentCaptor;
+import vn.edufit.progress.api.event.FeedbackReminderDueEvent;
 import vn.edufit.progress.domain.model.LearningPlan;
 import vn.edufit.progress.domain.policy.FeedbackTimingPolicy;
 import vn.edufit.progress.domain.policy.FeedbackTimingPolicy.ReminderStage;
@@ -32,7 +34,7 @@ import vn.edufit.progress.domain.repository.LearningPlanDomainRepository;
 import vn.edufit.progress.domain.repository.SessionFeedbackDomainRepository;
 import vn.edufit.scheduling.api.SessionFacade;
 import vn.edufit.scheduling.api.dto.SessionSummaryView;
-import vn.edufit.shared.notification.NotificationSink;
+import org.springframework.context.ApplicationEventPublisher;
 
 class FeedbackReminderServiceTest {
 
@@ -45,7 +47,7 @@ class FeedbackReminderServiceTest {
   private SessionFacade sessionFacade;
   private SessionFeedbackDomainRepository feedbackRepository;
   private FeedbackReminderDomainRepository reminderRepository;
-  private NotificationSink notifications;
+  private ApplicationEventPublisher events;
   private FeedbackReminderService service;
 
   @BeforeEach
@@ -55,9 +57,9 @@ class FeedbackReminderServiceTest {
     reminderRepository = mock(FeedbackReminderDomainRepository.class);
     LearningPlanDomainRepository planRepository = mock(LearningPlanDomainRepository.class);
     ProfileFacade profileFacade = mock(ProfileFacade.class);
-    notifications = mock(NotificationSink.class);
+    events = mock(ApplicationEventPublisher.class);
     service = new FeedbackReminderService(sessionFacade, feedbackRepository, reminderRepository, planRepository,
-        profileFacade, notifications, Clock.fixed(now, ZoneId.of("UTC")));
+        events, Clock.fixed(now, ZoneId.of("UTC")));
 
     TutorSummaryDto tutor = mock(TutorSummaryDto.class);
     when(tutor.userId()).thenReturn(tutorUserId);
@@ -88,10 +90,15 @@ class FeedbackReminderServiceTest {
 
     assertThat(service.sendDueReminders()).isEqualTo(1);
 
-    verify(notifications).notify(eq(tutorUserId), eq(at13h.studentId()), eq(FeedbackReminderService.NOTIFICATION_TYPE),
-        anyString(), anyString(), eq("SESSION"), eq(at13h.sessionId()));
+    ArgumentCaptor<FeedbackReminderDueEvent> published = ArgumentCaptor.forClass(FeedbackReminderDueEvent.class);
+    verify(events).publishEvent(published.capture());
+    FeedbackReminderDueEvent event = published.getValue();
+    assertThat(event.sessionId()).isEqualTo(at13h.sessionId());
+    assertThat(event.studentId()).isEqualTo(at13h.studentId());
+    assertThat(event.tutorId()).isEqualTo(tutorId);
+    assertThat(event.hoursSinceEnd()).isEqualTo(12);
+    assertThat(event.hoursLeft()).isEqualTo(FeedbackTimingPolicy.LATE_AFTER.toHours() - 12);
     verify(reminderRepository).recordSent(at13h.sessionId(), ReminderStage.H12, now);
-    verify(notifications, never()).notify(any(), any(), any(), any(), any(), any(), eq(noPlan.sessionId()));
   }
 
   @Test

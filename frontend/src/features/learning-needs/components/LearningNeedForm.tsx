@@ -100,12 +100,12 @@ export function LearningNeedForm({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const local: FieldErrors = {};
-    if (!levelId) local.educationLevelId = "Vui lòng chọn khối lớp.";
-    if (!subjectId) local.subjectId = "Vui lòng chọn môn học.";
-    if (needsTrack && !trackId) local.trackId = "Vui lòng chọn nhánh môn.";
-    if (!goalTagId) local.goalTagId = "Vui lòng chọn mục tiêu học.";
-    if (selectedGoal?.requiresTextbook && !textbookId) local.textbookSeriesId = "Vui lòng chọn bộ sách con đang học trên trường.";
-    if (selectedGoal?.requiresExamProvince && !examProvinceId) local.examProvinceId = "Vui lòng chọn tỉnh/thành nơi con dự thi vào 10.";
+    if (!levelId) local.educationLevelId = "Chọn khối lớp.";
+    if (!subjectId) local.subjectId = "Chọn môn học.";
+    if (needsTrack && !trackId) local.trackId = "Chọn nhánh môn.";
+    if (!goalTagId) local.goalTagId = "Chọn mục tiêu học.";
+    if (selectedGoal?.requiresTextbook && !textbookId) local.textbookSeriesId = "Chọn bộ sách con đang học ở trường.";
+    if (selectedGoal?.requiresExamProvince && !examProvinceId) local.examProvinceId = "Chọn tỉnh/thành nơi con dự thi vào lớp 10.";
     const slotCheck = variant === "full" ? validateAvailabilitySlots(slots) : { valid: true };
     if (!slotCheck.valid) local.availabilitySlots = slotCheck.message ?? "Khung giờ chưa hợp lệ.";
     if (Object.keys(local).length > 0) {
@@ -157,11 +157,11 @@ export function LearningNeedForm({
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {formError && (
-        <div role="alert" className="px-3.5 py-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">{formError}</div>
+        <div role="alert" className="px-3.5 py-3 rounded-xl bg-danger-soft border border-danger-line text-xs text-danger-strong">{formError}</div>
       )}
 
       <fieldset className="space-y-2">
-        <legend className="text-xs font-bold text-neutral-700">1. Khối lớp</legend>
+        <legend className="text-xs font-medium text-ink-2">1. Khối lớp</legend>
         <div className="flex flex-wrap gap-1.5">
           {catalog.educationLevels.map((level) => (
             <button key={level.levelId} type="button" aria-pressed={levelId === level.levelId}
@@ -174,7 +174,7 @@ export function LearningNeedForm({
       </fieldset>
 
       <fieldset className="space-y-2" disabled={editing}>
-        <legend className="text-xs font-bold text-neutral-700">2. Môn học{editing && <span className="font-normal text-neutral-400"> · không đổi được sau khi tạo</span>}</legend>
+        <legend className="text-xs font-medium text-ink-2">2. Môn học{editing && <span className="font-normal text-muted"> · không đổi được sau khi tạo</span>}</legend>
         <div className="flex flex-wrap gap-1.5">
           {catalog.subjects.map((subject) => (
             <button key={subject.subjectId} type="button" aria-pressed={subjectId === subject.subjectId}
@@ -188,9 +188,9 @@ export function LearningNeedForm({
 
       {needsTrack && (
         <fieldset className="space-y-2">
-          <legend className="text-xs font-bold text-neutral-700">Nhánh môn</legend>
+          <legend className="text-xs font-medium text-ink-2">Nhánh môn</legend>
           {tracks.length === 0 ? (
-            <p className="text-xs text-neutral-500">Chọn khối lớp để xem các nhánh phù hợp.</p>
+            <p className="text-xs text-muted">Chọn khối lớp để xem các nhánh phù hợp.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {tracks.map((track) => (
@@ -206,9 +206,9 @@ export function LearningNeedForm({
       )}
 
       <fieldset className="space-y-2">
-        <legend className="text-xs font-bold text-neutral-700 dark:text-stone-200">3. Mục tiêu</legend>
+        <legend className="text-xs font-medium text-ink-2">3. Mục tiêu</legend>
         {goals.length === 0 ? (
-          <p className="text-xs text-neutral-500 dark:text-stone-400">Chọn khối lớp và môn{needsTrack ? ", nhánh" : ""} để xem mục tiêu phù hợp.</p>
+          <p className="text-xs text-muted">Chọn khối lớp và môn{needsTrack ? ", nhánh" : ""} để xem mục tiêu phù hợp.</p>
         ) : (
           <div className="grid gap-1.5">
             {goals.map((tag) => (
@@ -216,22 +216,22 @@ export function LearningNeedForm({
                 onClick={() => setGoalTagId(tag.goalTagId)}
                 className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs flex items-start justify-between gap-3 transition-colors ${
                   goalTagId === tag.goalTagId
-                    ? "border-[#006DCC] dark:border-sky-400 bg-sky-50/70 dark:bg-sky-950/60 text-[#006DCC] dark:text-sky-300 shadow-2xs"
-                    : "border-stone-200 dark:border-stone-700/80 bg-white dark:bg-stone-800/80 text-neutral-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700/80"
+                    ? "border-brand bg-brand-soft/70 text-brand-strong shadow-2xs"
+                    : "border-line bg-surface text-ink-2 hover:bg-paper"
                 }`}>
                 <span>
-                  <span className="block font-semibold">{tag.name}</span>
+                  <span className="block font-medium">{tag.name}</span>
                   {tag.description && (
                     <span className={`block mt-0.5 font-normal ${
                       goalTagId === tag.goalTagId
-                        ? "text-sky-800 dark:text-sky-200/90"
-                        : "text-neutral-500 dark:text-stone-400"
+                        ? "text-brand-strong"
+                        : "text-muted"
                     }`}>
                       {tag.description}
                     </span>
                   )}
                 </span>
-                {goalTagId === tag.goalTagId && <Check className="size-4 shrink-0 text-[#006DCC] dark:text-sky-400" />}
+                {goalTagId === tag.goalTagId && <Check className="size-4 shrink-0 text-brand-strong" />}
               </button>
             ))}
           </div>
@@ -240,7 +240,7 @@ export function LearningNeedForm({
       </fieldset>
 
       {selectedGoal?.requiresTextbook && (
-        <label className="block text-xs font-bold text-neutral-700">
+        <label className="block text-xs font-medium text-ink-2">
           Bộ sách con đang học trên trường
           <select value={textbookId ?? ""} onChange={(e) => setTextbookId(e.target.value ? Number(e.target.value) : null)} className={inputClass}>
             <option value="">-- Chọn bộ sách --</option>
@@ -251,7 +251,7 @@ export function LearningNeedForm({
       )}
 
       {selectedGoal?.requiresExamProvince && (
-        <label className="block text-xs font-bold text-neutral-700">
+        <label className="block text-xs font-medium text-ink-2">
           Tỉnh/thành dự thi vào 10
           <select value={examProvinceId ?? ""} onChange={(e) => setExamProvinceId(e.target.value ? Number(e.target.value) : null)} className={inputClass}>
             <option value="">-- Chọn tỉnh/thành --</option>
@@ -262,8 +262,8 @@ export function LearningNeedForm({
       )}
 
       {selectedGoal?.code === GIFTED_TAG_CODE && (
-        <label className="block text-xs font-bold text-neutral-700">
-          Trường chuyên hướng tới <span className="font-normal text-neutral-400">(không bắt buộc)</span>
+        <label className="block text-xs font-medium text-ink-2">
+          Trường chuyên hướng tới <span className="font-normal text-muted">(không bắt buộc)</span>
           <select value={schoolId ?? ""} onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)} className={inputClass}>
             <option value="">-- Chưa xác định --</option>
             {schools.map((s) => <option key={s.schoolId} value={s.schoolId}>{s.name}</option>)}
@@ -273,9 +273,9 @@ export function LearningNeedForm({
       )}
 
       {variant === "full" && (
-        <div className="space-y-4 pt-4 border-t border-stone-100">
+        <div className="space-y-4 pt-4 border-t border-line">
           <fieldset className="space-y-2">
-            <legend className="text-xs font-bold text-neutral-700">Hình thức học</legend>
+            <legend className="text-xs font-medium text-ink-2">Hình thức học</legend>
             <div className="flex flex-wrap gap-1.5">
               {(Object.keys(MODE_LABELS) as TeachingMode[]).map((value) => (
                 <button key={value} type="button" aria-pressed={mode === value} onClick={() => setMode(value)} className={chip(mode === value)}>
@@ -288,7 +288,7 @@ export function LearningNeedForm({
 
           {(mode === "OFFLINE" || mode === "BOTH") && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="text-xs font-bold text-neutral-700">
+              <label className="text-xs font-medium text-ink-2">
                 Tỉnh/thành học trực tiếp
                 <select value={provinceId ?? ""} onChange={(e) => { setProvinceId(e.target.value ? Number(e.target.value) : null); setDistrictId(null); }} className={inputClass}>
                   <option value="">-- Chọn tỉnh/thành --</option>
@@ -296,8 +296,8 @@ export function LearningNeedForm({
                 </select>
                 <FieldError message={errors.provinceId} />
               </label>
-              <label className="text-xs font-bold text-neutral-700">
-                Khu vực <span className="font-normal text-neutral-400">(không bắt buộc)</span>
+              <label className="text-xs font-medium text-ink-2">
+                Khu vực <span className="font-normal text-muted">(không bắt buộc)</span>
                 <select value={districtId ?? ""} disabled={districts.length === 0}
                   onChange={(e) => setDistrictId(e.target.value ? Number(e.target.value) : null)} className={`${inputClass} disabled:opacity-50`}>
                   <option value="">{districts.length === 0 ? "Chưa có danh sách khu vực" : "-- Chọn khu vực --"}</option>
@@ -308,7 +308,7 @@ export function LearningNeedForm({
             </div>
           )}
 
-          <label className="block text-xs font-bold text-neutral-700">
+          <label className="block text-xs font-medium text-ink-2">
             Ngân sách tối đa mỗi buổi (đồng)
             <input type="number" min={1} step={10000} inputMode="numeric" value={budget}
               onChange={(e) => setBudget(e.target.value)} placeholder="VD: 250000" className={inputClass} />
@@ -329,12 +329,12 @@ export function LearningNeedForm({
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
+          <button type="button" onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-medium text-ink-2 hover:bg-sunken transition-colors">
             Hủy
           </button>
         )}
         <button type="submit" disabled={saving}
-          className="px-5 py-2.5 rounded-xl bg-[#006DCC] text-white text-sm font-bold hover:bg-[#005BB0] disabled:opacity-60 inline-flex items-center justify-center gap-2">
+          className="px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-medium hover:bg-brand-deep disabled:opacity-60 inline-flex items-center justify-center gap-2">
           {saving && <Loader2 className="size-4 animate-spin" />}
           {submitLabel ?? (need ? "Lưu nhu cầu" : "Tạo nhu cầu học")}
         </button>

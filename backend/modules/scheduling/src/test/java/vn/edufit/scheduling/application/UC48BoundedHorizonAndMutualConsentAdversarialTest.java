@@ -476,8 +476,13 @@ class UC48BoundedHorizonAndMutualConsentAdversarialTest {
       assertEquals(CancelReason.SCHEDULE_CONFLICT, oldSession2.getCancelReason());
       assertEquals(studentUserId, oldSession2.getCancelledBy());
 
-      // Verify SessionCancelledEvents published
-      verify(eventPublisher, times(2)).publishEvent(any(SessionCancelledEvent.class));
+      // Cả lô chỉ phát một sự kiện gộp; không có sự kiện riêng cho từng buổi
+      verify(eventPublisher, never()).publishEvent(any(SessionCancelledEvent.class));
+      verify(eventPublisher, never()).publishEvent(any(SessionScheduledEvent.class));
+      var batch = org.mockito.ArgumentCaptor.forClass(vn.edufit.scheduling.api.event.ClassScheduleChangedEvent.class);
+      verify(eventPublisher).publishEvent(batch.capture());
+      assertEquals(2, batch.getValue().cancelledCount());
+      assertEquals(9, batch.getValue().generatedCount());
 
       // 2. Verify new sessions are regenerated with SCHEDULED status
       // Nov 2 to Nov 30 has 5 Mondays and 4 Thursdays -> 9 sessions total
@@ -493,8 +498,6 @@ class UC48BoundedHorizonAndMutualConsentAdversarialTest {
         assertEquals("Zoom Room", genSession.getPlaceOrLink());
       }
 
-      // Verify SessionScheduledEvents published for each new session
-      verify(eventPublisher, times(9)).publishEvent(any(SessionScheduledEvent.class));
       assertEquals(ProposalStatus.ACCEPTED, result.proposal().getStatus());
     }
 

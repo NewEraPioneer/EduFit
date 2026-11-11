@@ -122,19 +122,19 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
     }
   }
   const button =
-    "rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-stone-50 disabled:opacity-40";
+    "rounded-lg border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-2 hover:bg-paper disabled:opacity-40";
   const withdrawals = resolved ? data?.withdrawals ?? [] : pendingWithdrawals;
   const topups = resolved ? data?.topups ?? [] : pendingTopups;
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
+        <p className="text-xs font-medium text-action-strong">
           EduFit / Quản trị
         </p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
           {initialTab === "cases" ? "Hồ sơ học phí" : "Quản lý thanh toán"}
         </h1>
-        <p className="mt-2 text-sm text-neutral-500">
+        <p className="mt-2 text-sm text-muted">
           Ưu tiên yêu cầu cần xử lý, đối chiếu trước khi xác nhận tiền.
         </p>
       </header>
@@ -171,23 +171,23 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
             }}
             className={`flex items-center gap-4 rounded-2xl border p-5 text-left ${
               active === key
-                ? "border-orange-300 bg-orange-50 text-stone-900 dark:border-orange-800 dark:bg-orange-950/40 dark:text-stone-100"
-                : "border-stone-200 bg-white text-neutral-700 hover:border-orange-300 dark:hover:border-orange-800"
+                ? "border-action-line bg-action-soft text-ink"
+                : "border-line bg-surface text-ink-2 hover:border-action-line"
             }`}
           >
             <span
               className={`rounded-xl p-3 ${
                 active === key
-                  ? "bg-orange-100 text-orange-800 dark:bg-orange-900/60 dark:text-orange-200"
-                  : "bg-stone-100"
+                  ? "bg-action-soft text-action-strong"
+                  : "bg-sunken"
               }`}
             >
               <Icon className="size-5" />
             </span>
-            <span className="flex-1 text-sm font-semibold">{label}</span>
+            <span className="flex-1 text-sm font-medium">{label}</span>
             <strong
               className={`text-2xl ${
-                active === key ? "text-orange-800 dark:text-orange-200" : ""
+                active === key ? "text-action-strong" : ""
               }`}
             >
               {count}
@@ -198,7 +198,7 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
       {error && !target && (
         <p
           role="alert"
-          className="rounded-xl bg-red-50 p-4 text-sm text-red-700"
+          className="rounded-xl bg-danger-soft p-4 text-sm text-danger-strong"
         >
           {error}
         </p>
@@ -206,16 +206,16 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
       {!data ? (
         <p
           role="status"
-          className="rounded-2xl border border-stone-200 bg-white p-8 text-center text-sm text-neutral-500"
+          className="rounded-2xl border border-line bg-surface p-8 text-center text-sm text-muted"
         >
           {error
             ? "Chưa tải được danh sách. Hãy tải lại trang."
             : "Đang tải yêu cầu…"}
         </p>
       ) : (
-        <section className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 p-5">
-            <h2 className="font-bold">
+        <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-5">
+            <h2 className="font-medium">
               {active === "cases"
                 ? "Hồ sơ cần Admin xem xét"
                 : active === "withdrawals"
@@ -223,7 +223,7 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
                   : "Yêu cầu nạp tiền"}
             </h2>
             {active !== "cases" && (
-              <label className="flex items-center gap-2 text-xs text-neutral-500">
+              <label className="flex items-center gap-2 text-xs text-muted">
                 <input
                   type="checkbox"
                   checked={resolved}
@@ -233,7 +233,7 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
               </label>
             )}
           </header>
-          <div className="divide-y divide-stone-100">
+          <div className="divide-y divide-line">
             {active === "cases" &&
               disputes.map((s) => (
                 <article
@@ -241,16 +241,16 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
                   className="flex flex-wrap items-center justify-between gap-4 p-5"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">
+                    <p className="text-sm font-medium">
                       {s.tutorName} · {money(s.amount)}
                     </p>
-                    <p className="mt-1 text-xs text-amber-800">
+                    <p className="mt-1 text-xs text-action-strong">
                       {s.status === "ADMIN_REVIEW"
                         ? "Chưa thống nhất sau 48 giờ"
                         : "Hai bên đã thống nhất"}{" "}
                       · Tiền đang giữ
                     </p>
-                    <p className="mt-2 line-clamp-2 text-sm text-neutral-500">
+                    <p className="mt-2 line-clamp-2 text-sm text-muted">
                       {s.disputeReason}
                     </p>
                   </div>
@@ -269,9 +269,9 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
                   className="flex flex-wrap items-center justify-between gap-4 p-5"
                 >
                   <div>
-                    <p className="text-sm font-bold">
+                    <p className="text-sm font-medium">
                       {money(t.amount)}{" "}
-                      <span className="ml-2 text-xs font-normal text-neutral-500">
+                      <span className="ml-2 text-xs font-normal text-muted">
                         {t.status === "PAID"
                           ? "Đã cộng ví"
                           : t.status === "CANCELLED"
@@ -279,13 +279,13 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
                             : "Chờ xác minh"}
                       </span>
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500">
+                    <p className="mt-1 text-xs text-muted">
                       EF{t.order_code.toString(36).toUpperCase()} ·{" "}
                       {t.provider === "PAYOS"
                         ? "QR payOS"
                         : "Chuyển khoản thủ công"}
                     </p>
-                    <details className="mt-2 text-xs text-neutral-500">
+                    <details className="mt-2 text-xs text-muted">
                       <summary className="cursor-pointer">
                         Thông tin đối soát
                       </summary>
@@ -330,8 +330,8 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
               withdrawals.map((w) => (
                 <article key={w.id} className="space-y-3 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-bold">{money(w.amount)}</p>
-                    <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium">
+                    <p className="text-sm font-medium">{money(w.amount)}</p>
+                    <span className="rounded-full bg-sunken px-3 py-1 text-xs font-medium">
                       {w.status === "PENDING"
                         ? "Chờ duyệt"
                         : w.status === "PROCESSING"
@@ -341,10 +341,10 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
                             : "Đã hoàn ví"}
                     </span>
                   </div>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-ink-2">
                     {w.bank_name} · {w.bank_account} · {w.bank_holder}
                   </p>
-                  <details className="text-xs text-neutral-500">
+                  <details className="text-xs text-muted">
                     <summary className="cursor-pointer">
                       Thông tin đối soát
                     </summary>
@@ -354,13 +354,13 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
                     </p>
                   </details>
                   {w.provider_message && (
-                    <p role="status" className="text-xs text-amber-800">
+                    <p role="status" className="text-xs text-action-strong">
                       {w.provider_message}
                     </p>
                   )}
                   {w.status === "PROCESSING" && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 p-3">
-                      <p className="text-xs text-amber-900">
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-action-soft p-3">
+                      <p className="text-xs text-action-strong">
                         Chờ xác minh kết quả ngân hàng. Không chuyển lại thủ
                         công.
                       </p>
@@ -439,17 +439,17 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
               (active === "topups" && !topups.length) ||
               (active === "withdrawals" && !withdrawals.length)) && (
               <div className="py-12 text-center">
-                <CheckCircle2 className="mx-auto size-9 text-emerald-600" />
-                <p className="mt-3 text-sm font-semibold">
+                <CheckCircle2 className="mx-auto size-9 text-success-strong" />
+                <p className="mt-3 text-sm font-medium">
                   Không có yêu cầu trong danh sách này
                 </p>
-                <p className="mt-1 text-xs text-neutral-500">
+                <p className="mt-1 text-xs text-muted">
                   Chọn hàng đợi khác hoặc xem yêu cầu đã xử lý.
                 </p>
               </div>
             )}
           </div>
-          <footer className="flex items-center justify-between gap-3 border-t border-stone-100 p-4">
+          <footer className="flex items-center justify-between gap-3 border-t border-line p-4">
             <button
               disabled={offset === 0 || busy}
               className={button}
@@ -458,7 +458,7 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
               <ChevronLeft className="inline size-4" />
               Trước
             </button>
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted">
               Trang {offset / 50 + 1} · Số liệu trong trang hiện tại
             </span>
             <button
@@ -480,12 +480,12 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
         </section>
       )}
       {data?.configuration && (
-        <details className="rounded-2xl border border-stone-200 bg-white px-5 py-4">
-          <summary className="cursor-pointer text-sm font-semibold">
-            <Settings2 className="mr-2 inline size-4 text-neutral-500" />
+        <details className="rounded-2xl border border-line bg-surface px-5 py-4">
+          <summary className="cursor-pointer text-sm font-medium">
+            <Settings2 className="mr-2 inline size-4 text-muted" />
             Kết nối thanh toán
           </summary>
-          <div className="mt-4 grid gap-4 border-t border-stone-100 pt-4 text-sm sm:grid-cols-3">
+          <div className="mt-4 grid gap-4 border-t border-line pt-4 text-sm sm:grid-cols-3">
             <p>
               Nạp payOS:{" "}
               <strong>
@@ -513,7 +513,7 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
               </strong>
             </p>
           </div>
-          <p className="mt-3 text-xs text-neutral-500">
+          <p className="mt-3 text-xs text-muted">
             Cấu hình đầy đủ chưa xác nhận kênh và webhook đã hoạt động thực tế.
           </p>
         </details>

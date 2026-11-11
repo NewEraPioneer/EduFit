@@ -27,7 +27,6 @@ import vn.edufit.profile.api.dto.TutorOfferingDto;
 import vn.edufit.profile.api.fit.NeedFitEvaluator;
 import vn.edufit.profile.api.dto.TutorSummaryDto;
 import vn.edufit.shared.auth.CurrentUser;
-import vn.edufit.shared.notification.NotificationSink;
 import org.springframework.context.ApplicationEventPublisher;
 import vn.edufit.connection.api.event.ConnectionRequestChangedEvent;
 import vn.edufit.connection.api.event.TutoringClassCreatedEvent;
@@ -51,7 +50,6 @@ public class ConnectionRequestService {
   private final ProfileFacade profile;
   private final IamFacade iam;
   private final ConnectionLock lock;
-  private final NotificationSink notifications;
   private final ConnectionFacade facade;
   private final ConnectionRequestInput input;
   private final ApplicationEventPublisher events;
@@ -61,7 +59,7 @@ public class ConnectionRequestService {
   private final ClassScheduleStatusProvider scheduleStatusProvider;
 
   public ConnectionRequestService(ConnectionRequestRepository requests, TutoringClassRepository classes,
-      ProfileFacade profile, IamFacade iam, ConnectionLock lock, NotificationSink notifications,
+      ProfileFacade profile, IamFacade iam, ConnectionLock lock,
       ConnectionFacade facade, ConnectionRequestInput input, ApplicationEventPublisher events,
       ConnectionExpiryService expiryService, SlotConflictDetector slotConflictDetector,
       TutorScheduleConflictChecker scheduleConflictChecker,
@@ -73,7 +71,6 @@ public class ConnectionRequestService {
     this.profile = Objects.requireNonNull(profile);
     this.iam = Objects.requireNonNull(iam);
     this.lock = Objects.requireNonNull(lock);
-    this.notifications = Objects.requireNonNull(notifications);
     this.facade = Objects.requireNonNull(facade);
     this.input = Objects.requireNonNull(input);
     this.events = Objects.requireNonNull(events);

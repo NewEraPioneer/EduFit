@@ -4,7 +4,7 @@ import React from "react";
 import { needTitle } from "@/features/learning-needs/components/LearningNeedSummary";
 import type { useTutorMatching } from "../hooks/useTutorMatching";
 
-const selectClass = "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm";
+const selectClass = "mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm";
 
 /** Chọn học sinh (phụ huynh) và nhu cầu học dùng để ghép và gửi yêu cầu kết nối. */
 export function NeedSelector({ matching, parent = false }: {
@@ -12,7 +12,7 @@ export function NeedSelector({ matching, parent = false }: {
   parent?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-2xl border border-stone-200 bg-white p-4 text-xs font-semibold text-neutral-700">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-2xl border border-line bg-surface p-4 text-xs font-medium text-ink-2">
       {parent && (
         <label className="min-w-0">
           Học sinh đã liên kết

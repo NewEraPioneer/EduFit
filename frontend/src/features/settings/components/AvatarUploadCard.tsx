@@ -144,21 +144,21 @@ export function AvatarUploadCard() {
   const currentAvatarSrc = user?.avatarUrl;
 
   return (
-    <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200/90 shadow-xs space-y-6">
-      <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-        <div className="flex items-center gap-2.5 text-xs font-bold text-neutral-800">
-          <Camera className="size-4 text-amber-600" />
+    <div className="bg-surface p-6 sm:p-7 rounded-3xl border border-line/90 shadow-xs space-y-6">
+      <div className="flex items-center justify-between pb-3 border-b border-line">
+        <div className="flex items-center gap-2.5 text-xs font-medium text-ink">
+          <Camera className="size-4 text-action-strong" />
           <span>Ảnh đại diện hồ sơ (Avatar)</span>
         </div>
         {user?.avatarUrl && (
-          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+          <span className="text-xs font-medium text-success-strong bg-success-soft px-2 py-0.5 rounded-md">
             Đã tùy chỉnh
           </span>
         )}
       </div>
 
       {errorMsg && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-2xl animate-in fade-in">
+        <div className="p-3.5 bg-danger-soft border border-danger-line text-danger-strong text-xs rounded-2xl animate-in fade-in">
           {errorMsg}
         </div>
       )}
@@ -167,7 +167,7 @@ export function AvatarUploadCard() {
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
         {/* Avatar Preview */}
         <div className="relative group shrink-0">
-          <div className="size-24 sm:size-28 rounded-full overflow-hidden border-2 border-stone-200 bg-stone-100 shadow-inner flex items-center justify-center">
+          <div className="size-24 sm:size-28 rounded-full overflow-hidden border-2 border-line bg-sunken shadow-inner flex items-center justify-center">
             {currentAvatarSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -176,9 +176,9 @@ export function AvatarUploadCard() {
                 className="size-full object-cover"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center text-stone-400">
+              <div className="flex flex-col items-center justify-center text-muted">
                 <UserIcon className="size-12" />
-                <span className="text-[10px] font-medium mt-0.5">Mặc định</span>
+                <span className="text-xs font-medium mt-0.5">Mặc định</span>
               </div>
             )}
           </div>
@@ -187,7 +187,7 @@ export function AvatarUploadCard() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="absolute bottom-0 right-0 size-8 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-md flex items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
+            className="absolute bottom-0 right-0 size-8 rounded-full bg-action hover:bg-action-deep text-on-action shadow-md flex items-center justify-center cursor-pointer transition-transform active:scale-95 disabled:opacity-50"
             title="Đổi ảnh đại diện"
           >
             {uploading ? (
@@ -201,10 +201,10 @@ export function AvatarUploadCard() {
         {/* Action Buttons & Note */}
         <div className="flex-1 space-y-3 text-center sm:text-left">
           <div>
-            <h4 className="text-sm font-bold text-neutral-900">
+            <h4 className="text-sm font-medium text-ink">
               {user?.fullName || "Người dùng"}
             </h4>
-            <p className="text-xs text-neutral-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Ảnh đại diện sẽ hiển thị trên thanh điều hướng, kết quả tìm kiếm gia sư và lịch học của bạn.
             </p>
           </div>
@@ -223,7 +223,7 @@ export function AvatarUploadCard() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-night hover:bg-night text-white text-xs font-medium rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             >
               {uploading ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -238,7 +238,7 @@ export function AvatarUploadCard() {
                 type="button"
                 onClick={handleRemoveAvatar}
                 disabled={uploading}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-stone-100 hover:bg-rose-50 text-neutral-700 hover:text-rose-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-sunken hover:bg-danger-soft text-ink-2 hover:text-danger-strong text-xs font-medium rounded-xl transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Trash2 className="size-3.5" />
                 <span>Xóa ảnh</span>
@@ -246,16 +246,16 @@ export function AvatarUploadCard() {
             )}
           </div>
 
-          <p className="text-[11px] text-neutral-400">
+          <p className="text-xs text-muted">
             Hỗ trợ tệp PNG, JPG, WEBP hoặc GIF (Dung lượng tối đa 5MB).
           </p>
         </div>
       </div>
 
       {/* 2. Kho ảnh mẫu tiện lợi (Preset Avatars) */}
-      <div className="pt-4 border-t border-stone-100 space-y-3">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
-          <Sparkles className="size-3.5 text-amber-500" />
+      <div className="pt-4 border-t border-line space-y-3">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-ink-2">
+          <Sparkles className="size-3.5 text-action-strong" />
           <span>Hoặc chọn nhanh từ bộ sưu tập ảnh mẫu:</span>
         </div>
 
@@ -270,11 +270,11 @@ export function AvatarUploadCard() {
                 disabled={uploading}
                 className={`group flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all cursor-pointer ${
                   isSelected
-                    ? "border-amber-500 bg-amber-50/50 shadow-2xs ring-2 ring-amber-500/20"
-                    : "border-stone-200 hover:border-amber-300 hover:bg-stone-50"
+                    ? "border-action bg-action-soft/50 shadow-2xs ring-2 ring-action/20"
+                    : "border-line hover:border-action-line hover:bg-paper"
                 } disabled:opacity-50`}
               >
-                <div className="size-12 rounded-full overflow-hidden border border-stone-200 group-hover:scale-105 transition-transform bg-white">
+                <div className="size-12 rounded-full overflow-hidden border border-line transition-transform bg-surface">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={preset.url}
@@ -282,7 +282,7 @@ export function AvatarUploadCard() {
                     className="size-full object-cover"
                   />
                 </div>
-                <span className="text-[10px] font-medium text-neutral-600 truncate max-w-full">
+                <span className="text-xs font-medium text-ink-2 truncate max-w-full">
                   {preset.name}
                 </span>
               </button>

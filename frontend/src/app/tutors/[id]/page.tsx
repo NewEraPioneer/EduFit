@@ -360,7 +360,7 @@ function TutorDetailContent() {
             <div className="bg-emerald-50/70 dark:bg-emerald-950/20 rounded-3xl border border-emerald-200 dark:border-emerald-900/40 p-6 space-y-3">
               <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-sm">
                 <Award className="size-5 text-emerald-600" />
-                <h3>Bằng cấp & Chứng chỉ Sư phạm Đã Xác Minh (Verified Credentials)</h3>
+                <h3>Bằng cấp và chứng chỉ sư phạm đã xác minh (Verified Credentials)</h3>
               </div>
               <p className="text-xs text-emerald-900/80 dark:text-emerald-200/80 leading-relaxed">
                 Hồ sơ gia sư này đã vượt qua quy trình thẩm định nghiêm ngặt từ ban chuyên môn EduFit bao gồm:

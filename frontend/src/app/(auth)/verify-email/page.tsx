@@ -12,12 +12,12 @@ function VerifyEmailContent() {
 
   if (!email) {
     return (
-      <div className="w-full max-w-md bg-white rounded-3xl border border-stone-200/90 shadow-xl p-8 text-center space-y-3">
-        <h1 className="font-heading text-lg font-bold text-rose-700">Không có yêu cầu đăng ký</h1>
-        <p className="text-xs text-neutral-500 leading-relaxed">
-          Vui lòng đăng ký tài khoản trước. Mã xác thực sẽ được gửi tới email bạn đăng ký.
+      <div className="w-full max-w-md bg-surface rounded-3xl border border-line/90 shadow-xl p-8 text-center space-y-3">
+        <h1 className="font-heading text-lg font-bold text-danger-strong">Không có yêu cầu đăng ký</h1>
+        <p className="text-xs text-muted leading-relaxed">
+          Đăng ký tài khoản trước. Mã xác thực sẽ được gửi tới email bạn đăng ký.
         </p>
-        <Link href="/register" className="inline-block text-xs font-bold text-amber-600 hover:underline">
+        <Link href="/register" className="inline-block text-xs font-medium text-action-strong hover:underline">
           Đi tới trang Đăng ký
         </Link>
       </div>
@@ -34,7 +34,7 @@ export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="w-full max-w-md bg-white rounded-3xl border border-stone-200 p-8 text-center text-xs text-neutral-500">
+        <div className="w-full max-w-md bg-surface rounded-3xl border border-line p-8 text-center text-xs text-muted">
           Đang tải...
         </div>
       }

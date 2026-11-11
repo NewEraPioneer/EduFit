@@ -104,6 +104,27 @@ describe("Discovery Schemas & Validation Tests", () => {
       expect(result.success).toBe(false);
     });
 
+    it("chấp nhận mã nhu cầu học seed backend (variant bit không chuẩn RFC)", () => {
+      const result = tutorMatchRequestSchema.safeParse({
+        needId: "55555555-5555-5555-5555-000000000001",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.needId).toBe("55555555-5555-5555-5555-000000000001");
+      }
+    });
+
+    it.each([
+      "invalid-uuid",
+      "",
+      "55555555555555555555000000000001",
+      "55555555-5555-5555-5555-00000000000g",
+      "55555555-5555-5555-5555-000000000001-extra",
+    ])("từ chối mã needId sai cấu trúc: %s", (needId) => {
+      const result = tutorMatchRequestSchema.safeParse({ needId });
+      expect(result.success).toBe(false);
+    });
+
     it("từ chối khi topN vượt quá 10", () => {
       const invalidReq = {
         needId: "123e4567-e89b-12d3-a456-426614174000",

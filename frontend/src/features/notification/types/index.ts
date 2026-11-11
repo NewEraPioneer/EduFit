@@ -1,6 +1,7 @@
 export interface NotificationItem {
   notificationId: string;
   type: string;
+  category?: string;
   title: string;
   shortText: string;
   targetType?: string;
@@ -30,4 +31,9 @@ export interface MarkReadResponse {
 
 export interface MarkAllReadResponse {
   count: number;
+}
+
+export interface UnreadSummaryResponse {
+  total: number;
+  byCategory: Record<string, number>;
 }

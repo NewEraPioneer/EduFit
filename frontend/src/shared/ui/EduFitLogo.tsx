@@ -26,8 +26,8 @@ export function EduFitLogo({
   };
 
   const textSizes = {
-    sm: "text-sm font-bold",
-    md: "text-base font-bold",
+    sm: "text-sm font-medium",
+    md: "text-base font-medium",
     lg: "text-lg font-bold",
   };
 
@@ -35,7 +35,7 @@ export function EduFitLogo({
     <div className={`inline-flex min-w-0 items-center gap-2 group select-none shrink-0 ${className}`}>
       {/* Icon Logo EduFit chuẩn thương hiệu */}
       <div
-        className={`${iconSizes[size]} relative shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform duration-200`}
+        className={`${iconSizes[size]} relative shrink-0 flex items-center justify-center transition-transform duration-200`}
       >
         <Image
           src="/edufit-mark.png"
@@ -55,12 +55,12 @@ export function EduFitLogo({
         }`}
       >
         <span
-          className={`font-heading tracking-tight text-neutral-900 dark:text-stone-100 group-hover:text-amber-600 transition-colors ${textSizes[size]}`}
+          className={`font-heading tracking-tight text-ink group-hover:text-action-strong transition-colors ${textSizes[size]}`}
         >
-          Edu<span className="text-amber-600">Fit</span>
+          Edu<span className="text-action-strong">Fit</span>
         </span>
         {roleBadge && (
-          <span className="text-[10px] text-neutral-400 dark:text-stone-400 font-semibold tracking-normal -mt-0.5">
+          <span className="text-xs text-muted font-medium tracking-normal -mt-0.5">
             {roleBadge}
           </span>
         )}

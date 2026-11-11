@@ -355,8 +355,7 @@ Dự án áp dụng quy trình kiểm thử đa tầng nghiêm ngặt nhằm b�
 - [Tài liệu Thiết kế Kiến trúc Phần mềm (Software Architecture Design)](docs/software-architecture-design-specification.md)
 - [Quyết định Kiến trúc Công nghệ (ADR-001: Tech Stack)](docs/ADR-001-tech-stack.md)
 - [Quyết định Kiến trúc Đa module (ADR-002: Modular Monolith)](docs/ADR-002-multi-module-architecture.md)
-- [Tài liệu Kiến trúc & Tích hợp Thanh toán Ký quỹ PayOS](docs/payment/README.md)
-- [Hướng dẫn Cấu hình Cổng thanh toán payOS](docs/payment/payos-setup.md)
+- [Luồng và quy tắc Thanh toán Ký quỹ payOS](docs/payment/payment-flow-and-rules.md)
 - [Quy chuẩn Đóng góp & Phát triển Mã nguồn (CONTRIBUTING.md)](CONTRIBUTING.md)
 
 ---

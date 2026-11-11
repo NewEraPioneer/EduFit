@@ -29,7 +29,8 @@ import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
 import vn.edufit.shared.exception.ResourceConflictException;
-import vn.edufit.shared.notification.NotificationSink;
+import org.springframework.context.ApplicationEventPublisher;
+import vn.edufit.progress.api.event.PeriodReportSentEvent;
 
 /**
  * Báo cáo kỳ 30 ngày (mục 3.13): job lập bản nháp cho lớp đang hoạt động có lộ trình khi một kỳ kết thúc, gia sư
@@ -48,7 +49,7 @@ public class PeriodReportService {
   private final ProfileFacade profileFacade;
   private final ProgressAccessGuard accessGuard;
   private final ProgressOverviewService overviewService;
-  private final NotificationSink notifications;
+  private final ApplicationEventPublisher events;
   private final Clock clock;
 
   public PeriodReportService(
@@ -58,7 +59,7 @@ public class PeriodReportService {
       ProfileFacade profileFacade,
       ProgressAccessGuard accessGuard,
       ProgressOverviewService overviewService,
-      NotificationSink notifications,
+      ApplicationEventPublisher events,
       Clock clock
   ) {
     this.reportRepository = reportRepository;
@@ -67,7 +68,7 @@ public class PeriodReportService {
     this.profileFacade = profileFacade;
     this.accessGuard = accessGuard;
     this.overviewService = overviewService;
-    this.notifications = notifications;
+    this.events = events;
     this.clock = Objects.requireNonNull(clock);
   }
 
@@ -166,16 +167,8 @@ public class PeriodReportService {
   private PeriodReport deliver(PeriodReport report, ConnectionFacade.ClassDetailView cls, Instant now) {
     report.send(now);
     PeriodReport saved = reportRepository.save(report);
-    String title = "Báo cáo tiến độ kỳ " + saved.getPeriodIndex();
-    String message = "Báo cáo 30 ngày (" + DAY_MONTH.format(saved.getPeriodStart()) + "–"
-        + DAY_MONTH.format(saved.getPeriodEnd()) + ") đã sẵn sàng để xem.";
-    profileFacade.findStudentById(cls.studentId()).ifPresent(student ->
-        notifications.notify(student.userId(), cls.studentId(), NOTIFICATION_TYPE, title, message,
-            "PERIOD_REPORT", saved.getReportId()));
-    for (UUID parentUserId : connectionFacade.findConfirmedParentUserIds(cls.studentId())) {
-      notifications.notify(parentUserId, cls.studentId(), NOTIFICATION_TYPE, title, message,
-          "PERIOD_REPORT", saved.getReportId());
-    }
+    events.publishEvent(PeriodReportSentEvent.of(saved.getReportId(), cls.classId(), cls.studentId(),
+        saved.getPeriodIndex(), saved.getPeriodStart(), saved.getPeriodEnd()));
     return saved;
   }
 

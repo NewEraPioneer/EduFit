@@ -2,7 +2,10 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DashboardShell } from "@/shared/ui/DashboardShell";
-vi.mock("next/navigation", () => ({ usePathname: () => "/student/payments" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/student/payments",
+  useRouter: () => ({ push: vi.fn() }),
+}));
 vi.mock("@/shared/ui/Sidebar", () => ({
   Sidebar: () => (
     <nav>

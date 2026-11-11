@@ -12,8 +12,8 @@ export function FitChecks({ checks, className = "" }: { checks: FitCheckLike[]; 
       {checks.map((check) => (
         <li
           key={check.criterion}
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-            check.matched ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+            check.matched ? "bg-success-soft text-success-strong" : "bg-action-soft text-action-strong"
           }`}
         >
           {check.matched

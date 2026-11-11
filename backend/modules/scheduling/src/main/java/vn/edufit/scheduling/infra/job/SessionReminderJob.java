@@ -48,7 +48,7 @@ public class SessionReminderJob {
    * Quét và gửi thông báo nhắc nhở cho các buổi học sắp diễn ra.
    */
   @Scheduled(cron = "${edufit.scheduling.jobs.session-reminder.cron:0 */10 * * * *}")
-  @Transactional(readOnly = true)
+  @Transactional // không readOnly: job phát event có tác dụng phụ (ghi thông báo)
   public void scanAndSendSessionReminders() {
     Instant now = clock.instant();
     log.debug("Bắt đầu tác vụ quét nhắc nhở lịch học tại mốc thời gian: {}", now);

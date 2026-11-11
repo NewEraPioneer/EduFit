@@ -101,10 +101,10 @@ describe("Scheduling Overhaul Implementation Tests", () => {
       // Origin slot (18:00) displays full session range
       expect(await screen.findByText("18:00 - 19:30")).toBeInTheDocument();
 
-      // Không còn thẻ tiếp nối: 1 khối cao 1.5 giờ (72px/giờ)
+      // Không còn thẻ tiếp nối: 1 khối cao 1.5 giờ (60px/giờ)
       expect(screen.queryByText(/Tiếp nối/i)).not.toBeInTheDocument();
       const block = screen.getByTestId("calendar-session-sess-90m");
-      expect(block.style.getPropertyValue("--block-h")).toBe("106px");
+      expect(block.style.height).toBe("88px");
 
       // Bấm khối buổi học không mở modal đề xuất
       fireEvent.click(block);
@@ -135,8 +135,8 @@ describe("Scheduling Overhaul Implementation Tests", () => {
       expect(a.style.width).toBe("calc(50% - 4px)");
       expect(b.style.width).toBe("calc(50% - 4px)");
       expect(a.style.left).not.toBe(b.style.left);
-      // Không dùng truncate/line-clamp trên thẻ
-      expect(a.innerHTML).not.toMatch(/truncate|line-clamp/);
+      // Thẻ cắt gọn chữ trong khung, nội dung đầy đủ nằm ở tooltip
+      expect(a.title).toContain(":");
     });
   });
 
@@ -247,7 +247,7 @@ describe("Scheduling Overhaul Implementation Tests", () => {
 
       // Verify warning specifies 12 hours according to BR-46
       expect(
-        screen.getByText(/Buổi học diễn ra trong vòng 12 giờ.*BR-46/i)
+        screen.getByText(/Buổi học bắt đầu trong vòng 12 giờ/i)
       ).toBeInTheDocument();
     });
 

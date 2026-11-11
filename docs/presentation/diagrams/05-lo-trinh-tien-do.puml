@@ -1,0 +1,27 @@
+@startuml
+!include style.iuml
+title Luồng 5: Lộ trình và theo dõi tiến độ
+start
+:Gia sư tạo lộ trình cho lớp ACTIVE;
+:Thêm milestone (trọng số 1-5, tiêu chí đạt);
+repeat
+  :Buổi học diễn ra;
+  :Gia sư ghi kết quả buổi học;
+  :Ghi chú buổi học\n(nội dung, bài về nhà, bước tiếp theo);
+  if (Milestone đạt tiêu chí?) then (Có)
+    :Đánh dấu ACHIEVED;
+  else (Chưa)
+    :Giữ NOT_STARTED hoặc IN_PROGRESS;
+  endif
+  :Tiến độ % = tổng trọng số ACHIEVED\nchia tổng trọng số milestone đang dùng;
+  :Dashboard cập nhật cho Student và Parent;
+repeat while (Còn milestone chưa đạt?) is (Còn)
+->Hết;
+:Lộ trình hoàn thành;
+note right
+  Dashboard chỉ hiện dữ liệu đã ghi,
+  thiếu dữ liệu thì báo chưa có,
+  không hiển thị số 0 hay ước lượng.
+end note
+stop
+@enduml

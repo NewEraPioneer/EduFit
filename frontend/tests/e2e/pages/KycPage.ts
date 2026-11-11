@@ -87,12 +87,12 @@ export class KycPage extends BasePage {
   }
 
   private reviewHeading(): By {
-    return By.xpath("//h3[contains(., 'Thẩm Định Hồ Sơ Xác Minh KYC')]");
+    return By.xpath("//h3[contains(., 'Thẩm định hồ sơ xác minh KYC')]");
   }
 
   private reviewFormControl(xpath: string): By {
     return By.xpath(
-      `//h3[contains(., 'Thẩm Định Hồ Sơ Xác Minh KYC')]/ancestor::div[.//form][1]${xpath}`
+      `//h3[contains(., 'Thẩm định hồ sơ xác minh KYC')]/ancestor::div[.//form][1]${xpath}`
     );
   }
 

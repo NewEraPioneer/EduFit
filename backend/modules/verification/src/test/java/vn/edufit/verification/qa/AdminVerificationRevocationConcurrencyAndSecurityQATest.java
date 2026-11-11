@@ -73,7 +73,8 @@ class AdminVerificationRevocationConcurrencyAndSecurityQATest {
         verificationRequestRepository,
         profileFacade,
         auditSink,
-        iamFacade
+        iamFacade,
+        org.mockito.Mockito.mock(org.springframework.context.ApplicationEventPublisher.class)
     );
 
     adminId = UUID.randomUUID();

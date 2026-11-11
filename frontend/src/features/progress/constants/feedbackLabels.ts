@@ -55,20 +55,20 @@ export const ON_TRACK_LABELS: Record<OnTrackStatus, string> = {
 
 /** Màu chip trạng thái "đúng hướng": chậm dùng cam, không dùng đỏ (mục 3.8). */
 export const ON_TRACK_TONE: Record<OnTrackStatus, string> = {
-  AHEAD: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  ON_TRACK: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  NEEDS_ATTENTION: "bg-amber-50 text-amber-900 border-amber-200",
-  BEHIND: "bg-orange-50 text-orange-900 border-orange-200",
-  NOT_STARTED: "bg-stone-100 text-neutral-700 border-stone-200",
-  NOT_ENOUGH_DATA: "bg-stone-100 text-neutral-700 border-stone-200",
-  NO_PLAN: "bg-stone-100 text-neutral-700 border-stone-200",
+  AHEAD: "bg-success-soft text-success-strong border-success-line",
+  ON_TRACK: "bg-success-soft text-success-strong border-success-line",
+  NEEDS_ATTENTION: "bg-action-soft text-action-strong border-action-line",
+  BEHIND: "bg-action-soft text-action-strong border-action-line",
+  NOT_STARTED: "bg-sunken text-ink-2 border-line",
+  NOT_ENOUGH_DATA: "bg-sunken text-ink-2 border-line",
+  NO_PLAN: "bg-sunken text-ink-2 border-line",
 };
 
-/** Chip thay đổi so với 30 ngày trước; null nghĩa là chưa đủ dữ liệu. */
-export const formatDelta = (delta?: number | null) => {
-  if (delta === null || delta === undefined) return "—";
-  if (delta === 0) return "Không đổi";
-  return delta > 0 ? `+${delta}%` : `−${Math.abs(delta)}%`;
+/** Câu mô tả thay đổi của % hoàn thành, kèm mốc cũ và mới; null nghĩa là chưa đủ dữ liệu. */
+export const describeProgressChange = (percent: number | null | undefined, delta: number | null | undefined, period: string) => {
+  if (percent === null || percent === undefined || delta === null || delta === undefined) return null;
+  if (delta === 0) return `Không đổi ${period}`;
+  return `${delta > 0 ? "Tăng" : "Giảm"} từ ${percent - delta}% ${delta > 0 ? "lên" : "xuống"} ${percent}% ${period}`;
 };
 
 /** Ngày dạng yyyy-MM-dd (LocalDate của backend) sang dd/MM/yyyy, không qua múi giờ. */

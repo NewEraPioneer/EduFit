@@ -284,24 +284,24 @@ export function SessionOutcomeModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="outcome-modal-title"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-stone-900/60 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-end sm:items-end sm:items-center justify-center sm:p-4 bg-night/60 backdrop-blur-xs"
     >
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl border border-stone-200">
-        <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4 bg-stone-50/50">
+      <div className="relative w-full max-w-dialog-wide overflow-hidden rounded-t-3xl sm:rounded-3xl bg-surface shadow-2xl border border-line">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4 bg-paper/50">
           <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-2xl bg-emerald-100 text-emerald-800">
+            <div className="grid size-10 place-items-center rounded-2xl bg-success-soft text-success-strong">
               <FileText className="size-5" />
             </div>
             <div>
-              <h2 id="outcome-modal-title" className="text-base font-bold text-neutral-900">
+              <h2 id="outcome-modal-title" className="text-base font-medium text-ink">
                 {outcomeAlreadyRecorded ? "Bổ sung phản hồi buổi học" : "Kết thúc buổi học"}
               </h2>
-              <p className="text-xs text-neutral-500 mt-0.5 flex flex-wrap items-center gap-2">
-                <Clock className="size-3 text-neutral-400" />
+              <p className="text-xs text-muted mt-0.5 flex flex-wrap items-center gap-2">
+                <Clock className="size-3 text-muted" />
                 {formatDateTime(session.startAt)}
                 {session.studentName && (
                   <>
-                    <User className="size-3 text-neutral-400" />
+                    <User className="size-3 text-muted" />
                     <span>{session.studentName}</span>
                   </>
                 )}
@@ -311,7 +311,7 @@ export function SessionOutcomeModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-8 place-items-center rounded-full text-neutral-400 hover:bg-stone-100 hover:text-neutral-700 cursor-pointer"
+            className="grid size-8 place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink-2 cursor-pointer"
             aria-label="Đóng"
           >
             <X className="size-4" />
@@ -323,17 +323,17 @@ export function SessionOutcomeModal({
             {errorMessage && (
               <div
                 role="alert"
-                className="flex items-start gap-3 rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs text-rose-800 font-medium"
+                className="flex items-start gap-3 rounded-2xl bg-danger-soft border border-danger-line p-4 text-xs text-danger-strong font-medium"
               >
-                <AlertCircle className="size-4 text-rose-600 shrink-0 mt-0.5" />
+                <AlertCircle className="size-4 text-danger-strong shrink-0 mt-0.5" />
                 <p>{errorMessage}</p>
               </div>
             )}
 
             {/* 1. Điểm danh */}
             <fieldset className="space-y-2" disabled={outcomeRecorded}>
-              <legend className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
-                Điểm danh <span className="text-rose-500">*</span>
+              <legend className="text-xs font-medium text-ink">
+                Điểm danh <span className="text-danger-strong">*</span>
               </legend>
               <div className="grid grid-cols-2 gap-2">
                 {(
@@ -347,12 +347,12 @@ export function SessionOutcomeModal({
                     type="button"
                     aria-pressed={outcome === value}
                     onClick={() => setOutcome(value)}
-                    className={`min-h-11 rounded-2xl border px-3 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed ${
+                    className={`min-h-11 rounded-2xl border px-3 text-xs font-medium flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed ${
                       outcome === value
                         ? tone === "emerald"
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-900"
-                          : "border-rose-500 bg-rose-50 text-rose-900"
-                        : "border-stone-200 bg-white text-neutral-700"
+                          ? "border-success bg-success-soft text-success-strong"
+                          : "border-danger bg-danger-soft text-danger-strong"
+                        : "border-line bg-surface text-ink-2"
                     }`}
                   >
                     <Icon className="size-4" />
@@ -363,7 +363,7 @@ export function SessionOutcomeModal({
             </fieldset>
 
             {outcome === "COMPLETED" && milestones.length === 0 && (
-              <p className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+              <p className="rounded-xl bg-action-soft border border-action-line p-3 text-xs text-action-strong">
                 Lớp chưa có lộ trình nên chỉ ghi điểm danh. Hãy lập lộ trình để chấm mức tự lập theo cột mốc.
               </p>
             )}
@@ -372,8 +372,8 @@ export function SessionOutcomeModal({
               <>
                 {/* 2. Cột mốc được dạy + mức tự lập */}
                 <section className="space-y-2" aria-labelledby="taught-heading">
-                  <h3 id="taught-heading" className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
-                    Cột mốc dạy hôm nay & mức tự lập <span className="text-rose-500">*</span>
+                  <h3 id="taught-heading" className="text-xs font-medium text-ink">
+                    Cột mốc dạy hôm nay & mức tự lập <span className="text-danger-strong">*</span>
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
                     {milestones.map((m) => (
@@ -382,10 +382,10 @@ export function SessionOutcomeModal({
                         type="button"
                         aria-pressed={Boolean(taught[m.milestoneId])}
                         onClick={() => toggleTaught(m)}
-                        className={`min-h-9 rounded-full border px-3 text-xs font-semibold cursor-pointer ${
+                        className={`min-h-9 rounded-full border px-3 text-xs font-medium cursor-pointer ${
                           taught[m.milestoneId]
-                            ? "border-amber-500 bg-amber-50 text-amber-900"
-                            : "border-stone-200 bg-white text-neutral-600"
+                            ? "border-action bg-action-soft text-action-strong"
+                            : "border-line bg-surface text-ink-2"
                         }`}
                       >
                         {m.title}
@@ -403,10 +403,10 @@ export function SessionOutcomeModal({
                       return (
                         <div
                           key={m.milestoneId}
-                          className="rounded-2xl border border-stone-200 p-3 space-y-3"
+                          className="rounded-2xl border border-line p-3 space-y-3"
                           data-testid={`taught-milestone-${m.milestoneId}`}
                         >
-                          <p className="text-xs font-bold text-neutral-900">{m.title}</p>
+                          <p className="text-xs font-medium text-ink">{m.title}</p>
                           <div
                             role="radiogroup"
                             aria-label={`Mức tự lập — ${m.title}`}
@@ -423,10 +423,10 @@ export function SessionOutcomeModal({
                                   lvl.value === 4 && !allChecked ? "Cần tick đủ tiêu chí đạt để chấm mức 4" : lvl.label
                                 }
                                 onClick={() => patchTaught(m.milestoneId, { level: lvl.value })}
-                                className={`min-h-11 rounded-xl border px-2 text-[11px] font-bold leading-tight cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 ${
+                                className={`min-h-11 rounded-xl border px-2 text-xs font-medium leading-tight cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 ${
                                   t.level === lvl.value
-                                    ? "border-amber-500 bg-amber-500 text-white"
-                                    : "border-stone-200 bg-stone-50 text-neutral-700"
+                                    ? "border-action bg-action text-on-action"
+                                    : "border-line bg-paper text-ink-2"
                                 }`}
                               >
                                 {lvl.value}. {lvl.short}
@@ -436,9 +436,9 @@ export function SessionOutcomeModal({
 
                           {criteria.length > 0 && (
                             <div className="space-y-1">
-                              <p className="text-[11px] font-bold text-neutral-600">Tiêu chí đạt</p>
+                              <p className="text-xs font-medium text-ink-2">Tiêu chí đạt</p>
                               {criteria.map((c) => (
-                                <label key={c.criterionId} className="flex items-start gap-2 text-xs text-neutral-800">
+                                <label key={c.criterionId} className="flex items-start gap-2 text-xs text-ink">
                                   <input
                                     type="checkbox"
                                     className="mt-0.5 size-4"
@@ -452,7 +452,7 @@ export function SessionOutcomeModal({
                             </div>
                           )}
 
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-700">
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-2">
                             <span>Đúng</span>
                             <input
                               type="number"
@@ -461,7 +461,7 @@ export function SessionOutcomeModal({
                               aria-label={`Số bài đúng — ${m.title}`}
                               value={t.correctCount}
                               onChange={(e) => patchTaught(m.milestoneId, { correctCount: e.target.value })}
-                              className="w-14 rounded-lg border border-stone-200 px-2 py-1"
+                              className="w-14 rounded-lg border border-line px-2 py-1"
                             />
                             <span>/</span>
                             <input
@@ -472,9 +472,9 @@ export function SessionOutcomeModal({
                               aria-label={`Tổng số bài — ${m.title}`}
                               value={t.totalCount}
                               onChange={(e) => patchTaught(m.milestoneId, { totalCount: e.target.value })}
-                              className="w-14 rounded-lg border border-stone-200 px-2 py-1"
+                              className="w-14 rounded-lg border border-line px-2 py-1"
                             />
-                            <span className="text-neutral-400">bài (tùy chọn)</span>
+                            <span className="text-muted">bài (tùy chọn)</span>
                           </div>
                           <input
                             type="text"
@@ -483,13 +483,13 @@ export function SessionOutcomeModal({
                             maxLength={EVIDENCE_NOTE_MAX_LENGTH}
                             onChange={(e) => patchTaught(m.milestoneId, { evidenceNote: e.target.value })}
                             placeholder="Bằng chứng (bắt buộc nếu tăng từ 2 mức trở lên và không nhập đúng x/y)"
-                            className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-xs placeholder:text-neutral-400"
+                            className="w-full rounded-lg border border-line px-2 py-1.5 text-xs placeholder:text-muted"
                           />
 
                           {!alreadyAchieved && (
                             <label
-                              className={`flex items-center gap-2 text-xs font-semibold ${
-                                allChecked ? "text-emerald-800" : "text-neutral-400"
+                              className={`flex items-center gap-2 text-xs font-medium ${
+                                allChecked ? "text-success-strong" : "text-muted"
                               }`}
                             >
                               <input
@@ -510,8 +510,8 @@ export function SessionOutcomeModal({
 
                 {/* 3. Việc về nhà */}
                 <fieldset className="space-y-2">
-                  <legend className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
-                    Việc về nhà <span className="text-rose-500">*</span>
+                  <legend className="text-xs font-medium text-ink">
+                    Việc về nhà <span className="text-danger-strong">*</span>
                   </legend>
                   <div className="flex flex-wrap gap-1.5">
                     {HOMEWORK_OPTIONS.map((opt) => (
@@ -520,10 +520,10 @@ export function SessionOutcomeModal({
                         type="button"
                         aria-pressed={homework === opt.value}
                         onClick={() => setHomework(opt.value)}
-                        className={`min-h-9 rounded-full border px-3 text-xs font-semibold cursor-pointer ${
+                        className={`min-h-9 rounded-full border px-3 text-xs font-medium cursor-pointer ${
                           homework === opt.value
-                            ? "border-emerald-500 bg-emerald-50 text-emerald-900"
-                            : "border-stone-200 bg-white text-neutral-600"
+                            ? "border-success bg-success-soft text-success-strong"
+                            : "border-line bg-surface text-ink-2"
                         }`}
                       >
                         {opt.label}
@@ -534,8 +534,8 @@ export function SessionOutcomeModal({
 
                 {/* 4. Thái độ (tùy chọn) */}
                 <fieldset className="space-y-2">
-                  <legend className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
-                    Thái độ, nỗ lực <span className="font-normal normal-case text-neutral-400">(tùy chọn)</span>
+                  <legend className="text-xs font-medium text-ink">
+                    Thái độ, nỗ lực <span className="font-normal normal-case text-muted">(tùy chọn)</span>
                   </legend>
                   <div className="flex flex-wrap gap-1.5">
                     {ATTITUDE_CHIPS.map((chip) => (
@@ -544,10 +544,10 @@ export function SessionOutcomeModal({
                         type="button"
                         aria-pressed={chips.includes(chip.value)}
                         onClick={() => toggleChip(chip.value)}
-                        className={`min-h-9 rounded-full border px-3 text-xs font-semibold cursor-pointer ${
+                        className={`min-h-9 rounded-full border px-3 text-xs font-medium cursor-pointer ${
                           chips.includes(chip.value)
-                            ? "border-sky-500 bg-sky-50 text-sky-900"
-                            : "border-stone-200 bg-white text-neutral-600"
+                            ? "border-brand bg-brand-soft text-brand-strong"
+                            : "border-line bg-surface text-ink-2"
                         }`}
                       >
                         {chip.label}
@@ -562,9 +562,9 @@ export function SessionOutcomeModal({
             <div className="space-y-1.5">
               <label
                 htmlFor="session-note-content"
-                className="block text-xs font-bold text-neutral-800 uppercase tracking-wider"
+                className="block text-xs font-medium text-ink"
               >
-                Một câu nhận xét <span className="font-normal normal-case text-neutral-400">(tùy chọn)</span>
+                Một câu nhận xét <span className="font-normal normal-case text-muted">(tùy chọn)</span>
               </label>
               <input
                 id="session-note-content"
@@ -574,9 +574,9 @@ export function SessionOutcomeModal({
                 onChange={(e) => setNoteContent(e.target.value)}
                 maxLength={FEEDBACK_COMMENT_MAX_LENGTH}
                 placeholder="Ví dụ: Con giải hệ phương trình nhanh hơn, cần cẩn thận dấu khi chuyển vế."
-                className="w-full rounded-xl border border-stone-200 bg-stone-50/50 px-3 py-2.5 text-xs text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:border-emerald-500 focus:outline-hidden"
+                className="w-full rounded-xl border border-line bg-paper/50 px-3 py-2.5 text-xs text-ink placeholder:text-muted focus:bg-surface focus:border-success focus:outline-hidden"
               />
-              <p className="text-right text-[11px] text-neutral-400">
+              <p className="text-right text-xs text-muted">
                 {noteContent.length}/{FEEDBACK_COMMENT_MAX_LENGTH}
               </p>
             </div>
@@ -586,10 +586,10 @@ export function SessionOutcomeModal({
               <div className="space-y-1.5">
                 <label
                   htmlFor="session-parent-message"
-                  className="block text-xs font-bold text-neutral-800 uppercase tracking-wider"
+                  className="block text-xs font-medium text-ink"
                 >
                   Lời nhắn riêng cho phụ huynh{" "}
-                  <span className="font-normal normal-case text-neutral-400">(tùy chọn, học sinh không thấy)</span>
+                  <span className="font-normal normal-case text-muted">(tùy chọn, học sinh không thấy)</span>
                 </label>
                 <textarea
                   id="session-parent-message"
@@ -598,17 +598,17 @@ export function SessionOutcomeModal({
                   onChange={(e) => setParentMessage(e.target.value)}
                   maxLength={PARENT_MESSAGE_MAX_LENGTH}
                   placeholder="Ví dụ: Gia đình nhắc con ngủ sớm hơn trước hôm có buổi học."
-                  className="w-full rounded-xl border border-stone-200 bg-stone-50/50 px-3 py-2.5 text-xs text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:border-emerald-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-line bg-paper/50 px-3 py-2.5 text-xs text-ink placeholder:text-muted focus:bg-surface focus:border-success focus:outline-hidden"
                 />
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2 border-t border-stone-100 px-5 py-4 bg-stone-50/50">
+          <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-4 bg-paper/50">
             <button
               type="button"
               onClick={onClose}
-              className="min-h-10 px-4 rounded-xl border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer"
+              className="min-h-10 px-4 rounded-xl border border-line bg-surface text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer"
             >
               Đóng
             </button>
@@ -618,7 +618,7 @@ export function SessionOutcomeModal({
                 onClick={handleDefer}
                 disabled={loading}
                 title="Chỉ ghi điểm danh. Hệ thống nhắc lại sau 12 và 24 giờ; sau 48 giờ phản hồi được đánh dấu bổ sung muộn."
-                className="min-h-10 px-4 rounded-xl border border-stone-200 bg-white text-xs font-bold text-neutral-700 hover:bg-stone-50 cursor-pointer disabled:opacity-50"
+                className="min-h-10 px-4 rounded-xl border border-line bg-surface text-xs font-medium text-ink-2 hover:bg-paper cursor-pointer disabled:opacity-50"
               >
                 Để sau
               </button>
@@ -626,7 +626,7 @@ export function SessionOutcomeModal({
             <button
               type="submit"
               disabled={loading}
-              className="min-h-10 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="min-h-10 px-5 rounded-xl bg-success hover:bg-success-deep text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {loading ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
               {outcomeRecorded ? (outcomeAlreadyRecorded ? "Lưu phản hồi" : "Gửi lại phản hồi") : "Lưu buổi học"}

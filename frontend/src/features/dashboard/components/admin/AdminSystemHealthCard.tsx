@@ -58,18 +58,18 @@ export function AdminSystemHealthCard() {
   const isChecking = status === "CHECKING";
 
   return (
-    <div className="bg-white dark:bg-stone-900 p-5 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs space-y-4 transition-colors">
+    <div className="bg-surface p-5 rounded-2xl border border-line/80 shadow-xs space-y-4 transition-colors">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity
             className={`size-4 ${
               isUp
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-amber-500"
+                ? "text-success-strong"
+                : "text-action-strong"
             }`}
           />
-          <h4 className="text-xs font-bold text-neutral-400 dark:text-stone-500 uppercase tracking-wider">
+          <h4 className="text-xs font-medium text-muted">
             Trạng thái hệ thống
           </h4>
         </div>
@@ -78,7 +78,7 @@ export function AdminSystemHealthCard() {
           onClick={() => checkHealth(true)}
           disabled={isChecking || refreshing}
           aria-label="Kiểm tra lại trạng thái hệ thống"
-          className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 dark:text-stone-500 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors disabled:opacity-50"
+          className="p-1 rounded-lg text-muted hover:text-ink-2 hover:bg-sunken transition-colors disabled:opacity-50"
         >
           <RefreshCw
             className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
@@ -88,22 +88,22 @@ export function AdminSystemHealthCard() {
 
       {/* Overview Badges */}
       <div className="grid grid-cols-2 gap-2 pt-1">
-        <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-100 dark:border-stone-800">
-          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-stone-400">
-            <Activity className="size-3 text-emerald-600 dark:text-emerald-400" />
+        <div className="p-2.5 rounded-xl bg-paper border border-line">
+          <div className="flex items-center gap-1.5 text-xs text-muted">
+            <Activity className="size-3 text-success-strong" />
             <span>Độ trễ API</span>
           </div>
-          <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+          <p className="text-sm font-medium text-success-strong mt-0.5">
             {apiLatency !== null ? `${apiLatency} ms` : "—"}
           </p>
         </div>
 
-        <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-100 dark:border-stone-800">
-          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-stone-400">
-            <Clock className="size-3 text-sky-600 dark:text-sky-400" />
+        <div className="p-2.5 rounded-xl bg-paper border border-line">
+          <div className="flex items-center gap-1.5 text-xs text-muted">
+            <Clock className="size-3 text-brand-strong" />
             <span>Kiểm tra lúc</span>
           </div>
-          <p className="text-sm font-bold text-neutral-900 dark:text-stone-100 mt-0.5">
+          <p className="text-sm font-medium text-ink mt-0.5">
             {lastChecked ? lastChecked.toLocaleTimeString("vi-VN") : "—"}
           </p>
         </div>
@@ -111,15 +111,15 @@ export function AdminSystemHealthCard() {
 
       {/* Error state alert */}
       {error && (
-        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between gap-2">
+        <div className="p-3 bg-danger-soft border border-danger-line rounded-xl text-danger-strong text-xs flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <AlertTriangle className="size-4 text-rose-600 shrink-0" />
+            <AlertTriangle className="size-4 text-danger-strong shrink-0" />
             <span className="truncate">{error}</span>
           </div>
           <button
             type="button"
             onClick={() => checkHealth(true)}
-            className="text-[11px] font-bold text-rose-700 dark:text-rose-400 underline hover:no-underline shrink-0"
+            className="text-xs font-medium text-danger-strong underline hover:no-underline shrink-0"
           >
             Thử lại
           </button>
@@ -129,12 +129,12 @@ export function AdminSystemHealthCard() {
       {/* Service row */}
       <div className="flex items-center justify-between py-1 text-xs">
         <div className="flex items-center gap-2">
-          <Server className="size-3.5 text-neutral-400 dark:text-stone-500 shrink-0" />
+          <Server className="size-3.5 text-muted shrink-0" />
           <div>
-            <p className="font-medium text-neutral-700 dark:text-stone-300">
+            <p className="font-medium text-ink-2">
               API & Cơ sở dữ liệu
             </p>
-            <p className="text-[10px] text-neutral-400 dark:text-stone-500">
+            <p className="text-xs text-muted">
               Đo bằng truy vấn thống kê quản trị
             </p>
           </div>
@@ -142,15 +142,15 @@ export function AdminSystemHealthCard() {
 
         <div className="text-right shrink-0">
           {isChecking ? (
-            <span className="text-neutral-400 font-bold text-[11px]">Đang kiểm tra…</span>
+            <span className="text-muted font-medium text-xs">Đang kiểm tra…</span>
           ) : isUp ? (
-            <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-bold text-[11px]">
-              <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400" />
+            <span className="inline-flex items-center gap-1 text-success-strong font-medium text-xs">
+              <CheckCircle2 className="size-3 text-success-strong" />
               Hoạt động
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-rose-700 dark:text-rose-400 font-bold text-[11px]">
-              <AlertTriangle className="size-3 text-rose-600 dark:text-rose-400" />
+            <span className="inline-flex items-center gap-1 text-danger-strong font-medium text-xs">
+              <AlertTriangle className="size-3 text-danger-strong" />
               Mất kết nối
             </span>
           )}
