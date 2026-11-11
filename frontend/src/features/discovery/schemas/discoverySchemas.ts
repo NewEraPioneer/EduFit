@@ -9,7 +9,8 @@ export const tutorSearchFilterSchema = z.object({
   tutorType: z.enum(["UNIVERSITY_STUDENT", "GRADUATE", "IN_SERVICE_TEACHER", "RETIRED_TEACHER"]).optional(),
   provinceId: z.number().int().positive().optional(),
   districtId: z.number().int().positive().optional(),
-  needId: z.string().uuid().optional(),
+  // Backend accepts GUID-shaped IDs, including seeded IDs without RFC version/variant bits.
+  needId: z.guid().optional(),
   mode: z.enum(["ONLINE", "OFFLINE", "BOTH"]).optional(),
   minPrice: z.number().nonnegative().optional(),
   maxPrice: z.number().nonnegative().optional(),
@@ -36,7 +37,7 @@ export const tutorSearchFilterSchema = z.object({
 });
 
 export const tutorMatchRequestSchema = z.object({
-  needId: z.string().uuid("Mã nhu cầu học (needId) phải là định dạng UUID hợp lệ"),
+  needId: z.guid("Mã nhu cầu học (needId) phải là định dạng UUID hợp lệ"),
   topN: z.number().int().min(1).max(10).default(5),
 });
 

@@ -24,10 +24,26 @@ describe("Scheduling Validation Schemas", () => {
       expect(result.success).toBe(true);
     });
 
-    it("fails nếu classId không đúng định dạng UUID", () => {
+    it.each([
+      "77777777-7777-7777-7777-000000000001",
+      "77777777-7777-7777-7777-000000000002",
+      "77777777-7777-7777-7777-000000000003",
+    ])("chấp nhận mã lớp seed backend: %s", (classId) => {
+      const result = proposeSessionSchema.safeParse({ ...validData, classId });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.classId).toBe(classId);
+    });
+
+    it.each([
+      "invalid-uuid",
+      "",
+      "77777777777777777777000000000001",
+      "77777777-7777-7777-7777-00000000000g",
+      "77777777-7777-7777-7777-000000000001-extra",
+    ])("từ chối mã lớp sai cấu trúc: %s", (classId) => {
       const result = proposeSessionSchema.safeParse({
         ...validData,
-        classId: "invalid-uuid",
+        classId,
       });
       expect(result.success).toBe(false);
       if (!result.success) {
