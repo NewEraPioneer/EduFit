@@ -229,7 +229,9 @@ class FlywayMigrationIT {
       // Kiểm tra bảng account tồn tại và có thể truy vấn
       try (ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM account")) {
         assertTrue(rs.next(), "Bảng account phải tồn tại và cho phép truy vấn");
-        assertEquals(17, rs.getInt(1), "Bảng account có 17 tài khoản demo sau V1.34 (học sinh/phụ huynh/admin demo, học sinh phụ và 13 gia sư)");
+        assertEquals(17 + 220, rs.getInt(1),
+            "Bảng account có 17 tài khoản demo sau V1.34 (học sinh/phụ huynh/admin demo, học sinh phụ và 13 gia sư)"
+                + " cộng 220 tài khoản V1.39 (100 gia sư, 80 học sinh, 40 phụ huynh)");
       }
 
       // Kiểm tra bảng email_token tồn tại và có thể truy vấn
