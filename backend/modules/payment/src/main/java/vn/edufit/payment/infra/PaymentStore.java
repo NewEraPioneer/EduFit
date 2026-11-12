@@ -95,6 +95,13 @@ public class PaymentStore {
     return found != null && found > 0;
   }
 
+  /** Buổi đã hoàn thành mà chưa có khoản học phí (dấu ghi lúc hoàn thành), mới nhất giới hạn 500. */
+  public List<UUID> unpaidCompletedSessionIds() {
+    return db.query("select distinct a.reference_id from payment_audit a where a.action='TUITION_UNPAID_COMPLETED'"
+        + " and not exists (select 1 from payment_charge c where c.session_id=a.reference_id) limit 500",
+        (rs, i) -> rs.getObject(1, UUID.class));
+  }
+
   /** Các buổi trong danh sách đã có khoản học phí (một truy vấn cho cả danh sách). */
   public Set<UUID> chargedSessionIds(Collection<UUID> sessionIds) {
     if (sessionIds.isEmpty()) return Set.of();
@@ -130,6 +137,31 @@ public class PaymentStore {
   public Optional<Charge> find(UUID id) {
     return db.query("select * from payment_charge where session_id=?", this::mapCharge, id).stream()
         .findFirst();
+  }
+
+  public List<UUID> payerClassIds(UUID user) {
+    return db.query("select distinct class_id from payment_charge where payer_user_id=?",
+        (r,n) -> r.getObject("class_id", UUID.class), user);
+  }
+
+  /**
+   * Lúc buổi học bắt đầu. Buổi đã thu học phí lưu trên khoản học phí; buổi chưa thu (hệ thống thu
+   * sau) chưa có khoản học phí nên dùng nhật ký {@code LESSON_STARTED}.
+   */
+  public Instant learningStartedAt(UUID session) {
+    return db.query("select coalesce(c.learning_started_at,"
+            + " (select min(a.created_at) from payment_audit a where a.reference_id=? and a.action='LESSON_STARTED'))"
+            + " from (select ?::uuid as id) s left join payment_charge c on c.session_id=s.id",
+        (r,n) -> r.getTimestamp(1) == null ? null : r.getTimestamp(1).toInstant(), session, session)
+        .stream().filter(Objects::nonNull).findFirst().orElse(null);
+  }
+
+  /** Ghi nhận bắt đầu học đúng một lần, kể cả khi học phí chưa được thu. */
+  public void recordLearningStart(UUID session, UUID actor, Instant now) {
+    if (learningStartedAt(session) != null) return;
+    db.update("update payment_charge set learning_started_at=?,learning_started_by=?"
+        + " where session_id=? and learning_started_at is null", Timestamp.from(now), actor, session);
+    audit(actor, session, "LESSON_STARTED", "Lesson started");
   }
 
   public List<Charge> pending() {

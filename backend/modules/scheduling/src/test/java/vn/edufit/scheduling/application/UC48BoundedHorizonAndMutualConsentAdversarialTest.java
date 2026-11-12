@@ -125,7 +125,8 @@ class UC48BoundedHorizonAndMutualConsentAdversarialTest {
         connectionValidationPort,
         securityResolver,
         eventPublisher,
-        fixedClock
+        fixedClock,
+        new TestRecurringProposals()
     );
 
     tutorActor = SimpleCurrentUser.of(tutorUserId, "TUTOR");

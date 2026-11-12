@@ -7,7 +7,6 @@ import {
   paymentApi,
   type PaymentSession,
 } from "@/features/payment/api/paymentApi";
-import { DUE_BEFORE_MS } from "@/features/payment/paymentPresentation";
 vi.mock("@/features/payment/api/paymentApi", async () => {
   const actual = await vi.importActual<
     typeof import("@/features/payment/api/paymentApi")
@@ -49,7 +48,8 @@ const session = (patch: Partial<PaymentSession> = {}): PaymentSession => ({
   learnerReport: null,
   tutorReport: null,
   settledAmount: 0,
-  canFund: false,
+  dueAt: null,
+  due: false,
   canActAsLearner: true,
   canActAsTutor: false,
   ...patch,
@@ -168,14 +168,14 @@ describe("Review window and shared payment case", () => {
   });
   it("collects tuition automatically 24 hours before the session and never cancels it", () => {
     const start = new Date(Date.now() + 3 * 86400000);
-    const dueAt = new Date(start.getTime() - DUE_BEFORE_MS).toLocaleString(
-      "vi-VN",
-    );
+    const dueAtDate = new Date(start.getTime() - 86400000);
+    const dueAt = dueAtDate.toLocaleString("vi-VN");
     show({
       status: "UNFUNDED",
       sessionStatus: "SCHEDULED",
       startAt: start.toISOString(),
       endAt: new Date(start.getTime() + 5400000).toISOString(),
+      dueAt: dueAtDate.toISOString(),
     });
     expect(screen.getByText("Chờ thu học phí")).toBeInTheDocument();
     expect(
@@ -190,6 +190,7 @@ describe("Review window and shared payment case", () => {
   it("marks a completed but unpaid session as owed by the learner", () => {
     show({
       status: "UNFUNDED",
+      due: true,
       sessionStatus: "COMPLETED",
       startAt: new Date(Date.now() - 7200000).toISOString(),
       endAt: new Date(Date.now() - 1800000).toISOString(),
@@ -200,6 +201,7 @@ describe("Review window and shared payment case", () => {
   it("lets the tutor complete a session whose tuition is not collected yet", async () => {
     show({
       status: "UNFUNDED",
+      due: true,
       sessionStatus: "SCHEDULED",
       canActAsTutor: true,
       canActAsLearner: false,

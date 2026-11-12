@@ -91,6 +91,23 @@ class NotificationEventListenerTest {
   }
 
   @Test
+  void expiredRescheduleStillNotifiesItsOriginalProposer() {
+    UUID sessionId = UUID.randomUUID();
+    listener.onRescheduleClosed(new vn.edufit.scheduling.api.event.SessionRescheduleClosedEvent(
+        UUID.randomUUID(), Instant.now(), sessionId, studentProfileId, studentUserId, "EXPIRED"));
+    Notification item = saved().get(studentUserId);
+    assertEquals("SESSION_RESCHEDULE_EXPIRED", item.getType());
+    assertEquals(sessionId, item.getTargetId());
+  }
+
+  @Test
+  void genericRejectionClosureDoesNotDuplicateTheSpecificRejectionEvent() {
+    listener.onRescheduleClosed(new vn.edufit.scheduling.api.event.SessionRescheduleClosedEvent(
+        UUID.randomUUID(), Instant.now(), UUID.randomUUID(), studentProfileId, studentUserId, "REJECTED"));
+    verify(repository, never()).save(any());
+  }
+
+  @Test
   @DisplayName("handleDomainEvent: Tiếp nhận BaseDomainEvent an toàn không ném ngoại lệ")
   void handleDomainEvent_processesEventSafely() {
     BaseDomainEvent dummy = new BaseDomainEvent() {

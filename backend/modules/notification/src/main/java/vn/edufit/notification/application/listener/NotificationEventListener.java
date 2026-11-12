@@ -230,6 +230,17 @@ public class NotificationEventListener {
 
   @EventListener
   @Transactional(propagation = Propagation.MANDATORY)
+  public void onRescheduleClosed(vn.edufit.scheduling.api.event.SessionRescheduleClosedEvent event) {
+    if (event == null || "REJECTED".equals(event.status())) return;
+    // Rejections already use SessionRescheduleRejectedEvent; only closure/expiry
+    // needs this additional notification, avoiding duplicate messages.
+    write(event.proposedBy(), event.studentId(), "SESSION_RESCHEDULE_" + event.status(),
+        "Yêu cầu đổi lịch đã đóng", "Lịch đề xuất chưa được áp dụng. Mở buổi học để xem trạng thái hiện tại.",
+        "SESSION", event.sessionId(), event.occurredAt());
+  }
+
+  @EventListener
+  @Transactional(propagation = Propagation.MANDATORY)
   public void onSessionRescheduleRejected(SessionRescheduleRejectedEvent event) {
     if (event == null) return;
     // Mọi người đã nhận "cần xác nhận" đều được báo kết thúc, trừ bên vừa từ chối.

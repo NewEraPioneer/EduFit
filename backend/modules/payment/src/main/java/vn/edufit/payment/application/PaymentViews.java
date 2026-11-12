@@ -40,7 +40,8 @@ public final class PaymentViews {
       String learnerReport,
       String tutorReport,
       long settledAmount,
-      boolean canFund,
+      Instant dueAt,
+      boolean due,
       boolean canActAsLearner,
       boolean canActAsTutor,
       Instant reviewDeadline, boolean canSubmitProposal, boolean isPayer,
@@ -67,10 +68,11 @@ public final class PaymentViews {
       String learnerReport,
       String tutorReport,
       long settledAmount,
-      boolean canFund,
+      Instant dueAt,
+      boolean due,
       boolean canActAsLearner,
       boolean canActAsTutor) {
-      this(sessionId, classId, studentId, tutorName, sessionStatus, startAt, endAt, amount, commissionBps, payerId, status, learnerAccepted, tutorAccepted, autoAccepted, disputeDeadline, disputeReason, learnerAmount, tutorAmount, learnerReport, tutorReport, settledAmount, canFund, canActAsLearner, canActAsTutor, null, false, false, null, null, null, null, null, java.util.List.of());
+      this(sessionId, classId, studentId, tutorName, sessionStatus, startAt, endAt, amount, commissionBps, payerId, status, learnerAccepted, tutorAccepted, autoAccepted, disputeDeadline, disputeReason, learnerAmount, tutorAmount, learnerReport, tutorReport, settledAmount, dueAt, due, canActAsLearner, canActAsTutor, null, false, false, null, null, null, null, null, java.util.List.of());
     }
   }
 }

@@ -9,7 +9,6 @@ import {
   within,
 } from "@testing-library/react";
 import { PaymentWorkspace } from "@/features/payment/components/PaymentWorkspace";
-import { DUE_BEFORE_MS } from "@/features/payment/paymentPresentation";
 import {
   money,
   paymentApi,
@@ -27,6 +26,7 @@ vi.mock("@/features/payment/api/paymentApi", async () => ({
     sessions: vi.fn(),
     history: vi.fn(),
     topup: vi.fn(),
+    dueSessions: vi.fn(),
   },
 }));
 const paidTopup: TopupRecord = {
@@ -74,6 +74,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(paymentApi.wallet).mockResolvedValue({ success: true, data });
   vi.mocked(paymentApi.sessions).mockResolvedValue({ success: true, data: [] });
+  vi.mocked(paymentApi.dueSessions).mockResolvedValue({ success: true, data: [] });
   vi.mocked(paymentApi.history).mockImplementation(async (section) => ({
     success: true,
     data: section === "topups" ? [paidTopup] : sessionPayments,
@@ -208,7 +209,8 @@ it("filters completed sessions while retaining role-specific detail links", asyn
     amount: 100000,
     commissionBps: 1000,
     sessionStatus: "COMPLETED",
-    canFund: false,
+    dueAt: null,
+    due: false,
     canActAsLearner: true,
     canActAsTutor: false,
   } as PaymentSession;
@@ -239,7 +241,8 @@ it("lists sessions due before and after class with one top-up for the shortfall"
     amount: 100000,
     commissionBps: 1000,
     status: "UNFUNDED",
-    canFund: false,
+    due: true,
+    dueAt: null,
     canActAsLearner: true,
     canActAsTutor: false,
   } as PaymentSession;
@@ -255,20 +258,13 @@ it("lists sessions due before and after class with one top-up for the shortfall"
       ...unpaid,
       sessionId: "soon",
       sessionStatus: "SCHEDULED",
-      startAt: at(DUE_BEFORE_MS - hour),
-      endAt: at(DUE_BEFORE_MS),
+      startAt: at(20 * hour),
+      endAt: at(21 * hour),
     },
   ];
-  const later = {
-    ...unpaid,
-    sessionId: "later",
-    sessionStatus: "SCHEDULED",
-    startAt: at(3 * DUE_BEFORE_MS),
-    endAt: at(3 * DUE_BEFORE_MS + hour),
-  };
-  vi.mocked(paymentApi.sessions).mockResolvedValue({
+  vi.mocked(paymentApi.dueSessions).mockResolvedValue({
     success: true,
-    data: [...due, later] as PaymentSession[],
+    data: due as PaymentSession[],
   });
   vi.mocked(paymentApi.topup).mockResolvedValue({
     success: true,
@@ -294,5 +290,5 @@ it("does not show a payment-due panel to tutors", async () => {
   expect(
     screen.queryByRole("region", { name: "Cần thanh toán" }),
   ).not.toBeInTheDocument();
-  expect(paymentApi.sessions).toHaveBeenCalledTimes(1);
+  expect(paymentApi.dueSessions).not.toHaveBeenCalled();
 });

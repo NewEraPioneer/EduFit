@@ -78,6 +78,22 @@ class GetSessionDetailServiceTest {
     verify(schedulingSecurityResolver).requireSessionAccess(actor, session);
   }
 
+  @Test void meetingLinkStaysHiddenUntilPaymentStartAndTutorCanCorrectIt() {
+    when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(session));
+    when(sessionRepository.save(session)).thenReturn(session);
+    var updated = service.updateMeetingLink(sessionId, actor, "https://meet.google.com/new-room");
+    assertEquals("https://meet.google.com/new-room", updated.getPlaceOrLink());
+    org.junit.jupiter.api.Assertions.assertNull(vn.edufit.scheduling.web.response.SessionResponse.from(updated).placeOrLink());
+    org.junit.jupiter.api.Assertions.assertNull(vn.edufit.scheduling.web.response.CalendarItemResponse.from(updated).placeOrLink());
+    verify(schedulingSecurityResolver).requireTutorAccess(actor,tutorId);
+  }
+
+  @Test void meetingLinkRejectsUnsafeScheme() {
+    when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(session));
+    assertThrows(vn.edufit.shared.exception.InvalidOperationException.class,
+        () -> service.updateMeetingLink(sessionId,actor,"javascript:alert(1)"));
+  }
+
   @Test
   @DisplayName("Ném EntityNotFoundException khi không tìm thấy buổi học theo ID")
   void shouldThrowEntityNotFoundWhenMissing() {

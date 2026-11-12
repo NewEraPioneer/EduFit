@@ -445,10 +445,7 @@ public class ConnectionQueryService {
       return List.of();
     }
     List<ConnectionRequest> reqs = requests.findAllById(reqIds);
-    return reqs.stream()
-        .filter(r -> r.getDesiredSlots() != null)
-        .flatMap(r -> r.getDesiredSlots().stream())
-        .toList();
+    return ClassAgreedSchedules.slots(activeClasses, reqs);
   }
 
   private static String toSafeDisplayName(String fullName) {

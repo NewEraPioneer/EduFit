@@ -192,6 +192,8 @@ export function ScheduleCalendarView({
   availabilitySlots = [],
   classes = [],
   initialStudentId,
+  initialSession,
+  onLinkedStudentResolved,
 }: ScheduleCalendarViewProps) {
   const { user } = useAuth();
 
@@ -203,7 +205,7 @@ export function ScheduleCalendarView({
 
   // Selected week starting date
   const [weekStart, setWeekStart] = useState(() =>
-    startOfWeek(new Date())
+    startOfWeek(initialSession ? new Date(initialSession.startAt) : new Date())
   );
 
   // Calendar sessions data state
@@ -218,8 +220,16 @@ export function ScheduleCalendarView({
   const [proposeInitialDate, setProposeInitialDate] = useState<Date | undefined>(undefined);
   const [proposeInitialHour, setProposeInitialHour] = useState<number>(8);
 
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialSession?.sessionId ?? null);
+  const [isDetailOpen, setIsDetailOpen] = useState(Boolean(initialSession));
+  const [linkedSessionStudent, setLinkedSessionStudent] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (role === "PARENT" && linkedSessionStudent && initialStudentId && linkedSessionStudent !== initialStudentId) {
+      setIsDetailOpen(false);
+      setSelectedSessionId(null);
+    }
+  }, [role, linkedSessionStudent, initialStudentId]);
 
   // Buổi học được nhấn mạnh (đến từ thông báo) và các buổi có thay đổi chưa xem
   const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
@@ -299,11 +309,13 @@ export function ScheduleCalendarView({
   }, [deepLink]);
 
   // Khi chi tiết buổi học tải xong, nhảy tới tuần chứa nó để người dùng thấy nó ngay trên lịch phía sau hộp thoại
-  const handleSessionLoaded = useCallback((session: { startAt: string }) => {
+  const handleSessionLoaded = useCallback((session: { startAt: string; studentId: string }) => {
     const target = startOfWeek(new Date(session.startAt));
     if (Number.isNaN(target.getTime())) return;
     setWeekStart((current) => (current.getTime() === target.getTime() ? current : target));
-  }, []);
+    setLinkedSessionStudent(session.studentId);
+    if (role === "PARENT") onLinkedStudentResolved?.(session.studentId);
+  }, [role, onLinkedStudentResolved]);
 
   // Hiệu ứng nhấn mạnh tự tắt sau vài giây
   useEffect(() => {

@@ -11,11 +11,6 @@ import { WalletPanel } from "./WalletPanel";
 import { PaymentActivity } from "./PaymentActivity";
 import { PaymentHistoryDialog } from "./PaymentHistoryDialog";
 import { PaymentSessionsPanel } from "./PaymentSessionsPanel";
-import {
-  COLLECT_LOOKBACK_MS,
-  DUE_BEFORE_MS,
-  tuitionDue,
-} from "../paymentPresentation";
 export function PaymentWorkspace({
   role,
 }: {
@@ -40,7 +35,6 @@ export function PaymentWorkspace({
     try {
       const [year, m] = month.split("-").map(Number);
       if (!year || !m) return;
-      const now = Date.now();
       const [wallet, list, owed] = await Promise.all([
         paymentApi.wallet(0),
         paymentApi.sessions(
@@ -49,10 +43,7 @@ export function PaymentWorkspace({
         ),
         role === "TUTOR"
           ? Promise.resolve({ data: [] as PaymentSession[] })
-          : paymentApi.sessions(
-              new Date(now - COLLECT_LOOKBACK_MS).toISOString(),
-              new Date(now + DUE_BEFORE_MS + 3600 * 1000).toISOString(),
-            ),
+          : paymentApi.dueSessions(),
       ]);
       if (alive.current && current === generation.current) {
         const currentBalance = wallet.data
@@ -63,7 +54,7 @@ export function PaymentWorkspace({
         balance.current = currentBalance;
         setData(wallet.data ?? null);
         setSessions(list.data ?? []);
-        setDue((owed.data ?? []).filter((s) => tuitionDue(s, now)));
+        setDue(owed.data ?? []);
         setError(null);
       }
     } catch (e) {

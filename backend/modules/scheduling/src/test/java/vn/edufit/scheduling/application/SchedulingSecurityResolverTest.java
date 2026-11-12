@@ -74,6 +74,14 @@ class SchedulingSecurityResolverTest {
     adminActor = SimpleCurrentUser.of(adminUserId, "ADMIN");
   }
 
+  @Test
+  void unrelatedStudentCannotReadClassSchedule() {
+    when(connectionFacade.findClassById(classId)).thenReturn(Optional.of(new ConnectionFacade.ClassDetailView(
+        classId, studentId, tutorId, UUID.randomUUID(), "ACTIVE", now, null, 250000)));
+    when(profileFacade.findStudentByUserId(strangerUserId)).thenReturn(Optional.empty());
+    assertThrows(ForbiddenOperationException.class, () -> resolver.requireClassAccess(strangerActor, classId));
+  }
+
   private TutoringSession createSession(UUID proposedBy) {
     return new TutoringSession(
         sessionId, classId, tutorId, studentId,

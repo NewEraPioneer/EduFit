@@ -22,7 +22,11 @@ import vn.edufit.connection.infra.persistence.repository.TutoringClassRepository
 class ConnectionFacadeImplTest {
   private final ParentStudentLinkRepository links = mock(ParentStudentLinkRepository.class);
   private final TutoringClassRepository classes = mock(TutoringClassRepository.class);
-  private final ConnectionFacade facade = new ConnectionFacadeImpl(links, classes);
+  private final vn.edufit.connection.infra.persistence.repository.ConnectionRequestRepository requests =
+      mock(vn.edufit.connection.infra.persistence.repository.ConnectionRequestRepository.class);
+  private final vn.edufit.connection.application.policy.SlotConflictDetector conflicts =
+      new vn.edufit.connection.application.policy.SlotConflictDetector();
+  private final ConnectionFacade facade = new ConnectionFacadeImpl(links, classes, requests, conflicts);
 
   @ParameterizedTest
   @ValueSource(strings = {"CONFIRMED", "PENDING", "DECLINED", "REVOKED", "NONE"})
@@ -80,6 +84,8 @@ class ConnectionFacadeImplTest {
     try (var context = new AnnotationConfigApplicationContext()) {
       context.registerBean(ParentStudentLinkRepository.class, () -> links);
       context.registerBean(TutoringClassRepository.class, () -> classes);
+      context.registerBean(vn.edufit.connection.infra.persistence.repository.ConnectionRequestRepository.class, () -> requests);
+      context.registerBean(vn.edufit.connection.application.policy.SlotConflictDetector.class, () -> conflicts);
       context.register(ConnectionFacadeImpl.class);
       context.refresh();
       assertEquals(1, context.getBeansOfType(ConnectionFacade.class).size());

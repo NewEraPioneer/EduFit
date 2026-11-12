@@ -220,9 +220,42 @@ class PaymentFlowIT {
     return a;
   }
 
+  /** Hệ thống tự thu học phí của buổi {@link #sessionId} (job thu học phí), không còn người học bấm giữ tiền. */
+  void collect() {
+    var view = sessions.findSessionById(sessionId).orElseThrow();
+    when(profiles.findStudentById(studentId))
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
+    when(connections.findConfirmedParentUserIds(studentId)).thenReturn(List.of(parentUser));
+    doReturn(List.of(view)).when(sessions).findScheduledSessionsStartingBetween(any(), any());
+    service.collectTuition();
+    assertTrue(store.find(sessionId).isPresent(), "Job phải thu được học phí của buổi này");
+  }
+
   void fund() {
-    service.fund(actor(parentUser, "PARENT"), sessionId, 300000);
+    collect();
     now.set(end);
+  }
+
+  @Test void unpaidLessonCanStartAndStartingTwiceNeverChargesTwice() {
+    var source = new SessionSummaryView(sessionId,classId,tutorId,studentId,end.minusSeconds(5400),end,
+        "ONLINE","SCHEDULED",false,end.minusSeconds(7200));
+    when(sessions.findSessionById(sessionId)).thenReturn(Optional.of(source));
+    when(sessions.lockSessionById(sessionId)).thenReturn(Optional.of(source));
+    when(sessions.findMeetingLink(sessionId)).thenReturn(Optional.of("https://meet.google.com/defense-demo"));
+    db.update("update tutoring_session set status='SCHEDULED' where session_id=?",sessionId);
+    var lesson = new PaymentLessonService(store,service,sessions,new PaymentTime(Clock.fixed(now.get(),ZoneOffset.UTC)));
+    var first = lesson.start(actor(studentUser,"STUDENT"),sessionId);
+    assertFalse(first.funded(), "Chưa thu học phí vẫn bắt đầu học được");
+    assertEquals("https://meet.google.com/defense-demo", first.meetingLink());
+    assertTrue(store.find(sessionId).isEmpty(), "Bắt đầu học không tự lấy tiền");
+    collect();
+    var balance = store.wallet(parentUser);
+    lesson.start(actor(tutorUser,"TUTOR"),sessionId);
+    assertEquals(balance,store.wallet(parentUser));
+    assertEquals(1,db.queryForObject("select count(*) from payment_audit where reference_id=? and action='LESSON_STARTED'",Integer.class,sessionId));
+    when(connections.hasConfirmedParentLink(parentUser,studentId)).thenReturn(false);
+    assertEquals(parentUser,service.get(actor(parentUser,"PARENT"),sessionId).payerId());
+    assertEquals(List.of(classId),store.payerClassIds(parentUser));
   }
 
   void confirmTutor() {
@@ -323,23 +356,34 @@ class PaymentFlowIT {
   }
 
   @Test
-  void revokedParentAndUnrelatedAccountCannotSpendOrConfirm() {
+  void revokedParentWalletIsNeverCollected() {
     when(connections.hasConfirmedParentLink(parentUser, studentId)).thenReturn(false);
-    assertThrows(
-        RuntimeException.class, () -> service.fund(actor(parentUser, "PARENT"), sessionId, 300000));
+    when(connections.findConfirmedParentUserIds(studentId)).thenReturn(List.of());
+    when(profiles.findStudentById(studentId))
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
+    doReturn(List.of(sessions.findSessionById(sessionId).orElseThrow()))
+        .when(sessions).findScheduledSessionsStartingBetween(any(), any());
+    service.collectTuition();
     assertEquals(1000000, store.wallet(parentUser).available());
+    assertTrue(store.find(sessionId).map(c -> !c.payerId().equals(parentUser)).orElse(true));
   }
 
   @Test
-  void insufficientFundsRollsBackChargeAndReservation() {
+  void insufficientFundsLeavesTheWalletUntouchedAndCreatesNoCharge() {
     store.locked(
         () -> {
           store.move(parentUser, -900000, 0, "remove:" + sessionId, "TEST", sessionId);
           return null;
         });
-    assertThrows(RuntimeException.class, this::fund);
-    assertTrue(store.find(sessionId).isEmpty());
+    when(profiles.findStudentById(studentId))
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
+    when(connections.findConfirmedParentUserIds(studentId)).thenReturn(List.of(parentUser));
+    doReturn(List.of(sessions.findSessionById(sessionId).orElseThrow()))
+        .when(sessions).findScheduledSessionsStartingBetween(any(), any());
+    service.collectTuition();
+    assertTrue(store.find(sessionId).isEmpty(), "Ví thiếu tiền thì không tạo khoản học phí");
     assertEquals(100000, store.wallet(parentUser).available());
+    assertEquals(0, store.wallet(parentUser).held());
   }
 
   @Test
@@ -461,8 +505,10 @@ class PaymentFlowIT {
 
   /** Buổi đã COMPLETED, kết thúc {@code secondsAgo} giây trước. */
   SessionSummaryView completedAgo(UUID id, long secondsAgo) {
-    Instant end = now.get().minusSeconds(secondsAgo);
-    return stub(id, end.minusSeconds(5400), "COMPLETED");
+    Instant ended = now.get().minusSeconds(secondsAgo);
+    var view = stub(id, ended.minusSeconds(5400), "COMPLETED");
+    service.outcomeRecorded(id, ended); // gia sư ghi nhận hoàn thành: đánh dấu buổi chưa thu để job thu sau
+    return view;
   }
 
   final Map<UUID, SessionSummaryView> stubbed = new HashMap<>();
@@ -480,10 +526,9 @@ class PaymentFlowIT {
           && !v.startAt().isBefore(from) && v.startAt().isBefore(to)).toList();
     }).when(sessions).findScheduledSessionsStartingBetween(any(), any());
     doAnswer(i -> {
-      Instant from = i.getArgument(0), to = i.getArgument(1);
-      return stubbed.values().stream().filter(v -> v.status().equals("COMPLETED")
-          && v.endAt().isAfter(from) && !v.endAt().isAfter(to)).toList();
-    }).when(sessions).findCompletedSessionsEndedBetween(any(), any());
+      Collection<UUID> ids = i.getArgument(0);
+      return stubbed.values().stream().filter(v -> ids.contains(v.sessionId())).toList();
+    }).when(sessions).findSessionsByIds(any());
     when(profiles.findStudentById(studentId))
         .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
     when(connections.findConfirmedParentUserIds(studentId)).thenReturn(List.of(parentUser));
@@ -608,6 +653,20 @@ class PaymentFlowIT {
     assertEquals(stubbed.get(sessionId).startAt().minusSeconds(SessionPaymentService.DUE_BEFORE_SECONDS),
         reminders.getFirst().dueAt());
     assertTrue(published(TuitionUnpaidForTutorEvent.class).isEmpty());
+  }
+
+  @Test
+  void remindersCountEarlierSessionsThatShareTheSameWallet() {
+    UUID second = insertSession(now.get().plusSeconds(60 * HOUR));
+    scheduledIn(48 * HOUR);
+    stub(second, now.get().plusSeconds(60 * HOUR), "SCHEDULED");
+    setAvailable(parentUser, PRICE);
+    setAvailable(studentUser, 0);
+    service.collectTuition();
+    var reminders = published(TuitionTopupNeededEvent.class);
+    assertTrue(reminders.stream().allMatch(e -> e.sessionId().equals(second)),
+        "Ví đủ cho buổi đầu nên chỉ nhắc buổi sau");
+    assertEquals(PRICE, reminders.getFirst().shortfall(), "Thiếu đúng học phí của buổi thứ hai");
   }
 
   @Test
@@ -935,10 +994,10 @@ class PaymentFlowIT {
         Flyway.configure()
             .dataSource(ds)
             .schemas(schema)
-            .locations("classpath:db/migration", "classpath:db/seed")
+            .locations("classpath:db/migration")
             .target("1.16")
             .load();
-    assertEquals(MigrationScripts.countUpTo("1.16", MigrationScripts.MIGRATION, MigrationScripts.SEED),
+    assertEquals(MigrationScripts.countUpTo("1.16", MigrationScripts.MIGRATION),
         old.migrate().migrationsExecuted);
     var jdbc = new JdbcTemplate(ds);
     UUID user = account(jdbc, "TUTOR");
@@ -954,10 +1013,10 @@ class PaymentFlowIT {
         Flyway.configure()
             .dataSource(ds)
             .schemas(schema)
-            .locations("classpath:db/migration", "classpath:db/seed")
+            .locations("classpath:db/migration")
             .target(MigrationScripts.schemaHead())
             .load();
-    assertEquals(MigrationScripts.countAfter("1.16", MigrationScripts.MIGRATION, MigrationScripts.SEED),
+    assertEquals(MigrationScripts.countAfter("1.16", MigrationScripts.MIGRATION),
         upgraded.migrate().migrationsExecuted);
     upgraded.validate();
     assertEquals(0, upgraded.migrate().migrationsExecuted);
@@ -1119,7 +1178,7 @@ class PaymentFlowIT {
     when(sessions.findSessionById(sessionId)).thenReturn(Optional.of(new SessionSummaryView(
         original.sessionId(), original.classId(), original.tutorId(), original.studentId(),
         original.startAt(), original.endAt(), "ONLINE", "SCHEDULED", false, original.startAt())));
-    service.fund(actor(parentUser, "PARENT"), sessionId, 300000);
+    collect();
     now.set(end.plusSeconds(90000));
     when(sessions.findSessionById(sessionId)).thenReturn(Optional.of(new SessionSummaryView(
         original.sessionId(), original.classId(), original.tutorId(), original.studentId(),
