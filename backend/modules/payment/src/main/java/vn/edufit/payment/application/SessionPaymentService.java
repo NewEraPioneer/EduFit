@@ -196,12 +196,21 @@ public class SessionPaymentService {
       for (UUID student : connections.findConfirmedStudentIds(actor.getUserId()))
         classes.addAll(connections.findClassesByStudent(student));
     else throw new ForbiddenOperationException("Chọn màn hình quản trị để xem Payment");
+    if (actor.hasRole("PARENT")) {
+      var known = classes.stream().map(ConnectionFacade.ClassDetailView::classId).collect(java.util.stream.Collectors.toSet());
+      for (var cls : connections.findClassesByIds(store.payerClassIds(actor.getUserId()))) {
+        if (known.add(cls.classId())) classes.add(cls);
+      }
+    }
     var result = new ArrayList<Session>();
     for (var cls : classes) {
       var tutor = profiles.findTutorById(cls.tutorId()).orElse(null);
       if (tutor == null) continue;
       for (var timeline : sessions.findSessionsByClassId(cls.classId(), from, to)) {
         var saved = store.find(timeline.sessionId());
+        // A revoked parent retains only their own transactions, never the child's other sessions.
+        if (actor.hasRole("PARENT") && !access.linkedParent(actor, cls.studentId())
+            && (saved.isEmpty() || !access.payer(actor, saved.get()))) continue;
         var source =
             new SessionSummaryView(
                 timeline.sessionId(),
@@ -257,11 +266,12 @@ public class SessionPaymentService {
         profiles
             .findTutorById(src.tutorId())
             .orElseThrow(() -> new InvalidOperationException("Không tìm thấy gia sư"));
+    var saved = store.find(id);
     if (!access.student(actor, src.studentId())
         && !access.linkedParent(actor, src.studentId())
+        && !saved.map(c -> access.payer(actor, c)).orElse(false)
         && !(actor.hasRole("TUTOR") && actor.getUserId().equals(tutor.userId())))
       throw new ForbiddenOperationException("Không có quyền xem học phí buổi này");
-    var saved = store.find(id);
     if (saved.isPresent()) return view(saved.get(), src, actor);
     boolean canFund =
         (access.student(actor, src.studentId()) || access.linkedParent(actor, src.studentId()))

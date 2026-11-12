@@ -61,6 +61,7 @@ class RecordSessionOutcomeServiceTest {
 
   private Clock fixedClock;
   private RecordSessionOutcomeService service;
+  @Mock private vn.edufit.scheduling.api.SessionFundingGuard funding;
 
   private final UUID sessionId = UUID.randomUUID();
   private final UUID classId = UUID.randomUUID();
@@ -83,7 +84,8 @@ class RecordSessionOutcomeServiceTest {
         schedulingSecurityResolver,
         progressSyncPort,
         eventPublisher,
-        fixedClock
+        fixedClock,
+        funding
     );
 
     tutorUser = SimpleCurrentUser.of(tutorUserId, "TUTOR");
@@ -98,6 +100,23 @@ class RecordSessionOutcomeServiceTest {
         SessionStatus.SCHEDULED, studentUserId, tutorUserId, fixedNow.minus(1, ChronoUnit.DAYS),
         null, startAt, null, null, null, null, false, null, null, 1, fixedNow.minus(2, ChronoUnit.DAYS)
     );
+  }
+
+  @Test
+  void cannotCompleteWhileLessonIsStillInProgress() {
+    scheduledSession.updateTime(fixedNow.minusSeconds(60), fixedNow.plusSeconds(3600));
+    when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(scheduledSession));
+    assertThrows(InvalidOperationException.class,
+        () -> service.recordOutcome(sessionId, tutorUser, SessionStatus.COMPLETED, null));
+    verify(sessionRepository, never()).save(any());
+    verify(eventPublisher, never()).publishEvent(any(SessionOutcomeRecordedEvent.class));
+  }
+
+  @Test void cannotCompleteUnfundedLesson() {
+    when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(scheduledSession));
+    doThrow(new InvalidOperationException("Chưa giữ học phí")).when(funding).requireFunded(sessionId);
+    assertThrows(InvalidOperationException.class, () -> service.recordOutcome(sessionId, tutorUser, SessionStatus.COMPLETED, null));
+    verify(sessionRepository, never()).save(any());
   }
 
   @Test

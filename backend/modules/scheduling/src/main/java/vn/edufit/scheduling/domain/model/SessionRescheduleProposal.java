@@ -81,6 +81,7 @@ public class SessionRescheduleProposal {
   }
 
   public void accept(UUID responderId, Instant now) {
+    requireWithinDeadline(now);
     if (this.status != ProposalStatus.PENDING) {
       throw new InvalidOperationException(
           ErrorCode.INVALID_OPERATION,
@@ -93,6 +94,7 @@ public class SessionRescheduleProposal {
   }
 
   public void reject(UUID responderId, String reason, Instant now) {
+    requireWithinDeadline(now);
     if (this.status != ProposalStatus.PENDING) {
       throw new InvalidOperationException(
           ErrorCode.INVALID_OPERATION,
@@ -103,6 +105,12 @@ public class SessionRescheduleProposal {
     this.respondedBy = Objects.requireNonNull(responderId, "responderId không được null");
     this.respondedAt = Objects.requireNonNull(now, "now không được null");
     this.responseReason = reason;
+  }
+
+  private void requireWithinDeadline(Instant now) {
+    if (!now.isBefore(expiresAt)) {
+      throw new InvalidOperationException(ErrorCode.PROPOSAL_EXPIRED, "Đề xuất đổi lịch đã hết hạn phản hồi");
+    }
   }
 
   public void withdraw(UUID actorId, Instant now) {

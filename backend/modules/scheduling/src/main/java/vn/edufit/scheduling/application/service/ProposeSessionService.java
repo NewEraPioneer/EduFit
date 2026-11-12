@@ -122,7 +122,9 @@ public class ProposeSessionService {
 
     // 6. Kiểm tra sơ bộ xung đột lịch học của Học sinh
     List<TutoringSession> studentSessions = sessionRepository.findCalendarSessions(resolvedStudentId, startAt, endAt);
-    boolean studentHasConflict = studentSessions.stream().anyMatch(existing ->
+    boolean studentHasConflict = studentSessions.stream()
+        .filter(existing -> existing.getStatus() == vn.edufit.scheduling.domain.model.SessionStatus.SCHEDULED)
+        .anyMatch(existing ->
         ConflictPolicy.isOverlapping(startAt, endAt, existing.getStartAt(), existing.getEndAt())
     );
     if (studentHasConflict) {

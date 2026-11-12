@@ -52,7 +52,7 @@ public class PaymentAccess {
 
   public boolean learner(CurrentUser a, PaymentViews.Charge c) {
     return student(a, c.studentId())
-        || (a.getUserId().equals(c.payerId()) && linkedParent(a, c.studentId()));
+        || (a.hasRole("PARENT") && a.getUserId().equals(c.payerId()));
   }
 
   public boolean tutor(CurrentUser a, PaymentViews.Charge c) {

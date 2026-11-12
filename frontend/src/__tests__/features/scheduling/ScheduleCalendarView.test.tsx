@@ -58,12 +58,42 @@ const mockSessions = [
 ];
 
 describe("ScheduleCalendarView Component", () => {
+  it("thông báo mở đúng tuần và đúng chi tiết buổi học", async () => {
+    const linked = { ...mockSessions[0], startAt: "2027-03-17T08:00:00.000Z", endAt: "2027-03-17T09:30:00.000Z",
+      proposedBy: "user-tutor-1", expiresAt: "2027-03-16T08:00:00.000Z", version: 1, createdAt: "2027-03-14T08:00:00.000Z" };
+    vi.spyOn(schedulingApi, "getSessionDetail").mockResolvedValue({ success: true, data: linked });
+    scheduleSearchParams.set("sessionId", linked.sessionId);
+    render(<ScheduleCalendarView role="TUTOR" />);
+    await waitFor(() => {
+      expect(schedulingApi.getCalendar).toHaveBeenCalledWith(expect.objectContaining({
+        from: expect.any(String), to: expect.any(String),
+      }));
+      const last = vi.mocked(schedulingApi.getCalendar).mock.calls.at(-1)![0];
+      expect(Date.parse(last.from)).toBeLessThanOrEqual(Date.parse(linked.startAt));
+      expect(Date.parse(last.to)).toBeGreaterThan(Date.parse(linked.endAt));
+    });
+    expect(await screen.findByText("Chi tiết buổi học")).toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
+    for (const key of [...scheduleSearchParams.keys()]) scheduleSearchParams.delete(key);
     vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({
       success: true,
       data: mockSessions,
     });
+  });
+
+  it("phụ huynh mở thông báo đúng con và đóng chi tiết khi chuyển con khác", async () => {
+    const linked = { ...mockSessions[0], proposedBy: "user-tutor-1", expiresAt: "2026-10-18T08:00:00.000Z",
+      version: 1, createdAt: "2026-10-15T08:00:00.000Z" };
+    vi.spyOn(schedulingApi, "getSessionDetail").mockResolvedValue({ success: true, data: linked });
+    scheduleSearchParams.set("sessionId", linked.sessionId);
+    const resolved = vi.fn();
+    const { rerender } = render(<ScheduleCalendarView role="PARENT" initialStudentId={linked.studentId} onLinkedStudentResolved={resolved} />);
+    await waitFor(() => expect(resolved).toHaveBeenCalledWith(linked.studentId));
+    expect(await screen.findByText("Chi tiết buổi học")).toBeInTheDocument();
+    rerender(<ScheduleCalendarView role="PARENT" initialStudentId="another-child" onLinkedStudentResolved={resolved} />);
+    await waitFor(() => expect(screen.queryByText("Chi tiết buổi học")).not.toBeInTheDocument());
   });
 
   afterEach(() => {

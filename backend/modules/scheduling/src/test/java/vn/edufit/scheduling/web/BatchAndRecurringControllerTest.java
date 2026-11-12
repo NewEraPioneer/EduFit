@@ -3,6 +3,7 @@ package vn.edufit.scheduling.web;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
@@ -200,6 +201,7 @@ class BatchAndRecurringControllerTest {
   @Test
   @DisplayName("GET /recurring/proposals/{proposalId} -> HTTP 200 OK")
   void shouldGetRecurringProposal() {
+    when(currentUserProvider.getIfAvailable()).thenReturn(testUser);
     UUID proposalId = UUID.randomUUID();
     LocalDate from = LocalDate.of(2026, 11, 2);
     LocalDate to = from.plusDays(28);
@@ -209,7 +211,7 @@ class BatchAndRecurringControllerTest {
         from, to, List.of("MONDAY 18:00-20:00"), SessionMode.ONLINE,
         null, "Đổi lịch", now.plusSeconds(86400), now
     );
-    when(rescheduleClassScheduleService.findProposalById(proposalId)).thenReturn(Optional.of(proposal));
+    when(rescheduleClassScheduleService.findProposalById(eq(proposalId), any())).thenReturn(Optional.of(proposal));
 
     ResponseEntity<ApiResponse<RecurringProposalResponse>> response = controller.getRecurringProposal(proposalId);
 

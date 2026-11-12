@@ -47,7 +47,7 @@ public record SessionResponse(
         s.getStartAt(),
         s.getEndAt(),
         s.getMode() != null ? s.getMode().name() : null,
-        s.getPlaceOrLink(),
+        publicPlaceOrLink(s),
         s.getRepeatNote(),
         s.getMessage(),
         s.getStatus() != null ? s.getStatus().name() : null,
@@ -66,5 +66,12 @@ public record SessionResponse(
         s.getVersion(),
         s.getCreatedAt()
     );
+  }
+
+  static String publicPlaceOrLink(TutoringSession s) {
+    return s.getMode() == vn.edufit.scheduling.domain.model.SessionMode.ONLINE
+        && (s.getStatus() == vn.edufit.scheduling.domain.model.SessionStatus.PROPOSED
+            || s.getStatus() == vn.edufit.scheduling.domain.model.SessionStatus.SCHEDULED)
+        ? null : s.getPlaceOrLink();
   }
 }

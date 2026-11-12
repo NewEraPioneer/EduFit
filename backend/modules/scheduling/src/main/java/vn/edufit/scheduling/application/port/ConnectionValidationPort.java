@@ -34,5 +34,7 @@ public interface ConnectionValidationPort {
    */
   java.util.Optional<ActiveClassInfo> findActiveClassById(UUID classId);
 
+  void updateAgreedSlots(UUID classId, java.util.List<String> slots);
+
   record ActiveClassInfo(UUID classId, UUID studentId, UUID tutorId, UUID needId) {}
 }

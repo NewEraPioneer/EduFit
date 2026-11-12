@@ -119,6 +119,15 @@ public class SchedulingSecurityResolver {
     throw new ForbiddenOperationException("Bạn không có quyền truy cập thông tin buổi học này");
   }
 
+  public void requireClassAccess(CurrentUser actor, UUID classId) {
+    validateActor(actor);
+    var cls = connectionFacade.findClassById(classId)
+        .orElseThrow(() -> vn.edufit.shared.exception.EntityNotFoundException.of("Class", classId));
+    if (actor.hasRole("ADMIN") || isTutor(actor, cls.tutorId())
+        || isStudent(actor, cls.studentId()) || isParent(actor, cls.studentId())) return;
+    throw new ForbiddenOperationException("Bạn không có quyền truy cập lịch của lớp học này");
+  }
+
   /**
    * Kiểm tra quyền phản hồi đề xuất buổi học (phải là đối tác khác phía với người đề xuất).
    *

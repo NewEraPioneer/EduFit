@@ -3,6 +3,13 @@ export interface Wallet {
   available: number;
   held: number;
 }
+export interface LearningAccess {
+  funded: boolean;
+  startedAt: string | null;
+  canStart: boolean;
+  message: string;
+  meetingLink: string | null;
+}
 export interface Entry {
   id: string;
   kind: string;
@@ -138,6 +145,8 @@ const post = <T>(path: string, body?: unknown) =>
   });
 const base = "/api/v1/payment";
 export const paymentApi = {
+  learningAccess: (id: string) => fetchApi<LearningAccess>(`${base}/sessions/${encodeURIComponent(id)}/learning-access`),
+  startLesson: (id: string) => post<LearningAccess>(`${base}/sessions/${encodeURIComponent(id)}/start`),
   completeSession: (id: string) =>
     post(`/api/v1/scheduling/sessions/${encodeURIComponent(id)}/outcome`, {
       outcome: "COMPLETED",

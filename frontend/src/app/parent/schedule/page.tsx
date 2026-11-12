@@ -150,6 +150,7 @@ export default function ParentSchedulePage() {
           availabilitySlots={[]}
           classes={classes}
           initialStudentId={activeStudentId}
+          onLinkedStudentResolved={setSelectedStudentId}
         />
       </React.Suspense>
     </div>

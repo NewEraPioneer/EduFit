@@ -71,6 +71,12 @@ export function SessionDetailModal({
   const [rescheduleRejectReason, setRescheduleRejectReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  // Đồng hồ cho nút ghi nhận kết quả (chỉ mở sau giờ kết thúc); không gọi Date.now() khi render.
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setClockMs(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isConflict, setIsConflict] = useState(false);
 
@@ -592,7 +598,9 @@ export function SessionDetailModal({
                     {session.mode === "ONLINE" ? "Trực tuyến (Online)" : "Trực tiếp (Offline)"}
                   </div>
                   <div className="text-xs text-muted mt-0.5 truncate">
-                    {session.placeOrLink ? (
+                    {session.mode === "ONLINE" && ["PROPOSED", "SCHEDULED"].includes(session.status) ? (
+                      "Phòng học được mở ở phần thanh toán sau khi đã giữ học phí và đến giờ học."
+                    ) : session.placeOrLink ? (
                       session.mode === "ONLINE" ? (
                         <a
                           href={session.placeOrLink}
@@ -622,7 +630,7 @@ export function SessionDetailModal({
                 />
               )}
 
-              {(["STUDENT", "PARENT", "TUTOR"] as string[]).includes(role) && ["SCHEDULED", "COMPLETED", "ABSENT", "CANCELLED"].includes(session.status) && <SessionBillingPanel sessionId={session.sessionId} role={role as "STUDENT" | "PARENT" | "TUTOR"} />}
+              {(["STUDENT", "PARENT", "TUTOR"] as string[]).includes(role) && ["SCHEDULED", "COMPLETED", "ABSENT", "CANCELLED"].includes(session.status) && <SessionBillingPanel sessionId={session.sessionId} mode={session.mode} role={role as "STUDENT" | "PARENT" | "TUTOR"} />}
 
               {/* Banner đề xuất dời lịch học (UC4.4) */}
               {rescheduleProposal && rescheduleProposal.status === "PENDING" && (
@@ -1013,7 +1021,8 @@ export function SessionDetailModal({
                         <button
                           type="button"
                           onClick={() => setShowOutcomeModal(true)}
-                          disabled={actionLoading}
+                          disabled={actionLoading || clockMs < new Date(session.endAt).getTime()}
+                          title={clockMs < new Date(session.endAt).getTime() ? "Chỉ ghi nhận kết quả sau giờ kết thúc buổi học" : undefined}
                           className="h-10 px-4 rounded-xl border border-success-line bg-success-soft text-success-strong hover:bg-success-soft text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <FileText className="size-3.5" />
