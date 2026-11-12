@@ -71,6 +71,12 @@ export function SessionDetailModal({
   const [rescheduleRejectReason, setRescheduleRejectReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  // Đồng hồ cho nút ghi nhận kết quả (chỉ mở sau giờ kết thúc); không gọi Date.now() khi render.
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setClockMs(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isConflict, setIsConflict] = useState(false);
 
@@ -1015,8 +1021,8 @@ export function SessionDetailModal({
                         <button
                           type="button"
                           onClick={() => setShowOutcomeModal(true)}
-                          disabled={actionLoading || Date.now() < new Date(session.endAt).getTime()}
-                          title={Date.now() < new Date(session.endAt).getTime() ? "Chỉ ghi nhận kết quả sau giờ kết thúc buổi học" : undefined}
+                          disabled={actionLoading || clockMs < new Date(session.endAt).getTime()}
+                          title={clockMs < new Date(session.endAt).getTime() ? "Chỉ ghi nhận kết quả sau giờ kết thúc buổi học" : undefined}
                           className="h-10 px-4 rounded-xl border border-success-line bg-success-soft text-success-strong hover:bg-success-soft text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <FileText className="size-3.5" />
