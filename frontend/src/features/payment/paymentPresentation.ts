@@ -1,4 +1,4 @@
-import type { PaymentSession } from "./api/paymentApi";
+import { money, type PaymentSession } from "./api/paymentApi";
 
 export const issueCategories: Record<string, string> = {
   DURATION: "Thiếu thời lượng",
@@ -10,7 +10,7 @@ export const issueCategories: Record<string, string> = {
 export function paymentStatus(session: PaymentSession) {
   switch (session.status) {
     case "UNFUNDED":
-      return "Chưa giữ học phí";
+      return tuitionDue(session) ? "Cần thanh toán" : "Chờ thu học phí";
     case "FUNDED":
       return "Học phí đã được giữ";
     case "AWAITING_CONFIRMATION":
@@ -28,11 +28,47 @@ export function paymentStatus(session: PaymentSession) {
       return "Đã hoàn về ví người trả";
   }
 }
+/** Mốc thu học phí: 24 giờ trước giờ học (khớp SessionPaymentService.DUE_BEFORE_SECONDS). */
+export const DUE_BEFORE_MS = 24 * 3600 * 1000;
+/** Khoảng truy thu học phí chưa thanh toán (khớp SessionPaymentService.COLLECT_LOOKBACK_SECONDS). */
+export const COLLECT_LOOKBACK_MS = 90 * 24 * 3600 * 1000;
+
+/**
+ * Buổi học đến hạn thanh toán mà hệ thống chưa thu được: trước buổi học (từ 24 giờ trước giờ học)
+ * hoặc sau buổi học (đã ghi nhận hoàn thành).
+ */
+export function tuitionDue(session: PaymentSession, now = Date.now()) {
+  if (session.status !== "UNFUNDED") return false;
+  if (session.sessionStatus === "COMPLETED") return true;
+  return (
+    session.sessionStatus === "SCHEDULED" &&
+    new Date(session.startAt).getTime() - DUE_BEFORE_MS <= now
+  );
+}
+
+/** Buổi chưa thu học phí: khi nào hệ thống thu và người học cần làm gì. Hệ thống không hủy buổi học. */
+function unfundedAction(session: PaymentSession) {
+  const tutor = session.canActAsTutor;
+  if (session.sessionStatus === "COMPLETED")
+    return tutor
+      ? "Buổi học đã hoàn thành nhưng chưa thu được học phí. Hệ thống tự thu khi ví người học đủ tiền. Sau đó học phí về ví bạn khi hết 24 giờ phản hồi."
+      : `Buổi học đã hoàn thành, còn nợ ${money(session.amount)} học phí. Hãy nạp tiền. Hệ thống tự thu ngay khi ví đủ.`;
+  if (session.sessionStatus !== "SCHEDULED")
+    return "Buổi học không diễn ra nên không thu học phí.";
+  if (tuitionDue(session))
+    return tutor
+      ? "Đã đến hạn nhưng chưa thu được học phí vì ví người học chưa đủ. Hệ thống tự thu khi ví đủ tiền."
+      : `Đã đến hạn thanh toán ${money(session.amount)}. Hãy nạp tiền. Hệ thống tự thu ngay khi ví đủ.`;
+  const when = new Date(
+    new Date(session.startAt).getTime() - DUE_BEFORE_MS,
+  ).toLocaleString("vi-VN");
+  return tutor
+    ? `Hệ thống tự thu học phí của buổi này lúc ${when}.`
+    : `Hệ thống tự thu ${money(session.amount)} từ ví lúc ${when} (24 giờ trước giờ học). Hãy giữ đủ tiền trong ví.`;
+}
+
 export function paymentNextAction(session: PaymentSession) {
-  if (session.status === "UNFUNDED")
-    return session.canFund
-      ? "Kiểm tra học phí rồi giữ tiền từ ví cho buổi này."
-      : "Chờ người trả tiền cấp học phí.";
+  if (session.status === "UNFUNDED") return unfundedAction(session);
   if (session.status === "DISPUTED")
     return "Hai bên bổ sung thông tin trong 48 giờ. Tiền tiếp tục được giữ.";
   if (session.status === "AWAITING_ADMIN" || session.status === "ADMIN_REVIEW")

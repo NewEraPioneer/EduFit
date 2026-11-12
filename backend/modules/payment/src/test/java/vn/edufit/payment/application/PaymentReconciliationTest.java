@@ -91,6 +91,62 @@ class PaymentReconciliationTest {
     verifyNoInteractions(gateway);
   }
 
+  Map<String, Object> pendingRow(Object providerId, Instant expires) {
+    var row = new HashMap<String, Object>(Map.of(
+        "id", id, "user_id", owner, "order_code", 42L, "amount", 100000L,
+        "created_at", java.sql.Timestamp.from(Instant.parse("2026-11-12T01:00:00Z")),
+        "expires_at", java.sql.Timestamp.from(expires)));
+    if (providerId != null) row.put("provider_id", providerId);
+    return row;
+  }
+
+  Map<String, Object> closed(String state) {
+    return Map.of("id", "link42", "orderCode", 42, "amount", 100000, "amountPaid", 0,
+        "status", state, "createdAt", "2026-11-12T08:00:30+07:00", "transactions", List.of());
+  }
+
+  @Test
+  void crashBeforePayosCreatedTheLinkClosesTheTopupOnlyAfterItExpires() {
+    var service = service();
+    when(gateway.lookup(42)).thenThrow(new PayosRejectedException("101", "Mã thanh toán không tồn tại"));
+    when(store.topup(id)).thenReturn(pendingRow(null, Instant.now().plusSeconds(600)));
+    service.reconcile(id);
+    verify(store, never()).cancelTopup(any());
+    when(store.topup(id)).thenReturn(pendingRow(null, Instant.now().minusSeconds(1)));
+    service.reconcile(id);
+    verify(store).cancelTopup(id);
+    verify(store, never()).creditTopup(any(), any(), any());
+  }
+
+  @Test
+  void expiredOrCancelledLinkWithoutMoneyClosesTheTopupButPartialMoneyNeedsReview() {
+    var service = service();
+    when(store.topup(id)).thenReturn(pendingRow("link42", Instant.now().minusSeconds(1)));
+    for (String state : List.of("EXPIRED", "CANCELLED")) {
+      when(gateway.lookup(42)).thenReturn(new ObjectMapper().valueToTree(closed(state)));
+      service.reconcile(id);
+    }
+    verify(store, times(2)).cancelTopup(id);
+    var paidSome = new HashMap<>(closed("EXPIRED"));
+    paidSome.put("amountPaid", 50000);
+    when(gateway.lookup(42)).thenReturn(new ObjectMapper().valueToTree(paidSome));
+    assertThrows(RuntimeException.class, () -> service.reconcile(id));
+    verify(store, times(2)).cancelTopup(id);
+    verify(store, never()).creditTopup(any(), any(), any());
+  }
+
+  @Test
+  void anOlderPayosOrderWithTheSameCodeIsNeverCreditedToANewTopup() {
+    var service = service();
+    when(store.topup(id)).thenReturn(pendingRow(null, Instant.now().plusSeconds(600)));
+    var foreign = new HashMap<>(status(100000, "12345678"));
+    foreign.put("createdAt", "2026-10-24T23:05:52+07:00");
+    when(gateway.lookup(42)).thenReturn(new ObjectMapper().valueToTree(foreign));
+    assertThrows(RuntimeException.class, () -> service.reconcile(id));
+    verify(store, never()).creditTopup(any(), any(), any());
+    verify(store, never()).checkout(any(), any(), any());
+  }
+
   @Test
   void reconciliationUsesTheStoredVirtualAccountAndRejectsAnotherAccount() {
     var service = service();

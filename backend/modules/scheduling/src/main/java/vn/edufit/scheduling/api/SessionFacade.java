@@ -92,6 +92,12 @@ public interface SessionFacade {
   List<SessionSummaryView> findCompletedSessionsEndedBetween(Instant from, Instant to);
 
   /**
+   * Buổi học còn ở trạng thái SCHEDULED có thời điểm bắt đầu trong [from, to).
+   * Được module {@code payment} gọi để thu học phí trước giờ học.
+   */
+  List<SessionSummaryView> findScheduledSessionsStartingBetween(Instant from, Instant to);
+
+  /**
    * Tra cứu tóm tắt nhiều buổi học theo mã (batch, tránh N+1). Mã không tồn tại bị bỏ qua.
    */
   List<SessionSummaryView> findSessionsByIds(java.util.Collection<UUID> sessionIds);

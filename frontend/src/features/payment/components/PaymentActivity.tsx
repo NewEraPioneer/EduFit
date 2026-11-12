@@ -1,6 +1,7 @@
 "use client";
 import { ArrowDownLeft, ArrowUpRight, History } from "lucide-react";
-import { entryLabels, money, type Entry } from "../api/paymentApi";
+import { entryLabels, money, settlement, type Entry } from "../api/paymentApi";
+import { SettlementAmount } from "./SettlementAmount";
 export function PaymentActivity({
   entries,
   onHistory,
@@ -19,47 +20,59 @@ export function PaymentActivity({
       </div>
       {entries.length ? (
         <ul className="mt-4 divide-y divide-line">
-          {entries.slice(0, 4).map((e) => (
-            <li key={e.id} className="flex items-start gap-3 py-4">
-              <span
-                className={`mt-0.5 rounded-full p-2 ${
-                  e.available_delta > 0
-                    ? "bg-success-soft text-success-strong"
-                    : "bg-sunken text-muted"
-                }`}
-              >
-                {e.available_delta > 0 ? (
-                  <ArrowDownLeft className="size-4" />
-                ) : (
-                  <ArrowUpRight className="size-4" />
-                )}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">
-                  {entryLabels[e.kind] ?? e.kind}
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  {new Date(e.created_at).toLocaleDateString("vi-VN", {
-                    day: "2-digit",
-                    month: "2-digit",
-                  })}
-                </p>
-              </div>
-              <div className="shrink-0 text-right">
-                <p
-                  className={`text-sm font-medium ${
-                    e.available_delta > 0 ? "text-success-strong" : ""
+          {entries.slice(0, 4).map((e) => {
+            const settled = e.kind === "SESSION_SETTLED";
+            const incoming = settled
+              ? settlement(e).refund > 0
+              : e.available_delta > 0;
+            return (
+              <li key={e.id} className="flex items-start gap-3 py-4">
+                <span
+                  className={`mt-0.5 rounded-full p-2 ${
+                    incoming
+                      ? "bg-success-soft text-success-strong"
+                      : "bg-sunken text-muted"
                   }`}
                 >
-                  {e.available_delta > 0 ? "+" : ""}
-                  {money(e.available_delta || e.held_delta)}
-                </p>
-                {e.available_delta === 0 && (
-                  <p className="mt-1 text-xs text-muted">Từ tiền giữ</p>
+                  {incoming ? (
+                    <ArrowDownLeft className="size-4" />
+                  ) : (
+                    <ArrowUpRight className="size-4" />
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    {settled
+                      ? settlement(e).title
+                      : (entryLabels[e.kind] ?? e.kind)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    {new Date(e.created_at).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    })}
+                  </p>
+                </div>
+                {settled ? (
+                  <SettlementAmount entry={e} className="shrink-0 text-right" />
+                ) : (
+                  <div className="shrink-0 text-right">
+                    <p
+                      className={`text-sm font-medium ${
+                        e.available_delta > 0 ? "text-success-strong" : ""
+                      }`}
+                    >
+                      {e.available_delta > 0 ? "+" : ""}
+                      {money(e.available_delta || e.held_delta)}
+                    </p>
+                    {e.available_delta === 0 && (
+                      <p className="mt-1 text-xs text-muted">Từ tiền giữ</p>
+                    )}
+                  </div>
                 )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <div className="py-8 text-center">

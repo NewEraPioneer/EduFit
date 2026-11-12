@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import vn.edufit.connection.api.ConnectionFacade;
+import vn.edufit.payment.api.event.TuitionTopupNeededEvent;
+import vn.edufit.payment.api.event.TuitionUnpaidForTutorEvent;
 import vn.edufit.payment.application.PaymentViews.*;
 import vn.edufit.payment.domain.SessionCharge;
 import vn.edufit.payment.infra.PaymentStore;
@@ -66,33 +68,139 @@ public class SessionPaymentService {
                 "Đơn giá đã thay đổi, hãy tải lại và kiểm tra học phí");
           if (actor.getUserId().equals(tutor.userId()))
             throw new InvalidOperationException("Không thể tự thanh toán cho mình");
-          var state = new SessionCharge(expectedAmount, source.endAt());
-          var c =
-              new Charge(
-                  sessionId,
-                  source.classId(),
-                  source.studentId(),
-                  actor.getUserId(),
-                  tutor.userId(),
-                  1000,
-                  state);
-          syncReview(c, source, clock.instant());
-          store.insert(c);
-          store.move(
-              c.payerId(),
-              -state.amount,
-              state.amount,
-              "reserve:" + sessionId,
-              "SESSION_RESERVED",
-              sessionId);
-          store.audit(
-              actor.getUserId(),
-              sessionId,
-              "SESSION_FUNDED",
-              "VND=" + expectedAmount + "; commissionBps=1000");
-          store.save(c);
+          var c = reserve(source, actor.getUserId(), tutor.userId(), expectedAmount,
+              actor.getUserId(), "SESSION_FUNDED");
           return view(c, source, actor);
         });
+  }
+
+  /** Mốc thu học phí: 24 giờ trước giờ học. */
+  public static final long DUE_BEFORE_SECONDS = 24 * 3600;
+  /** Nhắc nạp tiền khi buổi học còn trong vòng 72 giờ mà ví chưa đủ. */
+  public static final long REMIND_BEFORE_SECONDS = 72 * 3600;
+  /** Buổi học chưa thu được học phí vẫn được truy thu trong khoảng này. */
+  public static final long COLLECT_LOOKBACK_SECONDS = 90L * 24 * 3600;
+
+  /** Gọi trong {@link PaymentStore#locked}. Chuyển tiền của người trả sang phần đang giữ cho buổi học. */
+  private Charge reserve(SessionSummaryView source, UUID payer, UUID tutorUser, long amount,
+      UUID actor, String auditAction) {
+    var state = new SessionCharge(amount, source.endAt());
+    var c = new Charge(source.sessionId(), source.classId(), source.studentId(), payer, tutorUser, 1000, state);
+    syncReview(c, source, clock.instant());
+    store.insert(c);
+    store.move(payer, -amount, amount, "reserve:" + source.sessionId(), "SESSION_RESERVED", source.sessionId());
+    store.audit(actor, source.sessionId(), auditAction, "VND=" + amount + "; commissionBps=1000; payer=" + payer);
+    store.save(c);
+    return c;
+  }
+
+  /** Ví có thể trả học phí: phụ huynh đã liên kết trước (thứ tự cố định), sau đó là học sinh. */
+  private List<UUID> payerCandidates(UUID studentId, UUID tutorUser) {
+    var candidates = new ArrayList<UUID>(
+        connections.findConfirmedParentUserIds(studentId).stream().sorted().toList());
+    profiles.findStudentById(studentId).map(s -> s.userId()).filter(Objects::nonNull).ifPresent(candidates::add);
+    candidates.removeIf(user -> user.equals(tutorUser));
+    return candidates.stream().distinct().toList();
+  }
+
+  /**
+   * Job thu học phí. Hệ thống chỉ thu tiền và gửi thông báo, không bao giờ hủy buổi học.
+   *
+   * <ul>
+   *   <li>Đến hạn: buổi chưa diễn ra trong vòng 24 giờ tới, buổi đã qua giờ học nhưng chưa ghi
+   *       nhận kết quả, và buổi đã hoàn thành. Buổi cũ nhất được thu trước. Ví chưa đủ thì báo người
+   *       học (và gia sư khi buổi chưa hoàn thành).</li>
+   *   <li>Sắp đến hạn: buổi còn 24–72 giờ mà ví chưa đủ thì nhắc người học nạp tiền.</li>
+   * </ul>
+   */
+  public void collectTuition() {
+    Instant now = clock.instant();
+    Instant from = now.minusSeconds(COLLECT_LOOKBACK_SECONDS);
+    Instant dueUntil = now.plusSeconds(DUE_BEFORE_SECONDS);
+    var due = new ArrayList<SessionSummaryView>(sessions.findScheduledSessionsStartingBetween(from, dueUntil));
+    due.addAll(sessions.findCompletedSessionsEndedBetween(from, now));
+    for (var s : unpaidOldestFirst(due)) {
+      try {
+        store.locked(() -> {
+          if (!autoHold(s.sessionId())) notifyUnpaid(s);
+          return null;
+        });
+      } catch (RuntimeException e) {
+        log.error("Tuition collection failed for session {}", s.sessionId(), e);
+      }
+    }
+    var upcoming = sessions.findScheduledSessionsStartingBetween(dueUntil, now.plusSeconds(REMIND_BEFORE_SECONDS));
+    for (var s : unpaidOldestFirst(upcoming)) {
+      try {
+        store.locked(() -> {
+          if (store.find(s.sessionId()).isEmpty()) notifyLearners(s, TuitionTopupNeededEvent.Stage.UPCOMING);
+          return null;
+        });
+      } catch (RuntimeException e) {
+        log.error("Tuition reminder failed for session {}", s.sessionId(), e);
+      }
+    }
+  }
+
+  private List<SessionSummaryView> unpaidOldestFirst(List<SessionSummaryView> found) {
+    var charged = store.chargedSessionIds(found.stream().map(SessionSummaryView::sessionId).toList());
+    return found.stream()
+        .filter(s -> !charged.contains(s.sessionId()))
+        .sorted(Comparator.comparing(SessionSummaryView::startAt))
+        .toList();
+  }
+
+  /**
+   * Thu học phí của một buổi từ ví đủ tiền đầu tiên. Không phụ thuộc người học bấm nút.
+   *
+   * @return {@code true} khi buổi đã có khoản học phí (vừa thu hoặc có từ trước); {@code false}
+   *     khi không ví nào đủ tiền hoặc buổi không còn diễn ra.
+   */
+  boolean autoHold(UUID sessionId) {
+    return store.locked(() -> {
+      if (store.find(sessionId).isPresent()) return true;
+      var source = source(sessionId);
+      if (!Set.of("SCHEDULED", "COMPLETED").contains(source.status())) return false;
+      var tutor = profiles.findTutorById(source.tutorId())
+          .orElseThrow(() -> new InvalidOperationException("Không tìm thấy gia sư"));
+      long price = classPrice(source.classId());
+      for (UUID payer : payerCandidates(source.studentId(), tutor.userId())) {
+        if (store.wallet(payer).available() < price) continue;
+        reserve(source, payer, tutor.userId(), price, null, "SESSION_AUTO_HELD");
+        return true;
+      }
+      return false;
+    });
+  }
+
+  /** Đến hạn mà chưa thu được: báo người học; buổi chưa hoàn thành thì báo cả gia sư. */
+  private void notifyUnpaid(SessionSummaryView s) {
+    boolean completed = "COMPLETED".equals(s.status());
+    notifyLearners(s, completed ? TuitionTopupNeededEvent.Stage.OVERDUE : TuitionTopupNeededEvent.Stage.DUE);
+    if (completed) return;
+    String key = "startAt=" + s.startAt();
+    if (store.hasAudit(s.sessionId(), "TUITION_TUTOR_NOTIFIED", key)) return;
+    profiles.findTutorById(s.tutorId()).map(t -> t.userId()).ifPresent(tutorUser ->
+        store.publish(TuitionUnpaidForTutorEvent.of(
+            tutorUser, s.studentId(), s.sessionId(), classPrice(s.classId()), s.startAt())));
+    store.audit(null, s.sessionId(), "TUITION_TUTOR_NOTIFIED", key);
+  }
+
+  /** Báo từng ví có thể trả, mỗi giai đoạn một lần cho mỗi giờ học (đổi giờ học thì báo lại). */
+  private void notifyLearners(SessionSummaryView s, TuitionTopupNeededEvent.Stage stage) {
+    String action = "TUITION_" + stage + "_NOTIFIED";
+    String key = "startAt=" + s.startAt();
+    if (store.hasAudit(s.sessionId(), action, key)) return;
+    var tutor = profiles.findTutorById(s.tutorId()).map(t -> t.userId()).orElse(null);
+    var payers = payerCandidates(s.studentId(), tutor);
+    long price = classPrice(s.classId());
+    long best = payers.stream().mapToLong(user -> store.wallet(user).available()).max().orElse(0);
+    long missing = Math.max(0, price - best);
+    if (missing == 0) return;
+    Instant dueAt = s.startAt().minusSeconds(DUE_BEFORE_SECONDS);
+    for (UUID user : payers)
+      store.publish(TuitionTopupNeededEvent.of(user, s.studentId(), s.sessionId(), price, missing, dueAt, stage));
+    store.audit(null, s.sessionId(), action, key);
   }
 
   public Session act(CurrentUser actor, UUID id, String action, String text, Long amount) {

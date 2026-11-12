@@ -63,6 +63,13 @@ public class PaymentController {
     return ApiResponse.success(wallets.overview(actors.getObject(), offset));
   }
 
+  @GetMapping("/history")
+  public ApiResponse<?> history(
+      @RequestParam @Pattern(regexp = "topups|sessions") String section,
+      @RequestParam(defaultValue = "0") @Min(0) @Max(100000) int offset) {
+    return ApiResponse.success(wallets.history(actors.getObject(), section, offset));
+  }
+
   public record PayoutAccount(
       @NotBlank @Size(max = 100) String bank,
       @NotNull @Pattern(regexp = "[0-9]{5,34}") String account,

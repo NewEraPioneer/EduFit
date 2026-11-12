@@ -11,6 +11,11 @@ import { WalletPanel } from "./WalletPanel";
 import { PaymentActivity } from "./PaymentActivity";
 import { PaymentHistoryDialog } from "./PaymentHistoryDialog";
 import { PaymentSessionsPanel } from "./PaymentSessionsPanel";
+import {
+  COLLECT_LOOKBACK_MS,
+  DUE_BEFORE_MS,
+  tuitionDue,
+} from "../paymentPresentation";
 export function PaymentWorkspace({
   role,
 }: {
@@ -23,6 +28,7 @@ export function PaymentWorkspace({
   const [history, setHistory] = useState(false);
   const [data, setData] = useState<Overview | null>(null);
   const [sessions, setSessions] = useState<PaymentSession[]>([]);
+  const [due, setDue] = useState<PaymentSession[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -34,12 +40,19 @@ export function PaymentWorkspace({
     try {
       const [year, m] = month.split("-").map(Number);
       if (!year || !m) return;
-      const [wallet, list] = await Promise.all([
+      const now = Date.now();
+      const [wallet, list, owed] = await Promise.all([
         paymentApi.wallet(0),
         paymentApi.sessions(
           new Date(year, m - 1, 1).toISOString(),
           new Date(year, m, 1).toISOString(),
         ),
+        role === "TUTOR"
+          ? Promise.resolve({ data: [] as PaymentSession[] })
+          : paymentApi.sessions(
+              new Date(now - COLLECT_LOOKBACK_MS).toISOString(),
+              new Date(now + DUE_BEFORE_MS + 3600 * 1000).toISOString(),
+            ),
       ]);
       if (alive.current && current === generation.current) {
         const currentBalance = wallet.data
@@ -50,13 +63,14 @@ export function PaymentWorkspace({
         balance.current = currentBalance;
         setData(wallet.data ?? null);
         setSessions(list.data ?? []);
+        setDue((owed.data ?? []).filter((s) => tuitionDue(s, now)));
         setError(null);
       }
     } catch (e) {
       if (alive.current && current === generation.current)
         setError(paymentError(e));
     }
-  }, [month]);
+  }, [month, role]);
   useEffect(() => {
     alive.current = true;
     async function initial() {
@@ -154,6 +168,7 @@ export function PaymentWorkspace({
             tutor={role === "TUTOR"}
             busy={busy}
             execute={execute}
+            due={due}
           />
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
             <PaymentSessionsPanel
@@ -171,10 +186,7 @@ export function PaymentWorkspace({
         </>
       )}
       {history && (
-        <PaymentHistoryDialog
-          onClose={() => setHistory(false)}
-          execute={execute}
-        />
+        <PaymentHistoryDialog role={role} onClose={() => setHistory(false)} />
       )}
     </div>
   );

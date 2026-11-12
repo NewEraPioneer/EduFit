@@ -3,9 +3,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SessionPaymentCard } from "@/features/payment/components/SessionPaymentCard";
 import {
+  money,
   paymentApi,
   type PaymentSession,
 } from "@/features/payment/api/paymentApi";
+import { DUE_BEFORE_MS } from "@/features/payment/paymentPresentation";
 vi.mock("@/features/payment/api/paymentApi", async () => {
   const actual = await vi.importActual<
     typeof import("@/features/payment/api/paymentApi")
@@ -13,7 +15,6 @@ vi.mock("@/features/payment/api/paymentApi", async () => {
   return {
     ...actual,
     paymentApi: {
-      fund: vi.fn(),
       confirm: vi.fn(),
       dispute: vi.fn(),
       report: vi.fn(),
@@ -165,13 +166,55 @@ describe("Review window and shared payment case", () => {
       screen.queryByRole("button", { name: "Đề xuất cách giải quyết" }),
     ).not.toBeInTheDocument();
   });
-  it("asks before reserving the displayed tuition", async () => {
-    show({ status: "UNFUNDED", canFund: true, canActAsLearner: false });
-    fireEvent.click(screen.getByRole("button", { name: "Giữ học phí từ ví" }));
-    expect(paymentApi.fund).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Xác nhận giữ tiền" }));
+  it("collects tuition automatically 24 hours before the session and never cancels it", () => {
+    const start = new Date(Date.now() + 3 * 86400000);
+    const dueAt = new Date(start.getTime() - DUE_BEFORE_MS).toLocaleString(
+      "vi-VN",
+    );
+    show({
+      status: "UNFUNDED",
+      sessionStatus: "SCHEDULED",
+      startAt: start.toISOString(),
+      endAt: new Date(start.getTime() + 5400000).toISOString(),
+    });
+    expect(screen.getByText("Chờ thu học phí")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Giữ học phí từ ví" }),
+    ).not.toBeInTheDocument();
+    const note = screen.getByText(
+      new RegExp(`Hệ thống tự thu ${money(300000)} từ ví`),
+    );
+    expect(note).toHaveTextContent(dueAt);
+    expect(note).not.toHaveTextContent(/hủy/);
+  });
+  it("marks a completed but unpaid session as owed by the learner", () => {
+    show({
+      status: "UNFUNDED",
+      sessionStatus: "COMPLETED",
+      startAt: new Date(Date.now() - 7200000).toISOString(),
+      endAt: new Date(Date.now() - 1800000).toISOString(),
+    });
+    expect(screen.getByText("Cần thanh toán")).toBeInTheDocument();
+    expect(screen.getByText(/còn nợ/)).not.toHaveTextContent(/hủy/);
+  });
+  it("lets the tutor complete a session whose tuition is not collected yet", async () => {
+    show({
+      status: "UNFUNDED",
+      sessionStatus: "SCHEDULED",
+      canActAsTutor: true,
+      canActAsLearner: false,
+      startAt: new Date(Date.now() - 7200000).toISOString(),
+      endAt: new Date(Date.now() - 1800000).toISOString(),
+    });
+    expect(screen.getByText(/chưa thu được học phí/)).not.toHaveTextContent(
+      /hủy/,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ghi nhận buổi học hoàn thành" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận kết thúc" }));
     await waitFor(() =>
-      expect(paymentApi.fund).toHaveBeenCalledWith("session-1", 300000),
+      expect(paymentApi.completeSession).toHaveBeenCalledWith("session-1"),
     );
   });
   it("offers tutors the existing scheduling completion action before opening a review window", async () => {

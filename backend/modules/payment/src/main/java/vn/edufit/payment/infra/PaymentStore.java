@@ -82,6 +82,29 @@ public class PaymentStore {
           vn.edufit.payment.api.event.WalletBalanceChangedEvent.of(user, ref, kind, available, held));
   }
 
+  /** Phát sự kiện thanh toán trong giao dịch hiện tại (module thông báo soạn nội dung). */
+  public void publish(Object event) {
+    events.publishEvent(event);
+  }
+
+  /** Đã ghi đúng nhật ký này chưa (dùng để mỗi thông báo học phí chỉ gửi một lần). */
+  public boolean hasAudit(UUID ref, String action, String detail) {
+    Long found = db.queryForObject(
+        "select count(*) from payment_audit where reference_id=? and action=? and detail=?",
+        Long.class, ref, action, detail);
+    return found != null && found > 0;
+  }
+
+  /** Các buổi trong danh sách đã có khoản học phí (một truy vấn cho cả danh sách). */
+  public Set<UUID> chargedSessionIds(Collection<UUID> sessionIds) {
+    if (sessionIds.isEmpty()) return Set.of();
+    return new HashSet<>(db.query(con -> {
+      var ps = con.prepareStatement("select session_id from payment_charge where session_id = any(?)");
+      ps.setArray(1, con.createArrayOf("uuid", sessionIds.toArray()));
+      return ps;
+    }, (rs, i) -> rs.getObject(1, UUID.class)));
+  }
+
   public void audit(UUID actor, UUID ref, String action, String detail) {
     db.update(
         "insert into payment_audit(actor_id,reference_id,action,detail) values (?,?,?,?)",
@@ -91,10 +114,15 @@ public class PaymentStore {
         detail);
   }
 
+  /**
+   * Hoạt động ví của người dùng. Bỏ bút toán giữ học phí: đó là cơ chế nội bộ, người dùng chỉ
+   * cần thấy khi buổi học được thanh toán cho gia sư hoặc hoàn tiền (SESSION_SETTLED).
+   */
   public List<Map<String, Object>> entries(UUID owner, int offset) {
     return db.queryForList(
         "select id,kind,available_delta,held_delta,reference_id,created_at::text as created_at from"
-            + " payment_entry where user_id=? order by created_at desc,id limit 50 offset ?",
+            + " payment_entry where user_id=? and kind<>'SESSION_RESERVED'"
+            + " order by created_at desc,id limit 50 offset ?",
         owner,
         offset);
   }
@@ -218,15 +246,57 @@ public class PaymentStore {
         s);
   }
 
+  /** Giới hạn orderCode payOS chấp nhận (Number.MAX_SAFE_INTEGER). */
+  public static final long MAX_ORDER_CODE = 9_007_199_254_740_991L;
+
+  /**
+   * orderCode = mili giây hiện tại × 1000 + 3 chữ số cuối của sequence, và luôn lớn hơn mã lớn nhất
+   * đã có. Phần thời gian không quay lại khi restart, đổi CSDL hay restore backup, nên mã mới không
+   * trùng đơn cũ đã gửi payOS. Phần sequence tách các yêu cầu trong cùng mili giây. Gọi trong
+   * {@link #locked} để các yêu cầu đồng thời được xếp hàng; ràng buộc UNIQUE là chốt chặn cuối.
+   */
+  private static final String NEXT_ORDER_CODE =
+      "greatest(floor(extract(epoch from clock_timestamp())*1000)::bigint*1000"
+          + "+nextval(pg_get_serial_sequence('payment_topup','order_code'))%1000,"
+          + "coalesce((select max(order_code) from payment_topup),0)+1)";
+
   public Map<String, Object> createTopup(UUID user, long amount, String provider, Instant expires) {
-    return db.queryForMap(
-        "insert into payment_topup(id,user_id,amount,provider,status,expires_at) values"
-            + " (?,?,?,?,'PENDING',?) returning *",
+    var row = db.queryForMap(
+        "insert into payment_topup(id,order_code,user_id,amount,provider,status,expires_at) values"
+            + " (?," + NEXT_ORDER_CODE + ",?,?,?,'PENDING',?) returning *",
         UUID.randomUUID(),
         user,
         amount,
         provider,
         ts(expires));
+    withinPayosLimit(((Number) row.get("order_code")).longValue());
+    return row;
+  }
+
+  /** Cấp orderCode mới khi payOS báo trùng. Chỉ đổi được khi payOS chưa cấp link cho khoản nạp. */
+  public long renewOrderCode(UUID id) {
+    var codes = db.queryForList(
+        "update payment_topup set order_code=" + NEXT_ORDER_CODE
+            + " where id=? and status='PENDING' and provider_id is null returning order_code",
+        Long.class,
+        id);
+    if (codes.isEmpty())
+      throw new InvalidOperationException("Khoản nạp đã có link thanh toán, không đổi mã đơn");
+    return withinPayosLimit(codes.getFirst());
+  }
+
+  /** Đóng khoản nạp chưa nhận tiền. Khoản đã cộng ví không bao giờ bị đổi trạng thái. */
+  public boolean cancelTopup(UUID id) {
+    boolean cancelled =
+        db.update("update payment_topup set status='CANCELLED' where id=? and status='PENDING'", id) == 1;
+    if (cancelled) audit(null, id, "TOPUP_CANCELLED", "payOS không còn nhận tiền cho khoản nạp này");
+    return cancelled;
+  }
+
+  private static long withinPayosLimit(long orderCode) {
+    if (orderCode <= 0 || orderCode > MAX_ORDER_CODE)
+      throw new IllegalStateException("orderCode vượt giới hạn payOS: " + orderCode);
+    return orderCode;
   }
 
   public void checkout(UUID id, String url, String providerId) {
@@ -273,6 +343,30 @@ public class PaymentStore {
                 + " order by payment_topup.created_at desc,id limit 50 offset ?",
             owner,
             offset);
+  }
+
+  /** Lịch sử nạp của người dùng: chỉ khoản đã cộng ví, không gồm đơn đang chờ hay đã hủy. */
+  public List<Map<String, Object>> topupHistory(UUID owner, int offset) {
+    return db.queryForList(
+        "select t.id,t.order_code,t.provider_id as payment_link_id,t.transaction_reference as"
+            + " bank_reference,t.amount,t.provider,coalesce(e.created_at,t.created_at)::text as paid_at"
+            + " from payment_topup t left join payment_entry e on e.event_key='topup:'||t.id::text"
+            + " where t.user_id=? and t.status='PAID'"
+            + " order by coalesce(e.created_at,t.created_at) desc,t.id limit 50 offset ?",
+        owner,
+        offset);
+  }
+
+  /** Lịch sử tiền buổi học đã chốt: thanh toán cho gia sư, hoàn tiền và thu nhập buổi dạy. */
+  public List<Map<String, Object>> sessionHistory(UUID owner, int offset) {
+    return db.queryForList(
+        "select e.id,e.kind,e.available_delta,e.held_delta,e.reference_id as session_id,"
+            + "e.created_at::text as created_at,c.end_at::text as session_end_at,c.status as charge_status"
+            + " from payment_entry e left join payment_charge c on c.session_id=e.reference_id"
+            + " where e.user_id=? and e.kind in ('SESSION_SETTLED','TUITION_INCOME')"
+            + " order by e.created_at desc,e.id limit 50 offset ?",
+        owner,
+        offset);
   }
 
   public void creditTopup(UUID id, String reference, UUID actor) {

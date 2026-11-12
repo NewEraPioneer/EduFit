@@ -13,7 +13,7 @@ interface Props {
 }
 export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
   const [mode, setMode] = useState<
-    "fund" | "confirm" | "dispute" | "report" | "comment" | "complete" | null
+    "confirm" | "dispute" | "report" | "comment" | "complete" | null
   >(null);
   const [text, setText] = useState("");
   const [category, setCategory] = useState("OTHER");
@@ -63,7 +63,6 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     const ok = await execute(() => {
-      if (mode === "fund") return paymentApi.fund(s.sessionId, s.amount);
       if (mode === "confirm") return paymentApi.confirm(s.sessionId);
       if (mode === "complete") return paymentApi.completeSession(s.sessionId);
       if (mode === "dispute")
@@ -75,24 +74,20 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
     if (ok) setMode(null);
   }
   const submitLabel =
-    mode === "fund"
-      ? "Xác nhận giữ tiền"
-      : mode === "confirm"
-        ? "Ghi nhận xác nhận"
-        : mode === "complete"
-          ? "Xác nhận kết thúc"
-          : mode === "dispute"
-            ? "Gửi vấn đề"
-            : mode === "comment"
-              ? "Gửi phản hồi"
-              : "Gửi đề xuất";
+    mode === "confirm"
+      ? "Ghi nhận xác nhận"
+      : mode === "complete"
+        ? "Xác nhận kết thúc"
+        : mode === "dispute"
+          ? "Gửi vấn đề"
+          : mode === "comment"
+            ? "Gửi phản hồi"
+            : "Gửi đề xuất";
   return (
     <article className="rounded-2xl border border-line bg-surface p-5 space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-medium text-ink">
-            Buổi học với {s.tutorName}
-          </h3>
+          <h3 className="font-medium text-ink">Buổi học với {s.tutorName}</h3>
           <p className="mt-1 text-sm text-muted">
             {new Date(s.startAt).toLocaleString("vi-VN")}
           </p>
@@ -226,15 +221,6 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        {s.canFund && s.amount > 0 && (
-          <button
-            className={button}
-            disabled={disabled}
-            onClick={() => open("fund")}
-          >
-            Giữ học phí từ ví
-          </button>
-        )}
         {canComplete && (
           <button
             className={button}
@@ -287,19 +273,15 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
           className="space-y-4 rounded-xl border border-action-line p-4"
         >
           <p className="text-sm font-medium">
-            {mode === "fund"
-              ? `Giữ ${money(
-                  s.amount,
-                )} từ ví cho buổi học này? Tiền chỉ chuyển sau thời hạn phản hồi hoặc quyết định Admin.`
-              : mode === "confirm"
-                ? "Chỉ xác nhận việc học đã diễn ra. Học phí tiếp tục được giữ đến hết thời hạn phản hồi."
-                : mode === "complete"
-                  ? "Xác nhận buổi học đã kết thúc. Người học sẽ có đủ 24 giờ phản hồi trước khi học phí được thanh toán."
-                  : mode === "dispute"
-                    ? "Báo vấn đề và tạm giữ học phí"
-                    : mode === "comment"
-                      ? "Bổ sung thông tin cho hồ sơ chung"
-                      : "Đề xuất mức học phí hợp lý; Admin xem xét trước khi xử lý tiền."}
+            {mode === "confirm"
+              ? "Chỉ xác nhận việc học đã diễn ra. Học phí tiếp tục được giữ đến hết thời hạn phản hồi."
+              : mode === "complete"
+                ? "Xác nhận buổi học đã kết thúc. Người học sẽ có đủ 24 giờ phản hồi trước khi học phí được thanh toán."
+                : mode === "dispute"
+                  ? "Báo vấn đề và tạm giữ học phí"
+                  : mode === "comment"
+                    ? "Bổ sung thông tin cho hồ sơ chung"
+                    : "Đề xuất mức học phí hợp lý; Admin xem xét trước khi xử lý tiền."}
           </p>
           {mode === "dispute" && (
             <>

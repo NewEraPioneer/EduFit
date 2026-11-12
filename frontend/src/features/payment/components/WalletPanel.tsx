@@ -3,18 +3,22 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowUpRight, QrCode, ShieldCheck, Wallet } from "lucide-react";
 import { TutorWithdrawalPanel } from "./TutorWithdrawalPanel";
 import { TopupCheckoutDialog } from "./TopupCheckoutDialog";
+import { TuitionDuePanel } from "./TuitionDuePanel";
 import {
   paymentApi,
   money,
   type Overview,
   type Checkout,
   type Topup,
+  type PaymentSession,
 } from "../api/paymentApi";
 interface Props {
   data: Overview;
   tutor: boolean;
   busy: boolean;
   execute: (work: () => Promise<unknown>) => Promise<boolean>;
+  /** Buổi học đến hạn mà hệ thống chưa thu được học phí (chỉ người học). */
+  due?: PaymentSession[];
 }
 export function WalletPanel(props: Props) {
   return props.tutor ? (
@@ -34,7 +38,7 @@ export function checkoutFromTopup(t: Topup): Checkout {
       : { qrUrl: t.checkout_url }),
   };
 }
-function TopupPanel({ data, busy, execute }: Props) {
+function TopupPanel({ data, busy, execute, due = [] }: Props) {
   const [amount, setAmount] = useState("100000");
   const [checkout, setCheckout] = useState<Checkout | null>(null);
   const request = useRef(false);
@@ -49,22 +53,25 @@ function TopupPanel({ data, busy, execute }: Props) {
       t.checkout_url &&
       (!t.expires_at || new Date(t.expires_at).getTime() > now),
   );
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  async function startTopup(value: number) {
     if (busy || request.current || !data.topupEnabled) return;
     request.current = true;
     try {
       await execute(async () => {
-        const response = await paymentApi.topup(Number(amount));
+        const response = await paymentApi.topup(value);
         if (response.data)
           setCheckout({
             ...response.data,
-            amount: response.data.amount ?? Number(amount),
+            amount: response.data.amount ?? value,
           });
       });
     } finally {
       request.current = false;
     }
+  }
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    void startTopup(Number(amount));
   }
   return (
     <section
@@ -80,17 +87,13 @@ function TopupPanel({ data, busy, execute }: Props) {
             Ví học phí EduFit
           </div>
           <div>
-            <p className="text-sm text-ink-2">
-              Số dư khả dụng
-            </p>
+            <p className="text-sm text-ink-2">Số dư khả dụng</p>
             <p className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
               {money(data.wallet.available)}
             </p>
           </div>
           <div className="flex items-center justify-between gap-4 border-t border-line pt-5 text-sm">
-            <span className="text-ink-2">
-              Đang giữ cho buổi học
-            </span>
+            <span className="text-ink-2">Đang giữ cho buổi học</span>
             <strong>{money(data.wallet.held)}</strong>
           </div>
           <p className="flex items-start gap-2 text-xs leading-relaxed text-ink-2">
@@ -107,6 +110,18 @@ function TopupPanel({ data, busy, execute }: Props) {
           <p className="mt-1 text-sm text-muted">
             Chọn số tiền, quét QR và tiếp tục học.
           </p>
+          <div className="mt-4">
+            <TuitionDuePanel
+              due={due}
+              available={data.wallet.available}
+              busy={busy}
+              canTopup={data.topupEnabled}
+              onTopup={(value) => {
+                setAmount(String(value));
+                void startTopup(value);
+              }}
+            />
+          </div>
           {!data.topupEnabled && (
             <p
               role="status"
@@ -130,9 +145,7 @@ function TopupPanel({ data, busy, execute }: Props) {
                   onChange={(e) => setAmount(e.target.value)}
                   className="min-w-0 flex-1 bg-transparent py-3 text-xl font-bold outline-none"
                 />
-                <span className="text-xs font-medium text-muted">
-                  VND
-                </span>
+                <span className="text-xs font-medium text-muted">VND</span>
               </div>
             </label>
             <div className="grid grid-cols-3 gap-2">
