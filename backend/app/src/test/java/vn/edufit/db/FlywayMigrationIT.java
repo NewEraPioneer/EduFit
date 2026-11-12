@@ -49,9 +49,19 @@ class FlywayMigrationIT {
   private static final int PROD_COUNT = MigrationScripts.count(MigrationScripts.MIGRATION);
   private static final int DEV_COUNT = MigrationScripts.count(MigrationScripts.MIGRATION, MigrationScripts.SEED);
 
-  /** Version cuối của schema (db/migration). Seed demo đầy đủ V1.34 chỉ dành cho CSDL dev mới, không áp lên dữ liệu có sẵn. */
+  /** Seed demo đầy đủ: chỉ dành cho CSDL dev mới, không áp lên dữ liệu có sẵn khi nâng cấp. */
+  private static final String FULL_SEED_VERSION = "1.34";
+
+  /**
+   * Version schema cao nhất mà các test nâng cấp áp lên dữ liệu có sẵn: migration mới hơn seed đầy đủ
+   * (V1.37 trở đi) được kiểm chứng ở test riêng của từng module, không để seed V1.34 chạy lên dữ liệu
+   * do chính test chèn vào.
+   */
   private static final MigrationVersion SCHEMA_HEAD =
-      MigrationScripts.versions(MigrationScripts.MIGRATION).stream().max(MigrationVersion::compareTo).orElseThrow();
+      MigrationScripts.versions(MigrationScripts.MIGRATION).stream()
+          .filter(v -> v.isNewerThan(FULL_SEED_VERSION) == false)
+          .max(MigrationVersion::compareTo)
+          .orElseThrow();
 
   private static int devAfter(String version) {
     return (int) MigrationScripts.versions(MigrationScripts.MIGRATION, MigrationScripts.SEED).stream()

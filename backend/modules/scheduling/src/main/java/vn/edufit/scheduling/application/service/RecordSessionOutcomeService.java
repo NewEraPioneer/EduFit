@@ -41,6 +41,7 @@ public class RecordSessionOutcomeService {
   private final ProgressSyncPort progressSyncPort;
   private final ApplicationEventPublisher eventPublisher;
   private final Clock clock;
+  private final vn.edufit.scheduling.api.SessionFundingGuard funding;
 
   @Transactional
   public TutoringSession recordOutcome(
@@ -67,15 +68,16 @@ public class RecordSessionOutcomeService {
       );
     }
 
-    // 4. Kiểm tra thời điểm: Buổi học phải đã bắt đầu hoặc kết thúc
-    if (now.isBefore(session.getStartAt())) {
+    // Chỉ kết luận kết quả khi thời lượng buổi học đã kết thúc.
+    if (now.isBefore(session.getEndAt())) {
       throw new InvalidOperationException(
           ErrorCode.INVALID_OPERATION,
-          "Chưa thể ghi nhận kết quả khi buổi học chưa diễn ra!"
+          "Chỉ có thể ghi nhận kết quả sau giờ kết thúc buổi học"
       );
     }
 
     // 5. Cập nhật Aggregate Root (lưu user_id tuân thủ khóa ngoại CSDL)
+    if (outcome == SessionStatus.COMPLETED) funding.requireFunded(sessionId);
     session.recordOutcome(outcome, outcomeRecordedBy, now);
     TutoringSession updatedSession = sessionRepository.save(session);
 

@@ -295,4 +295,3 @@ describe("notificationRoute - Hằng số và quy tắc điều hướng", () =>
     });
   });
 });
-

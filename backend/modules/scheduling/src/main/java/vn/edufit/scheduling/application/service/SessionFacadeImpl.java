@@ -25,6 +25,17 @@ public class SessionFacadeImpl implements SessionFacade {
   private final TutoringSessionDomainRepository sessionRepository;
 
   @Override
+  @Transactional
+  public Optional<SessionSummaryView> lockSessionById(UUID id) {
+    return sessionRepository.findByIdForUpdate(id).map(SessionFacadeImpl::toSummary);
+  }
+
+  @Override
+  public Optional<String> findMeetingLink(UUID id) {
+    return sessionRepository.findById(id).map(vn.edufit.scheduling.domain.model.TutoringSession::getPlaceOrLink);
+  }
+
+  @Override
   public Optional<SessionSummaryView> findSessionById(UUID sessionId) {
     return sessionRepository.findById(sessionId).map(SessionFacadeImpl::toSummary);
   }

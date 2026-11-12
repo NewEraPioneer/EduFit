@@ -10,11 +10,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -35,6 +32,7 @@ import vn.edufit.scheduling.domain.policy.ConflictPolicy;
 import vn.edufit.scheduling.domain.policy.RecurringSlotParser;
 import vn.edufit.scheduling.domain.repository.SessionHistoryDomainRepository;
 import vn.edufit.scheduling.domain.repository.TutoringSessionDomainRepository;
+import vn.edufit.scheduling.domain.repository.RecurringProposalRepository;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.EntityNotFoundException;
 import vn.edufit.shared.exception.ErrorCode;
@@ -51,8 +49,7 @@ import vn.edufit.shared.exception.ResourceConflictException;
  *       đều bị từ chối với lỗi {@link ErrorCode#VALIDATION_FAILED}.</li>
  *   <li><b>Mutual Consent:</b> Người phản hồi bắt buộc phải là đối tác phía bên kia (Gia sư $\leftrightarrow$ Học sinh/Phụ huynh).
  *       Không ai được phép tự duyệt đề xuất do chính mình gửi.</li>
- *   <li><b>Database Invariant (R4):</b> Không tạo bảng mới; các đề xuất in-flight được lưu trên {@link ConcurrentMap}
- *       có cơ chế hết hạn (TTL). Khi được chấp thuận, các buổi học cụ thể mới được lưu bền vững vào bảng {@code tutoring_session}.</li>
+ *   <li>Đề xuất được lưu DB và khóa khi xử lý, sống qua restart và dùng chung giữa các instance.</li>
  *   <li><b>Atomic Regeneration:</b> Khi chấp thuận, dưới 1 giao dịch {@link Transactional} duy nhất:
  *       toàn bộ các buổi học SCHEDULED sắp tới trong khoảng thời gian sẽ bị hủy, và các buổi học mới tương ứng
  *       với các khung giờ định kỳ sẽ được sinh ra và bảo vệ bởi PostgreSQL GiST exclusion constraint.</li>
@@ -71,11 +68,7 @@ public class RescheduleClassScheduleService {
   private final SchedulingSecurityResolver schedulingSecurityResolver;
   private final ApplicationEventPublisher eventPublisher;
   private final Clock clock;
-
-  /**
-   * Kho lưu trữ in-memory quản lý trạng thái các đề xuất đổi lịch định kỳ (In-flight Proposals - R4).
-   */
-  private final ConcurrentMap<UUID, RecurringRescheduleProposal> proposalStore = new ConcurrentHashMap<>();
+  private final RecurringProposalRepository proposals;
 
   public record RecurringScheduleResult(
       RecurringRescheduleProposal proposal,
@@ -86,6 +79,7 @@ public class RescheduleClassScheduleService {
   /**
    * Đề xuất đổi lịch học định kỳ mới cho lớp học (overload tham số chi tiết).
    */
+  @Transactional
   public RecurringRescheduleProposal proposeRecurringSchedule(
       UUID classId,
       LocalDate effectiveFrom,
@@ -152,14 +146,14 @@ public class RescheduleClassScheduleService {
       );
     }
 
-    // 6. Xử lý đề xuất cũ đang chờ (nếu có) của lớp học này
-    for (RecurringRescheduleProposal existing : proposalStore.values()) {
-      if (existing.getClassId().equals(classId) && existing.isPending(now)) {
-        existing.expire(now);
-      }
+    // Serialize replacing proposals and accepting schedules for this class across instances.
+    proposals.lockClass(classId);
+    for (RecurringRescheduleProposal existing : proposals.findPendingByClassId(classId)) {
+      existing.expire(now);
+      proposals.save(existing);
     }
 
-    // 7. Tạo đề xuất mới và lưu trên bộ nhớ RAM
+    // 7. Lưu đề xuất mới trong cùng giao dịch với việc thay thế đề xuất cũ.
     RecurringRescheduleProposal proposal = RecurringRescheduleProposal.create(
         UUID.randomUUID(),
         classId,
@@ -176,7 +170,7 @@ public class RescheduleClassScheduleService {
         now
     );
 
-    proposalStore.put(proposal.getProposalId(), proposal);
+    proposals.save(proposal);
     log.info(
         "Tạo đề xuất đổi lịch định kỳ UC4.8 thành công: proposalId={}, classId={}, horizon=[{} -> {}], slots={}",
         proposal.getProposalId(),
@@ -205,11 +199,12 @@ public class RescheduleClassScheduleService {
       throw new InvalidOperationException(ErrorCode.VALIDATION_FAILED, "Mã đề xuất (proposalId) không được để trống");
     }
 
-    // 1. Tìm kiếm đề xuất in-flight trên bộ nhớ RAM
-    RecurringRescheduleProposal proposal = proposalStore.get(proposalId);
-    if (proposal == null) {
-      throw new EntityNotFoundException("Không tìm thấy đề xuất đổi lịch định kỳ với ID: " + proposalId);
-    }
+    // 1. Khóa lớp và đề xuất để phản hồi chỉ có hiệu lực một lần.
+    var initial = proposals.findById(proposalId)
+        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đề xuất đổi lịch định kỳ"));
+    proposals.lockClass(initial.getClassId());
+    RecurringRescheduleProposal proposal = proposals.findByIdForUpdate(proposalId)
+        .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đề xuất đổi lịch định kỳ"));
 
     if (!proposal.isPending(now)) {
       throw new InvalidOperationException(
@@ -237,6 +232,7 @@ public class RescheduleClassScheduleService {
     // 3. Xử lý trường hợp TỪ CHỐI (REJECT)
     if (!accept) {
       proposal.reject(responderId, reason, now);
+      proposals.save(proposal);
       log.info("Đã từ chối đề xuất đổi lịch định kỳ: proposalId={}, responderId={}", proposalId, responderId);
       return new RecurringScheduleResult(
           proposal,
@@ -370,6 +366,8 @@ public class RescheduleClassScheduleService {
 
     // 4e. Đánh dấu đề xuất là ACCEPTED
     proposal.accept(responderId, now);
+    proposals.save(proposal);
+    connectionValidationPort.updateAgreedSlots(proposal.getClassId(), proposal.getNewWeeklySlots());
 
     // Một sự kiện cho cả lô: người dùng nhận đúng một thông báo cố định thay vì một thông báo cho mỗi buổi.
     eventPublisher.publishEvent(ClassScheduleChangedEvent.of(
@@ -393,40 +391,47 @@ public class RescheduleClassScheduleService {
   /**
    * Tra cứu thông tin đề xuất in-flight theo proposalId.
    */
-  public Optional<RecurringRescheduleProposal> findProposalById(UUID proposalId) {
+  @Transactional(readOnly = true)
+  public Optional<RecurringRescheduleProposal> findProposalById(UUID proposalId, CurrentUser actor) {
     if (proposalId == null) {
       return Optional.empty();
     }
-    RecurringRescheduleProposal proposal = proposalStore.get(proposalId);
-    if (proposal != null) {
+    var found = proposals.findById(proposalId);
+    found.ifPresent(proposal -> {
+      schedulingSecurityResolver.requireClassAccess(actor, proposal.getClassId());
       proposal.isPending(clock.instant()); // Kích hoạt kiểm tra TTL
-    }
-    return Optional.ofNullable(proposal);
+    });
+    return found;
   }
 
   /**
    * Tra cứu đề xuất PENDING hiện tại của lớp học (nếu có).
    */
-  public Optional<RecurringRescheduleProposal> findActiveProposalByClassId(UUID classId) {
+  @Transactional(readOnly = true)
+  public Optional<RecurringRescheduleProposal> findActiveProposalByClassId(UUID classId, CurrentUser actor) {
     if (classId == null) {
       return Optional.empty();
     }
     Instant now = clock.instant();
-    return proposalStore.values().stream()
-        .filter(p -> p.getClassId().equals(classId) && p.isPending(now))
+    schedulingSecurityResolver.requireClassAccess(actor, classId);
+    return proposals.findPendingByClassId(classId).stream()
+        .filter(p -> p.isPending(now))
         .findFirst();
   }
 
   /**
    * Hủy các đề xuất đổi lịch học định kỳ đang chờ (In-flight Proposals) khi lớp học kết thúc (Cascade Termination).
    */
+  @Transactional
   public void cancelActiveProposalForClass(UUID classId, String reason, Instant now) {
     if (classId == null) {
       return;
     }
-    for (RecurringRescheduleProposal p : proposalStore.values()) {
-      if (p != null && Objects.equals(p.getClassId(), classId) && p.isPending(now)) {
+    proposals.lockClass(classId);
+    for (RecurringRescheduleProposal p : proposals.findPendingByClassId(classId)) {
+      if (p != null) {
         p.expire(now);
+        proposals.save(p);
         log.info("Đã hủy đề xuất đổi lịch định kỳ do lớp học kết thúc: proposalId={}, classId={}, reason={}",
             p.getProposalId(), classId, reason);
       }

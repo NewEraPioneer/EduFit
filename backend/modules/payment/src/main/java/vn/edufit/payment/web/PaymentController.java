@@ -20,16 +20,19 @@ public class PaymentController {
   private final PaymentReconciliationService reconciliation;
   private final SessionPaymentService sessions;
   private final ObjectProvider<CurrentUser> actors;
+  private final PaymentLessonService lessons;
 
   public PaymentController(
       WalletService wallets,
       SessionPaymentService sessions,
       ObjectProvider<CurrentUser> actors,
-      PaymentReconciliationService reconciliation) {
+      PaymentReconciliationService reconciliation,
+      PaymentLessonService lessons) {
     this.wallets = wallets;
     this.reconciliation = reconciliation;
     this.sessions = sessions;
     this.actors = actors;
+    this.lessons = lessons;
   }
 
   public record Money(
@@ -117,6 +120,16 @@ public class PaymentController {
   @GetMapping("/sessions/{id}")
   public ApiResponse<?> session(@PathVariable UUID id) {
     return ApiResponse.success(sessions.get(actors.getObject(), id));
+  }
+
+  @GetMapping("/sessions/{id}/learning-access")
+  public ApiResponse<?> learningAccess(@PathVariable UUID id) {
+    return ApiResponse.success(lessons.readiness(actors.getObject(), id));
+  }
+
+  @PostMapping("/sessions/{id}/start")
+  public ApiResponse<?> startLesson(@PathVariable UUID id) {
+    return ApiResponse.success(lessons.start(actors.getObject(), id));
   }
 
   @PostMapping("/sessions/{id}/fund")

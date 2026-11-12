@@ -115,6 +115,22 @@ class ReviewServiceTest {
   }
 
   @Test
+  void studentMayReviewEndedClassAfterRealLessons() {
+    when(profileFacade.findTutorById(testTutorId)).thenReturn(Optional.of(createDummyTutor(testTutorId)));
+    when(profileFacade.findStudentById(testStudentId)).thenReturn(Optional.of(
+        new StudentSummaryDto(testStudentId, testUserId, 1, null, null, true)));
+    when(profileFacade.getStudentIdByUserId(testUserId)).thenReturn(testStudentId);
+    when(connectionFacade.findClassesByStudent(testStudentId)).thenReturn(List.of(new ConnectionFacade.ClassDetailView(
+        UUID.randomUUID(), testStudentId, testTutorId, UUID.randomUUID(), "ENDED", Instant.now().minusSeconds(86400), Instant.now(), 250000)));
+    when(reviewRepository.saveAndFlush(any())).thenAnswer(call -> {
+      ReviewEntity row = call.getArgument(0); row.setReviewId(UUID.randomUUID()); return row;
+    });
+    var result = reviewService.createReview(studentUser,
+        new CreateReviewRequest(testTutorId, testStudentId, 5, "Hoàn thành khóa học và tiến bộ rõ rệt."));
+    assertEquals(5, result.rating());
+  }
+
+  @Test
   @DisplayName("Học sinh tạo đánh giá gia sư thành công (UC6.1, FR-28, BR-59)")
   void createReview_success_asStudent() {
     CreateReviewRequest request = new CreateReviewRequest(
