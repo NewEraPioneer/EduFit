@@ -33,7 +33,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import vn.edufit.scheduling.TestApplication;
-import vn.edufit.scheduling.api.SessionFundingGuard;
 import vn.edufit.scheduling.application.service.RespondToProposalService;
 import vn.edufit.scheduling.domain.model.SessionMode;
 import vn.edufit.scheduling.domain.model.SessionStatus;
@@ -184,10 +183,6 @@ class ConcurrentSchedulingIT {
 
   @MockitoBean
   private ConnectionFacade connectionFacade;
-
-  /** Payment hiện thực guard này; module payment không nằm trong context cô lập, nên stub theo hợp đồng. */
-  @MockitoBean
-  private SessionFundingGuard sessionFundingGuard;
 
   /** Tài khoản gia sư (user_id) khác mã hồ sơ gia sư (tutor_id) giống hệ thống thật. */
   private UUID tutorAccount(UUID tutorId) {
