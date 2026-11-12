@@ -20,7 +20,7 @@ export function PaymentSessionsPanel({
   const done = (s: PaymentSession) =>
     ["SETTLED", "REFUNDED", "EXPIRED"].includes(s.status);
   const needs = (s: PaymentSession) =>
-    ["AWAITING_CONFIRMATION", "DISPUTED"].includes(s.status) || s.canFund;
+    ["AWAITING_CONFIRMATION", "DISPUTED"].includes(s.status);
   const visible = sessions.filter((s) =>
     filter === "done" ? done(s) : filter === "action" ? needs(s) : true,
   );

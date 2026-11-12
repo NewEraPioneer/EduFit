@@ -29,6 +29,31 @@ export interface Topup {
   checkout_url?: string;
   created_at: string;
 }
+/**
+ * Khoản nạp đã cộng ví. Ba mã khác nhau: `id` là mã khoản nạp trong CSDL EduFit,
+ * `order_code` là mã đơn EduFit gửi payOS, `payment_link_id` là mã link payOS trả về.
+ */
+export interface TopupRecord {
+  id: string;
+  order_code: number;
+  payment_link_id?: string | null;
+  bank_reference?: string | null;
+  amount: number;
+  provider: "MANUAL" | "PAYOS";
+  paid_at: string;
+}
+/** Bút toán tiền buổi học đã chốt: tất toán (trả gia sư hoặc hoàn) hoặc thu nhập buổi dạy. */
+export interface SessionPaymentRecord {
+  id: string;
+  kind: "SESSION_SETTLED" | "TUITION_INCOME";
+  available_delta: number;
+  held_delta: number;
+  session_id: string;
+  created_at: string;
+  session_end_at?: string | null;
+  charge_status?: string | null;
+}
+export type HistorySection = "topups" | "sessions";
 export interface Withdrawal {
   id: string;
   user_id: string;
@@ -111,12 +136,17 @@ export interface PaymentSession {
   learnerReport: string | null;
   tutorReport: string | null;
   settledAmount: number;
-  canFund: boolean;
+  /** Mốc hệ thống thu học phí (24 giờ trước giờ học); backend tính, giao diện chỉ hiển thị. */
+  dueAt: string | null;
+  /** Đã đến hạn thanh toán mà hệ thống chưa thu được. */
+  due: boolean;
   canActAsLearner: boolean;
   canActAsTutor: boolean;
 }
 export interface Checkout {
+  /** Mã khoản nạp trong CSDL EduFit, không phải orderCode hay paymentLinkId của payOS. */
   id: string;
+  orderCode?: number;
   provider: string;
   checkoutUrl?: string;
   qrUrl?: string;
@@ -176,10 +206,15 @@ export const paymentApi = {
       payoutAccountId,
     }),
   wallet: (offset = 0) => fetchApi<Overview>(`${base}/wallet?offset=${offset}`),
+  history: (section: HistorySection, offset = 0) =>
+    fetchApi<TopupRecord[] | SessionPaymentRecord[]>(
+      `${base}/history?${new URLSearchParams({ section, offset: String(offset) })}`,
+    ),
   sessions: (from: string, to: string) =>
     fetchApi<PaymentSession[]>(
       `${base}/sessions?${new URLSearchParams({ from, to })}`,
     ),
+  dueSessions: () => fetchApi<PaymentSession[]>(`${base}/sessions/due`),
   session: (id: string) =>
     fetchApi<PaymentSession>(`${base}/sessions/${encodeURIComponent(id)}`),
   topup: (amount: number) => post<Checkout>(`${base}/topups`, { amount }),
@@ -194,10 +229,6 @@ export const paymentApi = {
     post<Withdrawal>(
       `/api/v1/admin/payment/withdrawals/${encodeURIComponent(id)}/refresh`,
     ),
-  fund: (id: string, amount: number) =>
-    post<PaymentSession>(`${base}/sessions/${encodeURIComponent(id)}/fund`, {
-      amount,
-    }),
   confirm: (id: string) =>
     post<PaymentSession>(`${base}/sessions/${encodeURIComponent(id)}/confirm`),
   dispute: (id: string, text: string, category = "OTHER", evidence?: string) =>
@@ -252,7 +283,7 @@ export const paymentError = (error: unknown) =>
     : "Không xử lý được yêu cầu. Vui lòng thử lại.";
 export const chargeLabels: Record<PaymentSession["status"], string> = {
   ADMIN_REVIEW: "Chờ Admin phân xử",
-  UNFUNDED: "Chưa cấp tiền",
+  UNFUNDED: "Chờ thu học phí",
   FUNDED: "Đã giữ học phí",
   AWAITING_CONFIRMATION: "Chờ xác nhận",
   DISPUTED: "Đang tranh chấp",
@@ -271,3 +302,18 @@ export const entryLabels: Record<string, string> = {
   WITHDRAW_FAILED: "Chi tiền thất bại · đã hoàn ví",
   WITHDRAW_REJECTED: "Hoàn yêu cầu rút",
 };
+/**
+ * Tất toán một buổi học từ tiền đang giữ: phần đã thanh toán cho gia sư (gồm phí nền tảng)
+ * và phần hoàn về ví. Giữ học phí là cơ chế nội bộ nên không hiển thị riêng.
+ */
+export function settlement(e: { available_delta: number; held_delta: number }) {
+  const refund = Math.max(0, e.available_delta);
+  const paid = Math.max(0, -e.held_delta - refund);
+  const title =
+    paid > 0 && refund > 0
+      ? "Thanh toán một phần, hoàn phần còn lại"
+      : refund > 0
+        ? "Hoàn học phí"
+        : "Đã thanh toán cho gia sư";
+  return { paid, refund, title };
+}

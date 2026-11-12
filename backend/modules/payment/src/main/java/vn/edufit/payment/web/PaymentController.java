@@ -39,10 +39,6 @@ public class PaymentController {
       @NotNull @DecimalMin("10000") @DecimalMax("100000000") @Digits(integer = 9, fraction = 0)
           BigDecimal amount) {}
 
-  public record Fund(
-      @NotNull @DecimalMin("1") @DecimalMax("100000000") @Digits(integer = 9, fraction = 0)
-          BigDecimal amount) {}
-
   public record Text(@NotBlank @Size(max = 2000) String text) {}
   public record Issue(@NotBlank @Size(max = 2000) String text,
       @Pattern(regexp = "DURATION|NO_SHOW|TECHNICAL|QUALITY|OTHER") String category,
@@ -64,6 +60,13 @@ public class PaymentController {
   @GetMapping("/wallet")
   public ApiResponse<?> wallet(@RequestParam(defaultValue = "0") @Min(0) @Max(100000) int offset) {
     return ApiResponse.success(wallets.overview(actors.getObject(), offset));
+  }
+
+  @GetMapping("/history")
+  public ApiResponse<?> history(
+      @RequestParam @Pattern(regexp = "topups|sessions") String section,
+      @RequestParam(defaultValue = "0") @Min(0) @Max(100000) int offset) {
+    return ApiResponse.success(wallets.history(actors.getObject(), section, offset));
   }
 
   public record PayoutAccount(
@@ -117,6 +120,12 @@ public class PaymentController {
     return ApiResponse.success(sessions.list(actors.getObject(), from, to));
   }
 
+  /** Buổi đến hạn mà hệ thống chưa thu được học phí, để người học thấy mục "Cần thanh toán". */
+  @GetMapping("/sessions/due")
+  public ApiResponse<?> due() {
+    return ApiResponse.success(sessions.dueList(actors.getObject()));
+  }
+
   @GetMapping("/sessions/{id}")
   public ApiResponse<?> session(@PathVariable UUID id) {
     return ApiResponse.success(sessions.get(actors.getObject(), id));
@@ -130,12 +139,6 @@ public class PaymentController {
   @PostMapping("/sessions/{id}/start")
   public ApiResponse<?> startLesson(@PathVariable UUID id) {
     return ApiResponse.success(lessons.start(actors.getObject(), id));
-  }
-
-  @PostMapping("/sessions/{id}/fund")
-  public ApiResponse<?> fund(@PathVariable UUID id, @Valid @RequestBody Fund input) {
-    return ApiResponse.success(
-        sessions.fund(actors.getObject(), id, input.amount().longValueExact()));
   }
 
   @PostMapping("/sessions/{id}/confirm")

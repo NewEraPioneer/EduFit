@@ -9,7 +9,7 @@ const session: PaymentSession = {
   sessionStatus: "SCHEDULED", startAt: new Date(Date.now()-60000).toISOString(), endAt: new Date(Date.now()+3600000).toISOString(),
   amount: 250000, commissionBps: 1000, payerId: "parent", status: "FUNDED", learnerAccepted: false,
   tutorAccepted: false, autoAccepted: false, disputeDeadline: null, disputeReason: null, learnerAmount: null,
-  tutorAmount: null, learnerReport: null, tutorReport: null, settledAmount: 0, canFund: false, canActAsLearner: true, canActAsTutor: false,
+  tutorAmount: null, learnerReport: null, tutorReport: null, settledAmount: 0, dueAt: null, due: false, canActAsLearner: true, canActAsTutor: false,
 };
 let readiness: LearningAccess;
 beforeEach(() => {
@@ -19,11 +19,11 @@ beforeEach(() => {
   vi.spyOn(paymentApi,"learningAccess").mockImplementation(async () => ({success:true,data:readiness}));
 });
 
-it("chưa giữ tiền thì không có nút bắt đầu hoặc link phòng học", async () => {
-  readiness = {funded:false,startedAt:null,canStart:false,message:"Chưa giữ học phí",meetingLink:null};
+it("chưa thu học phí vẫn bắt đầu học được và thấy hệ thống sẽ tự thu", async () => {
+  readiness = {funded:false,startedAt:null,canStart:true,message:"Sẵn sàng bắt đầu buổi học. Học phí chưa được thu, hệ thống sẽ tự thu khi ví đủ tiền.",meetingLink:null};
   render(<SessionBillingPanel sessionId="lesson" role="STUDENT" mode="ONLINE" />);
-  expect(await screen.findByText("Chưa giữ học phí")).toBeInTheDocument();
-  expect(screen.queryByRole("button",{name:"Bắt đầu buổi học"})).not.toBeInTheDocument();
+  expect(await screen.findByText(/hệ thống sẽ tự thu khi ví đủ tiền/)).toBeInTheDocument();
+  expect(screen.getByRole("button",{name:"Bắt đầu buổi học"})).toBeInTheDocument();
   expect(screen.queryByRole("link",{name:"Vào phòng học"})).not.toBeInTheDocument();
 });
 
@@ -32,10 +32,10 @@ it("đủ học phí thì xác nhận bắt đầu trước khi hiện phòng h�
     readiness={...readiness,startedAt:new Date().toISOString(),meetingLink:"https://meet.google.com/demo"};
     return {success:true,data:readiness};
   });
-  const fund = vi.spyOn(paymentApi,"fund");
+  const topup = vi.spyOn(paymentApi,"topup");
   render(<SessionBillingPanel sessionId="lesson" role="STUDENT" mode="ONLINE" />);
   fireEvent.click(await screen.findByRole("button",{name:"Bắt đầu buổi học"}));
   await waitFor(() => expect(start).toHaveBeenCalledWith("lesson"));
   expect(await screen.findByRole("link",{name:"Vào phòng học"})).toHaveAttribute("href","https://meet.google.com/demo");
-  expect(fund).not.toHaveBeenCalled();
+  expect(topup).not.toHaveBeenCalled();
 });

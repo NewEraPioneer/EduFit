@@ -599,7 +599,7 @@ export function SessionDetailModal({
                   </div>
                   <div className="text-xs text-muted mt-0.5 truncate">
                     {session.mode === "ONLINE" && ["PROPOSED", "SCHEDULED"].includes(session.status) ? (
-                      "Phòng học được mở ở phần thanh toán sau khi đã giữ học phí và đến giờ học."
+                      "Phòng học được mở ở phần thanh toán khi đến giờ học."
                     ) : session.placeOrLink ? (
                       session.mode === "ONLINE" ? (
                         <a

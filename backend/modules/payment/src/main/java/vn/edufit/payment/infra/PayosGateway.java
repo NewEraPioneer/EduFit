@@ -25,7 +25,14 @@ public class PayosGateway {
     this.transport = transport;
   }
 
-  public record Checkout(String url, String id, String accountNumber) {}
+  /**
+   * Link thanh toán payOS vừa tạo.
+   *
+   * <p>Ba mã khác nhau trong luồng nạp tiền: {@code payment_topup.id} (UUID nội bộ), {@code orderCode}
+   * (số EduFit gửi payOS, cột {@code order_code}) và {@code paymentLinkId} (mã payOS trả về, lưu ở
+   * cột {@code provider_id}).
+   */
+  public record Checkout(String url, String paymentLinkId, String accountNumber) {}
 
   public record Receipt(
       long orderCode,

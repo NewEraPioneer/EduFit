@@ -110,7 +110,7 @@ class PayosGatewayTest {
     var checkout = checkoutGateway(checkoutData())
         .create(42, 100000, "/student/payments", Instant.parse("2026-10-24T17:00:00Z"));
     assertEquals("VQR123456789", checkout.accountNumber());
-    assertEquals("link42", checkout.id());
+    assertEquals("link42", checkout.paymentLinkId());
   }
 
   @Test

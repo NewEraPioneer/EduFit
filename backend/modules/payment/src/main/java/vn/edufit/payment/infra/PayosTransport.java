@@ -15,6 +15,7 @@ import vn.edufit.shared.exception.InvalidOperationException;
 @Component
 public class PayosTransport {
   private static final ObjectMapper JSON=new ObjectMapper();
+  private static final org.slf4j.Logger log=org.slf4j.LoggerFactory.getLogger(PayosTransport.class);
   private final HttpClient client;
   public PayosTransport() { this.client=null; }
   PayosTransport(HttpClient client) { this.client=client; }
@@ -32,7 +33,13 @@ public class PayosTransport {
       var response=(client==null?Holder.CLIENT:client).send(request.build(),HttpResponse.BodyHandlers.ofString());
       if(response.statusCode()!=200 || response.body().length()>1_000_000)throw unavailable();
       var envelope=JSON.readTree(response.body());
-      if(!"00".equals(envelope.path("code").asText()) || !envelope.path("data").isObject())throw unavailable();
+      String code=envelope.path("code").asText();
+      if(!code.isEmpty() && !"00".equals(code)) {
+        // HTTP 200 kèm mã lỗi: payOS đã từ chối rõ ràng. Ghi mã để chẩn đoán, không ghi khóa hay nội dung gửi đi.
+        log.warn("payOS rejected {} {}: code={} desc={}",method,path.replaceAll("/[0-9]+$","/{orderCode}"),code,envelope.path("desc").asText());
+        throw new PayosRejectedException(code,envelope.path("desc").asText());
+      }
+      if(!envelope.path("data").isObject())throw unavailable();
       var data=envelope.path("data");
       String signature=payout?response.headers().firstValue("x-signature").orElse(""):envelope.path("signature").asText();
       String expected=PayosGateway.sign(canonical(JSON.convertValue(data,Map.class),payout),checksum);
@@ -40,7 +47,7 @@ public class PayosTransport {
         throw new InvalidOperationException("Chữ ký phản hồi payOS không hợp lệ; chưa thay đổi số dư");
       return data;
     } catch(InterruptedException e) { Thread.currentThread().interrupt();throw unavailable(); }
-      catch(java.io.IOException e) { throw unavailable(); }
+      catch(java.io.IOException e) { log.warn("payOS unreachable {} {}: {}",method,path.replaceAll("/[0-9]+$","/{orderCode}"),e.getClass().getSimpleName());throw unavailable(); }
   }
   private InvalidOperationException unavailable() { return new InvalidOperationException("payOS chưa xác nhận kết quả. Tiền được giữ để đối soát; không tạo giao dịch khác."); }
   public static String canonical(Map<String,?> input,boolean encode) {

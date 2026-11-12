@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import vn.edufit.payment.api.event.TuitionTopupNeededEvent;
+import vn.edufit.payment.api.event.TuitionUnpaidForTutorEvent;
 import java.sql.Timestamp;
 import java.time.*;
 import java.util.*;
@@ -29,6 +31,7 @@ class PaymentFlowIT {
   static DriverManagerDataSource datasource;
   JdbcTemplate db;
   PaymentStore store;
+  org.springframework.context.ApplicationEventPublisher events;
   SessionPaymentService service;
   ProfileFacade profiles;
   ConnectionFacade connections;
@@ -72,8 +75,8 @@ class PaymentFlowIT {
   @BeforeEach
   void setup() {
     db = new JdbcTemplate(datasource);
-    store = new PaymentStore(db, new DataSourceTransactionManager(datasource),
-        mock(org.springframework.context.ApplicationEventPublisher.class));
+    events = mock(org.springframework.context.ApplicationEventPublisher.class);
+    store = new PaymentStore(db, new DataSourceTransactionManager(datasource), events);
     db.execute(
         "truncate"
             + " payment_entry,payment_audit,payment_charge,payment_topup,payment_withdrawal,payment_wallet,payment_payout_account,payment_case_message");
@@ -111,7 +114,7 @@ class PaymentFlowIT {
           sender);
       db.update(
           "insert into class(connection_request_id,student_id,tutor_id,need_id,price_per_session)"
-              + " values (?,?,?,?,300000)",
+              + " values (?,?,?,?," + PRICE + ")",
           request,
           student,
           tutor,
@@ -217,12 +220,23 @@ class PaymentFlowIT {
     return a;
   }
 
+  /** Hệ thống tự thu học phí của buổi {@link #sessionId} (job thu học phí), không còn người học bấm giữ tiền. */
+  void collect() {
+    var view = sessions.findSessionById(sessionId).orElseThrow();
+    when(profiles.findStudentById(studentId))
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
+    when(connections.findConfirmedParentUserIds(studentId)).thenReturn(List.of(parentUser));
+    doReturn(List.of(view)).when(sessions).findScheduledSessionsStartingBetween(any(), any());
+    service.collectTuition();
+    assertTrue(store.find(sessionId).isPresent(), "Job phải thu được học phí của buổi này");
+  }
+
   void fund() {
-    service.fund(actor(parentUser, "PARENT"), sessionId, 300000);
+    collect();
     now.set(end);
   }
 
-  @Test void lessonRequiresReservedTuitionAndStartingTwiceDoesNotChargeAgain() {
+  @Test void unpaidLessonCanStartAndStartingTwiceNeverChargesTwice() {
     var source = new SessionSummaryView(sessionId,classId,tutorId,studentId,end.minusSeconds(5400),end,
         "ONLINE","SCHEDULED",false,end.minusSeconds(7200));
     when(sessions.findSessionById(sessionId)).thenReturn(Optional.of(source));
@@ -230,10 +244,12 @@ class PaymentFlowIT {
     when(sessions.findMeetingLink(sessionId)).thenReturn(Optional.of("https://meet.google.com/defense-demo"));
     db.update("update tutoring_session set status='SCHEDULED' where session_id=?",sessionId);
     var lesson = new PaymentLessonService(store,service,sessions,new PaymentTime(Clock.fixed(now.get(),ZoneOffset.UTC)));
-    assertThrows(RuntimeException.class, () -> lesson.start(actor(studentUser,"STUDENT"),sessionId));
-    service.fund(actor(parentUser,"PARENT"),sessionId,300000);
+    var first = lesson.start(actor(studentUser,"STUDENT"),sessionId);
+    assertFalse(first.funded(), "Chưa thu học phí vẫn bắt đầu học được");
+    assertEquals("https://meet.google.com/defense-demo", first.meetingLink());
+    assertTrue(store.find(sessionId).isEmpty(), "Bắt đầu học không tự lấy tiền");
+    collect();
     var balance = store.wallet(parentUser);
-    assertEquals("https://meet.google.com/defense-demo",lesson.start(actor(studentUser,"STUDENT"),sessionId).meetingLink());
     lesson.start(actor(tutorUser,"TUTOR"),sessionId);
     assertEquals(balance,store.wallet(parentUser));
     assertEquals(1,db.queryForObject("select count(*) from payment_audit where reference_id=? and action='LESSON_STARTED'",Integer.class,sessionId));
@@ -340,23 +356,34 @@ class PaymentFlowIT {
   }
 
   @Test
-  void revokedParentAndUnrelatedAccountCannotSpendOrConfirm() {
+  void revokedParentWalletIsNeverCollected() {
     when(connections.hasConfirmedParentLink(parentUser, studentId)).thenReturn(false);
-    assertThrows(
-        RuntimeException.class, () -> service.fund(actor(parentUser, "PARENT"), sessionId, 300000));
+    when(connections.findConfirmedParentUserIds(studentId)).thenReturn(List.of());
+    when(profiles.findStudentById(studentId))
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
+    doReturn(List.of(sessions.findSessionById(sessionId).orElseThrow()))
+        .when(sessions).findScheduledSessionsStartingBetween(any(), any());
+    service.collectTuition();
     assertEquals(1000000, store.wallet(parentUser).available());
+    assertTrue(store.find(sessionId).map(c -> !c.payerId().equals(parentUser)).orElse(true));
   }
 
   @Test
-  void insufficientFundsRollsBackChargeAndReservation() {
+  void insufficientFundsLeavesTheWalletUntouchedAndCreatesNoCharge() {
     store.locked(
         () -> {
           store.move(parentUser, -900000, 0, "remove:" + sessionId, "TEST", sessionId);
           return null;
         });
-    assertThrows(RuntimeException.class, this::fund);
-    assertTrue(store.find(sessionId).isEmpty());
+    when(profiles.findStudentById(studentId))
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
+    when(connections.findConfirmedParentUserIds(studentId)).thenReturn(List.of(parentUser));
+    doReturn(List.of(sessions.findSessionById(sessionId).orElseThrow()))
+        .when(sessions).findScheduledSessionsStartingBetween(any(), any());
+    service.collectTuition();
+    assertTrue(store.find(sessionId).isEmpty(), "Ví thiếu tiền thì không tạo khoản học phí");
     assertEquals(100000, store.wallet(parentUser).available());
+    assertEquals(0, store.wallet(parentUser).held());
   }
 
   @Test
@@ -463,6 +490,340 @@ class PaymentFlowIT {
     assertEquals(2, store.entries(parentUser, 0).size());
     assertTrue(store.entries(parentUser, 50).isEmpty());
     assertNotNull(store.topups(parentUser, 0).getFirst().get("created_at"));
+  }
+
+  // ===== Thu học phí: hệ thống tự thu và chỉ thông báo, không bao giờ hủy buổi học =====
+
+  /** Học phí mỗi buổi của lớp trong dữ liệu dựng ở {@code setUp}. */
+  static final long PRICE = 300000;
+  static final long HOUR = 3600;
+
+  /** Buổi SCHEDULED {@link #sessionId}, bắt đầu sau {@code seconds} giây tính từ đồng hồ thanh toán. */
+  SessionSummaryView scheduledIn(long seconds) {
+    return stub(sessionId, now.get().plusSeconds(seconds), "SCHEDULED");
+  }
+
+  /** Buổi đã COMPLETED, kết thúc {@code secondsAgo} giây trước. */
+  SessionSummaryView completedAgo(UUID id, long secondsAgo) {
+    Instant ended = now.get().minusSeconds(secondsAgo);
+    var view = stub(id, ended.minusSeconds(5400), "COMPLETED");
+    service.outcomeRecorded(id, ended); // gia sư ghi nhận hoàn thành: đánh dấu buổi chưa thu để job thu sau
+    return view;
+  }
+
+  final Map<UUID, SessionSummaryView> stubbed = new HashMap<>();
+
+  /** Giả lập module lịch học cho các truy vấn mà job thu học phí dùng. */
+  SessionSummaryView stub(UUID id, Instant start, String status) {
+    var view = new SessionSummaryView(id, classId, tutorId, studentId, start, start.plusSeconds(5400),
+        "ONLINE", status, false, start.minusSeconds(86400));
+    stubbed.put(id, view);
+    when(sessions.findSessionById(id)).thenReturn(Optional.of(view));
+    // doAnswer: gọi lại helper không kích hoạt answer cũ với tham số null.
+    doAnswer(i -> {
+      Instant from = i.getArgument(0), to = i.getArgument(1);
+      return stubbed.values().stream().filter(v -> v.status().equals("SCHEDULED")
+          && !v.startAt().isBefore(from) && v.startAt().isBefore(to)).toList();
+    }).when(sessions).findScheduledSessionsStartingBetween(any(), any());
+    doAnswer(i -> {
+      Collection<UUID> ids = i.getArgument(0);
+      return stubbed.values().stream().filter(v -> ids.contains(v.sessionId())).toList();
+    }).when(sessions).findSessionsByIds(any());
+    when(profiles.findStudentById(studentId))
+        .thenReturn(Optional.of(new StudentSummaryDto(studentId, studentUser, null, null, null, true)));
+    when(connections.findConfirmedParentUserIds(studentId)).thenReturn(List.of(parentUser));
+    return view;
+  }
+
+  /** Thêm một buổi học thật vào CSDL (khoản học phí tham chiếu tới buổi học). */
+  UUID insertSession(Instant start) {
+    UUID id = UUID.randomUUID();
+    db.update("insert into tutoring_session(session_id,class_id,tutor_id,student_id,start_at,end_at,mode,status,"
+            + "proposed_by,expires_at) values (?,?,?,?,?,?,'ONLINE','COMPLETED',?,?)",
+        id, classId, tutorId, studentId, Timestamp.from(start), Timestamp.from(start.plusSeconds(5400)),
+        tutorUser, Timestamp.from(start));
+    return id;
+  }
+
+  void setAvailable(UUID user, long amount) {
+    store.locked(() -> {
+      long current = store.wallet(user).available();
+      if (current != amount)
+        store.move(user, amount - current, 0, "adjust:" + user + ":" + UUID.randomUUID(), "TEST", sessionId);
+      return null;
+    });
+  }
+
+  <T> List<T> published(Class<T> type) {
+    var captured = org.mockito.ArgumentCaptor.forClass(Object.class);
+    verify(events, atLeast(0)).publishEvent(captured.capture());
+    return captured.getAllValues().stream().filter(type::isInstance).map(type::cast).toList();
+  }
+
+  @Test
+  void jobCollectsDueTuitionFromTheLinkedParentWalletOnlyOnce() {
+    scheduledIn(2 * HOUR);
+    long before = store.wallet(parentUser).available();
+    service.collectTuition();
+    service.collectTuition();
+    assertEquals(parentUser, store.find(sessionId).orElseThrow().payerId());
+    assertEquals(before - PRICE, store.wallet(parentUser).available());
+    assertEquals(PRICE, store.wallet(parentUser).held(), "Chạy job hai lần vẫn chỉ thu một lần");
+    assertTrue(published(TuitionTopupNeededEvent.class).isEmpty());
+  }
+
+  @Test
+  void jobFallsBackToTheStudentWalletWhenTheParentCannotPay() {
+    scheduledIn(2 * HOUR);
+    setAvailable(parentUser, PRICE - 1);
+    setAvailable(studentUser, PRICE);
+    service.collectTuition();
+    assertEquals(studentUser, store.find(sessionId).orElseThrow().payerId());
+    assertEquals(PRICE - 1, store.wallet(parentUser).available());
+    assertEquals(PRICE, store.wallet(studentUser).held());
+  }
+
+  @Test
+  void unpaidDueSessionIsNeverCancelledOnlyNotifiedOnceAndCollectedAfterTopUp() {
+    scheduledIn(2 * HOUR);
+    long partial = PRICE / 3;
+    setAvailable(parentUser, partial);
+    service.collectTuition();
+    service.collectTuition();
+    assertTrue(store.find(sessionId).isEmpty());
+    assertEquals(1, db.queryForObject("select count(*) from tutoring_session where session_id=?"
+        + " and status='COMPLETED'", Integer.class, sessionId), "Buổi học không bị hệ thống đổi trạng thái");
+    var learners = published(TuitionTopupNeededEvent.class);
+    assertEquals(Set.of(parentUser, studentUser),
+        learners.stream().map(TuitionTopupNeededEvent::userId).collect(java.util.stream.Collectors.toSet()));
+    assertEquals(2, learners.size(), "Mỗi ví nhận một thông báo dù job chạy hai lần");
+    assertTrue(learners.stream().allMatch(e -> e.stage() == TuitionTopupNeededEvent.Stage.DUE));
+    assertEquals(PRICE - partial, learners.getFirst().shortfall());
+    var tutor = published(TuitionUnpaidForTutorEvent.class);
+    assertEquals(List.of(tutorUser), tutor.stream().map(TuitionUnpaidForTutorEvent::tutorUserId).toList());
+
+    setAvailable(parentUser, PRICE);
+    service.collectTuition();
+    assertEquals(PRICE, store.wallet(parentUser).held(), "Nạp đủ thì lần chạy sau tự thu");
+  }
+
+  @Test
+  void completedUnpaidSessionIsCollectedAfterwardsWithAFull24HourReview() {
+    completedAgo(sessionId, HOUR);
+    setAvailable(parentUser, 0);
+    service.collectTuition();
+    assertTrue(store.find(sessionId).isEmpty());
+    var notices = published(TuitionTopupNeededEvent.class);
+    assertFalse(notices.isEmpty());
+    assertTrue(notices.stream().allMatch(e -> e.stage() == TuitionTopupNeededEvent.Stage.OVERDUE));
+    assertTrue(published(TuitionUnpaidForTutorEvent.class).isEmpty(), "Buổi đã dạy: không báo gia sư");
+
+    now.set(now.get().plusSeconds(5 * HOUR));
+    setAvailable(parentUser, PRICE);
+    service.collectTuition();
+    var charge = store.find(sessionId).orElseThrow();
+    assertEquals(now.get().plusSeconds(vn.edufit.payment.domain.SessionCharge.CONFIRMATION_SECONDS),
+        charge.state().reviewDeadline(), "Người học có đủ 24 giờ phản hồi tính từ lúc thu");
+    service.processDeadlines();
+    assertEquals(PRICE, store.wallet(parentUser).held(), "Chưa hết 24 giờ thì chưa chuyển cho gia sư");
+  }
+
+  @Test
+  void theOldestUnpaidSessionIsCollectedFirst() {
+    UUID newer = sessionId;
+    UUID older = insertSession(now.get().minusSeconds(48 * HOUR));
+    completedAgo(older, 46 * HOUR);
+    completedAgo(newer, HOUR);
+    setAvailable(parentUser, PRICE);
+    service.collectTuition();
+    assertTrue(store.find(older).isPresent(), "Ví chỉ đủ một buổi: thu buổi cũ trước");
+    assertTrue(store.find(newer).isEmpty());
+  }
+
+  @Test
+  void sessionsBeyond24HoursAreNotCollectedButShortWalletsAreRemindedOnce() {
+    scheduledIn(48 * HOUR);
+    setAvailable(parentUser, PRICE / 3);
+    service.collectTuition();
+    service.collectTuition();
+    assertTrue(store.find(sessionId).isEmpty());
+    var reminders = published(TuitionTopupNeededEvent.class);
+    assertEquals(2, reminders.size(), "Nhắc phụ huynh và học sinh, mỗi người một lần");
+    assertTrue(reminders.stream().allMatch(e -> e.stage() == TuitionTopupNeededEvent.Stage.UPCOMING));
+    assertEquals(stubbed.get(sessionId).startAt().minusSeconds(SessionPaymentService.DUE_BEFORE_SECONDS),
+        reminders.getFirst().dueAt());
+    assertTrue(published(TuitionUnpaidForTutorEvent.class).isEmpty());
+  }
+
+  @Test
+  void remindersCountEarlierSessionsThatShareTheSameWallet() {
+    UUID second = insertSession(now.get().plusSeconds(60 * HOUR));
+    scheduledIn(48 * HOUR);
+    stub(second, now.get().plusSeconds(60 * HOUR), "SCHEDULED");
+    setAvailable(parentUser, PRICE);
+    setAvailable(studentUser, 0);
+    service.collectTuition();
+    var reminders = published(TuitionTopupNeededEvent.class);
+    assertTrue(reminders.stream().allMatch(e -> e.sessionId().equals(second)),
+        "Ví đủ cho buổi đầu nên chỉ nhắc buổi sau");
+    assertEquals(PRICE, reminders.getFirst().shortfall(), "Thiếu đúng học phí của buổi thứ hai");
+  }
+
+  @Test
+  void reschedulingKeepsTheCollectedChargeOnTheSameSession() {
+    scheduledIn(2 * HOUR);
+    service.collectTuition();
+    scheduledIn(10 * HOUR);
+    service.collectTuition();
+    assertEquals(PRICE, store.wallet(parentUser).held(), "Khoản đã thu đi theo buổi, không thu thêm");
+  }
+
+  /** Giới hạn orderCode của payOS (số nguyên an toàn của JavaScript). */
+  static final long PAYOS_MAX_ORDER_CODE = 9_007_199_254_740_991L;
+
+  long orderCode(Map<String, Object> topup) {
+    return ((Number) topup.get("order_code")).longValue();
+  }
+
+  @Test
+  void orderCodesNeverRestartAfterSequenceResetOrBackupRestore() {
+    long startedAt = Instant.now().minusSeconds(60).toEpochMilli() * 1000;
+    long first = orderCode(store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end)));
+    assertTrue(first > startedAt, "Mã đơn gắn với thời gian, không bắt đầu từ 1");
+    assertTrue(first < PAYOS_MAX_ORDER_CODE, "Mã đơn nằm trong giới hạn payOS");
+    // CSDL mới hoặc sequence bị đặt lại vẫn không cấp lại mã nhỏ.
+    db.execute("alter sequence payment_topup_order_code_seq restart with 1");
+    long afterReset = orderCode(store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end)));
+    assertTrue(afterReset > first);
+    // Bản sao lưu chứa mã lớn hơn đồng hồ hiện tại: mã mới vẫn lớn hơn mọi mã đã có.
+    long restored = afterReset + 1_000_000_000L;
+    db.update("insert into payment_topup(id,order_code,user_id,amount,provider,status,expires_at)"
+        + " values (?,?,?,100000,'PAYOS','PAID',now())", UUID.randomUUID(), restored, parentUser);
+    long afterRestore = orderCode(store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end)));
+    assertTrue(afterRestore > restored);
+  }
+
+  @Test
+  void concurrentTopupsReceiveDistinctOrderCodes() throws Exception {
+    int requests = 16;
+    var pool = Executors.newFixedThreadPool(8);
+    try {
+      var start = new CountDownLatch(1);
+      var futures = new ArrayList<Future<Long>>();
+      for (int i = 0; i < requests; i++)
+        futures.add(pool.submit(() -> {
+          start.await();
+          return orderCode(store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end)));
+        }));
+      start.countDown();
+      var codes = new HashSet<Long>();
+      for (var f : futures) codes.add(f.get(30, TimeUnit.SECONDS));
+      assertEquals(requests, codes.size());
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  void orderCodeIsRenewedOnlyBeforePayosIssuedALink() {
+    var topup = store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end));
+    UUID id = (UUID) topup.get("id");
+    long renewed = store.locked(() -> store.renewOrderCode(id));
+    assertTrue(renewed > orderCode(topup));
+    assertEquals(renewed, orderCode(store.topup(id)));
+    store.locked(() -> {
+      store.checkout(id, "https://pay.payos.vn/web/link-1", "link-1", "VA1");
+      return null;
+    });
+    assertThrows(RuntimeException.class, () -> store.locked(() -> store.renewOrderCode(id)));
+    assertEquals(renewed, orderCode(store.topup(id)));
+  }
+
+  @Test
+  void cancelledTopupNeverCreditsAndCancelDoesNotTouchPaidTopups() {
+    var open = store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end));
+    UUID openId = (UUID) open.get("id");
+    assertTrue(store.locked(() -> store.cancelTopup(openId)));
+    assertEquals("CANCELLED", store.topup(openId).get("status"));
+    assertThrows(RuntimeException.class, () -> store.locked(() -> {
+      store.creditTopup(openId, "LATEREF1", null);
+      return null;
+    }));
+    var paid = store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end));
+    UUID paidId = (UUID) paid.get("id");
+    store.locked(() -> {
+      store.creditTopup(paidId, "PAIDREF1", null);
+      return null;
+    });
+    assertFalse(store.locked(() -> store.cancelTopup(paidId)));
+    assertEquals("PAID", store.topup(paidId).get("status"));
+  }
+
+  @Test
+  void webhookAndReconciliationTogetherCreditATopupOnlyOnce() {
+    var topup = store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end));
+    UUID id = (UUID) topup.get("id");
+    store.locked(() -> {
+      store.checkout(id, "https://pay.payos.vn/web/link-once", "link-once", "VA1");
+      return null;
+    });
+    for (int i = 0; i < 2; i++)
+      store.locked(() -> {
+        store.creditTopup(id, "ONCEREF1", null);
+        return null;
+      });
+    assertThrows(RuntimeException.class, () -> store.locked(() -> {
+      store.creditTopup(id, "OTHERREF", null);
+      return null;
+    }));
+    assertEquals(1100000, store.wallet(parentUser).available());
+    assertEquals(1, db.queryForObject(
+        "select count(*) from payment_entry where event_key=?", Integer.class, "topup:" + id));
+  }
+
+  @Test
+  void historyListsOnlyCreditedTopupsAndSessionPaymentsInSeparateSections() {
+    var paid = store.locked(() -> store.createTopup(parentUser, 200000, "PAYOS", end));
+    UUID paidId = (UUID) paid.get("id");
+    store.locked(() -> {
+      store.checkout(paidId, "https://pay.payos.vn/web/link-paid", "link-paid", "VA1");
+      store.creditTopup(paidId, "BANKREF77", null);
+      return null;
+    });
+    store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end));
+    var cancelled = store.locked(() -> store.createTopup(parentUser, 100000, "PAYOS", end));
+    store.locked(() -> store.cancelTopup((UUID) cancelled.get("id")));
+    fund();
+
+    var topups = store.topupHistory(parentUser, 0);
+    assertEquals(1, topups.size(), "Đơn đang chờ hoặc đã hủy không vào lịch sử nạp");
+    var row = topups.getFirst();
+    assertEquals(paidId, row.get("id"));
+    assertEquals(orderCode(paid), ((Number) row.get("order_code")).longValue());
+    assertEquals("link-paid", row.get("payment_link_id"));
+    assertEquals("BANKREF77", row.get("bank_reference"));
+    assertEquals(200000L, ((Number) row.get("amount")).longValue());
+    assertNotNull(row.get("paid_at"));
+    assertTrue(store.topupHistory(studentUser, 0).isEmpty());
+    assertTrue(store.topupHistory(parentUser, 50).isEmpty());
+
+    assertTrue(store.sessionHistory(parentUser, 0).isEmpty(), "Giữ học phí là cơ chế nội bộ, không vào lịch sử");
+    assertTrue(store.entries(parentUser, 0).stream().noneMatch(e -> "SESSION_RESERVED".equals(e.get("kind"))),
+        "Hoạt động gần đây không hiện bút toán giữ học phí");
+    confirmTutor();
+    service.act(actor(studentUser, "STUDENT"), sessionId, "confirm", null, null);
+    now.set(end.plusSeconds(86400));
+    service.processDeadlines();
+
+    var payments = store.sessionHistory(parentUser, 0);
+    assertEquals(1, payments.size(), "Chỉ có khoản đã thanh toán, không lẫn nạp tiền hay giữ học phí");
+    assertEquals("SESSION_SETTLED", payments.getFirst().get("kind"));
+    assertEquals(sessionId, payments.getFirst().get("session_id"));
+    assertEquals(0L, ((Number) payments.getFirst().get("available_delta")).longValue());
+    assertEquals(-300000L, ((Number) payments.getFirst().get("held_delta")).longValue());
+    assertNotNull(payments.getFirst().get("session_end_at"));
+    assertTrue(store.sessionHistory(parentUser, 50).isEmpty());
+    assertEquals("TUITION_INCOME", store.sessionHistory(tutorUser, 0).getFirst().get("kind"));
   }
 
   vn.edufit.payment.infra.PayosPayoutGateway payoutGateway;
@@ -817,7 +1178,7 @@ class PaymentFlowIT {
     when(sessions.findSessionById(sessionId)).thenReturn(Optional.of(new SessionSummaryView(
         original.sessionId(), original.classId(), original.tutorId(), original.studentId(),
         original.startAt(), original.endAt(), "ONLINE", "SCHEDULED", false, original.startAt())));
-    service.fund(actor(parentUser, "PARENT"), sessionId, 300000);
+    collect();
     now.set(end.plusSeconds(90000));
     when(sessions.findSessionById(sessionId)).thenReturn(Optional.of(new SessionSummaryView(
         original.sessionId(), original.classId(), original.tutorId(), original.studentId(),

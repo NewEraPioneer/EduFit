@@ -1,8 +1,9 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -12,35 +13,91 @@ import {
   money,
   paymentApi,
   paymentError,
-  type Checkout,
-  type Overview,
+  settlement,
+  type SessionPaymentRecord,
+  type TopupRecord,
+  type Withdrawal,
 } from "../api/paymentApi";
 import { PaymentDialog } from "./PaymentDialog";
-import { checkoutFromTopup } from "./WalletPanel";
-import { TopupCheckoutDialog } from "./TopupCheckoutDialog";
+import { SettlementAmount } from "./SettlementAmount";
+
+const PAGE_SIZE = 50;
+
+type Section = "topups" | "sessions" | "withdrawals";
+type Rows =
+  | { section: "topups"; items: TopupRecord[] }
+  | { section: "sessions"; items: SessionPaymentRecord[] }
+  | { section: "withdrawals"; items: Withdrawal[] };
+
+/** Người học xem tiền nạp vào ví; gia sư không nạp tiền nên xem tiền rút về ngân hàng. */
+function sectionsFor(role: "STUDENT" | "PARENT" | "TUTOR") {
+  return role === "TUTOR"
+    ? ([
+        ["sessions", "Thu nhập buổi dạy"],
+        ["withdrawals", "Rút tiền"],
+      ] as const)
+    : ([
+        ["topups", "Nạp tiền"],
+        ["sessions", "Thanh toán buổi học"],
+      ] as const);
+}
+
+async function load(section: Section, offset: number): Promise<Rows> {
+  if (section === "withdrawals") {
+    const response = await paymentApi.wallet(offset);
+    return { section, items: response.data?.withdrawals ?? [] };
+  }
+  const response = await paymentApi.history(section, offset);
+  return section === "topups"
+    ? { section, items: (response.data ?? []) as TopupRecord[] }
+    : { section, items: (response.data ?? []) as SessionPaymentRecord[] };
+}
+
+const dateTime = (value: string) => new Date(value).toLocaleString("vi-VN");
+const signed = (amount: number) => `${amount > 0 ? "+" : ""}${money(amount)}`;
+
+/** Học viên thấy khoản trả gia sư hoặc hoàn tiền; gia sư thấy thu nhập buổi dạy. */
+function SessionAmount({ record: e }: { record: SessionPaymentRecord }) {
+  if (e.kind === "SESSION_SETTLED")
+    return (
+      <SettlementAmount entry={e} className="pl-7 sm:pl-0 sm:text-right" />
+    );
+  return (
+    <p
+      className={`whitespace-nowrap pl-7 text-sm font-medium sm:pl-0 ${
+        e.available_delta > 0 ? "text-success-strong" : ""
+      }`}
+    >
+      {signed(e.available_delta)}
+    </p>
+  );
+}
 
 export function PaymentHistoryDialog({
+  role,
   onClose,
-  execute,
 }: {
+  role: "STUDENT" | "PARENT" | "TUTOR";
   onClose: () => void;
-  execute: (work: () => Promise<unknown>) => Promise<boolean>;
 }) {
+  const sections = sectionsFor(role);
+  const [section, setSection] = useState<Section>(sections[0][0]);
   const [offset, setOffset] = useState(0);
-  const [tab, setTab] = useState<"entries" | "requests">("entries");
-  const [data, setData] = useState<Overview | null>(null);
+  const [rows, setRows] = useState<Rows | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
-  const [checkout, setCheckout] = useState<Checkout | null>(null);
+  const panelId = useId();
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+
   useEffect(() => {
     let alive = true;
-    async function load() {
+    async function run() {
       setLoading(true);
       try {
-        const response = await paymentApi.wallet(offset);
+        const next = await load(section, offset);
         if (alive) {
-          setData(response.data ?? null);
+          setRows(next);
           setError(null);
         }
       } catch (e) {
@@ -49,43 +106,58 @@ export function PaymentHistoryDialog({
         if (alive) setLoading(false);
       }
     }
-    void load();
+    void run();
     return () => {
       alive = false;
     };
-  }, [offset, reload]);
-  const run = useCallback(
-    async (work: () => Promise<unknown>) => {
-      const ok = await execute(work);
-      if (ok) setReload((n) => n + 1);
-      return ok;
-    },
-    [execute],
-  );
-  const hasNext =
-    tab === "entries"
-      ? (data?.entries.length ?? 0) >= 50
-      : Math.max(data?.topups.length ?? 0, data?.withdrawals.length ?? 0) >= 50;
+  }, [section, offset, reload]);
+
+  function select(next: Section) {
+    setSection(next);
+    setOffset(0);
+    setRows(null);
+  }
+
+  function onTabKey(event: KeyboardEvent, index: number) {
+    const step =
+      event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    event.preventDefault();
+    const next = (index + step + sections.length) % sections.length;
+    select(sections[next][0]);
+    tabs.current[next]?.focus();
+  }
+
+  const current = rows?.section === section ? rows : null;
+  const count = current?.items.length ?? 0;
+
   return (
     <PaymentDialog title="Giao dịch của tôi" onClose={onClose} wide>
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-1 rounded-xl bg-sunken p-1">
-            {(
-              [
-                ["entries", "Biến động số dư"],
-                ["requests", "Yêu cầu nạp / rút"],
-              ] as const
-            ).map(([key, label]) => (
+          <div
+            role="tablist"
+            aria-label="Mục lịch sử giao dịch"
+            className="flex gap-1 rounded-xl bg-sunken p-1"
+          >
+            {sections.map(([key, label], index) => (
               <button
                 key={key}
-                aria-pressed={tab === key}
-                onClick={() => {
-                  setTab(key);
-                  setOffset(0);
+                ref={(el) => {
+                  tabs.current[index] = el;
                 }}
-                className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                  tab === key ? "bg-surface shadow-sm" : "text-muted"
+                type="button"
+                role="tab"
+                id={`${panelId}-${key}`}
+                aria-selected={section === key}
+                aria-controls={panelId}
+                tabIndex={section === key ? 0 : -1}
+                onClick={() => select(key)}
+                onKeyDown={(event) => onTabKey(event, index)}
+                className={`min-h-11 rounded-lg px-3 py-2 text-sm font-medium ${
+                  section === key
+                    ? "bg-action-soft text-action-strong shadow-sm"
+                    : "text-muted hover:text-ink"
                 }`}
               >
                 {label}
@@ -93,6 +165,7 @@ export function PaymentHistoryDialog({
             ))}
           </div>
           <button
+            type="button"
             aria-label="Làm mới giao dịch"
             disabled={loading}
             onClick={() => setReload((n) => n + 1)}
@@ -109,137 +182,120 @@ export function PaymentHistoryDialog({
             {error}
           </p>
         )}
-        {loading ? (
-          <p
-            role="status"
-            className="py-8 text-center text-sm text-muted"
-          >
-            Đang tải giao dịch…
-          </p>
-        ) : tab === "entries" ? (
-          <div className="overflow-x-auto">
-            {data?.entries.length ? (
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-line text-xs text-muted">
-                    <th className="pb-3 pr-4 font-medium">Giao dịch</th>
-                    <th className="pb-3 pr-4 text-right font-medium">
-                      Khả dụng
-                    </th>
-                    <th className="pb-3 text-right font-medium">Đang giữ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.entries.map((e) => (
-                    <tr key={e.id} className="border-b border-line">
-                      <td className="py-3 pr-4">
-                        <p className="font-medium">
-                          {entryLabels[e.kind] ?? e.kind}
+        <div
+          role="tabpanel"
+          id={panelId}
+          aria-labelledby={`${panelId}-${section}`}
+        >
+          {loading && !current ? (
+            <p role="status" className="py-8 text-center text-sm text-muted">
+              Đang tải giao dịch…
+            </p>
+          ) : !count ? (
+            <p className="py-8 text-center text-sm text-muted">
+              {section === "topups"
+                ? "Chưa có khoản nạp nào được cộng vào ví."
+                : section === "sessions"
+                  ? "Chưa có khoản tiền buổi học nào."
+                  : "Chưa có yêu cầu rút tiền nào."}
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {current?.section === "topups" &&
+                current.items.map((t) => (
+                  <li
+                    key={t.id}
+                    className="flex items-start gap-3 rounded-xl border border-line p-4"
+                  >
+                    <ArrowDownLeft className="mt-1 size-4 shrink-0 text-success-strong" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        Nạp {money(t.amount)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        Đã cộng ví · {dateTime(t.paid_at)}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-muted">
+                        Mã đơn {t.order_code}
+                        {t.bank_reference
+                          ? ` · Mã giao dịch ${t.bank_reference}`
+                          : ""}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              {current?.section === "sessions" &&
+                current.items.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex flex-col gap-2 rounded-xl border border-line p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-3"
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <BookOpen className="mt-1 size-4 shrink-0 text-action-strong" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">
+                          {e.kind === "SESSION_SETTLED"
+                            ? settlement(e).title
+                            : (entryLabels[e.kind] ?? e.kind)}
                         </p>
                         <p className="mt-1 text-xs text-muted">
-                          {new Date(e.created_at).toLocaleString("vi-VN")}
+                          {e.session_end_at
+                            ? `Buổi học kết thúc ${dateTime(e.session_end_at)} · `
+                            : ""}
+                          Ghi nhận {dateTime(e.created_at)}
                         </p>
-                      </td>
-                      <td
-                        className={`whitespace-nowrap py-3 pr-4 text-right font-medium ${
-                          e.available_delta > 0 ? "text-success-strong" : ""
-                        }`}
-                      >
-                        {e.available_delta > 0 ? "+" : ""}
-                        {money(e.available_delta)}
-                      </td>
-                      <td className="whitespace-nowrap py-3 text-right text-muted">
-                        {money(e.held_delta)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="py-8 text-center text-sm text-muted">
-                Chưa có giao dịch trên trang này.
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {data?.topups.map((t) => (
-              <div
-                key={t.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4"
-              >
-                <div className="flex items-start gap-3">
-                  <ArrowDownLeft className="mt-1 size-4 text-success-strong" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      Nạp {money(t.amount)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted">
-                      {t.status === "PAID"
-                        ? "Đã cộng ví"
-                        : t.status === "CANCELLED"
-                          ? "Đã hủy"
-                          : "Chờ xác minh"}{" "}
-                      · {new Date(t.created_at).toLocaleDateString("vi-VN")}
-                    </p>
-                  </div>
-                </div>
-                {t.status === "PENDING" && t.checkout_url && (
-                  <button
-                    onClick={() => setCheckout(checkoutFromTopup(t))}
-                    className="rounded-lg border border-line px-3 py-2 text-sm font-medium"
+                      </div>
+                    </div>
+                    <SessionAmount record={e} />
+                  </li>
+                ))}
+              {current?.section === "withdrawals" &&
+                current.items.map((w) => (
+                  <li
+                    key={w.id}
+                    className="flex items-start gap-3 rounded-xl border border-line p-4"
                   >
-                    Xem QR
-                  </button>
-                )}
-              </div>
-            ))}
-            {data?.withdrawals.map((w) => (
-              <div
-                key={w.id}
-                className="flex items-start gap-3 rounded-xl border border-line p-4"
-              >
-                <ArrowUpRight className="mt-1 size-4 text-muted" />
-                <div>
-                  <p className="text-sm font-medium">Rút {money(w.amount)}</p>
-                  <p className="mt-1 text-xs text-muted">
-                    {w.bank_name} · •••• {w.bank_account.slice(-4)} ·{" "}
-                    {w.status === "PAID"
-                      ? "Đã chuyển"
-                      : w.status === "PROCESSING"
-                        ? "Đang chuyển"
-                        : w.status === "PENDING"
-                          ? "Chờ duyệt"
-                          : "Đã hoàn về ví"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    {new Date(w.created_at).toLocaleDateString("vi-VN")}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {!data?.topups.length && !data?.withdrawals.length && (
-              <p className="py-8 text-center text-sm text-muted">
-                Chưa có yêu cầu trên trang này.
-              </p>
-            )}
-          </div>
-        )}
+                    <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        Rút {money(w.amount)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        {w.bank_name} · •••• {w.bank_account.slice(-4)} ·{" "}
+                        {w.status === "PAID"
+                          ? "Đã chuyển"
+                          : w.status === "PROCESSING"
+                            ? "Đang chuyển"
+                            : w.status === "PENDING"
+                              ? "Chờ duyệt"
+                              : "Đã hoàn về ví"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        {new Date(w.created_at).toLocaleDateString("vi-VN")}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
         <footer className="flex items-center justify-between gap-3 border-t border-line pt-4 text-sm">
           <button
+            type="button"
             disabled={offset === 0 || loading}
-            onClick={() => setOffset((n) => Math.max(0, n - 50))}
+            onClick={() => setOffset((n) => Math.max(0, n - PAGE_SIZE))}
             className="flex items-center gap-1 rounded-lg border px-3 py-2 disabled:opacity-30"
           >
             <ChevronLeft className="size-4" />
             Trước
           </button>
           <span className="text-xs text-muted">
-            Trang {offset / 50 + 1}
+            Trang {offset / PAGE_SIZE + 1}
           </span>
           <button
-            disabled={!hasNext || loading}
-            onClick={() => setOffset((n) => n + 50)}
+            type="button"
+            disabled={count < PAGE_SIZE || loading}
+            onClick={() => setOffset((n) => n + PAGE_SIZE)}
             className="flex items-center gap-1 rounded-lg border px-3 py-2 disabled:opacity-30"
           >
             Sau
@@ -247,18 +303,6 @@ export function PaymentHistoryDialog({
           </button>
         </footer>
       </div>
-      {checkout && (
-        <TopupCheckoutDialog
-          key={checkout.id}
-          checkout={checkout}
-          status={data?.topups.find((t) => t.id === checkout.id)?.status}
-          execute={run}
-          onClose={() => {
-            setCheckout(null);
-            setReload((n) => n + 1);
-          }}
-        />
-      )}
     </PaymentDialog>
   );
 }

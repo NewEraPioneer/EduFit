@@ -61,7 +61,6 @@ class RecordSessionOutcomeServiceTest {
 
   private Clock fixedClock;
   private RecordSessionOutcomeService service;
-  @Mock private vn.edufit.scheduling.api.SessionFundingGuard funding;
 
   private final UUID sessionId = UUID.randomUUID();
   private final UUID classId = UUID.randomUUID();
@@ -84,8 +83,7 @@ class RecordSessionOutcomeServiceTest {
         schedulingSecurityResolver,
         progressSyncPort,
         eventPublisher,
-        fixedClock,
-        funding
+        fixedClock
     );
 
     tutorUser = SimpleCurrentUser.of(tutorUserId, "TUTOR");
@@ -110,13 +108,6 @@ class RecordSessionOutcomeServiceTest {
         () -> service.recordOutcome(sessionId, tutorUser, SessionStatus.COMPLETED, null));
     verify(sessionRepository, never()).save(any());
     verify(eventPublisher, never()).publishEvent(any(SessionOutcomeRecordedEvent.class));
-  }
-
-  @Test void cannotCompleteUnfundedLesson() {
-    when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(scheduledSession));
-    doThrow(new InvalidOperationException("Chưa giữ học phí")).when(funding).requireFunded(sessionId);
-    assertThrows(InvalidOperationException.class, () -> service.recordOutcome(sessionId, tutorUser, SessionStatus.COMPLETED, null));
-    verify(sessionRepository, never()).save(any());
   }
 
   @Test

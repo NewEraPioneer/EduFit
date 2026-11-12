@@ -39,11 +39,18 @@ class PaymentLessonServiceTest {
     when(store.find(id)).thenReturn(Optional.of(new PaymentViews.Charge(id,UUID.randomUUID(),UUID.randomUUID(),user,
         UUID.randomUUID(),1000,new SessionCharge(250000,now.plusSeconds(3600)))));
   }
-  @Test void unpaidLessonCannotStartOrComplete() {
-    assertThrows(InvalidOperationException.class, () -> service.start(actor,id));
-    assertThrows(InvalidOperationException.class, () -> service.requireFunded(id));
-    verify(store,never()).recordLearningStart(any(),any(),any());
-    verify(sessions,never()).findMeetingLink(any());
+  @Test void unpaidLessonCanStillStartAndTheSystemCollectsLater() {
+    when(sessions.findSessionById(id)).thenReturn(Optional.of(source()));
+    when(sessions.findMeetingLink(id)).thenReturn(Optional.of("https://meet.google.com/demo"));
+    var readiness = service.readiness(actor,id);
+    assertFalse(readiness.funded());
+    assertTrue(readiness.canStart());
+    assertTrue(readiness.message().contains("tự thu"));
+    var result = service.start(actor,id);
+    assertFalse(result.funded());
+    assertEquals("https://meet.google.com/demo", result.meetingLink());
+    verify(store).recordLearningStart(id,user,now);
+    verify(store,never()).move(any(),anyLong(),anyLong(),anyString(),anyString(),any());
   }
   @Test void fundedLessonCanStartWithoutMovingMoneyAgain() {
     fund(); when(sessions.findSessionById(id)).thenReturn(Optional.of(source()));

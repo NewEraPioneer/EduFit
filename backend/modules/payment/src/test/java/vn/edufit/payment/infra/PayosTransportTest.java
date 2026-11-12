@@ -21,6 +21,20 @@ class PayosTransportTest {
     when(response.body()).thenReturn("{\"code\":\"00\",\"data\":{\"amount\":10000,\"status\":\"PAID\"},\"signature\":\""+PayosGateway.sign("amount=10000&status=PAID","secret")+"\"}");
     assertEquals("PAID",transport.call("GET","/v2/payment-requests/42",null,"client","api","secret",false,null).path("status").asText());
   }
+  @SuppressWarnings("unchecked")
+  @Test void providerRejectionKeepsPayosCodeSoCallersCanTellItFromAnUnknownResult() throws Exception {
+    var http=mock(HttpClient.class);
+    HttpResponse<String> response=mock(HttpResponse.class);
+    when(response.statusCode()).thenReturn(200);
+    when(response.body()).thenReturn("{\"code\":\"231\",\"desc\":\"Đơn thanh toán đã tồn tại\"}");
+    when(http.send(any(HttpRequest.class),any(HttpResponse.BodyHandler.class))).thenReturn(response);
+    var transport=new PayosTransport(http);
+    var rejected=assertThrows(PayosRejectedException.class,()->transport.call("POST","/v2/payment-requests",Map.of("orderCode",2),"client","api","secret",false,null));
+    assertEquals("231",rejected.code());
+    when(response.statusCode()).thenReturn(502);
+    var unknown=assertThrows(RuntimeException.class,()->transport.call("GET","/v2/payment-requests/2",null,"client","api","secret",false,null));
+    assertFalse(unknown instanceof PayosRejectedException,"HTTP lỗi không chứng minh payOS đã từ chối, phải coi là chưa rõ kết quả");
+  }
   @Test void payoutCanonicalMatchesOfficialSdkEncodingAndNestedSorting() {
     assertEquals("amount=10000&description=Hoc%20phi%20%26%20rut&transactions=%5B%7B%22amount%22%3A1%2C%22state%22%3A%22SUCCEEDED%22%7D%5D",
       PayosTransport.canonical(Map.of("description","Hoc phi & rut","amount",10000,"transactions",List.of(Map.of("state","SUCCEEDED","amount",1))),true));

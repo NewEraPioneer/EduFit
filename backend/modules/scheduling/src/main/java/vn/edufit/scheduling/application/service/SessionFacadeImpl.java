@@ -46,6 +46,11 @@ public class SessionFacadeImpl implements SessionFacade {
   }
 
   @Override
+  public List<SessionSummaryView> findScheduledSessionsStartingBetween(Instant from, Instant to) {
+    return sessionRepository.findUpcomingSessions(from, to).stream().map(SessionFacadeImpl::toSummary).toList();
+  }
+
+  @Override
   public List<SessionSummaryView> findSessionsByIds(java.util.Collection<UUID> sessionIds) {
     return sessionRepository.findByIds(sessionIds).stream().map(SessionFacadeImpl::toSummary).toList();
   }

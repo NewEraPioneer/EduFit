@@ -23,6 +23,7 @@ export function PaymentWorkspace({
   const [history, setHistory] = useState(false);
   const [data, setData] = useState<Overview | null>(null);
   const [sessions, setSessions] = useState<PaymentSession[]>([]);
+  const [due, setDue] = useState<PaymentSession[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -34,12 +35,15 @@ export function PaymentWorkspace({
     try {
       const [year, m] = month.split("-").map(Number);
       if (!year || !m) return;
-      const [wallet, list] = await Promise.all([
+      const [wallet, list, owed] = await Promise.all([
         paymentApi.wallet(0),
         paymentApi.sessions(
           new Date(year, m - 1, 1).toISOString(),
           new Date(year, m, 1).toISOString(),
         ),
+        role === "TUTOR"
+          ? Promise.resolve({ data: [] as PaymentSession[] })
+          : paymentApi.dueSessions(),
       ]);
       if (alive.current && current === generation.current) {
         const currentBalance = wallet.data
@@ -50,13 +54,14 @@ export function PaymentWorkspace({
         balance.current = currentBalance;
         setData(wallet.data ?? null);
         setSessions(list.data ?? []);
+        setDue(owed.data ?? []);
         setError(null);
       }
     } catch (e) {
       if (alive.current && current === generation.current)
         setError(paymentError(e));
     }
-  }, [month]);
+  }, [month, role]);
   useEffect(() => {
     alive.current = true;
     async function initial() {
@@ -154,6 +159,7 @@ export function PaymentWorkspace({
             tutor={role === "TUTOR"}
             busy={busy}
             execute={execute}
+            due={due}
           />
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
             <PaymentSessionsPanel
@@ -171,10 +177,7 @@ export function PaymentWorkspace({
         </>
       )}
       {history && (
-        <PaymentHistoryDialog
-          onClose={() => setHistory(false)}
-          execute={execute}
-        />
+        <PaymentHistoryDialog role={role} onClose={() => setHistory(false)} />
       )}
     </div>
   );
