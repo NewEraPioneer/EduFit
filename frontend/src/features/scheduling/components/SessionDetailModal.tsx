@@ -478,9 +478,6 @@ export function SessionDetailModal({
                   <span className="text-xs font-medium text-brand-strong">
                     {currentClassName}
                   </span>
-                  <span className="text-xs font-medium text-muted">
-                    • Mã: {session.sessionId.slice(0, 8)}... ({role})
-                  </span>
                 </div>
               )}
             </div>

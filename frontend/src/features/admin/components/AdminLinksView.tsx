@@ -213,21 +213,11 @@ export function AdminLinksView() {
                         <div className="font-medium text-ink">
                           {link.parentName || link.parentEmail || "Phụ huynh"}
                         </div>
-                        {link.parentId && (
-                          <div className="text-xs text-muted font-mono">
-                            ID: {link.parentId.slice(0, 8)}
-                          </div>
-                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="font-medium text-ink">
                           {link.studentName || link.studentEmail || "Học sinh"}
                         </div>
-                        {link.studentId && (
-                          <div className="text-xs text-muted font-mono">
-                            ID: {link.studentId.slice(0, 8)}
-                          </div>
-                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success-strong border border-success-line">

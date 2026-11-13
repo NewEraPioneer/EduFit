@@ -17,16 +17,18 @@ export interface TutorCardProps {
   tutor: TutorDiscoveryCard;
   onViewDetail?: (tutorId: string) => void;
   onRequestConnect?: (tutorId: string) => void;
+  layout?: "list" | "grid";
 }
 
-export function TutorCard({ tutor, onViewDetail, onRequestConnect }: TutorCardProps) {
+export function TutorCard({ tutor, onViewDetail, onRequestConnect, layout = "list" }: TutorCardProps) {
+  const isGrid = layout === "grid";
   // Khi tìm kèm nhu cầu học, học phí là của gói dạy khớp với nhu cầu đó
   const price = tutor.fit ? tutor.fit.pricePerSession : tutor.minPricePerSession;
   const priceLabel = tutor.fit || tutor.offerings.length <= 1 ? "/ buổi" : "/ buổi (từ)";
   const tutorType = tutor.tutorType ? TUTOR_TYPE_LABELS[tutor.tutorType] : null;
 
   return (
-    <div className="bg-surface rounded-2xl border border-line/80 p-4 sm:p-5 card-lift flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className={`bg-surface rounded-2xl border border-line/80 p-4 sm:p-5 card-lift flex flex-col justify-between gap-4 ${isGrid ? "" : "md:flex-row md:items-center"}`}>
       <div className="flex items-start gap-3.5 flex-1 min-w-0">
         <div className="size-12 rounded-full bg-brand-soft text-brand-strong flex items-center justify-center font-medium text-base shrink-0 shadow-2xs">
           {tutor.displayName.charAt(0).toUpperCase()}
@@ -60,8 +62,8 @@ export function TutorCard({ tutor, onViewDetail, onRequestConnect }: TutorCardPr
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-line shrink-0">
-        <div className="text-left md:text-right">
+      <div className={`flex flex-wrap items-center justify-between gap-3 w-full pt-3 border-t border-line shrink-0 ${isGrid ? "" : "md:justify-end md:w-auto md:pt-0 md:border-t-0"}`}>
+        <div className={isGrid ? "text-left" : "text-left md:text-right"}>
           <span className="font-heading font-bold text-sm sm:text-base text-ink">{formatVnd(price)}</span>
           {price != null && <span className="text-xs text-muted"> {priceLabel}</span>}
         </div>

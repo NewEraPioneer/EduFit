@@ -240,7 +240,7 @@ export function ParentProfileForm() {
       {linkedLinks.map((link, index) => (
         <div key={link.linkId} className="bg-surface p-5 sm:p-8 rounded-3xl border border-line/90 shadow-xs space-y-2">
           <p className="text-xs font-medium text-success-strong break-all">
-            Học sinh {index + 1} · mã {link.studentId.slice(-8)}
+            Học sinh {index + 1}
           </p>
           <LearningNeedManager studentId={link.studentId} />
         </div>

@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { Compass, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { Compass, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   TutorSearchFilters,
-  TutorCard,
+  TutorResultsGrid,
   TutorDetailModal,
   AiMatchView,
   useTutorSearch,
   useTutorDetail,
   useTutorMatching,
+  type TutorViewMode,
 } from "@/features/discovery";
 import { useToast } from "@/shared/ui/Toast";
 import { ConnectionRequestDialog, SentRequests, type ConnectionTutorInfo } from "@/features/connection";
@@ -44,6 +45,8 @@ export function ParentDiscoveryView() {
   const matching = useTutorMatching({ parent: true, enabled: activeTab === "matches" });
   const { matches } = matching;
 
+  const [viewMode, setViewMode] = useState<TutorViewMode>("list");
+
   // 4. Request connection state
   const [connectTutor, setConnectTutor] = useState<ConnectionTutorInfo | null>(null);
 
@@ -58,18 +61,6 @@ export function ParentDiscoveryView() {
 
   return (
     <div className="space-y-6 pb-12 max-w-7xl mx-auto">
-      {/* 1. HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-line">
-        <div>
-          <h1 className="font-heading font-bold text-2xl text-ink tracking-tight">
-            Tìm gia sư cho con
-          </h1>
-          <p className="text-xs text-muted mt-1">
-            Chọn lọc gia sư THCS chất lượng cao, có kinh nghiệm và phản hồi tốt từ phụ huynh
-          </p>
-        </div>
-      </div>
-
       {/* 2. TABS NAVIGATION */}
       <div className="flex items-center gap-6 border-b border-line text-xs font-medium">
         <button
@@ -125,18 +116,10 @@ export function ParentDiscoveryView() {
             params={params}
             onUpdateFilters={updateFilters}
             onResetFilters={resetFilters}
-            totalResults={pagination?.totalElements}
+            totalResults={pagination?.totalElements ?? tutors.length}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
-
-          <div className="flex items-center justify-between text-xs pt-2">
-            <span className="font-heading font-bold text-sm text-ink">
-              {pagination?.totalElements ?? tutors.length} gia sư phù hợp
-            </span>
-            <span className="text-xs text-muted flex items-center gap-1 font-medium">
-              <ShieldCheck className="size-3.5 text-success-strong" />
-              <span>Chỉ hiển thị gia sư đã xác minh</span>
-            </span>
-          </div>
 
           {searchError && (
             <div className="p-4 rounded-2xl bg-danger-soft border border-danger-line text-danger-strong text-xs font-medium">
@@ -180,16 +163,12 @@ export function ParentDiscoveryView() {
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {tutors.map((tutor) => (
-                <TutorCard
-                  key={tutor.tutorId}
-                  tutor={tutor}
-                  onViewDetail={openTutor}
-                  onRequestConnect={handleRequestConnect}
-                />
-              ))}
-            </div>
+            <TutorResultsGrid
+              tutors={tutors}
+              viewMode={viewMode}
+              onViewDetail={openTutor}
+              onRequestConnect={handleRequestConnect}
+            />
           )}
 
           {pagination && pagination.totalPages > 1 && (

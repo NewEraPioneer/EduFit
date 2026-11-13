@@ -157,9 +157,9 @@ class ReviewControllerTest {
         Instant.now(),
         Instant.now()
     );
-    when(reviewService.getMyReview(testUser, testTutorId)).thenReturn(mockResponse);
+    when(reviewService.getMyReview(testUser, testTutorId, null)).thenReturn(mockResponse);
 
-    ResponseEntity<ApiResponse<ReviewResponse>> responseEntity = reviewController.getMyReview(testTutorId);
+    ResponseEntity<ApiResponse<ReviewResponse>> responseEntity = reviewController.getMyReview(testTutorId, null);
 
     assertNotNull(responseEntity);
     assertEquals(HttpStatus.OK, responseEntity.getStatusCode());

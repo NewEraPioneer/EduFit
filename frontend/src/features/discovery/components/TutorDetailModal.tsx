@@ -15,6 +15,7 @@ import {
 import { TUTOR_TYPE_LABELS } from "@/features/learning-needs/catalogRules";
 import type { TutorDetail } from "../types";
 import { OfferingList } from "./OfferingList";
+import { TutorWeekSchedule } from "./TutorWeekSchedule";
 import { TEACHING_MODE_TEXT, formatRating, formatVnd, tutorAreaText } from "../utils/tutorDisplay";
 import {
   RatingSummaryCard,
@@ -197,32 +198,13 @@ export function TutorDetailModal({
               {/* Ma trận khung giờ rảnh trong tuần */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-medium text-ink">Khung giờ rảnh trong tuần</h4>
-                  <span className="text-xs text-muted">Giờ địa phương</span>
+                  <h4 className="text-xs font-medium text-ink">Lịch của gia sư</h4>
                 </div>
 
-                {tutor.availabilitySlots && tutor.availabilitySlots.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {tutor.availabilitySlots.map((slot, idx) => (
-                      <div
-                        key={idx}
-                        className="p-2.5 rounded-xl bg-action-soft/50 border border-action-line/60 text-xs flex items-center gap-2"
-                      >
-                        <Clock className="size-3.5 text-action-strong shrink-0" />
-                        <div>
-                          <span className="font-medium text-ink block">{DAY_LABELS[slot.dayOfWeek] || `Thứ ${slot.dayOfWeek}`}</span>
-                          <span className="text-xs text-ink-2 font-medium">
-                            {slot.startTime} - {slot.endTime}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted italic p-3 bg-paper rounded-xl">
-                    Gia sư chưa thiết lập khung giờ rảnh cụ thể.
-                  </p>
-                )}
+                <TutorWeekSchedule
+                  availabilitySlots={tutor.availabilitySlots ?? []}
+                  busySlots={tutor.busySlots}
+                />
               </div>
 
               {/* Đánh giá & Nhận xét từ học sinh / phụ huynh */}

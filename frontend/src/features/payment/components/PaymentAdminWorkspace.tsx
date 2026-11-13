@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ReceiptText,
   Settings2,
   ShieldAlert,
 } from "lucide-react";
@@ -17,11 +18,12 @@ import {
   type AdminOverview,
   type PaymentSession,
 } from "../api/paymentApi";
+import { AdminTuitionLedger } from "./AdminTuitionLedger";
 import {
   AdminPaymentReviewDialog,
   type AdminReviewTarget,
 } from "./AdminPaymentReviewDialog";
-type Queue = "topups" | "withdrawals" | "cases";
+type Queue = "topups" | "withdrawals" | "cases" | "tuition";
 export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
   const [data, setData] = useState<AdminOverview | null>(null);
   const [disputes, setDisputes] = useState<PaymentSession[]>([]);
@@ -138,7 +140,7 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
           Ưu tiên yêu cầu cần xử lý, đối chiếu trước khi xác nhận tiền.
         </p>
       </header>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {(
           [
             {
@@ -158,6 +160,12 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
               label: "Hồ sơ vấn đề",
               count: disputes.length,
               Icon: ShieldAlert,
+            },
+            {
+              key: "tuition",
+              label: "Học phí buổi học",
+              count: null,
+              Icon: ReceiptText,
             },
           ] as const
         ).map(({ key, label, count, Icon }) => (
@@ -190,7 +198,7 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
                 active === key ? "text-action-strong" : ""
               }`}
             >
-              {count}
+              {count ?? ""}
             </strong>
           </button>
         ))}
@@ -203,7 +211,9 @@ export function PaymentAdminWorkspace({ initialTab }: { initialTab?: Queue }) {
           {error}
         </p>
       )}
-      {!data ? (
+      {active === "tuition" ? (
+        <AdminTuitionLedger />
+      ) : !data ? (
         <p
           role="status"
           className="rounded-2xl border border-line bg-surface p-8 text-center text-sm text-muted"

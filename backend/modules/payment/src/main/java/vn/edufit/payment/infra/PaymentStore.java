@@ -179,6 +179,19 @@ public class PaymentStore {
         offset);
   }
 
+  /** Sổ học phí của mọi buổi học, mới nhất trước; status rỗng nghĩa là mọi trạng thái. */
+  public List<Charge> allCharges(String status, int offset) {
+    if (status == null || status.isBlank()) {
+      return db.query(
+          "select * from payment_charge order by updated_at desc limit 50 offset ?", this::mapCharge, offset);
+    }
+    return db.query(
+        "select * from payment_charge where status=? order by updated_at desc limit 50 offset ?",
+        this::mapCharge,
+        status,
+        offset);
+  }
+
   public List<Map<String, Object>> caseMessages(UUID id) {
     return db.queryForList("select id,side,message,created_at::text as created_at from payment_case_message"
         + " where session_id=? order by created_at,id limit 100", id);

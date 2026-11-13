@@ -73,7 +73,8 @@ class DiscoveryControllerTest {
         new DiscoveryQueryService(profileFacade, access, MatchWeights.standard(), 500),
         new TutorMatchingService(profileFacade, logRepository, explanations, access,
             mock(ApplicationEventPublisher.class), MatchWeights.standard(), mock(PlatformTransactionManager.class)),
-        currentUserProvider
+        currentUserProvider,
+        mock(vn.edufit.scheduling.api.SessionFacade.class)
     )).build();
   }
 

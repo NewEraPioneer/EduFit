@@ -6,8 +6,6 @@ import {
   Compass,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
-  Search,
   Sparkles,
   RefreshCw,
   AlertCircle,
@@ -15,7 +13,8 @@ import {
 } from "lucide-react";
 import {
   TutorSearchFilters,
-  TutorCard,
+  TutorResultsGrid,
+  type TutorViewMode,
   useTutorSearch,
   LoginPromptModal,
   type TutorDiscoveryCard,
@@ -28,6 +27,7 @@ import { useToast } from "@/shared/ui/Toast";
 import { PublicNavbar } from "@/shared/ui/PublicNavbar";
 
 function TutorsDirectoryContent() {
+  const [viewMode, setViewMode] = useState<TutorViewMode>("list");
   const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -73,7 +73,7 @@ function TutorsDirectoryContent() {
         );
         const children = links.map((link, idx) => ({
           studentId: link.studentId,
-          name: studentNames[link.studentId] || `Học sinh ${idx + 1} (${link.studentId.slice(-8)})`,
+          name: studentNames[link.studentId] || `Học sinh ${idx + 1}`,
         }));
         setLinkedChildren(children);
         if (children.length > 0) {
@@ -182,20 +182,10 @@ function TutorsDirectoryContent() {
             params={params}
             onUpdateFilters={updateFilters}
             onResetFilters={resetFilters}
-            totalResults={pagination?.totalElements}
+            totalResults={pagination?.totalElements ?? tutors.length}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
-
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-2">
-            <span className="font-heading font-bold text-sm text-ink">
-              {pagination?.totalElements ?? tutors.length} gia sư được tìm thấy
-            </span>
-            <div className="flex items-center gap-3 text-muted">
-              <span className="inline-flex items-center gap-1 font-medium text-success-strong">
-                <ShieldCheck className="size-4" />
-                <span>Đã xác minh bằng cấp</span>
-              </span>
-            </div>
-          </div>
         </section>
 
         {/* 1. Error State */}
@@ -266,16 +256,12 @@ function TutorsDirectoryContent() {
 
         {/* 4. Populated State (Tutor Cards) */}
         {!isLoading && !error && tutors.length > 0 && (
-          <div className="space-y-3.5">
-            {tutors.map((tutor) => (
-              <TutorCard
-                key={tutor.tutorId}
-                tutor={tutor}
-                onViewDetail={handleViewDetail}
-                onRequestConnect={handleRequestConnect}
-              />
-            ))}
-          </div>
+          <TutorResultsGrid
+            tutors={tutors}
+            viewMode={viewMode}
+            onViewDetail={handleViewDetail}
+            onRequestConnect={handleRequestConnect}
+          />
         )}
 
         {/* Pagination Controls */}

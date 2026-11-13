@@ -77,7 +77,7 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
           name:
             summary?.studentName ||
             childClasses.find((c) => c.studentDisplayName)?.studentDisplayName ||
-            `Học sinh ${studentId.slice(0, 8)}`,
+            `Học sinh ${idx + 1}`,
           grade: childClasses.find((c) => c.educationLevelName)?.educationLevelName ?? null,
           tutorsCount: childClasses.filter((c) => c.status === "ACTIVE").length,
           completedLessons: `${completed}/${total}`,

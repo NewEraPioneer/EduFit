@@ -51,6 +51,14 @@ public class PaymentAdminController {
     return ApiResponse.success(sessions.adminList(actors.getObject(), offset));
   }
 
+  /** Sổ học phí mọi buổi học, lọc theo trạng thái; chỉ đọc. */
+  @GetMapping("/charges")
+  public ApiResponse<?> charges(
+      @RequestParam(required = false) String status,
+      @RequestParam(defaultValue = "0") @Min(0) @Max(100000) int offset) {
+    return ApiResponse.success(sessions.adminHistory(actors.getObject(), status, offset));
+  }
+
   @PostMapping("/topups/{id}/confirm")
   public ApiResponse<?> confirm(@PathVariable UUID id, @Valid @RequestBody Review input) {
     wallets.confirmManual(actors.getObject(), id, input.reference());

@@ -21,6 +21,8 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity, UUID> {
 
   Optional<ReviewEntity> findByTutorIdAndReviewerUserId(UUID tutorId, UUID reviewerUserId);
 
+  Optional<ReviewEntity> findByTutorIdAndStudentIdAndReviewerUserId(UUID tutorId, UUID studentId, UUID reviewerUserId);
+
   Page<ReviewEntity> findByTutorId(UUID tutorId, Pageable pageable);
 
   List<ReviewEntity> findByTutorId(UUID tutorId);

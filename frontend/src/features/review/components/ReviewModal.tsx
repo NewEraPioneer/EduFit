@@ -50,13 +50,16 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   studentId,
   reviewerRole,
   tutorName,
-  existingReview,
+  existingReview: existingReviewProp,
   onSuccess,
 }) => {
+  // Đánh giá cũ: ưu tiên bản truyền vào, nếu không có thì tự tra theo gia sư + học sinh.
+  const [fetchedReview, setFetchedReview] = useState<ReviewItem | null>(null);
+  const existingReview = existingReviewProp ?? fetchedReview;
   const isEditing = Boolean(existingReview);
-  const [rating, setRating] = useState<number>(existingReview?.rating || 5);
+  const [rating, setRating] = useState<number>(existingReviewProp?.rating || 5);
   const [hoverRating, setHoverRating] = useState<number>(0);
-  const [comment, setComment] = useState<string>(existingReview?.comment || "");
+  const [comment, setComment] = useState<string>(existingReviewProp?.comment || "");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,8 +67,34 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const [selectedStudentId, setSelectedStudentId] = useState(studentId || "");
   const [isLoadingStudent, setIsLoadingStudent] = useState(false);
 
+  const lookupStudentId = studentId || selectedStudentId;
   useEffect(() => {
-    if (!isOpen || isEditing || studentId) {
+    if (!isOpen || existingReviewProp || !lookupStudentId) {
+      return;
+    }
+    let cancelled = false;
+    reviewApi
+      .getMyReview(tutorId, lookupStudentId)
+      .then((res) => {
+        if (cancelled) return;
+        const found = res?.data ?? null;
+        setFetchedReview(found);
+        if (found) {
+          setRating(found.rating);
+          setComment(found.comment ?? "");
+          setSelectedTags([]);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedReview(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, existingReviewProp, tutorId, lookupStudentId]);
+
+  useEffect(() => {
+    if (!isOpen || existingReviewProp || studentId) {
       return;
     }
 
@@ -87,7 +116,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           const links = await connectionApi.getLinks();
           const choices = links.map((link, index) => ({
             id: link.studentId,
-            label: `Học sinh liên kết ${index + 1} (${link.studentId.slice(-8)})`,
+            label: `Học sinh ${index + 1}`,
           }));
           if (!cancelled) {
             setStudentChoices(choices);
@@ -112,7 +141,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isEditing, isOpen, reviewerRole, studentId]);
+  }, [existingReviewProp, isOpen, reviewerRole, studentId]);
 
   if (!isOpen) return null;
 

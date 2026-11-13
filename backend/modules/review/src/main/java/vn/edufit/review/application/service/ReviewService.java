@@ -213,11 +213,23 @@ public class ReviewService {
    */
   @Transactional(readOnly = true)
   public ReviewResponse getMyReview(CurrentUser currentUser, UUID tutorId) {
+    return getMyReview(currentUser, tutorId, null);
+  }
+
+  /**
+   * Lấy đánh giá của người dùng hiện tại cho đúng cặp gia sư - học sinh.
+   * Phụ huynh có nhiều con học cùng một gia sư sẽ có nhiều đánh giá, nên cần studentId để chọn đúng.
+   */
+  @Transactional(readOnly = true)
+  public ReviewResponse getMyReview(CurrentUser currentUser, UUID tutorId, UUID studentId) {
     if (currentUser == null || currentUser.getUserId() == null || tutorId == null) {
       return null;
     }
 
-    return reviewRepository.findByTutorIdAndReviewerUserId(tutorId, currentUser.getUserId())
+    var found = studentId == null
+        ? reviewRepository.findByTutorIdAndReviewerUserId(tutorId, currentUser.getUserId())
+        : reviewRepository.findByTutorIdAndStudentIdAndReviewerUserId(tutorId, studentId, currentUser.getUserId());
+    return found
         .map(entity -> {
           String reviewerName = resolveReviewerName(entity.getReviewerUserId(), entity.getReviewerType());
           return ReviewResponse.from(entity, reviewerName, true);

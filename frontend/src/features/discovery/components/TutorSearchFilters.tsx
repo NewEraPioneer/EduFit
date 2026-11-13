@@ -6,15 +6,25 @@ import type { TutorSearchParams } from "../types";
 import { FilterHeader } from "./filters/FilterHeader";
 import { QuickFilterPills } from "./filters/QuickFilterPills";
 import { AdvancedFilterDrawer } from "./filters/AdvancedFilterDrawer";
+import { TutorResultsToolbar, type TutorViewMode } from "./TutorResultsToolbar";
 
 export interface TutorSearchFiltersProps {
   params: TutorSearchParams;
   onUpdateFilters: (filters: Partial<TutorSearchParams>) => void;
   onResetFilters: () => void;
   totalResults?: number;
+  viewMode: TutorViewMode;
+  onViewModeChange: (mode: TutorViewMode) => void;
 }
 
-export function TutorSearchFilters({ params, onUpdateFilters, onResetFilters }: TutorSearchFiltersProps) {
+export function TutorSearchFilters({
+  params,
+  onUpdateFilters,
+  onResetFilters,
+  totalResults,
+  viewMode,
+  onViewModeChange,
+}: TutorSearchFiltersProps) {
   const { catalog } = useLearningCatalog();
   const [keywordInput, setKeywordInput] = useState(params.keyword || "");
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -56,25 +66,28 @@ export function TutorSearchFilters({ params, onUpdateFilters, onResetFilters }: 
   );
 
   return (
-    <div className="space-y-3.5">
-      <FilterHeader
-        keywordInput={keywordInput}
-        onKeywordChange={setKeywordInput}
-        onClearKeyword={() => setKeywordInput("")}
-        currentSortVal={currentSortVal}
-        onSortChange={handleSortChange}
-      />
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-line bg-surface shadow-2xs">
+        <FilterHeader
+          keywordInput={keywordInput}
+          onKeywordChange={setKeywordInput}
+          onClearKeyword={() => setKeywordInput("")}
+          onSubmit={() => onUpdateFilters({ keyword: keywordInput.trim() || undefined })}
+        />
 
-      <QuickFilterPills
-        params={params}
-        catalog={catalog}
-        showAdvanced={showAdvanced}
-        hasActiveFilters={hasActiveFilters}
-        onUpdateFilters={onUpdateFilters}
-        onResetFilters={onResetFilters}
-        onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
-        onClearKeywordInput={() => setKeywordInput("")}
-      />
+        <div className="rounded-b-2xl border-t border-line bg-paper px-4 py-3 sm:px-5">
+          <QuickFilterPills
+            params={params}
+            catalog={catalog}
+            showAdvanced={showAdvanced}
+            hasActiveFilters={hasActiveFilters}
+            onUpdateFilters={onUpdateFilters}
+            onResetFilters={onResetFilters}
+            onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
+            onClearKeywordInput={() => setKeywordInput("")}
+          />
+        </div>
+      </div>
 
       <AdvancedFilterDrawer
         showAdvanced={showAdvanced}
@@ -82,6 +95,14 @@ export function TutorSearchFilters({ params, onUpdateFilters, onResetFilters }: 
         catalog={catalog}
         onUpdateFilters={onUpdateFilters}
         onClose={() => setShowAdvanced(false)}
+      />
+
+      <TutorResultsToolbar
+        totalResults={totalResults}
+        currentSortVal={currentSortVal}
+        onSortChange={handleSortChange}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
       />
     </div>
   );

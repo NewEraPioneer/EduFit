@@ -6,7 +6,7 @@ import type { ProgressForecast, ProgressRadar } from "../types";
 import { INDEPENDENCE_LEVELS, formatLocalDate } from "../constants/feedbackLabels";
 import { MAX_INDEPENDENCE_LEVEL, MIN_RADAR_AXES } from "../constants/roadmap";
 
-/** Hàng thứ hai của dashboard (Giai đoạn 3): dự báo "còn X buổi cho Y cột mốc" và radar năng lực theo chủ đề. */
+/** Dự báo số buổi còn lại và radar năng lực theo chủ đề. */
 export function ProgressInsights({
   forecast,
   radar,
@@ -22,11 +22,6 @@ export function ProgressInsights({
     </div>
   );
 }
-
-const BASIS_LABELS: Record<NonNullable<ProgressForecast["basis"]>, string> = {
-  PACE: "Theo nhịp học thực tế của lớp",
-  SUGGESTED: "Theo số buổi gợi ý của gia sư (chưa đạt cột mốc nào để đo nhịp học)",
-};
 
 function ForecastCard({ forecast }: { forecast: ProgressForecast }) {
   const available = !forecast.unavailableReason && forecast.remainingSessions != null;
@@ -48,12 +43,11 @@ function ForecastCard({ forecast }: { forecast: ProgressForecast }) {
               Dự kiến xong vào khoảng {formatLocalDate(forecast.estimatedFinishDate)}
             </p>
           )}
-          {forecast.basis && <p className="text-xs text-muted">{BASIS_LABELS[forecast.basis]}</p>}
         </>
       ) : (
         <>
           <p className="text-xl font-bold text-ink">—</p>
-          <p className="text-xs text-ink-2">{forecast.unavailableReason ?? "Chưa đủ dữ liệu để dự báo"}</p>
+          <p className="text-xs text-ink-2">{forecast.unavailableReason ?? "Chưa đủ dữ liệu"}</p>
         </>
       )}
     </article>
@@ -88,7 +82,7 @@ function RadarCard({ radar }: { radar: ProgressRadar }) {
       {axes.length === 0 ? (
         <>
           <p className="text-xl font-bold text-ink">—</p>
-          <p className="text-xs text-ink-2">{radar.unavailableReason ?? "Chưa đủ dữ liệu theo chủ đề"}</p>
+          <p className="text-xs text-ink-2">{radar.unavailableReason ?? "Chưa đủ dữ liệu"}</p>
         </>
       ) : axes.length < MIN_RADAR_AXES ? (
         <TopicStatusBars axes={axes} />
@@ -176,7 +170,6 @@ function TopicStatusBars({ axes }: { axes: ProgressRadar["axes"] }) {
           </li>
         );
       })}
-      <li className="text-xs text-muted">Cần điểm chấm ở ít nhất {MIN_RADAR_AXES} chủ đề để vẽ biểu đồ radar.</li>
     </ul>
   );
 }

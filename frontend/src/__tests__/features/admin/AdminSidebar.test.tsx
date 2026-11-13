@@ -9,7 +9,7 @@ describe("AdminSidebar Component & Route Integrity Tests", () => {
 
     expect(allHrefs).toContain("/admin/dashboard");
     expect(allHrefs).toContain("/admin/verification-queue");
-    expect(allHrefs).toContain("/admin/audit-logs");
+    expect(allHrefs).not.toContain("/admin/audit-logs");
     expect(allHrefs).toContain("/admin/catalogs");
     expect(allHrefs).toContain("/admin/links");
     expect(allHrefs).toContain("/admin/settings");
@@ -31,10 +31,7 @@ describe("AdminSidebar Component & Route Integrity Tests", () => {
       "href",
       "/admin/verification-queue"
     );
-    expect(screen.getByRole("link", { name: /Nhật ký kiểm toán/i })).toHaveAttribute(
-      "href",
-      "/admin/audit-logs"
-    );
+    expect(screen.queryByRole("link", { name: /Nhật ký kiểm toán/i })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Danh mục môn học/i })).toHaveAttribute(
       "href",
       "/admin/catalogs"

@@ -58,18 +58,16 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     renderStudent();
 
     const nextSession = await screen.findByTestId("card-next-session");
-    expect(within(nextSession).getByText(/Cần chú ý/)).toBeInTheDocument();
     expect(within(nextSession).getByText(/trễ 2 ngày so với kế hoạch/)).toBeInTheDocument();
 
     const goal = screen.getByTestId("card-goal-progress");
     expect(within(goal).getByText("65%")).toBeInTheDocument();
     expect(within(goal).getByText("Tăng từ 45% lên 65% trong 30 ngày qua")).toBeInTheDocument();
-    expect(within(goal).getByText(/từ “làm được khi có gợi ý” → “tự làm đúng”/)).toBeInTheDocument();
 
     const attendance = screen.getByTestId("card-attendance");
     expect(within(attendance).getByText("8/12 buổi")).toBeInTheDocument();
-    expect(within(attendance).getByText("Đã học: 7 buổi · Vắng: 1 buổi")).toBeInTheDocument();
-    expect(within(attendance).getByText("Chi tiết vắng, hủy")).toBeInTheDocument();
+    expect(within(attendance).getByText("Có mặt 7 · Vắng 1")).toBeInTheDocument();
+    expect(within(attendance).getByText("Buổi vắng, hủy")).toBeInTheDocument();
     expect(within(attendance).queryByText(/Buổi tới/)).not.toBeInTheDocument();
     expect(within(attendance).queryByText("Có bài về nhà")).not.toBeInTheDocument();
   });
@@ -96,8 +94,8 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     expect(within(goal).getByText("—")).toBeInTheDocument();
     expect(within(goal).queryByRole("progressbar")).not.toBeInTheDocument();
     expect(within(screen.getByTestId("card-next-session")).getByText("Chưa có lịch")).toBeInTheDocument();
-    expect(within(screen.getByTestId("card-attendance")).getByText(/Lớp chưa có buổi học nào/)).toBeInTheDocument();
-    expect(screen.getByText(/Sau mỗi buổi học, gia sư sẽ ghi phản hồi ngắn/)).toBeInTheDocument();
+    expect(within(screen.getByTestId("card-attendance")).getByText(/Chưa có buổi học/)).toBeInTheDocument();
+    expect(screen.getByText("Chưa có phản hồi.")).toBeInTheDocument();
   });
 
   it("lộ trình cột mốc hiển thị mức đầu vào → hiện tại và tiêu chí", async () => {
@@ -107,7 +105,7 @@ describe("ProgressDashboardView — 3 thẻ, lộ trình cột mốc, sổ liên
     const row = await screen.findByTestId(`milestone-${FIXTURE_IDS.milestoneA}`);
     expect(within(row).getByText("Từ “Làm được khi có gợi ý” → “Tự làm đúng”")).toBeInTheDocument();
     expect(within(row).getByText(FIXTURE_TEXT.criterionA1)).toBeInTheDocument();
-    expect(within(screen.getByTestId(`milestone-${FIXTURE_IDS.milestoneB}`)).getByText("Chưa có lần đánh giá")).toBeInTheDocument();
+    expect(within(screen.getByTestId(`milestone-${FIXTURE_IDS.milestoneB}`)).getByText("Chưa đánh giá")).toBeInTheDocument();
   });
 
   it("sổ liên lạc hiển thị phản hồi có cấu trúc", async () => {

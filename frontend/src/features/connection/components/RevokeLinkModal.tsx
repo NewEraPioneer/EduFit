@@ -30,7 +30,7 @@ export function RevokeLinkModal({
   const isTargetParent = targetRole === "parent";
   const displayName = isTargetParent
     ? "Tài khoản phụ huynh"
-    : studentName || `Học sinh ${link.studentId.slice(0, 8)}`;
+    : studentName || "Học sinh";
 
   const handleConfirm = async () => {
     try {

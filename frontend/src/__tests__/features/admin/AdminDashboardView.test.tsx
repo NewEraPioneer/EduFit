@@ -58,7 +58,7 @@ describe("AdminDashboardView Component Tests", () => {
     expect(screen.queryByText(/Doanh số nền tảng \(GMV\)/i)).not.toBeInTheDocument();
   });
 
-  it("hiển thị các liên kết điều hướng trọng yếu tới Catalogs và Audit Logs", async () => {
+  it("hiển thị các liên kết điều hướng trọng yếu tới Catalogs", async () => {
     vi.spyOn(adminApi, "getDashboardStats").mockResolvedValue({
       totalUsers: 10,
       totalTutors: 2,
@@ -76,9 +76,7 @@ describe("AdminDashboardView Component Tests", () => {
       expect(catalogLinks.length).toBeGreaterThanOrEqual(1);
       expect(catalogLinks[0]).toHaveAttribute("href", "/admin/catalogs");
 
-      const auditLinks = screen.getAllByRole("link", { name: /Nhật ký kiểm toán/i });
-      expect(auditLinks.length).toBeGreaterThanOrEqual(1);
-      expect(auditLinks[0]).toHaveAttribute("href", "/admin/audit-logs");
+      expect(screen.queryByRole("link", { name: /Nhật ký kiểm toán/i })).not.toBeInTheDocument();
     });
   });
 });

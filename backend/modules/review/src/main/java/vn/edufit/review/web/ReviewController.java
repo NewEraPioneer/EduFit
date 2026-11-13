@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import vn.edufit.review.application.service.ReviewService;
 import vn.edufit.review.web.request.CreateReviewRequest;
@@ -77,10 +78,11 @@ public class ReviewController {
    */
   @GetMapping("/tutors/{tutorId}/my-review")
   public ResponseEntity<ApiResponse<ReviewResponse>> getMyReview(
-      @PathVariable("tutorId") UUID tutorId
+      @PathVariable("tutorId") UUID tutorId,
+      @RequestParam(value = "studentId", required = false) UUID studentId
   ) {
     CurrentUser currentUser = getCurrentUser();
-    ReviewResponse response = reviewService.getMyReview(currentUser, tutorId);
+    ReviewResponse response = reviewService.getMyReview(currentUser, tutorId, studentId);
     return ResponseEntity.ok(ApiResponse.success(response, "Lấy đánh giá của bạn thành công"));
   }
 
