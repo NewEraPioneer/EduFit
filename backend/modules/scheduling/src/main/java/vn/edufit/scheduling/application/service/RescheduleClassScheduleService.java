@@ -374,11 +374,6 @@ public class RescheduleClassScheduleService {
         proposal.getClassId(), proposal.getTutorId(), proposal.getStudentId(), responderId,
         ClassScheduleChangedEvent.RECURRING_APPLIED, cancelledCount, generatedSessions.size()));
 
-    // Một sự kiện cho cả lô: người dùng nhận đúng một thông báo cố định thay vì một thông báo cho mỗi buổi.
-    eventPublisher.publishEvent(ClassScheduleChangedEvent.of(
-        proposal.getClassId(), proposal.getTutorId(), proposal.getStudentId(), responderId,
-        ClassScheduleChangedEvent.RECURRING_APPLIED, cancelledCount, generatedSessions.size()));
-
     log.info(
         "Chấp thuận đổi lịch định kỳ UC4.8 thành công: proposalId={}, cancelledCount={}, generatedCount={}",
         proposalId,
