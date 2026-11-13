@@ -55,6 +55,7 @@ class AttendancePolicyTest {
 
     assertThat(s.attendedCount()).isEqualTo(3);
     assertThat(s.countedCount()).isEqualTo(5);
+    assertThat(s.totalCount()).isEqualTo(7); // 5 buổi đã diễn ra (học + vắng) + 2 buổi còn lại; hủy sớm/gia sư không tính
     assertThat(s.attendanceRate()).isEqualTo(60);
     assertThat(s.familyEarlyCancelCount()).isEqualTo(1);
     assertThat(s.tutorCancelCount()).isEqualTo(1);

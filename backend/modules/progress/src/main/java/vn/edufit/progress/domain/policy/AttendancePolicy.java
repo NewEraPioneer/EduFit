@@ -42,6 +42,7 @@ public final class AttendancePolicy {
       int familyLateCancelCount,
       int familyEarlyCancelCount,
       int tutorCancelCount,
+      int totalCount,
       Instant nextSessionStart,
       UUID nextSessionId
   ) {}
@@ -69,6 +70,7 @@ public final class AttendancePolicy {
     int familyLate = 0;
     int familyEarly = 0;
     int tutorCancels = 0;
+    int scheduled = 0;
     ClassifiedSession next = null;
     for (ClassifiedSession s : sessions) {
       switch (s.kind()) {
@@ -78,6 +80,7 @@ public final class AttendancePolicy {
         case EARLY_CANCEL_BY_FAMILY -> familyEarly++;
         case CANCELLED_BY_TUTOR -> tutorCancels++;
         case SCHEDULED -> {
+          scheduled++;
           if (s.startAt().isAfter(now) && (next == null || s.startAt().isBefore(next.startAt()))) {
             next = s;
           }
@@ -86,10 +89,12 @@ public final class AttendancePolicy {
       }
     }
     int counted = completed + absent + familyLate;
+    // Tổng số buổi của lớp = buổi đã diễn ra (học + vắng) + buổi còn lại theo lịch; buổi đã hủy không chiếm chỗ.
+    int total = counted + scheduled;
     Integer rate = counted == 0
         ? null
         : BigDecimal.valueOf(completed * 100L).divide(BigDecimal.valueOf(counted), 0, RoundingMode.HALF_UP).intValue();
-    return new Summary(completed, counted, rate, absent, familyLate, familyEarly, tutorCancels,
+    return new Summary(completed, counted, rate, absent, familyLate, familyEarly, tutorCancels, total,
         next != null ? next.startAt() : null, next != null ? next.sessionId() : null);
   }
 

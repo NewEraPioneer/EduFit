@@ -49,9 +49,19 @@ class FlywayMigrationIT {
   private static final int PROD_COUNT = MigrationScripts.count(MigrationScripts.MIGRATION);
   private static final int DEV_COUNT = MigrationScripts.count(MigrationScripts.MIGRATION, MigrationScripts.SEED);
 
-  /** Version cuối của schema (db/migration). Seed demo đầy đủ V1.34 chỉ dành cho CSDL dev mới, không áp lên dữ liệu có sẵn. */
+  /** Seed demo đầy đủ: chỉ dành cho CSDL dev mới, không áp lên dữ liệu có sẵn khi nâng cấp. */
+  private static final String FULL_SEED_VERSION = "1.34";
+
+  /**
+   * Version schema cao nhất mà các test nâng cấp áp lên dữ liệu có sẵn: migration mới hơn seed đầy đủ
+   * (V1.37 trở đi) được kiểm chứng ở test riêng của từng module, không để seed V1.34 chạy lên dữ liệu
+   * do chính test chèn vào.
+   */
   private static final MigrationVersion SCHEMA_HEAD =
-      MigrationScripts.versions(MigrationScripts.MIGRATION).stream().max(MigrationVersion::compareTo).orElseThrow();
+      MigrationScripts.versions(MigrationScripts.MIGRATION).stream()
+          .filter(v -> v.isNewerThan(FULL_SEED_VERSION) == false)
+          .max(MigrationVersion::compareTo)
+          .orElseThrow();
 
   private static int devAfter(String version) {
     return (int) MigrationScripts.versions(MigrationScripts.MIGRATION, MigrationScripts.SEED).stream()
@@ -229,7 +239,9 @@ class FlywayMigrationIT {
       // Kiểm tra bảng account tồn tại và có thể truy vấn
       try (ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM account")) {
         assertTrue(rs.next(), "Bảng account phải tồn tại và cho phép truy vấn");
-        assertEquals(17, rs.getInt(1), "Bảng account có 17 tài khoản demo sau V1.34 (học sinh/phụ huynh/admin demo, học sinh phụ và 13 gia sư)");
+        assertEquals(17 + 220, rs.getInt(1),
+            "Bảng account có 17 tài khoản demo sau V1.34 (học sinh/phụ huynh/admin demo, học sinh phụ và 13 gia sư)"
+                + " cộng 220 tài khoản V1.39 (100 gia sư, 80 học sinh, 40 phụ huynh)");
       }
 
       // Kiểm tra bảng email_token tồn tại và có thể truy vấn

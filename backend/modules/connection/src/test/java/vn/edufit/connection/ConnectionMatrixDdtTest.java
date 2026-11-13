@@ -49,8 +49,7 @@ import vn.edufit.shared.exception.InvalidOperationException;
 import vn.edufit.shared.exception.ResourceConflictException;
 
 /**
- * DDT Matrix tests verifying complete permission, state transition, and boundary matrices
- * defined in docs/in-development-testing-specification.md Section 7.2.
+ * DDT Matrix tests verifying complete permission, state transition, and boundary matrices.
  */
 class ConnectionMatrixDdtTest {
   private static final Instant T0 = Instant.parse("2026-10-14T00:00:00Z");

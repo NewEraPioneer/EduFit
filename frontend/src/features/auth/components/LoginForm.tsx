@@ -22,28 +22,28 @@ export function LoginForm() {
   } = useLoginForm();
 
   return (
-    <div className="w-full max-w-md bg-white rounded-3xl border border-stone-200/90 shadow-xl shadow-stone-200/50 p-6 sm:p-8 space-y-6">
+    <div className="w-full max-w-md bg-surface rounded-3xl border border-line/90 shadow-xl shadow-ink/10 p-6 sm:p-8 space-y-6">
       <AuthCardHeader
         title="Chào mừng trở lại!"
-        subtitle="Đăng nhập để tiếp tục hành trình học tập cùng EduFit"
+        subtitle="Đăng nhập để tiếp tục học cùng EduFit"
       />
 
       {/* Demo 1-Click login pills */}
       <QuickLoginPills onSelect={fillQuickLogin} />
 
       {generalError && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-2xl animate-in fade-in">
+        <div className="p-3.5 bg-danger-soft border border-danger-line text-danger-strong text-xs rounded-2xl animate-in fade-in">
           {generalError}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="loginEmail" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+          <label htmlFor="loginEmail" className="block text-xs font-medium text-ink-2 mb-1.5">
             Email tài khoản
           </label>
           <div className="relative">
-            <Mail className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Mail className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               id="loginEmail"
               name="email"
@@ -53,11 +53,11 @@ export function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="example@edufit.vn"
-              className="w-full pl-10 pr-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all text-neutral-900 placeholder:text-neutral-400"
+              className="w-full pl-10 pr-4 py-2.5 text-xs bg-paper border border-line rounded-2xl focus:bg-surface focus:outline-hidden focus:border-action focus:ring-2 focus:ring-action/20 transition-all text-ink placeholder:text-muted"
             />
           </div>
           {fieldErrors.email && (
-            <p className="text-[11px] text-rose-600 font-medium mt-1 pl-1">
+            <p className="text-xs text-danger-strong font-medium mt-1 pl-1">
               {fieldErrors.email}
             </p>
           )}
@@ -65,15 +65,15 @@ export function LoginForm() {
 
         <div>
           <div className="flex justify-between items-center mb-1.5">
-            <label htmlFor="loginPassword" className="text-xs font-semibold text-neutral-700">
+            <label htmlFor="loginPassword" className="text-xs font-medium text-ink-2">
               Mật khẩu
             </label>
-            <Link href="/forgot-password" className="text-xs text-amber-600 hover:underline font-medium">
+            <Link href="/forgot-password" className="text-xs text-action-strong hover:underline font-medium">
               Quên mật khẩu?
             </Link>
           </div>
           <div className="relative">
-            <Lock className="size-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Lock className="size-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               id="loginPassword"
               name="password"
@@ -83,11 +83,11 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-10 pr-4 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all text-neutral-900 placeholder:text-neutral-400"
+              className="w-full pl-10 pr-4 py-2.5 text-xs bg-paper border border-line rounded-2xl focus:bg-surface focus:outline-hidden focus:border-action focus:ring-2 focus:ring-action/20 transition-all text-ink placeholder:text-muted"
             />
           </div>
           {fieldErrors.password && (
-            <p className="text-[11px] text-rose-600 font-medium mt-1 pl-1">
+            <p className="text-xs text-danger-strong font-medium mt-1 pl-1">
               {fieldErrors.password}
             </p>
           )}
@@ -96,7 +96,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-bold text-xs rounded-2xl shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          className="w-full py-3 bg-action hover:bg-action-deep active:scale-[0.99] text-on-action font-medium text-xs rounded-2xl shadow-md shadow-ink/10 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           {isSubmitting && <Loader2 className="size-4 animate-spin" />}
           <span>{isSubmitting ? "Đang đăng nhập..." : "Đăng nhập ngay"}</span>
@@ -105,9 +105,9 @@ export function LoginForm() {
 
       <SocialAuthButtons />
 
-      <p className="text-center text-xs text-neutral-500 pt-1">
+      <p className="text-center text-xs text-muted pt-1">
         Chưa có tài khoản EduFit?{" "}
-        <Link href="/register" className="text-amber-600 font-bold hover:underline">
+        <Link href="/register" className="text-action-strong font-medium hover:underline">
           Đăng ký miễn phí
         </Link>
       </p>

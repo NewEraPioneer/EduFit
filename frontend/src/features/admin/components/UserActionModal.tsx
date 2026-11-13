@@ -49,17 +49,17 @@ export function UserActionModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-action-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-night/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
     >
-      <div className="w-full max-w-md bg-white rounded-3xl border border-stone-200 shadow-2xl overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-200 my-auto">
+      <div className="w-full max-w-dialog-confirm bg-surface rounded-3xl border border-line shadow-2xl overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div
               className={`size-11 rounded-2xl flex items-center justify-center shrink-0 ${
                 isLock
-                  ? "bg-rose-100 text-rose-700"
-                  : "bg-emerald-100 text-emerald-700"
+                  ? "bg-danger-soft text-danger-strong"
+                  : "bg-success-soft text-success-strong"
               }`}
             >
               {isLock ? <Lock className="size-5" /> : <Unlock className="size-5" />}
@@ -67,11 +67,11 @@ export function UserActionModal({
             <div>
               <h3
                 id="modal-action-title"
-                className="text-base font-bold text-neutral-900"
+                className="text-base font-medium text-ink"
               >
                 {isLock ? "Khóa tài khoản người dùng" : "Mở khóa tài khoản"}
               </h3>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-muted">
                 {isLock
                   ? "Tài khoản sẽ bị vô hiệu hóa truy cập hệ thống"
                   : "Khôi phục quyền truy cập bình thường cho tài khoản"}
@@ -82,15 +82,15 @@ export function UserActionModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-lg hover:bg-stone-100 transition-colors"
+            className="p-1.5 text-muted hover:text-ink-2 rounded-lg hover:bg-sunken transition-colors"
           >
             <X className="size-4" />
           </button>
         </div>
 
         {/* User preview */}
-        <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200/80 flex items-center gap-3">
-          <div className="size-10 rounded-xl overflow-hidden bg-stone-200 border border-stone-300 flex items-center justify-center shrink-0">
+        <div className="p-3.5 bg-paper rounded-2xl border border-line/80 flex items-center gap-3">
+          <div className="size-10 rounded-xl overflow-hidden bg-line border border-line-strong flex items-center justify-center shrink-0">
             {user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -99,16 +99,16 @@ export function UserActionModal({
                 className="size-full object-cover"
               />
             ) : (
-              <span className="font-bold text-sm text-neutral-600">
+              <span className="font-medium text-sm text-ink-2">
                 {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
               </span>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-neutral-900 truncate">
+            <p className="text-xs font-medium text-ink truncate">
               {user.fullName}
             </p>
-            <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
+            <p className="text-xs text-muted truncate">{user.email}</p>
           </div>
         </div>
 
@@ -117,9 +117,9 @@ export function UserActionModal({
           <div className="space-y-1.5">
             <label
               htmlFor="lock-reason"
-              className="block text-xs font-bold text-neutral-700"
+              className="block text-xs font-medium text-ink-2"
             >
-              Lý do khóa tài khoản <span className="text-rose-500">*</span>
+              Lý do khóa tài khoản <span className="text-danger-strong">*</span>
             </label>
             <textarea
               id="lock-reason"
@@ -127,7 +127,7 @@ export function UserActionModal({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Nhập lý do cụ thể khóa tài khoản..."
-              className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none text-neutral-800"
+              className="w-full text-xs p-3 rounded-xl border border-line-strong focus:outline-none focus:ring-2 focus:ring-danger focus:border-transparent resize-none text-ink"
             />
           </div>
         )}
@@ -136,13 +136,13 @@ export function UserActionModal({
         <div
           className={`p-3 rounded-xl text-xs flex items-start gap-2.5 ${
             isLock
-              ? "bg-amber-50 text-amber-800 border border-amber-200"
-              : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              ? "bg-action-soft text-action-strong border border-action-line"
+              : "bg-success-soft text-success-strong border border-success-line"
           }`}
         >
           <AlertTriangle
             className={`size-4 shrink-0 mt-0.5 ${
-              isLock ? "text-amber-600" : "text-emerald-600"
+              isLock ? "text-action-strong" : "text-success-strong"
             }`}
           />
           <span>
@@ -153,7 +153,7 @@ export function UserActionModal({
         </div>
 
         {error && (
-          <p className="text-xs text-rose-600 font-semibold">{error}</p>
+          <p className="text-xs text-danger-strong font-medium">{error}</p>
         )}
 
         {/* Actions */}
@@ -162,7 +162,7 @@ export function UserActionModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="px-4 py-2.5 text-xs font-bold text-neutral-700 hover:bg-stone-100 rounded-xl transition-colors"
+            className="px-4 py-2.5 text-xs font-medium text-ink-2 hover:bg-sunken rounded-xl transition-colors"
           >
             Hủy bỏ
           </button>
@@ -170,10 +170,10 @@ export function UserActionModal({
             type="button"
             onClick={handleConfirm}
             disabled={submitting || (isLock && !reason.trim())}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-colors ${
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium text-white transition-colors ${
               isLock
-                ? "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300"
-                : "bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300"
+                ? "bg-danger hover:bg-danger-deep disabled:bg-danger-line"
+                : "bg-success hover:bg-success-deep disabled:bg-success-line"
             }`}
           >
             {submitting ? (

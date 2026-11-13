@@ -67,11 +67,11 @@ public class RecordSessionOutcomeService {
       );
     }
 
-    // 4. Kiểm tra thời điểm: Buổi học phải đã bắt đầu hoặc kết thúc
-    if (now.isBefore(session.getStartAt())) {
+    // Chỉ kết luận kết quả khi thời lượng buổi học đã kết thúc.
+    if (now.isBefore(session.getEndAt())) {
       throw new InvalidOperationException(
           ErrorCode.INVALID_OPERATION,
-          "Chưa thể ghi nhận kết quả khi buổi học chưa diễn ra!"
+          "Chỉ có thể ghi nhận kết quả sau giờ kết thúc buổi học"
       );
     }
 

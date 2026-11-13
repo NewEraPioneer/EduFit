@@ -38,7 +38,7 @@ export default function TutorSchedulePage() {
   }, []);
 
   return (
-    <React.Suspense fallback={<div className="p-6 text-sm text-slate-500">Đang tải lịch học...</div>}>
+    <React.Suspense fallback={<div className="p-6 text-sm text-muted">Đang tải lịch học...</div>}>
       <ScheduleCalendarView role="TUTOR" availabilitySlots={availabilitySlots} classes={classes} />
     </React.Suspense>
   );

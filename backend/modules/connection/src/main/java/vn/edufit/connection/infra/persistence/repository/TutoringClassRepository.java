@@ -15,6 +15,7 @@ public interface TutoringClassRepository extends JpaRepository<TutoringClass, UU
   Optional<TutoringClass> findByStudentIdAndTutorIdAndNeedIdAndStatus(UUID studentId, UUID tutorId, UUID needId, String status);
   List<TutoringClass> findAllByStudentIdAndTutorIdAndStatus(UUID studentId, UUID tutorId, String status);
   List<TutoringClass> findByTutorIdAndStatus(UUID tutorId, String status);
+  List<TutoringClass> findByStudentIdAndStatus(UUID studentId, String status);
   boolean existsByIdAndStatus(UUID classId, String status);
   boolean existsByIdAndTutorIdAndStudentIdAndStatus(UUID classId, UUID tutorId, UUID studentId, String status);
   Optional<TutoringClass> findByIdAndStatus(UUID classId, String status);

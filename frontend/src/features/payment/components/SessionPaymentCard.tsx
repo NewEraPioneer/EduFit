@@ -13,7 +13,7 @@ interface Props {
 }
 export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
   const [mode, setMode] = useState<
-    "fund" | "confirm" | "dispute" | "report" | "comment" | "complete" | null
+    "confirm" | "dispute" | "report" | "comment" | "complete" | null
   >(null);
   const [text, setText] = useState("");
   const [category, setCategory] = useState("OTHER");
@@ -53,7 +53,7 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
     s.canActAsTutor && s.sessionStatus === "SCHEDULED" && afterEnd;
   const tutorNet = s.amount - Math.floor((s.amount * s.commissionBps) / 10000);
   const button =
-    "rounded-lg border border-stone-300 px-3 py-2 text-sm font-semibold disabled:opacity-50 hover:bg-stone-50";
+    "rounded-lg border border-line-strong px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-paper";
   function open(next: typeof mode) {
     setMode(next);
     setText("");
@@ -63,7 +63,6 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     const ok = await execute(() => {
-      if (mode === "fund") return paymentApi.fund(s.sessionId, s.amount);
       if (mode === "confirm") return paymentApi.confirm(s.sessionId);
       if (mode === "complete") return paymentApi.completeSession(s.sessionId);
       if (mode === "dispute")
@@ -75,56 +74,52 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
     if (ok) setMode(null);
   }
   const submitLabel =
-    mode === "fund"
-      ? "Xác nhận giữ tiền"
-      : mode === "confirm"
-        ? "Ghi nhận xác nhận"
-        : mode === "complete"
-          ? "Xác nhận kết thúc"
-          : mode === "dispute"
-            ? "Gửi vấn đề"
-            : mode === "comment"
-              ? "Gửi phản hồi"
-              : "Gửi đề xuất";
+    mode === "confirm"
+      ? "Ghi nhận xác nhận"
+      : mode === "complete"
+        ? "Xác nhận kết thúc"
+        : mode === "dispute"
+          ? "Gửi vấn đề"
+          : mode === "comment"
+            ? "Gửi phản hồi"
+            : "Gửi đề xuất";
   return (
-    <article className="rounded-2xl border border-stone-200 bg-white p-5 space-y-5">
+    <article className="rounded-2xl border border-line bg-surface p-5 space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-bold text-neutral-900">
-            Buổi học với {s.tutorName}
-          </h3>
-          <p className="mt-1 text-sm text-neutral-500">
+          <h3 className="font-medium text-ink">Buổi học với {s.tutorName}</h3>
+          <p className="mt-1 text-sm text-muted">
             {new Date(s.startAt).toLocaleString("vi-VN")}
           </p>
         </div>
-        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">
+        <span className="rounded-full bg-action-soft px-3 py-1 text-xs font-medium text-action-strong">
           {paymentStatus(s)}
         </span>
       </header>
-      <div className="grid gap-3 rounded-xl bg-stone-50 p-4 sm:grid-cols-2">
+      <div className="grid gap-3 rounded-xl bg-paper p-4 sm:grid-cols-2">
         <div>
-          <p className="text-xs text-neutral-500">Học phí buổi học</p>
+          <p className="text-xs text-muted">Học phí buổi học</p>
           <strong className="text-2xl">{money(s.amount)}</strong>
         </div>
         <div className="text-sm">
           <p>
             Gia sư dự kiến nhận <strong>{money(tutorNet)}</strong>
           </p>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted">
             Phí nền tảng {s.commissionBps / 100}% đã gồm trong học phí.
           </p>
         </div>
       </div>
-      <p className="text-sm text-neutral-700">{paymentNextAction(s)}</p>
+      <p className="text-sm text-ink-2">{paymentNextAction(s)}</p>
       {s.payerId && (
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted">
           Người trả tiền: {s.isPayer ? "Bạn" : "Ví đã cấp học phí cho buổi này"}
           . Xác nhận việc học và báo vấn đề không thay đổi người sở hữu tiền.
         </p>
       )}
       {pending && s.reviewDeadline && (
-        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm">
-          <p className="font-semibold">
+        <div className="rounded-xl border border-brand-line bg-brand-soft p-4 text-sm">
+          <p className="font-medium">
             Hạn báo vấn đề: {new Date(s.reviewDeadline).toLocaleString("vi-VN")}
           </p>
           <p>
@@ -144,9 +139,9 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
       {s.disputeReason && (
         <section
           aria-label="Hồ sơ vấn đề"
-          className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm"
+          className="space-y-3 rounded-xl border border-action-line bg-action-soft p-4 text-sm"
         >
-          <h4 className="font-semibold">Một hồ sơ chung cho buổi học này</h4>
+          <h4 className="font-medium">Một hồ sơ chung cho buổi học này</h4>
           <p>
             <strong>{issueCategories[s.disputeCategory ?? "OTHER"]}:</strong>{" "}
             {s.disputeReason}
@@ -184,8 +179,8 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
             </p>
           </div>
           {(s.comments ?? []).map((message) => (
-            <div key={message.id} className="border-t border-amber-200 pt-2">
-              <p className="text-xs text-neutral-500">
+            <div key={message.id} className="border-t border-action-line pt-2">
+              <p className="text-xs text-muted">
                 {message.side === "TUTOR"
                   ? "Gia sư"
                   : message.side === "PAYER"
@@ -207,7 +202,7 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
         </section>
       )}
       {s.status === "SETTLED" && (
-        <p className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
+        <p className="rounded-xl bg-success-soft p-4 text-sm text-success-strong">
           Đã thanh toán {money(s.settledAmount)}; gia sư nhận{" "}
           {money(
             s.settledAmount -
@@ -219,22 +214,13 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
         </p>
       )}
       {s.resolutionNote && (
-        <p className="rounded-xl bg-stone-50 p-4 text-sm">
+        <p className="rounded-xl bg-paper p-4 text-sm">
           Quyết định Admin: {s.resolutionNote}
           {s.resolvedAt &&
             ` · ${new Date(s.resolvedAt).toLocaleString("vi-VN")}`}
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        {s.canFund && s.amount > 0 && (
-          <button
-            className={button}
-            disabled={disabled}
-            onClick={() => open("fund")}
-          >
-            Giữ học phí từ ví
-          </button>
-        )}
         {canComplete && (
           <button
             className={button}
@@ -284,22 +270,18 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
       {mode && (
         <form
           onSubmit={submit}
-          className="space-y-4 rounded-xl border border-amber-200 p-4"
+          className="space-y-4 rounded-xl border border-action-line p-4"
         >
-          <p className="text-sm font-semibold">
-            {mode === "fund"
-              ? `Giữ ${money(
-                  s.amount,
-                )} từ ví cho buổi học này? Tiền chỉ chuyển sau thời hạn phản hồi hoặc quyết định Admin.`
-              : mode === "confirm"
-                ? "Chỉ xác nhận việc học đã diễn ra. Học phí tiếp tục được giữ đến hết thời hạn phản hồi."
-                : mode === "complete"
-                  ? "Xác nhận buổi học đã kết thúc. Người học sẽ có đủ 24 giờ phản hồi trước khi học phí được thanh toán."
-                  : mode === "dispute"
-                    ? "Báo vấn đề và tạm giữ học phí"
-                    : mode === "comment"
-                      ? "Bổ sung thông tin cho hồ sơ chung"
-                      : "Đề xuất mức học phí hợp lý; Admin xem xét trước khi xử lý tiền."}
+          <p className="text-sm font-medium">
+            {mode === "confirm"
+              ? "Chỉ xác nhận việc học đã diễn ra. Học phí tiếp tục được giữ đến hết thời hạn phản hồi."
+              : mode === "complete"
+                ? "Xác nhận buổi học đã kết thúc. Người học sẽ có đủ 24 giờ phản hồi trước khi học phí được thanh toán."
+                : mode === "dispute"
+                  ? "Báo vấn đề và tạm giữ học phí"
+                  : mode === "comment"
+                    ? "Bổ sung thông tin cho hồ sơ chung"
+                    : "Đề xuất mức học phí hợp lý; Admin xem xét trước khi xử lý tiền."}
           </p>
           {mode === "dispute" && (
             <>
@@ -362,7 +344,7 @@ export function SessionPaymentCard({ session: s, disabled, execute }: Props) {
           <div className="flex gap-2">
             <button
               disabled={disabled}
-              className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold disabled:opacity-50"
+              className="rounded-lg bg-action px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
               {submitLabel}
             </button>

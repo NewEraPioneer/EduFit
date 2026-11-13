@@ -13,7 +13,8 @@ export const cancelReasonSchema = z.enum(
 
 export const proposeSessionSchema = z
   .object({
-    classId: z.string().uuid("Vui lòng chọn lớp học hợp lệ"),
+    // Backend accepts UUID-shaped IDs, including seeded IDs without RFC version/variant bits.
+    classId: z.guid("Vui lòng chọn lớp học hợp lệ"),
     tutorId: z.string().optional(),
     studentId: z.string().optional(),
     startAt: z.string().min(1, "Thời gian bắt đầu không được để trống"),

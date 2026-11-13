@@ -28,6 +28,8 @@ public interface SessionFacade {
    * @return {@link Optional} chứa {@link SessionSummaryView} nếu tìm thấy.
    */
   Optional<SessionSummaryView> findSessionById(UUID sessionId);
+  Optional<SessionSummaryView> lockSessionById(UUID sessionId);
+  Optional<String> findMeetingLink(UUID sessionId);
 
   /**
    * Lấy danh sách các khung giờ bận (đã chốt lịch SCHEDULED) của Gia sư trong một khoảng thời gian.
@@ -90,6 +92,12 @@ public interface SessionFacade {
    * Được module {@code progress} gọi để nhắc gia sư phản hồi buổi học.
    */
   List<SessionSummaryView> findCompletedSessionsEndedBetween(Instant from, Instant to);
+
+  /**
+   * Buổi học còn ở trạng thái SCHEDULED có thời điểm bắt đầu trong [from, to).
+   * Được module {@code payment} gọi để thu học phí trước giờ học.
+   */
+  List<SessionSummaryView> findScheduledSessionsStartingBetween(Instant from, Instant to);
 
   /**
    * Tra cứu tóm tắt nhiều buổi học theo mã (batch, tránh N+1). Mã không tồn tại bị bỏ qua.

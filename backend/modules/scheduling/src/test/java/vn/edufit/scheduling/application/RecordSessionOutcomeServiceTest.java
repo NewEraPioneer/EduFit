@@ -101,6 +101,16 @@ class RecordSessionOutcomeServiceTest {
   }
 
   @Test
+  void cannotCompleteWhileLessonIsStillInProgress() {
+    scheduledSession.updateTime(fixedNow.minusSeconds(60), fixedNow.plusSeconds(3600));
+    when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(scheduledSession));
+    assertThrows(InvalidOperationException.class,
+        () -> service.recordOutcome(sessionId, tutorUser, SessionStatus.COMPLETED, null));
+    verify(sessionRepository, never()).save(any());
+    verify(eventPublisher, never()).publishEvent(any(SessionOutcomeRecordedEvent.class));
+  }
+
+  @Test
   @DisplayName("Gia sư ghi nhận kết quả COMPLETED kèm biên bản học tập thành công")
   void shouldRecordCompletedOutcomeSuccessfully() {
     when(sessionRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(scheduledSession));

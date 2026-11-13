@@ -33,7 +33,7 @@ describe("ReviewModal Component Tests", () => {
       expect(screen.getByRole("button", { name: tag })).toBeInTheDocument();
     }
 
-    expect(screen.getByPlaceholderText(/Chia sẻ trải nghiệm học tập/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Chia sẻ về buổi học/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Gửi đánh giá" })).toBeInTheDocument();
   });
 
@@ -57,21 +57,21 @@ describe("ReviewModal Component Tests", () => {
     render(<ReviewModal {...defaultProps} />);
 
     const tagBtn = screen.getByRole("button", { name: "Nhiệt tình" });
-    expect(tagBtn).not.toHaveClass("bg-amber-100");
+    expect(tagBtn).not.toHaveClass("bg-action-soft");
 
     // Click để chọn
     fireEvent.click(tagBtn);
-    expect(tagBtn).toHaveClass("bg-amber-100");
+    expect(tagBtn).toHaveClass("bg-action-soft");
 
     // Click lại để bỏ chọn
     fireEvent.click(tagBtn);
-    expect(tagBtn).not.toHaveClass("bg-amber-100");
+    expect(tagBtn).not.toHaveClass("bg-action-soft");
   });
 
   it("báo lỗi validation Zod schema khi nhận xét ít hơn 10 ký tự", async () => {
     render(<ReviewModal {...defaultProps} />);
 
-    const textarea = screen.getByPlaceholderText(/Chia sẻ trải nghiệm học tập/i);
+    const textarea = screen.getByPlaceholderText(/Chia sẻ về buổi học/i);
     fireEvent.change(textarea, { target: { value: "Ngắn" } });
 
     const submitBtn = screen.getByRole("button", { name: "Gửi đánh giá" });
@@ -108,7 +108,7 @@ describe("ReviewModal Component Tests", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dễ hiểu" }));
 
     // Nhập nội dung nhận xét chi tiết
-    const textarea = screen.getByPlaceholderText(/Chia sẻ trải nghiệm học tập/i);
+    const textarea = screen.getByPlaceholderText(/Chia sẻ về buổi học/i);
     fireEvent.change(textarea, {
       target: { value: "Thầy giảng bài siêu cuốn và kiên nhẫn." },
     });
@@ -163,7 +163,7 @@ describe("ReviewModal Component Tests", () => {
       />
     );
 
-    fireEvent.change(screen.getByPlaceholderText(/Chia sẻ trải nghiệm học tập/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Chia sẻ về buổi học/i), {
       target: { value: "Gia sư giảng bài rất dễ hiểu." },
     });
     await waitFor(() => expect(screen.getByRole("button", { name: "Gửi đánh giá" })).toBeEnabled());

@@ -54,18 +54,18 @@ export function StudentOnboardingWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50/80 flex flex-col font-sans text-neutral-900">
-      <header className="w-full bg-white border-b border-stone-200/80 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+    <div className="min-h-screen bg-paper/80 flex flex-col font-sans text-ink">
+      <header className="w-full bg-surface border-b border-line/80 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
         <EduFitLogo href="/" />
-        <span className="text-xs text-neutral-500 truncate">
-          Xin chào, <strong className="text-neutral-800">{user?.fullName || "Học sinh"}</strong>
+        <span className="text-xs text-muted truncate">
+          Xin chào, <strong className="text-ink">{user?.fullName || "Học sinh"}</strong>
         </span>
       </header>
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-8 space-y-6">
         <div className="space-y-1">
           <h1 className="font-heading text-2xl font-bold">Con cần học gì?</h1>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-ink-2">
             Chọn khối lớp, môn và mục tiêu. Có thể thêm nhiều môn; lịch học, khu vực và ngân sách sẽ hỏi khi bạn tìm gia sư.
           </p>
         </div>
@@ -73,18 +73,18 @@ export function StudentOnboardingWizard() {
         {created.length > 0 && (
           <ul className="space-y-2" aria-label="Nhu cầu đã thêm">
             {created.map((need) => (
-              <li key={need.needId} className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white border border-emerald-200 text-sm">
-                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+              <li key={need.needId} className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-surface border border-success-line text-sm">
+                <CheckCircle2 className="size-4 text-success-strong shrink-0" />
                 <span className="min-w-0 break-words">{needTitle(need)}</span>
               </li>
             ))}
           </ul>
         )}
 
-        <div className="bg-white rounded-3xl border border-stone-200 p-5 sm:p-6">
-          {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+        <div className="bg-surface rounded-3xl border border-line p-5 sm:p-6">
+          {error && <p role="alert" className="text-sm text-danger-strong">{error}</p>}
           {!catalog && !error && (
-            <p className="text-sm text-neutral-500 inline-flex items-center gap-2"><Loader2 className="size-4 animate-spin" />Đang tải danh mục…</p>
+            <p className="text-sm text-muted inline-flex items-center gap-2"><Loader2 className="size-4 animate-spin" />Đang tải danh mục…</p>
           )}
           {catalog && (
             <LearningNeedForm
@@ -100,16 +100,16 @@ export function StudentOnboardingWizard() {
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
           <button type="button" onClick={finish} disabled={finishing}
-            className="px-4 py-2.5 rounded-xl text-sm font-semibold text-neutral-600 hover:bg-stone-100">
+            className="px-4 py-2.5 rounded-xl text-sm font-medium text-ink-2 hover:bg-sunken">
             {created.length === 0 ? "Bỏ qua, thiết lập sau" : "Để sau"}
           </button>
           {created.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-2">
-              <span className="inline-flex items-center gap-1 text-xs text-neutral-500 sm:self-center">
+              <span className="inline-flex items-center gap-1 text-xs text-muted sm:self-center">
                 <Plus className="size-3.5" />Có thể thêm môn khác ở form phía trên
               </span>
               <button type="button" onClick={finish} disabled={finishing}
-                className="px-5 py-2.5 rounded-xl bg-[#006DCC] text-white text-sm font-bold hover:bg-[#005BB0] disabled:opacity-60 inline-flex items-center justify-center gap-2">
+                className="px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-medium hover:bg-brand-deep disabled:opacity-60 inline-flex items-center justify-center gap-2">
                 {finishing && <Loader2 className="size-4 animate-spin" />}Hoàn tất
               </button>
             </div>

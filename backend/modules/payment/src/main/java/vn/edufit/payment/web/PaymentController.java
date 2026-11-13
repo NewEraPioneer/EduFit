@@ -20,24 +20,23 @@ public class PaymentController {
   private final PaymentReconciliationService reconciliation;
   private final SessionPaymentService sessions;
   private final ObjectProvider<CurrentUser> actors;
+  private final PaymentLessonService lessons;
 
   public PaymentController(
       WalletService wallets,
       SessionPaymentService sessions,
       ObjectProvider<CurrentUser> actors,
-      PaymentReconciliationService reconciliation) {
+      PaymentReconciliationService reconciliation,
+      PaymentLessonService lessons) {
     this.wallets = wallets;
     this.reconciliation = reconciliation;
     this.sessions = sessions;
     this.actors = actors;
+    this.lessons = lessons;
   }
 
   public record Money(
       @NotNull @DecimalMin("10000") @DecimalMax("100000000") @Digits(integer = 9, fraction = 0)
-          BigDecimal amount) {}
-
-  public record Fund(
-      @NotNull @DecimalMin("1") @DecimalMax("100000000") @Digits(integer = 9, fraction = 0)
           BigDecimal amount) {}
 
   public record Text(@NotBlank @Size(max = 2000) String text) {}
@@ -61,6 +60,13 @@ public class PaymentController {
   @GetMapping("/wallet")
   public ApiResponse<?> wallet(@RequestParam(defaultValue = "0") @Min(0) @Max(100000) int offset) {
     return ApiResponse.success(wallets.overview(actors.getObject(), offset));
+  }
+
+  @GetMapping("/history")
+  public ApiResponse<?> history(
+      @RequestParam @Pattern(regexp = "topups|sessions") String section,
+      @RequestParam(defaultValue = "0") @Min(0) @Max(100000) int offset) {
+    return ApiResponse.success(wallets.history(actors.getObject(), section, offset));
   }
 
   public record PayoutAccount(
@@ -114,15 +120,25 @@ public class PaymentController {
     return ApiResponse.success(sessions.list(actors.getObject(), from, to));
   }
 
+  /** Buổi đến hạn mà hệ thống chưa thu được học phí, để người học thấy mục "Cần thanh toán". */
+  @GetMapping("/sessions/due")
+  public ApiResponse<?> due() {
+    return ApiResponse.success(sessions.dueList(actors.getObject()));
+  }
+
   @GetMapping("/sessions/{id}")
   public ApiResponse<?> session(@PathVariable UUID id) {
     return ApiResponse.success(sessions.get(actors.getObject(), id));
   }
 
-  @PostMapping("/sessions/{id}/fund")
-  public ApiResponse<?> fund(@PathVariable UUID id, @Valid @RequestBody Fund input) {
-    return ApiResponse.success(
-        sessions.fund(actors.getObject(), id, input.amount().longValueExact()));
+  @GetMapping("/sessions/{id}/learning-access")
+  public ApiResponse<?> learningAccess(@PathVariable UUID id) {
+    return ApiResponse.success(lessons.readiness(actors.getObject(), id));
+  }
+
+  @PostMapping("/sessions/{id}/start")
+  public ApiResponse<?> startLesson(@PathVariable UUID id) {
+    return ApiResponse.success(lessons.start(actors.getObject(), id));
   }
 
   @PostMapping("/sessions/{id}/confirm")

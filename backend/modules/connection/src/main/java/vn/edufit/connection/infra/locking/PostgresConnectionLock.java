@@ -15,6 +15,7 @@ public class PostgresConnectionLock implements ConnectionLock {
   public PostgresConnectionLock(EntityManager entityManager) { this.entityManager = entityManager; }
 
   @Override public void lockStudent(UUID studentId) { lock("student:" + studentId); }
+  @Override public void lockTutor(UUID tutorId) { lock("tutor:" + tutorId); }
   @Override public void lockInvitationQuota(UUID userId) { lock("invite-quota:" + userId); }
 
   @Override public void lockInvitationPair(UUID firstUserId, UUID secondUserId) {

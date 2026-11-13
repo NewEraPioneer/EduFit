@@ -42,14 +42,38 @@ public class PaymentReconciliationService {
     var t = store.locked(() -> store.claimTopup(id, time.instant()) ? store.topup(id) : null);
     if (t == null) return;
     long order = ((Number) t.get("order_code")).longValue();
-    JsonNode data = gateway.lookup(order);
+    JsonNode data;
+    try {
+      data = gateway.lookup(order);
+    } catch (PayosRejectedException e) {
+      // payOS không có mã này: server sập trước khi link được tạo. Hết hạn thì không còn QR nào
+      // nhận tiền được, đóng khoản nạp. Chưa hết hạn thì có thể yêu cầu tạo link vẫn đang chạy.
+      if (PayosRejectedException.NOT_FOUND.equals(e.code()) && expired(t))
+        store.locked(() -> store.cancelTopup(id));
+      if (!PayosRejectedException.NOT_FOUND.equals(e.code())) throw e;
+      return;
+    }
     long amount = ((Number) t.get("amount")).longValue();
     if (!data.path("orderCode").isIntegralNumber()
         || data.path("orderCode").longValue() != order
         || !data.path("amount").isIntegralNumber()
         || data.path("amount").longValue() != amount)
       throw new InvalidOperationException("Kết quả payOS không khớp khoản nạp");
-    if (!"PAID".equals(data.path("status").asText())) return;
+    String link = data.path("id").asText();
+    if (t.get("provider_id") != null && !link.equals(t.get("provider_id")))
+      throw new InvalidOperationException("Mã thanh toán không khớp");
+    // Chưa lưu được link (sập giữa chừng): chỉ nhận đơn payOS tạo sau khoản nạp này, để một đơn cũ
+    // trùng mã từ CSDL trước không bao giờ được cộng vào khoản nạp mới.
+    if (t.get("provider_id") == null && !createdAfter(data.path("createdAt").asText(), t))
+      throw new InvalidOperationException("Đơn payOS cũ hơn khoản nạp; cần đối soát thủ công");
+    String state = data.path("status").asText();
+    if ("EXPIRED".equals(state) || "CANCELLED".equals(state)) {
+      if (!data.path("amountPaid").isIntegralNumber() || data.path("amountPaid").longValue() != 0)
+        throw new InvalidOperationException("Link đã đóng nhưng có tiền chuyển vào; cần đối soát");
+      store.locked(() -> store.cancelTopup(id));
+      return;
+    }
+    if (!"PAID".equals(state)) return;
     if (!data.path("amountPaid").isIntegralNumber()
         || data.path("amountPaid").longValue() != amount)
       throw new InvalidOperationException("Số tiền đã nhận chưa khớp; cần đối soát");
@@ -66,10 +90,7 @@ public class PaymentReconciliationService {
         || receipt.path("reference").asText().isBlank()
         || receipt.path("reference").asText().length() > 200)
       throw new InvalidOperationException("Giao dịch ngân hàng không khớp yêu cầu nạp");
-    String link = data.path("id").asText();
-    if (link.isBlank()
-        || link.length() > 150
-        || t.get("provider_id") != null && !link.equals(t.get("provider_id")))
+    if (link.isBlank() || link.length() > 150)
       throw new InvalidOperationException("Mã thanh toán không khớp");
     store.locked(
         () -> {
@@ -85,6 +106,22 @@ public class PaymentReconciliationService {
           store.creditTopup(id, receipt.path("reference").asText(), null);
           return null;
         });
+  }
+
+  private boolean expired(Map<String, Object> topup) {
+    return topup.get("expires_at") instanceof java.sql.Timestamp expires
+        && !time.instant().isBefore(expires.toInstant());
+  }
+
+  /** payOS ghi createdAt theo giờ máy chủ của họ; cho lệch đồng hồ tối đa 5 phút. */
+  private static boolean createdAfter(String providerCreatedAt, Map<String, Object> topup) {
+    if (!(topup.get("created_at") instanceof java.sql.Timestamp created)) return false;
+    try {
+      return !java.time.OffsetDateTime.parse(providerCreatedAt).toInstant()
+          .isBefore(created.toInstant().minusSeconds(300));
+    } catch (java.time.DateTimeException e) {
+      return false;
+    }
   }
 
   public void process() {

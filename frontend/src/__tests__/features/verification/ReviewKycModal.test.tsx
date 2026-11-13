@@ -64,7 +64,7 @@ describe("ReviewKycModal Component Tests", () => {
     );
 
     // Kiểm tra thông tin header modal
-    expect(screen.getByText("Thẩm Định Hồ Sơ Xác Minh KYC")).toBeInTheDocument();
+    expect(screen.getByText("Thẩm định hồ sơ xác minh KYC")).toBeInTheDocument();
     expect(screen.getByText("tutor-xyz")).toBeInTheDocument();
 
     // Chờ nạp chi tiết bằng cấp

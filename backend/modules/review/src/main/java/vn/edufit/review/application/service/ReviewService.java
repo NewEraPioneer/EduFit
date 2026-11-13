@@ -107,7 +107,10 @@ public class ReviewService {
 
     // 5. Kiểm tra lớp học / mối quan hệ kết nối giữa học sinh và gia sư (BR-56)
     var activeClass = connectionFacade.findActiveClass(request.studentId(), request.tutorId());
-    if (activeClass.isEmpty()) {
+    boolean hasEndedClass = activeClass.isEmpty() && connectionFacade.findClassesByStudent(request.studentId()).stream()
+        .anyMatch(cls -> cls.studentId().equals(request.studentId()) && cls.tutorId().equals(request.tutorId())
+            && "ENDED".equals(cls.status()));
+    if (activeClass.isEmpty() && !hasEndedClass) {
       throw new InvalidOperationException(ErrorCode.NOT_ENOUGH_SESSIONS, "Chưa hoàn thành đủ số buổi học hoặc chưa có lớp học với gia sư này.");
     }
 

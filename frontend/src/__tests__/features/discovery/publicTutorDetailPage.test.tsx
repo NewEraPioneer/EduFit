@@ -141,7 +141,7 @@ describe("Public Tutor Detail Page (/tutors/[id])", () => {
 
     // Check Verified Credentials box
     expect(
-      screen.getByText(/Bằng cấp & Chứng chỉ Sư phạm Đã Xác Minh/i)
+      screen.getByText(/Bằng cấp và chứng chỉ sư phạm đã xác minh/i)
     ).toBeInTheDocument();
     expect(screen.getByText("Xác minh danh tính CCCD")).toBeInTheDocument();
     expect(screen.getByText("Bằng đại học / Sư phạm")).toBeInTheDocument();

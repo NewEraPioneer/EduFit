@@ -1,10 +1,18 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { ScheduleCalendarView, ConnectedClass } from "@/features/scheduling";
 import { connectionApi } from "@/features/connection/api/connectionApi";
 
 export default function StudentSchedulePage() {
+  return (
+    <Suspense fallback={<div className="py-12 text-center text-xs text-muted">Đang tải lịch học...</div>}>
+      <StudentScheduleContent />
+    </Suspense>
+  );
+}
+
+function StudentScheduleContent() {
   const [classes, setClasses] = useState<ConnectedClass[]>([]);
 
   useEffect(() => {
@@ -33,8 +41,6 @@ export default function StudentSchedulePage() {
   }, []);
 
   return (
-    <React.Suspense fallback={<div className="p-6 text-sm text-slate-500">Đang tải lịch học...</div>}>
-      <ScheduleCalendarView role="STUDENT" availabilitySlots={[]} classes={classes} />
-    </React.Suspense>
+    <ScheduleCalendarView role="STUDENT" classes={classes} />
   );
 }

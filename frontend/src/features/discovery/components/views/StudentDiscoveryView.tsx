@@ -79,29 +79,29 @@ export function StudentDiscoveryView() {
   return (
     <div className="space-y-6 pb-12 max-w-7xl mx-auto">
       {/* 1. HEADER (Figma 36:3538) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-stone-200 dark:border-stone-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-line">
         <div>
-          <h1 className="font-heading font-extrabold text-2xl text-neutral-900 dark:text-neutral-100 tracking-tight">
+          <h1 className="font-heading font-bold text-2xl text-ink tracking-tight">
             Tìm kiếm gia sư
           </h1>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            Khám phá đội ngũ gia sư THCS được xác minh danh tính và bằng cấp sư phạm
+          <p className="text-xs text-muted mt-1">
+            Gia sư THCS đã được xác minh danh tính và bằng cấp sư phạm
           </p>
         </div>
       </div>
 
       {/* 2. TABS NAVIGATION */}
-      <div className="flex items-center gap-6 border-b border-stone-200 dark:border-stone-800 text-xs font-semibold">
+      <div className="flex items-center gap-6 border-b border-line text-xs font-medium">
         <button
           type="button"
           onClick={() => handleTabChange("browse")}
           className={`pb-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === "browse"
-              ? "border-[#006DCC] text-[#006DCC] font-bold"
-              : "border-transparent text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              ? "border-brand text-brand-strong font-medium"
+              : "border-transparent text-muted hover:text-ink"
           }`}
         >
-          <span>Khám phá gia sư</span>
+          <span>Tìm gia sư</span>
         </button>
 
         <button
@@ -109,16 +109,16 @@ export function StudentDiscoveryView() {
           onClick={() => handleTabChange("matches")}
           className={`pb-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === "matches"
-              ? "border-[#006DCC] text-[#006DCC] font-bold"
-              : "border-transparent text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              ? "border-brand text-brand-strong font-medium"
+              : "border-transparent text-muted hover:text-ink"
           }`}
         >
           <span>Gợi ý phù hợp (AI)</span>
           <span
-            className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+            className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
               activeTab === "matches"
-                ? "bg-[#006DCC] text-white"
-                : "bg-stone-200 dark:bg-stone-700 text-neutral-600 dark:text-neutral-300"
+                ? "bg-brand text-white"
+                : "bg-line text-ink-2"
             }`}
           >
             {matches.length}
@@ -130,8 +130,8 @@ export function StudentDiscoveryView() {
           onClick={() => handleTabChange("requests")}
           className={`pb-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === "requests"
-              ? "border-[#006DCC] text-[#006DCC] font-bold"
-              : "border-transparent text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              ? "border-brand text-brand-strong font-medium"
+              : "border-transparent text-muted hover:text-ink"
           }`}
         >
           <span>Yêu cầu đã gửi</span>
@@ -149,17 +149,17 @@ export function StudentDiscoveryView() {
           />
 
           <div className="flex items-center justify-between text-xs pt-2">
-            <span className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100">
+            <span className="font-heading font-bold text-sm text-ink">
               {pagination?.totalElements ?? tutors.length} gia sư phù hợp
             </span>
-            <span className="text-[11px] text-neutral-400 flex items-center gap-1 font-medium">
-              <ShieldCheck className="size-3.5 text-emerald-500" />
+            <span className="text-xs text-muted flex items-center gap-1 font-medium">
+              <ShieldCheck className="size-3.5 text-success-strong" />
               <span>Chỉ hiển thị gia sư đã xác minh</span>
             </span>
           </div>
 
           {searchError && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
+            <div className="p-4 rounded-2xl bg-danger-soft border border-danger-line text-danger-strong text-xs font-medium">
               {searchError}
             </div>
           )}
@@ -169,32 +169,32 @@ export function StudentDiscoveryView() {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="h-24 rounded-2xl bg-card border border-stone-200/60 dark:border-stone-800 p-5 animate-pulse flex items-center justify-between"
+                  className="h-24 rounded-2xl bg-card border border-line/60 p-5 animate-pulse flex items-center justify-between"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="size-12 rounded-full bg-stone-100 dark:bg-stone-800" />
+                    <div className="size-12 rounded-full bg-sunken" />
                     <div className="space-y-2">
-                      <div className="h-4 w-36 bg-stone-100 dark:bg-stone-800 rounded-md" />
-                      <div className="h-3 w-48 bg-stone-100 dark:bg-stone-800 rounded-md" />
+                      <div className="h-4 w-36 bg-sunken rounded-md" />
+                      <div className="h-3 w-48 bg-sunken rounded-md" />
                     </div>
                   </div>
-                  <div className="h-8 w-28 bg-stone-100 dark:bg-stone-800 rounded-full" />
+                  <div className="h-8 w-28 bg-sunken rounded-full" />
                 </div>
               ))}
             </div>
           ) : tutors.length === 0 ? (
-            <div className="bg-card p-12 rounded-3xl border border-stone-200 dark:border-stone-800 text-center space-y-3">
-              <Compass className="size-8 text-neutral-400 mx-auto" />
-              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100">
+            <div className="bg-card p-12 rounded-3xl border border-line text-center space-y-3">
+              <Compass className="size-8 text-muted mx-auto" />
+              <h3 className="font-heading font-bold text-base text-ink">
                 Không tìm thấy gia sư phù hợp
               </h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-md mx-auto">
-                Hãy thử nới lỏng các tiêu chí bộ lọc (môn học, mức học phí hoặc khu vực) để xem thêm nhiều lựa chọn gia sư khác.
+              <p className="text-xs text-muted max-w-md mx-auto">
+                Thử nới lỏng bộ lọc (môn học, học phí hoặc khu vực) để xem thêm gia sư.
               </p>
               <button
                 type="button"
                 onClick={resetFilters}
-                className="px-4 py-2 rounded-full bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-neutral-800 dark:text-neutral-200 text-xs font-bold transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-full bg-sunken hover:bg-line text-ink text-xs font-medium transition-colors cursor-pointer"
               >
                 Đặt lại bộ lọc
               </button>
@@ -213,9 +213,9 @@ export function StudentDiscoveryView() {
           )}
 
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t border-stone-200 dark:border-stone-800 text-xs">
-              <span className="text-neutral-500 font-medium">
-                Trang <strong className="text-neutral-900 dark:text-neutral-100">{pagination.page + 1}</strong> / {pagination.totalPages}
+            <div className="flex items-center justify-between pt-4 border-t border-line text-xs">
+              <span className="text-muted font-medium">
+                Trang <strong className="text-ink">{pagination.page + 1}</strong> / {pagination.totalPages}
               </span>
 
               <div className="flex items-center gap-2">
@@ -223,7 +223,7 @@ export function StudentDiscoveryView() {
                   type="button"
                   disabled={pagination.first || isSearchLoading}
                   onClick={() => setPage(pagination.page - 1)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-card border border-stone-200 dark:border-stone-800 text-card-foreground font-semibold hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-card border border-line text-card-foreground font-medium hover:bg-paper disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="size-4" />
                   <span>Trang trước</span>
@@ -233,7 +233,7 @@ export function StudentDiscoveryView() {
                   type="button"
                   disabled={pagination.last || isSearchLoading}
                   onClick={() => setPage(pagination.page + 1)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-card border border-stone-200 dark:border-stone-800 text-card-foreground font-semibold hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-card border border-line text-card-foreground font-medium hover:bg-paper disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   <span>Trang sau</span>
                   <ChevronRight className="size-4" />

@@ -43,7 +43,7 @@ public record RecurringProposalResponse(
         p.getEffectiveTo(),
         p.getNewWeeklySlots(),
         p.getDefaultMode() != null ? p.getDefaultMode().name() : null,
-        p.getPlaceOrLink(),
+        p.getDefaultMode() == vn.edufit.scheduling.domain.model.SessionMode.ONLINE ? null : p.getPlaceOrLink(),
         p.getMessage(),
         p.getStatus() != null ? p.getStatus().name() : null,
         p.getRespondedBy(),

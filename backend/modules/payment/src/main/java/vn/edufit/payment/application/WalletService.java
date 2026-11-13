@@ -51,6 +51,19 @@ public class WalletService {
     return result;
   }
 
+  /** Số lần gửi payOS tối đa cho một khoản nạp khi gặp mã đơn trùng. */
+  static final int MAX_ORDER_ATTEMPTS = 3;
+
+  /** Hai mục lịch sử cho người dùng: khoản nạp đã cộng ví, và tiền buổi học đã chốt. */
+  public List<Map<String, Object>> history(CurrentUser a, String section, int offset) {
+    access.authenticated(a);
+    return switch (section) {
+      case "topups" -> store.topupHistory(a.getUserId(), offset);
+      case "sessions" -> store.sessionHistory(a.getUserId(), offset);
+      default -> throw new InvalidOperationException("Mục lịch sử không hợp lệ");
+    };
+  }
+
   public Map<String, Object> topup(CurrentUser a, long amount) {
     access.learnerRole(a);
     money(amount);
@@ -65,13 +78,29 @@ public class WalletService {
     // External HTTP is deliberately outside the database lock/transaction.
     if (settings.payos()) {
       String path = a.hasRole("PARENT") ? "/parent/billing" : "/student/payments";
-      var checkout = gateway.create(order, amount, path, expires);
+      PayosGateway.Checkout checkout = null;
+      for (int attempt = 1; checkout == null; attempt++) {
+        try {
+          checkout = gateway.create(order, amount, path, expires);
+        } catch (PayosRejectedException e) {
+          // Chỉ 231 chứng minh payOS chưa tạo link cho mã này, nên đổi mã và gửi lại là an toàn.
+          // Timeout hay lỗi mạng không vào đây: khoản nạp giữ nguyên mã để job đối soát tra cứu.
+          if (!PayosRejectedException.DUPLICATE_ORDER.equals(e.code()))
+            throw new InvalidOperationException(
+                "payOS từ chối tạo mã thanh toán (mã " + e.code() + "). Vui lòng thử lại sau.");
+          if (attempt >= MAX_ORDER_ATTEMPTS)
+            throw new InvalidOperationException(
+                "payOS từ chối tạo mã thanh toán vì trùng mã đơn. Vui lòng thử lại sau.");
+          order = store.locked(() -> store.renewOrderCode(id));
+        }
+      }
+      var link = checkout;
       store.locked(
           () -> {
-            store.checkout(id, checkout.url(), checkout.id(), checkout.accountNumber());
+            store.checkout(id, link.url(), link.paymentLinkId(), link.accountNumber());
             return null;
           });
-      return Map.of("id", id, "checkoutUrl", checkout.url(), "provider", provider);
+      return Map.of("id", id, "orderCode", order, "checkoutUrl", link.url(), "provider", provider);
     }
     String info = "EF" + Long.toString(order, 36).toUpperCase(Locale.ROOT);
     String qr =

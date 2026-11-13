@@ -9,6 +9,8 @@ import vn.edufit.iam.api.IamFacade;
 import vn.edufit.profile.api.ProfileFacade;
 import vn.edufit.profile.api.dto.StudentSummaryDto;
 import vn.edufit.payment.api.event.PaymentSessionChangedEvent;
+import vn.edufit.payment.api.event.TuitionTopupNeededEvent;
+import vn.edufit.payment.api.event.TuitionUnpaidForTutorEvent;
 import vn.edufit.payment.api.event.WalletBalanceChangedEvent;
 import vn.edufit.shared.notification.NotificationSink;
 
@@ -45,6 +47,30 @@ class PaymentNotificationListenerTest {
     verify(sink, never()).notify(eq(payer), any(), anyString(), anyString(), anyString(), anyString(), any());
     verify(sink, never()).notify(eq(admin), any(), anyString(), anyString(), anyString(), anyString(), any());
     verify(sink).notify(eq(tutor), eq(student), eq("PAYMENT_CASE_MESSAGE"), anyString(), anyString(), eq("PAYMENT_SESSION"), eq(session));
+  }
+  @Test void shortWalletNoticeSaysHowMuchToTopUpAtEveryStageAndNeverMentionsAutoCancel() {
+    UUID user = UUID.randomUUID(), student = UUID.randomUUID(), session = UUID.randomUUID();
+    long amount = 300000, shortfall = 200000;
+    var money = java.text.NumberFormat.getIntegerInstance(java.util.Locale.forLanguageTag("vi-VN"));
+    for (var stage : TuitionTopupNeededEvent.Stage.values()) {
+      var sink = mock(NotificationSink.class);
+      new PaymentNotificationListener(sink, mock(ProfileFacade.class), mock(IamFacade.class))
+          .onTopupNeeded(TuitionTopupNeededEvent.of(user, student, session, amount, shortfall, Instant.now(), stage));
+      verify(sink).notify(eq(user), eq(student), eq("PAYMENT_TUITION_TOPUP_NEEDED"), anyString(),
+          argThat(body -> body.contains(money.format(amount)) && body.contains(money.format(shortfall))
+              && !body.contains("tự hủy")),
+          eq("PAYMENT_SESSION"), eq(session));
+      verifyNoMoreInteractions(sink);
+    }
+  }
+  @Test void unpaidSessionTellsTheTutorTheyMayTeachOrCancel() {
+    var sink = mock(NotificationSink.class);
+    UUID tutor = UUID.randomUUID(), student = UUID.randomUUID(), session = UUID.randomUUID();
+    new PaymentNotificationListener(sink, mock(ProfileFacade.class), mock(IamFacade.class))
+        .onUnpaidForTutor(TuitionUnpaidForTutorEvent.of(tutor, student, session, 300000, Instant.now()));
+    verify(sink).notify(eq(tutor), eq(student), eq("PAYMENT_TUITION_UNPAID"), anyString(),
+        argThat(body -> body.contains("hủy buổi học")), eq("PAYMENT_SESSION"), eq(session));
+    verifyNoMoreInteractions(sink);
   }
   @Test void walletKindsThatMatterNotifyTheOwnerOnlyAndOthersStaySilent() {
     var sink = mock(NotificationSink.class);

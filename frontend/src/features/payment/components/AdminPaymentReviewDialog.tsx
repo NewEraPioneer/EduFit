@@ -31,13 +31,13 @@ export function AdminPaymentReviewDialog({
   return (
     <PaymentDialog title={target.label} onClose={onClose} busy={busy}>
       <form onSubmit={submit} className="space-y-5">
-        <p className="rounded-xl bg-stone-50 p-4 text-sm leading-relaxed text-neutral-600">
+        <p className="rounded-xl bg-paper p-4 text-sm leading-relaxed text-ink-2">
           {target.summary}
         </p>
         {error && (
           <p
             role="alert"
-            className="rounded-xl bg-red-50 p-3 text-sm text-red-700"
+            className="rounded-xl bg-danger-soft p-3 text-sm text-danger-strong"
           >
             {error}
           </p>
@@ -51,7 +51,7 @@ export function AdminPaymentReviewDialog({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
-              className="mt-2 w-full rounded-xl border border-stone-300 p-3"
+              className="mt-2 w-full rounded-xl border border-line-strong p-3"
             />
           </label>
           {target.approve && !target.payout && (
@@ -63,9 +63,9 @@ export function AdminPaymentReviewDialog({
                 maxLength={200}
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-stone-300 p-3"
+                className="mt-2 w-full rounded-xl border border-line-strong p-3"
               />
-              <span className="mt-2 block text-xs font-normal text-neutral-500">
+              <span className="mt-2 block text-xs font-normal text-muted">
                 Chỉ xác nhận sau khi đã đối chiếu giao dịch thật.
               </span>
             </label>
@@ -76,18 +76,18 @@ export function AdminPaymentReviewDialog({
             type="button"
             disabled={busy}
             onClick={onClose}
-            className="rounded-xl border border-stone-200 px-3 py-3 text-sm font-semibold disabled:opacity-50"
+            className="rounded-xl border border-line px-3 py-3 text-sm font-medium disabled:opacity-50"
           >
             Hủy
           </button>
           <button
             disabled={busy}
-            className="rounded-xl bg-amber-500 px-3 py-3 text-sm font-bold disabled:opacity-50"
+            className="rounded-xl bg-action px-3 py-3 text-sm font-medium disabled:opacity-50"
           >
             {busy ? "Đang xử lý…" : "Xác nhận xử lý"}
           </button>
         </div>
-        <details className="text-xs text-neutral-500">
+        <details className="text-xs text-muted">
           <summary className="cursor-pointer">Mã tham chiếu nội bộ</summary>
           <p className="mt-2 break-all">{target.id}</p>
         </details>

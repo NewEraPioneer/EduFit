@@ -226,5 +226,3 @@ describe("ScheduleCalendarView - Deep Link xử lý", () => {
     });
   });
 });
-
-

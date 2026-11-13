@@ -14,6 +14,7 @@ public class PaymentDeadlineJob {
 
   @Scheduled(fixedDelayString = "${edufit.payment.deadline-delay-ms:30000}")
   public void run() {
+    service.collectTuition();
     service.processDeadlines();
   }
 }

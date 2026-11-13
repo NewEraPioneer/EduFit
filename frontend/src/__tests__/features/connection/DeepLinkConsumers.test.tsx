@@ -129,9 +129,9 @@ describe("Deep Link Consumers (invitationId & requestId)", () => {
       const card2 = await screen.findByTestId("invitation-card-inv-222");
 
       // Thẻ 1 được highlight với border/ring amber
-      expect(card1.className).toContain("ring-2 ring-amber-500 bg-amber-50/50");
+      expect(card1.className).toContain("ring-2 ring-action bg-action-soft/50");
       // Thẻ 2 không được highlight
-      expect(card2.className).not.toContain("ring-2 ring-amber-500");
+      expect(card2.className).not.toContain("ring-2 ring-action");
 
       // Tham số query được xóa bằng router.replace
       await waitFor(() => {
@@ -148,8 +148,8 @@ describe("Deep Link Consumers (invitationId & requestId)", () => {
       const card1 = await screen.findByTestId("invitation-card-inv-111");
       const card2 = await screen.findByTestId("invitation-card-inv-222");
 
-      expect(card1.className).not.toContain("ring-2 ring-amber-500");
-      expect(card2.className).not.toContain("ring-2 ring-amber-500");
+      expect(card1.className).not.toContain("ring-2 ring-action");
+      expect(card2.className).not.toContain("ring-2 ring-action");
 
       await waitFor(() => {
         expect(mockReplace).toHaveBeenCalledWith("/student/family", { scroll: false });
@@ -173,8 +173,8 @@ describe("Deep Link Consumers (invitationId & requestId)", () => {
       const card1 = await screen.findByTestId("invitation-card-inv-111");
       const card2 = await screen.findByTestId("invitation-card-inv-222");
 
-      expect(card1.className).toContain("ring-2 ring-amber-500 bg-amber-50/50");
-      expect(card2.className).not.toContain("ring-2 ring-amber-500");
+      expect(card1.className).toContain("ring-2 ring-action bg-action-soft/50");
+      expect(card2.className).not.toContain("ring-2 ring-action");
 
       await waitFor(() => {
         expect(mockReplace).toHaveBeenCalledWith("/parent/children", { scroll: false });
@@ -193,9 +193,9 @@ describe("Deep Link Consumers (invitationId & requestId)", () => {
       const card2 = await screen.findByTestId("request-card-req-222");
 
       // Thẻ 1 được highlight với border/ring blue
-      expect(card1.className).toContain("ring-2 ring-blue-500 bg-blue-50/40");
+      expect(card1.className).toContain("ring-2 ring-brand bg-brand-soft/40");
       // Thẻ 2 không được highlight
-      expect(card2.className).not.toContain("ring-2 ring-blue-500");
+      expect(card2.className).not.toContain("ring-2 ring-brand");
 
       await waitFor(() => {
         expect(mockReplace).toHaveBeenCalledWith("/tutor/requests", { scroll: false });
@@ -211,8 +211,8 @@ describe("Deep Link Consumers (invitationId & requestId)", () => {
       const card1 = await screen.findByTestId("request-card-req-111");
       const card2 = await screen.findByTestId("request-card-req-222");
 
-      expect(card1.className).not.toContain("ring-2 ring-blue-500");
-      expect(card2.className).not.toContain("ring-2 ring-blue-500");
+      expect(card1.className).not.toContain("ring-2 ring-brand");
+      expect(card2.className).not.toContain("ring-2 ring-brand");
 
       await waitFor(() => {
         expect(mockReplace).toHaveBeenCalledWith("/tutor/requests", { scroll: false });

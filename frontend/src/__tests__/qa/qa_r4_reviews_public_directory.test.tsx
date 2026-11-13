@@ -118,11 +118,11 @@ describe("QA R4: Đánh giá Gia sư & Thư mục Công khai (Reviews & Public D
       const tagBtn = screen.getByRole("button", { name: "Nhiệt tình" });
       // Chọn nhãn
       fireEvent.click(tagBtn);
-      expect(tagBtn).toHaveClass("bg-amber-100");
+      expect(tagBtn).toHaveClass("bg-action-soft");
 
       // Bỏ chọn nhãn
       fireEvent.click(tagBtn);
-      expect(tagBtn).toHaveClass("bg-stone-50");
+      expect(tagBtn).toHaveClass("bg-paper");
     });
 
     it("báo lỗi validation khi nhận xét chi tiết dưới 10 ký tự", async () => {
@@ -138,7 +138,7 @@ describe("QA R4: Đánh giá Gia sư & Thư mục Công khai (Reviews & Public D
         />
       );
 
-      const commentInput = screen.getByPlaceholderText(/Chia sẻ trải nghiệm học tập/i);
+      const commentInput = screen.getByPlaceholderText(/Chia sẻ về buổi học/i);
       fireEvent.change(commentInput, { target: { value: "Tốt" } }); // Chỉ 3 ký tự
 
       const submitBtn = screen.getByRole("button", { name: "Gửi đánh giá" });
@@ -186,7 +186,7 @@ describe("QA R4: Đánh giá Gia sư & Thư mục Công khai (Reviews & Public D
       fireEvent.click(screen.getByRole("button", { name: "Đúng giờ" }));
 
       // Điền comment hợp lệ (>= 10 ký tự)
-      const commentInput = screen.getByPlaceholderText(/Chia sẻ trải nghiệm học tập/i);
+      const commentInput = screen.getByPlaceholderText(/Chia sẻ về buổi học/i);
       fireEvent.change(commentInput, {
         target: { value: "Thầy dạy rất dễ hiểu và kiên nhẫn giảng bài." },
       });
@@ -345,7 +345,7 @@ describe("QA R4: Đánh giá Gia sư & Thư mục Công khai (Reviews & Public D
       expect(
         await screen.findByRole("heading", { name: "Thầy Lê Hoàng Long", level: 1 })
       ).toBeInTheDocument();
-      expect(screen.getByText(/Bằng cấp & Chứng chỉ Sư phạm Đã Xác Minh/i)).toBeInTheDocument();
+      expect(screen.getByText(/Bằng cấp và chứng chỉ sư phạm đã xác minh/i)).toBeInTheDocument();
       expect(screen.getByText("Thứ Ba")).toBeInTheDocument();
       expect(screen.getAllByText("18:00 - 20:00").length).toBeGreaterThanOrEqual(1);
 

@@ -13,6 +13,7 @@ public interface ConnectionFacade {
   boolean isClassActive(UUID classId);
   boolean isClassActive(UUID classId, UUID tutorId, UUID studentId);
   Optional<ActiveClassView> findActiveClassById(UUID classId);
+  void updateAgreedSlots(UUID classId, List<String> slots);
 
   // ── Phương thức bổ sung cho module Progress (chỉ đọc) ────────────────────
   Optional<ClassDetailView> findClassById(UUID classId);

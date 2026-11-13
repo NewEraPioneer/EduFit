@@ -1,9 +1,19 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
+import StudentSchedulePage from "@/app/student/schedule/page";
+import { connectionApi } from "@/features/connection/api/connectionApi";
 import { ScheduleCalendarView } from "@/features/scheduling";
 import { schedulingApi } from "@/features/scheduling/api/schedulingApi";
 import { ApiError } from "@/lib/api";
+
+const scheduleSearchParams = new URLSearchParams();
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...await importOriginal<typeof import("next/navigation")>(),
+  useSearchParams: () => scheduleSearchParams,
+  usePathname: () => "/student/schedule",
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+}));
 
 // Mock AuthContext
 vi.mock("@/context/AuthContext", () => ({
@@ -48,12 +58,42 @@ const mockSessions = [
 ];
 
 describe("ScheduleCalendarView Component", () => {
+  it("thông báo mở đúng tuần và đúng chi tiết buổi học", async () => {
+    const linked = { ...mockSessions[0], startAt: "2027-03-17T08:00:00.000Z", endAt: "2027-03-17T09:30:00.000Z",
+      proposedBy: "user-tutor-1", expiresAt: "2027-03-16T08:00:00.000Z", version: 1, createdAt: "2027-03-14T08:00:00.000Z" };
+    vi.spyOn(schedulingApi, "getSessionDetail").mockResolvedValue({ success: true, data: linked });
+    scheduleSearchParams.set("sessionId", linked.sessionId);
+    render(<ScheduleCalendarView role="TUTOR" />);
+    await waitFor(() => {
+      expect(schedulingApi.getCalendar).toHaveBeenCalledWith(expect.objectContaining({
+        from: expect.any(String), to: expect.any(String),
+      }));
+      const last = vi.mocked(schedulingApi.getCalendar).mock.calls.at(-1)![0];
+      expect(Date.parse(last.from)).toBeLessThanOrEqual(Date.parse(linked.startAt));
+      expect(Date.parse(last.to)).toBeGreaterThan(Date.parse(linked.endAt));
+    });
+    expect(await screen.findByText("Chi tiết buổi học")).toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
+    for (const key of [...scheduleSearchParams.keys()]) scheduleSearchParams.delete(key);
     vi.spyOn(schedulingApi, "getCalendar").mockResolvedValue({
       success: true,
       data: mockSessions,
     });
+  });
+
+  it("phụ huynh mở thông báo đúng con và đóng chi tiết khi chuyển con khác", async () => {
+    const linked = { ...mockSessions[0], proposedBy: "user-tutor-1", expiresAt: "2026-10-18T08:00:00.000Z",
+      version: 1, createdAt: "2026-10-15T08:00:00.000Z" };
+    vi.spyOn(schedulingApi, "getSessionDetail").mockResolvedValue({ success: true, data: linked });
+    scheduleSearchParams.set("sessionId", linked.sessionId);
+    const resolved = vi.fn();
+    const { rerender } = render(<ScheduleCalendarView role="PARENT" initialStudentId={linked.studentId} onLinkedStudentResolved={resolved} />);
+    await waitFor(() => expect(resolved).toHaveBeenCalledWith(linked.studentId));
+    expect(await screen.findByText("Chi tiết buổi học")).toBeInTheDocument();
+    rerender(<ScheduleCalendarView role="PARENT" initialStudentId="another-child" onLinkedStudentResolved={resolved} />);
+    await waitFor(() => expect(screen.queryByText("Chi tiết buổi học")).not.toBeInTheDocument());
   });
 
   afterEach(() => {
@@ -63,7 +103,7 @@ describe("ScheduleCalendarView Component", () => {
   it("hiển thị đúng tiêu đề, múi giờ và nút chuyển đổi chế độ xem", async () => {
     render(<ScheduleCalendarView role="TUTOR" availabilitySlots={[]} />);
 
-    expect(screen.getByText("Lịch học & Điều phối thời gian")).toBeInTheDocument();
+    expect(screen.getByText("Lịch học")).toBeInTheDocument();
     expect(screen.getByText("Múi giờ Việt Nam UTC+7")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lưới tuần" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dòng thời gian" })).toBeInTheDocument();
@@ -143,7 +183,7 @@ describe("ScheduleCalendarView Component", () => {
   });
 
   it("F-01: mở thẳng chi tiết buổi học từ deep link ?sessionId= của thông báo, rồi bỏ tham số khỏi URL", async () => {
-    window.history.replaceState(null, "", "/tutor/schedule?sessionId=sess-200");
+    scheduleSearchParams.set("sessionId", "sess-200");
     const detail = vi.spyOn(schedulingApi, "getSessionDetail").mockResolvedValue({
       success: true,
       data: {
@@ -168,16 +208,13 @@ describe("ScheduleCalendarView Component", () => {
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(detail).toHaveBeenCalledWith("sess-200");
-    expect(window.location.search).toBe("");
-    window.history.replaceState(null, "", "/");
+    scheduleSearchParams.delete("sessionId");
   });
 
   it("không có ?sessionId= thì không tự mở modal chi tiết", async () => {
-    window.history.replaceState(null, "", "/tutor/schedule");
     render(<ScheduleCalendarView role="TUTOR" availabilitySlots={[]} />);
     await waitFor(() => expect(schedulingApi.getCalendar).toHaveBeenCalled());
     expect(screen.queryByRole("dialog")).toBeNull();
-    window.history.replaceState(null, "", "/");
   });
 
   it("mở SessionDetailModal khi bấm vào một buổi học", async () => {
@@ -214,6 +251,28 @@ describe("ScheduleCalendarView Component", () => {
     expect(screen.getByText("Chi tiết buổi học")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Đổi lịch học" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Hủy buổi học" })).toBeInTheDocument();
+  });
+
+  it("chọn tuần và mở chi tiết của buổi học từ liên kết dashboard", async () => {
+    const { sessionId, startAt } = mockSessions[0];
+    const monday = new Date(`${startAt.slice(0, 10)}T00:00:00+07:00`);
+    const sessionDetail = vi.spyOn(schedulingApi, "getSessionDetail").mockResolvedValue({ success: false });
+    vi.spyOn(connectionApi, "getStudentClasses").mockResolvedValue([]);
+    scheduleSearchParams.set("sessionId", sessionId);
+    scheduleSearchParams.set("startAt", startAt);
+
+    try {
+      render(<StudentSchedulePage />);
+
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      expect(sessionDetail).toHaveBeenCalledWith(sessionId);
+      expect(schedulingApi.getCalendar).toHaveBeenCalledWith(expect.objectContaining({
+        from: monday.toISOString(),
+      }));
+    } finally {
+      scheduleSearchParams.delete("sessionId");
+      scheduleSearchParams.delete("startAt");
+    }
   });
 
   it("hiển thị EmptyState trong chế độ Timeline khi không có buổi học nào", async () => {

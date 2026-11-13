@@ -134,6 +134,22 @@ class SessionFacadeImplTest {
   }
 
   @Test
+  @DisplayName("findScheduledSessionsStartingBetween: tra ve buoi SCHEDULED trong khoang bat dau")
+  void findScheduledSessionsStartingBetween_MapsRepositoryResult() {
+    Instant from = Instant.parse("2026-10-20T00:00:00Z");
+    Instant to = from.plusSeconds(86400);
+    UUID sessionId = UUID.randomUUID();
+    TutoringSession session = buildSession(sessionId, UUID.randomUUID(), from.plusSeconds(3600),
+        from.plusSeconds(7200), SessionStatus.SCHEDULED);
+    when(sessionRepository.findUpcomingSessions(from, to)).thenReturn(List.of(session));
+
+    List<SessionSummaryView> result = sessionFacade.findScheduledSessionsStartingBetween(from, to);
+
+    assertThat(result).extracting(SessionSummaryView::sessionId).containsExactly(sessionId);
+    assertThat(result.get(0).status()).isEqualTo("SCHEDULED");
+  }
+
+  @Test
   @DisplayName("countCompletedSessions: tra ve tong so luong buoi hoc COMPLETED")
   void countCompletedSessions_ReturnsRepositoryCount() {
     when(sessionRepository.countCompletedSessions()).thenReturn(25L);

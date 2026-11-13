@@ -37,7 +37,7 @@ describe("Tutor Verification Supplementary Credentials", () => {
         />
       );
 
-      expect(screen.getByText("Hồ sơ gia sư đã được xác thực chính thức ✅")).toBeInTheDocument();
+      expect(screen.getByText("Hồ sơ gia sư đã được xác thực")).toBeInTheDocument();
       const supplementBtn = screen.getByRole("button", { name: /Bổ sung bằng cấp/i });
       expect(supplementBtn).toBeInTheDocument();
 
@@ -67,7 +67,7 @@ describe("Tutor Verification Supplementary Credentials", () => {
         />
       );
 
-      expect(screen.getByText("Hồ sơ gia sư đã được xác thực chính thức ✅")).toBeInTheDocument();
+      expect(screen.getByText("Hồ sơ gia sư đã được xác thực")).toBeInTheDocument();
       expect(
         screen.getByText(/Bằng cấp bổ sung mới đang được Quản trị viên xét duyệt/i)
       ).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("Tutor Verification Supplementary Credentials", () => {
         />
       );
 
-      expect(screen.getByText("Hồ sơ bổ sung bằng cấp chưa được duyệt ❌")).toBeInTheDocument();
+      expect(screen.getByText("Hồ sơ bổ sung bằng cấp chưa được duyệt")).toBeInTheDocument();
       expect(screen.getByText("Ảnh chứng chỉ IELTS bị mờ")).toBeInTheDocument();
       const retryBtn = screen.getByRole("button", { name: /Nộp lại bằng bổ sung/i });
       expect(retryBtn).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe("Tutor Verification Supplementary Credentials", () => {
         />
       );
 
-      expect(screen.getByText("Hồ sơ xác minh chưa được duyệt ❌")).toBeInTheDocument();
+      expect(screen.getByText("Hồ sơ xác minh chưa được duyệt")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Nộp lại bằng cấp/i })).toBeInTheDocument();
     });
   });

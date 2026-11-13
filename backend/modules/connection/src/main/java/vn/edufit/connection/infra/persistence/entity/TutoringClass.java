@@ -18,6 +18,14 @@ public class TutoringClass {
   @Column(name = "started_at", nullable = false) private Instant startedAt;
   @Column(name = "ended_at") private Instant endedAt;
   @Column(name = "end_reason") private String endReason;
+  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+  @Column(name = "agreed_slots", columnDefinition = "jsonb") private java.util.List<String> agreedSlots;
+
+  public java.util.List<String> getAgreedSlots() { return agreedSlots; }
+  public void updateAgreedSlots(java.util.List<String> slots) {
+    if (slots == null || slots.isEmpty()) throw new IllegalArgumentException("Lịch thỏa thuận không được rỗng");
+    agreedSlots = java.util.List.copyOf(slots);
+  }
 
   protected TutoringClass() {}
   /** Học phí mỗi buổi được chốt từ gói dạy khi gia sư nhận yêu cầu; thanh toán dùng giá này. */

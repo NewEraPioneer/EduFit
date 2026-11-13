@@ -43,42 +43,42 @@ export function StudentPedagogicalProfileModal({ request, isOpen, onClose }: Stu
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-night/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto"
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200 dark:bg-zinc-900 dark:border-zinc-800 my-auto">
-        <div className="flex items-center justify-between gap-3 border-b border-stone-100 dark:border-zinc-800 px-5 sm:px-6 py-4">
+      <div className="relative w-full max-w-dialog overflow-hidden rounded-3xl bg-surface shadow-2xl border border-line my-auto">
+        <div className="flex items-center justify-between gap-3 border-b border-line px-5 sm:px-6 py-4">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand-strong">
               <GraduationCap className="size-5" />
             </div>
             <div className="min-w-0">
-              <h2 id="profile-modal-title" className="text-base font-bold text-neutral-900 dark:text-zinc-100">
+              <h2 id="profile-modal-title" className="text-base font-medium text-ink">
                 Nhu cầu học của học sinh
               </h2>
-              <p className="text-xs text-neutral-500 dark:text-zinc-400 truncate">
+              <p className="text-xs text-muted truncate">
                 {request.studentDisplayName || "Học sinh"} • {request.senderRole === "PARENT" ? "Phụ huynh gửi" : "Học sinh gửi"}
               </p>
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Đóng"
-            className="grid size-8 shrink-0 place-items-center rounded-full text-neutral-400 hover:bg-stone-100 hover:text-neutral-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer">
+            className="grid size-8 shrink-0 place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink-2 transition-colors cursor-pointer">
             <X className="size-4" />
           </button>
         </div>
 
         <div className="p-5 sm:p-6 space-y-4">
-          <div className="rounded-2xl bg-indigo-50/70 p-4 border border-indigo-100 dark:bg-indigo-950/30 dark:border-indigo-900/40 space-y-1.5">
-            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-semibold text-xs">
+          <div className="rounded-2xl bg-brand-soft/70 p-4 border border-brand-line space-y-1.5">
+            <div className="flex items-center gap-2 text-brand-strong font-medium text-xs">
               <Target className="size-4" />
               <span>Nhu cầu học</span>
             </div>
-            <p className="text-sm font-bold text-neutral-900 dark:text-zinc-100 break-words">{inboxNeedTitle(need)}</p>
-            {details.length > 0 && <p className="text-xs text-neutral-600 dark:text-zinc-300 break-words">{details.join(" · ")}</p>}
+            <p className="text-sm font-medium text-ink break-words">{inboxNeedTitle(need)}</p>
+            {details.length > 0 && <p className="text-xs text-ink-2 break-words">{details.join(" · ")}</p>}
           </div>
 
           {request.fitChecks.length > 0 && (
-            <div className="rounded-2xl border border-stone-200 p-4 dark:border-zinc-800 space-y-2">
-              <p className="text-xs font-semibold text-neutral-700 dark:text-zinc-300 break-words">
+            <div className="rounded-2xl border border-line p-4 space-y-2">
+              <p className="text-xs font-medium text-ink-2 break-words">
                 So với gói dạy {request.offeringName ? <strong>{request.offeringName}</strong> : "của bạn"}
               </p>
               <FitChecks checks={request.fitChecks} />
@@ -86,58 +86,58 @@ export function StudentPedagogicalProfileModal({ request, isOpen, onClose }: Stu
           )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-stone-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-zinc-400 font-medium mb-1">
-                <MapPin className="size-3.5 text-neutral-400" />
+            <div className="rounded-2xl border border-line bg-surface p-3.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted font-medium mb-1">
+                <MapPin className="size-3.5 text-muted" />
                 <span>Hình thức & khu vực</span>
               </div>
-              <p className="text-xs font-bold text-neutral-800 dark:text-zinc-200 break-words">{inboxNeedPlace(need)}</p>
+              <p className="text-xs font-medium text-ink break-words">{inboxNeedPlace(need)}</p>
             </div>
-            <div className="rounded-2xl border border-stone-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-zinc-400 font-medium mb-1">
-                <DollarSign className="size-3.5 text-neutral-400" />
+            <div className="rounded-2xl border border-line bg-surface p-3.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted font-medium mb-1">
+                <DollarSign className="size-3.5 text-muted" />
                 <span>Ngân sách tối đa</span>
               </div>
-              <p className="text-xs font-bold text-neutral-800 dark:text-zinc-200">
+              <p className="text-xs font-medium text-ink">
                 {need.budgetMaxPerSession != null ? `${formatMoney(need.budgetMaxPerSession)}/buổi` : "Chưa nêu"}
               </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-stone-200 bg-white p-3.5 dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-zinc-400 font-medium mb-1.5">
-              <Clock className="size-3.5 text-neutral-400" />
+          <div className="rounded-2xl border border-line bg-surface p-3.5">
+            <div className="flex items-center gap-1.5 text-xs text-muted font-medium mb-1.5">
+              <Clock className="size-3.5 text-muted" />
               <span>Khung giờ mong muốn</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {request.desiredSlots.length > 0 ? (
                 request.desiredSlots.map((slot) => (
                   <span key={slot}
-                    className="inline-flex items-center gap-1 rounded-lg bg-stone-100 dark:bg-zinc-800 px-2.5 py-1 text-[11px] text-neutral-700 dark:text-zinc-300">
+                    className="inline-flex items-center gap-1 rounded-lg bg-sunken px-2.5 py-1 text-xs text-ink-2">
                     <Calendar className="size-3 opacity-70" />
                     {slot}
                   </span>
                 ))
               ) : (
-                <span className="italic text-neutral-400 text-xs">Chưa chỉ định khung giờ</span>
+                <span className="italic text-muted text-xs">Chưa chỉ định khung giờ</span>
               )}
             </div>
           </div>
 
           {request.message && (
-            <div className="rounded-2xl bg-amber-50/60 p-4 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/30">
-              <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-400 font-medium text-xs mb-1">
+            <div className="rounded-2xl bg-action-soft/60 p-4 border border-action-line/60">
+              <div className="flex items-center gap-1.5 text-action-strong font-medium text-xs mb-1">
                 <MessageSquare className="size-3.5" />
                 <span>Lời nhắn từ người gửi:</span>
               </div>
-              <p className="text-xs text-amber-950 dark:text-amber-200 italic leading-relaxed break-words">&quot;{request.message}&quot;</p>
+              <p className="text-xs text-action-strong italic leading-relaxed break-words">&quot;{request.message}&quot;</p>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-end border-t border-stone-100 dark:border-zinc-800 px-6 py-3.5">
+        <div className="flex items-center justify-end border-t border-line px-6 py-3.5">
           <button type="button" onClick={onClose}
-            className="h-9 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-neutral-700 text-xs font-bold transition-colors dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 cursor-pointer">
+            className="h-9 px-4 rounded-xl bg-sunken hover:bg-line text-ink-2 text-xs font-medium transition-colors cursor-pointer">
             Đóng
           </button>
         </div>

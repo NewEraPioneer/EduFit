@@ -1,9 +1,15 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ProgressDashboardView } from "@/features/progress";
 import { profileService } from "@/services/profile";
+
+function StudentProgressContent({ studentId }: { studentId: string }) {
+  const classId = useSearchParams().get("classId") || undefined;
+  return <ProgressDashboardView key={classId} role="STUDENT" studentId={studentId} classId={classId} />;
+}
 
 export default function StudentProgressPage() {
   const { user } = useAuth();
@@ -32,22 +38,22 @@ export default function StudentProgressPage() {
   }, [user?.id]);
 
   if (!user || loading) {
-    return <div className="py-12 text-center text-xs text-neutral-400">Đang tải tiến độ...</div>;
+    return <div className="py-12 text-center text-xs text-muted">Đang tải tiến độ...</div>;
   }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       <div>
-        <h1 className="font-heading font-extrabold text-2xl text-neutral-900 tracking-tight">
+        <h1 className="font-heading font-bold text-2xl text-ink tracking-tight">
           Tiến độ học tập cá nhân
         </h1>
-        <p className="text-xs text-neutral-500 mt-1">
-          Theo dõi lộ trình các cột mốc mục tiêu và nhận xét từ gia sư đồng hành
+        <p className="text-xs text-muted mt-1">
+          Theo dõi lộ trình các cột mốc mục tiêu và nhận xét từ gia sư
         </p>
       </div>
 
-      <Suspense fallback={<div className="py-12 text-center text-xs text-neutral-400">Đang tải tiến độ...</div>}>
-        <ProgressDashboardView role="STUDENT" studentId={studentId || user.id} />
+      <Suspense fallback={<div className="py-12 text-center text-xs text-muted">Đang tải tiến độ...</div>}>
+        <StudentProgressContent studentId={studentId || user.id} />
       </Suspense>
     </div>
   );

@@ -66,6 +66,11 @@ export function getConflictMessage(
 }
 
 export const schedulingApi = {
+  async updateMeetingLink(id: string, link: string): Promise<ApiResponse<SessionDetail>> {
+    return fetchApi<SessionDetail>(`/api/v1/scheduling/sessions/${encodeURIComponent(id)}/meeting-link`, {
+      method: "PATCH", body: JSON.stringify({ link }),
+    });
+  },
   /**
    * Tra cứu lịch học theo khoảng thời gian và hồ sơ người dùng.
    * GET /api/v1/scheduling/calendar?from=...&to=...&studentId=...

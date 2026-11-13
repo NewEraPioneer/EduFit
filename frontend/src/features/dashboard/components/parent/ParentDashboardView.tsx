@@ -6,7 +6,6 @@ import { Plus, CreditCard, HeartHandshake, UserPlus } from "lucide-react";
 import { ParentChildSwitcher, ChildInfo } from "./ParentChildSwitcher";
 import { ParentKpiGrid } from "./ParentKpiGrid";
 import { ParentActiveTutors } from "./ParentActiveTutors";
-import { ParentQuickActions } from "./ParentQuickActions";
 import { OnboardingGuideBanner } from "@/shared/ui/OnboardingGuideBanner";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ProgressDashboardView, progressApi, formatGoalTitle } from "@/features/progress";
@@ -120,7 +119,7 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
       completed: childrenList.length > 0,
     },
     {
-      title: "Khám phá & Chọn gia sư",
+      title: "Tìm và chọn gia sư",
       description: "Lựa chọn gia sư có năng lực kiểm định hoặc để AI đề xuất hồ sơ tốt nhất.",
       href: "/parent/tutors",
       actionText: "Tìm gia sư",
@@ -140,30 +139,30 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
       {/* 1. Greeting & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-            Chào {parentName}, tổng quan học tập con em 👋
+          <h2 className="font-heading text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+            Chào {parentName}, đây là tổng quan học tập của con
           </h2>
-          <p className="text-xs sm:text-sm text-neutral-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-muted mt-1 font-medium">
             {childrenList.length > 0
               ? `Bạn đang theo dõi ${childrenList.length} học sinh trên nền tảng EduFit.`
-              : "Chào mừng quý phụ huynh! Hãy liên kết tài khoản con em để bắt đầu theo dõi."}
+              : "Chào mừng phụ huynh. Liên kết tài khoản của con để bắt đầu theo dõi."}
           </p>
         </div>
         <div className="flex items-center gap-2.5">
           <Link
             href="/parent/children"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-neutral-800 rounded-xl text-xs font-bold shadow-2xs transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface hover:bg-paper border border-line text-ink rounded-xl text-xs font-medium shadow-2xs transition-colors shrink-0"
           >
-            <Plus className="size-3.5 text-neutral-500" />
+            <Plus className="size-3.5 text-muted" />
             <span>Liên kết thêm con</span>
           </Link>
           <Link
             href="/parent/billing"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-neutral-800 rounded-xl text-xs font-bold shadow-2xs transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface hover:bg-paper border border-line text-ink rounded-xl text-xs font-medium shadow-2xs transition-colors shrink-0"
           >
-            <CreditCard className="size-3.5 text-neutral-500" />
+            <CreditCard className="size-3.5 text-muted" />
             <span>Thông tin học phí</span>
-            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-100 text-amber-800">
+            <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-action-soft text-action-strong">
               Ví & học phí
             </span>
           </Link>
@@ -182,17 +181,16 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
         /* Empty State toàn diện khi chưa liên kết con em */
         <EmptyState
           icon={HeartHandshake}
-          theme="emerald"
           badge="CHƯA CÓ DỮ LIỆU CON EM"
           title="Chưa có tài khoản học sinh nào được liên kết"
-          description="Để bắt đầu theo dõi lịch học, nhận báo cáo tiến độ và quản lý học phí, vui lòng kết nối tài khoản học sinh của con bạn vào hệ thống."
+          description="Kết nối tài khoản học sinh của con để theo dõi lịch học, tiến độ và học phí."
           action={{
             label: "Liên kết tài khoản con em ngay",
             href: "/parent/children",
             icon: UserPlus,
           }}
           secondaryAction={{
-            label: "Khám phá danh sách gia sư trước",
+            label: "Xem danh sách gia sư trước",
             href: "/parent/tutors",
           }}
           steps={[
@@ -226,21 +224,12 @@ export function ParentDashboardView({ user }: ParentDashboardViewProps) {
           {/* KPI Grid */}
           <ParentKpiGrid child={currentChild} />
 
-          {/* 2-Column Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-            <div className="lg:col-span-8 space-y-6">
-              <ParentActiveTutors tutors={currentChildTutors} />
-            </div>
-
-            <div className="lg:col-span-4 space-y-6">
-              <ParentQuickActions />
-            </div>
-          </div>
+          <ParentActiveTutors tutors={currentChildTutors} />
 
           {/* Tiến độ học tập & Nhật ký */}
-          <div className="space-y-4 pt-6 border-t border-stone-200">
-            <h2 className="font-heading font-extrabold text-lg text-neutral-900 tracking-tight">
-              Chi tiết tiến độ học tập & Nhật ký buổi học
+          <div className="space-y-4 pt-6 border-t border-line">
+            <h2 className="font-heading font-bold text-lg text-ink tracking-tight">
+              Chi tiết tiến độ học tập và nhật ký buổi học
             </h2>
             <ProgressDashboardView
               key={currentChild?.studentId || "default-child"}

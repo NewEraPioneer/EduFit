@@ -193,4 +193,3 @@ describe("usePolling hook", () => {
     expect(onPoll).toHaveBeenCalledTimes(2);
   });
 });
-

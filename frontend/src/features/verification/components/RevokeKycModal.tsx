@@ -71,7 +71,7 @@ export function RevokeKycModal({
     const trimmedReason = reason.trim();
 
     if (trimmedReason.length < 5) {
-      setError("Vui lòng nhập lý do thu hồi rõ ràng (tối thiểu 5 ký tự)!");
+      setError("Nhập lý do thu hồi (tối thiểu 5 ký tự).");
       return;
     }
 
@@ -101,19 +101,19 @@ export function RevokeKycModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-stone-200 shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-150 my-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-night/60 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+      <div className="w-full max-w-dialog-confirm bg-surface rounded-3xl border border-line shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-150 my-auto">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 pb-4 border-b border-stone-100">
+        <div className="flex items-start justify-between gap-3 pb-4 border-b border-line">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+            <div className="size-10 rounded-2xl bg-danger-soft text-danger-strong flex items-center justify-center shrink-0">
               <ShieldAlert className="size-5" />
             </div>
             <div>
-              <h3 className="font-heading text-lg font-bold text-neutral-900">
+              <h3 className="font-heading text-lg font-bold text-ink">
                 Thu Hồi Phê Duyệt Bằng Cấp
               </h3>
-              <p className="text-xs text-neutral-500 font-mono">
+              <p className="text-xs text-muted font-mono">
                 Mã yêu cầu: {targetId}
               </p>
             </div>
@@ -121,55 +121,55 @@ export function RevokeKycModal({
           <button
             type="button"
             onClick={handleClose}
-            className="p-1.5 rounded-xl hover:bg-stone-100 text-neutral-400 hover:text-neutral-700 transition-colors"
+            className="p-1.5 rounded-xl hover:bg-sunken text-muted hover:text-ink-2 transition-colors"
           >
             <X className="size-4" />
           </button>
         </div>
 
         {/* Warning Banner */}
-        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs space-y-2">
-          <div className="flex items-center gap-2 font-bold text-amber-800">
-            <AlertTriangle className="size-4 shrink-0 text-amber-600" />
+        <div className="p-4 bg-action-soft rounded-2xl border border-action-line text-action-strong text-xs space-y-2">
+          <div className="flex items-center gap-2 font-medium text-action-strong">
+            <AlertTriangle className="size-4 shrink-0 text-action-strong" />
             <span>Cảnh báo hành động có tác động hệ thống:</span>
           </div>
-          <p className="text-amber-800 leading-relaxed">
+          <p className="text-action-strong leading-relaxed">
             Hành động này sẽ hủy phê duyệt bằng cấp, chuyển hồ sơ sang trạng thái{" "}
             <strong>Đã từ chối / Thu hồi</strong>, và giáng hồ sơ gia sư về{" "}
             <strong>Chưa xác thực (UNVERIFIED)</strong> — gia sư sẽ bị ẩn khỏi
             danh bạ tìm kiếm công khai.
           </p>
-          <p className="text-amber-700 text-[11px] font-medium border-t border-amber-200/80 pt-1.5">
+          <p className="text-action-strong text-xs font-medium border-t border-action-line/80 pt-1.5">
             Lưu ý: Các lớp học đang hoạt động (active classes) vẫn được bảo lưu
             để đảm bảo quyền lợi của học sinh.
           </p>
         </div>
 
         {/* Tutor & Credential Info */}
-        <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/80 space-y-2 text-xs">
+        <div className="p-4 bg-paper rounded-2xl border border-line/80 space-y-2 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-neutral-500 flex items-center gap-1.5">
-              <User className="size-3.5 text-neutral-400" />
+            <span className="text-muted flex items-center gap-1.5">
+              <User className="size-3.5 text-muted" />
               <span>Gia sư:</span>
             </span>
-            <span className="font-bold text-neutral-900">{tutorDisplayName}</span>
+            <span className="font-medium text-ink">{tutorDisplayName}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-neutral-500 flex items-center gap-1.5">
-              <Mail className="size-3.5 text-neutral-400" />
+            <span className="text-muted flex items-center gap-1.5">
+              <Mail className="size-3.5 text-muted" />
               <span>Email:</span>
             </span>
-            <span className="font-medium text-neutral-700">{tutorDisplayEmail}</span>
+            <span className="font-medium text-ink-2">{tutorDisplayEmail}</span>
           </div>
 
           {item.institution && (
             <div className="flex items-center justify-between">
-              <span className="text-neutral-500 flex items-center gap-1.5">
-                <Award className="size-3.5 text-neutral-400" />
+              <span className="text-muted flex items-center gap-1.5">
+                <Award className="size-3.5 text-muted" />
                 <span>Bằng cấp / Cơ sở:</span>
               </span>
-              <span className="font-medium text-neutral-800">
+              <span className="font-medium text-ink">
                 {credentialLabel} - {item.institution}{" "}
                 {item.year ? `(${item.year})` : ""}
               </span>
@@ -178,11 +178,11 @@ export function RevokeKycModal({
 
           {item.submittedAt && (
             <div className="flex items-center justify-between">
-              <span className="text-neutral-500 flex items-center gap-1.5">
-                <Calendar className="size-3.5 text-neutral-400" />
+              <span className="text-muted flex items-center gap-1.5">
+                <Calendar className="size-3.5 text-muted" />
                 <span>Thời gian nộp:</span>
               </span>
-              <span className="text-neutral-600">
+              <span className="text-ink-2">
                 {new Date(item.submittedAt).toLocaleString("vi-VN")}
               </span>
             </div>
@@ -194,9 +194,9 @@ export function RevokeKycModal({
           <div className="space-y-1.5">
             <label
               htmlFor="revoke-reason"
-              className="block text-xs font-bold text-neutral-800"
+              className="block text-xs font-medium text-ink"
             >
-              Lý do thu hồi bằng cấp <span className="text-rose-600">*</span>
+              Lý do thu hồi bằng cấp <span className="text-danger-strong">*</span>
             </label>
             <textarea
               id="revoke-reason"
@@ -208,31 +208,31 @@ export function RevokeKycModal({
                 if (error) setError(null);
               }}
               placeholder="VD: Phát hiện bằng cấp không hợp lệ qua xác minh thực tế, hoặc tài liệu có dấu hiệu chỉnh sửa..."
-              className="w-full p-3 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 text-neutral-900"
+              className="w-full p-3 text-xs bg-paper border border-line rounded-xl focus:bg-surface focus:outline-hidden focus:border-danger focus:ring-2 focus:ring-danger/20 text-ink"
             />
             {error && (
-              <p className="text-xs text-rose-600 font-medium">{error}</p>
+              <p className="text-xs text-danger-strong font-medium">{error}</p>
             )}
-            <p className="text-[11px] text-neutral-400">
+            <p className="text-xs text-muted">
               Lý do này sẽ được lưu vào nhật ký kiểm toán (Audit Log) và hiển thị
               trong hồ sơ của gia sư với tiền tố [REVOKED].
             </p>
           </div>
 
           {/* Actions */}
-          <div className="pt-2 flex items-center justify-end gap-3 border-t border-stone-100">
+          <div className="pt-2 flex items-center justify-end gap-3 border-t border-line">
             <button
               type="button"
               onClick={handleClose}
               disabled={submitting}
-              className="px-4 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-xs font-semibold text-neutral-700 transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-line hover:bg-paper text-xs font-medium text-ink-2 transition-colors"
             >
               Hủy bỏ
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2.5 rounded-xl text-white text-xs font-bold bg-rose-600 hover:bg-rose-700 shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="px-5 py-2.5 rounded-xl text-white text-xs font-medium bg-danger hover:bg-danger-deep shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {submitting && <Loader2 className="size-4 animate-spin" />}
               <span>{submitting ? "Đang xử lý..." : "Xác nhận thu hồi"}</span>

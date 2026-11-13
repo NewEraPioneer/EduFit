@@ -23,6 +23,49 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Connection request dialog", () => {
+  it("loads the new need defaults when changing need selection", async () => {
+    vi.mocked(learningNeedService.list).mockResolvedValue([mathNeed, makeNeed({
+      needId: "need-2", availabilitySlots: [{ dayOfWeek: 3, startTime: "17:00:00", endTime: "18:00:00" }],
+    })]);
+    const send = vi.spyOn(connectionService, "send").mockResolvedValue({} as never);
+    render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
+    fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
+    fireEvent.change(await screen.findByLabelText("Giờ bắt đầu Thứ 3"), { target: { value: "18:00" } });
+    fireEvent.change(screen.getByRole("combobox", { name: /Nhu cầu học/ }), { target: { value: "need-2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" }));
+    await waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({ needId: "need-2", desiredSlots: ["Thứ 4 · 17:00–18:00"] })));
+  });
+  it("preserves custom slots when the same need is reloaded as a new object", async () => {
+    const send = vi.spyOn(connectionService, "send").mockResolvedValue({} as never);
+    const props = { tutorId: "tutor", tutor, onClose: vi.fn(), onSent: vi.fn() };
+    const view = render(<ConnectionRequestDialog {...props} />);
+    fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
+    fireEvent.change(await screen.findByLabelText("Giờ bắt đầu Thứ 3"), { target: { value: "18:00" } });
+    vi.mocked(learningNeedService.list).mockResolvedValue([{ ...mathNeed }]);
+    view.rerender(<ConnectionRequestDialog {...props} tutor={{ ...tutor, offerings: [...tutor.offerings] }} />);
+    await waitFor(() => expect(learningNeedService.list).toHaveBeenCalledTimes(2));
+    fireEvent.click(await screen.findByRole("button", { name: "Xác nhận gửi yêu cầu" }));
+    await waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({ desiredSlots: ["Thứ 3 · 18:00–21:00"] })));
+  });
+  it("keeps the validation reason visible outside the closed editor", async () => {
+    render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
+    const summary = await screen.findByText("Đổi lịch đề xuất cho gia sư này");
+    fireEvent.click(summary);
+    fireEvent.change(await screen.findByLabelText("Giờ kết thúc Thứ 3"), { target: { value: "18:00" } });
+    fireEvent.click(summary);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Giờ kết thúc phải sau giờ bắt đầu.");
+    expect(alert.closest("details")).toBeNull();
+    expect(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" })).toBeDisabled();
+  });
+  it("uses the need schedule when all custom slots are removed", async () => {
+    const send = vi.spyOn(connectionService, "send").mockResolvedValue({} as never);
+    render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
+    fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
+    fireEvent.click(await screen.findByRole("button", { name: /Xóa khoảng giờ/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" }));
+    await waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({ desiredSlots: ["Thứ 3 · 19:00–21:00"] })));
+  });
   it("shows server errors and never reports success for a failed connection", async () => {
     vi.spyOn(connectionService, "send").mockRejectedValue(new Error("Đã có yêu cầu đang chờ"));
     const onSent = vi.fn();
@@ -50,6 +93,22 @@ describe("Connection request dialog", () => {
     });
   });
 
+  it("allows a different proposed schedule for this tutor without changing the learning need", async () => {
+    const send = vi.spyOn(connectionService, "send").mockResolvedValue({
+      requestId: "request", studentId: "student", tutorId: "tutor", needId: "need-1",
+      status: "PENDING", createdAt: "2030-01-01", expiresAt: "2030-01-08",
+    });
+    render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
+    fireEvent.click(await screen.findByText("Đổi lịch đề xuất cho gia sư này"));
+    fireEvent.change(await screen.findByLabelText("Giờ bắt đầu Thứ 3"), { target: { value: "18:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận gửi yêu cầu" }));
+    await waitFor(() => expect(send).toHaveBeenCalled());
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+      desiredSlots: ["Thứ 3 · 18:00–21:00"],
+    }));
+    expect(mathNeed.availabilitySlots[0].startTime).toBe("19:00:00");
+  });
+
   it("shows soft fit warnings but still allows sending", async () => {
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
     expect(await screen.findByText("Học phí vượt ngân sách")).toBeInTheDocument();
@@ -64,7 +123,7 @@ describe("Connection request dialog", () => {
       makeNeed({ needId: "english", subjectId: 2, subjectName: "Tiếng Anh" }),
     ]);
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} onClose={vi.fn()} onSent={vi.fn()} />);
-    const picker = await screen.findByRole("combobox");
+    const picker = await screen.findByRole("combobox", { name: /Nhu cầu học/ });
     expect(picker).toHaveTextContent("Toán");
     expect(picker).not.toHaveTextContent("Tiếng Anh");
   });
@@ -91,7 +150,7 @@ describe("Connection request dialog", () => {
 
   it("loads the linked child's needs for parents", async () => {
     render(<ConnectionRequestDialog tutorId="tutor" tutor={tutor} studentId="child" onClose={vi.fn()} onSent={vi.fn()} />);
-    await screen.findByRole("combobox");
+    await screen.findByRole("combobox", { name: /Nhu cầu học/ });
     expect(learningNeedService.list).toHaveBeenCalledWith("child");
   });
 });

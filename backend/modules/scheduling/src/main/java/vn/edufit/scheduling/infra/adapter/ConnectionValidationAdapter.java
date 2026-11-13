@@ -20,6 +20,11 @@ public class ConnectionValidationAdapter implements ConnectionValidationPort {
   private final ConnectionFacade connectionFacade;
 
   @Override
+  public void updateAgreedSlots(UUID classId, java.util.List<String> slots) {
+    connectionFacade.updateAgreedSlots(classId, slots);
+  }
+
+  @Override
   public boolean isConnectionActive(UUID classId, UUID tutorId, UUID studentId) {
     boolean active = connectionFacade.isClassActive(classId, tutorId, studentId);
     log.debug(

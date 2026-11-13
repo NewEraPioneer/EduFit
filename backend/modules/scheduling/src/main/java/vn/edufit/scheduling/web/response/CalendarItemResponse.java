@@ -32,7 +32,7 @@ public record CalendarItemResponse(
         s.getStartAt(),
         s.getEndAt(),
         s.getMode() != null ? s.getMode().name() : null,
-        s.getPlaceOrLink(),
+        SessionResponse.publicPlaceOrLink(s),
         s.getStatus() != null ? s.getStatus().name() : null,
         s.isLateCancel()
     );

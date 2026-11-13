@@ -311,8 +311,8 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
   /* -------------------------------------------------------------------------- */
   /* Flow 4: Ca học lẻ tiếng (Non-hour / 90m & 150m Continuation Slots)          */
   /* -------------------------------------------------------------------------- */
-  describe("Flow 4: Ca học lẻ tiếng (Non-hour / 90m & 150m Continuation Slots)", () => {
-    it("renders 90m session: displays clean range 18:00 - 19:30 and locks 19:00 slot to prevent duplicate booking", async () => {
+  describe("Flow 4: Ca học lẻ tiếng (khối lịch dài theo thời lượng 90m & 150m)", () => {
+    it("renders 90m session as ONE block spanning 18:00 - 19:30 (height follows duration, no continuation card)", async () => {
       const todayIso = formatLocalDateToIso(new Date());
       const session90m: CalendarItem = {
         sessionId: "sess-90-mins",
@@ -342,18 +342,18 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
       // 1. Origin slot (18:00) displays full session range
       expect(await screen.findByText("18:00 - 19:30")).toBeInTheDocument();
 
-      // 2. Continuation slot (19:00) displays continuation badge with end time lock
-      expect(screen.getByText(/↳ Tiếp nối \(18:00 - 19:30\)/i)).toBeInTheDocument();
-      expect(screen.getByText(/Khóa giờ: Đến 19:30/i)).toBeInTheDocument();
+      // 2. Một khối duy nhất, cao 1.5 giờ (72px/giờ) — không còn thẻ "Tiếp nối"
+      expect(screen.queryByText(/Tiếp nối/i)).not.toBeInTheDocument();
+      expect(screen.getAllByText("18:00 - 19:30").length).toBe(1);
+      const block = screen.getByTestId("calendar-session-sess-90-mins");
+      expect(block.style.height).toBe("88px");
 
-      // 3. Locking guardrail: clicking locked continuation slot does NOT open propose modal
-      const continuationBadge = screen.getByText(/↳ Tiếp nối \(18:00 - 19:30\)/i);
-      fireEvent.click(continuationBadge);
-
+      // 3. Bấm vào khối mở chi tiết buổi học, không mở modal đề xuất
+      fireEvent.click(block);
       expect(screen.queryByText("Đề xuất buổi học mới")).not.toBeInTheDocument();
     });
 
-    it("renders 150m session: locks both continuation slots (19:00 and 20:00) with proper end time lock", async () => {
+    it("renders 150m session as ONE block spanning 18:00 - 20:30", async () => {
       const todayIso = formatLocalDateToIso(new Date());
       const session150m: CalendarItem = {
         sessionId: "sess-150-mins",
@@ -383,12 +383,10 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
       // Clean label on origin slot
       expect(await screen.findByText("18:00 - 20:30")).toBeInTheDocument();
 
-      // Two continuation badges rendered (one for 19:00, one for 20:00)
-      const continuationBadges = screen.getAllByText(/↳ Tiếp nối \(18:00 - 20:30\)/i);
-      expect(continuationBadges.length).toBe(2);
-
-      const lockLabels = screen.getAllByText(/Khóa giờ: Đến 20:30/i);
-      expect(lockLabels.length).toBe(2);
+      expect(screen.queryByText(/Tiếp nối/i)).not.toBeInTheDocument();
+      expect(screen.getAllByText("18:00 - 20:30").length).toBe(1);
+      const block = screen.getByTestId("calendar-session-sess-150-mins");
+      expect(block.style.height).toBe("148px");
     });
   });
 
@@ -587,7 +585,7 @@ describe("QA Flow Testing Suite: EduFit Scheduling & Connection Overhaul", () =>
 
       // Warning explicitly cites 12 hours and rule BR-46
       expect(
-        screen.getByText(/Buổi học diễn ra trong vòng 12 giờ.*BR-46/i)
+        screen.getByText(/Buổi học bắt đầu trong vòng 12 giờ/i)
       ).toBeInTheDocument();
     });
   });
