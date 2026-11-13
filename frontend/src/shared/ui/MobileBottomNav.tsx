@@ -13,7 +13,7 @@ const SHORT: Record<string, string> = {
   "Tiến độ học tập": "Tiến độ",
   "Ví & Học phí": "Học phí",
   "Lịch học gia đình": "Lịch học",
-  "Gia sư của con": "Gia sư",
+  "Tìm gia sư": "Gia sư",
   "Yêu cầu học viên": "Yêu cầu",
   "Thu nhập & Rút tiền": "Thu nhập",
   "Duyệt bằng cấp KYC": "KYC",

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { MessageSquare, Sparkles, GraduationCap, Search } from "lucide-react";
+import { Sparkles, GraduationCap, Search } from "lucide-react";
 import { EmptyState } from "@/shared/ui/EmptyState";
 
 interface ActiveTutorItem {
@@ -81,17 +81,6 @@ export function ParentActiveTutors({ tutors = [] }: ParentActiveTutorsProps) {
                     )}
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2 self-end sm:self-auto">
-                <button
-                  type="button"
-                  disabled
-                  className="px-3 py-1.5 border border-line text-muted rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-not-allowed"
-                >
-                  <MessageSquare className="size-3.5 text-muted" />
-                  <span>Nhắn tin · Sắp ra mắt</span>
-                </button>
               </div>
             </div>
 

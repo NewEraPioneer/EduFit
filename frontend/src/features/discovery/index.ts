@@ -6,6 +6,8 @@ export * from "./hooks/useTutorDetail";
 export * from "./hooks/useTutorMatching";
 export * from "./components/TutorCard";
 export * from "./components/TutorSearchFilters";
+export * from "./components/TutorResultsToolbar";
+export * from "./components/TutorResultsGrid";
 export * from "./components/TutorDetailModal";
 export * from "./components/AiExplanationBadge";
 export * from "./components/AiMatchView";

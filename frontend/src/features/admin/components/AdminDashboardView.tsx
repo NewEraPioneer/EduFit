@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, ScrollText, ShieldCheck, HeartHandshake, RefreshCw } from "lucide-react";
+import { BookOpen, ShieldCheck, HeartHandshake, RefreshCw } from "lucide-react";
 import { AdminKpiGrid } from "./AdminKpiGrid";
 import { AdminKycQueueCard } from "@/features/dashboard/components/admin/AdminKycQueueCard";
 import { AdminSystemHealthCard } from "@/features/dashboard/components/admin/AdminSystemHealthCard";
@@ -77,13 +77,6 @@ export function AdminDashboardView({ user }: AdminDashboardViewProps) {
             <BookOpen className="size-3.5" />
             <span>Quản lý môn học</span>
           </Link>
-          <Link
-            href="/admin/audit-logs"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-night hover:bg-night text-white rounded-xl text-xs font-medium shadow-xs transition-colors shrink-0"
-          >
-            <ScrollText className="size-3.5" />
-            <span>Nhật ký kiểm toán</span>
-          </Link>
         </div>
       </div>
 
@@ -121,21 +114,6 @@ export function AdminDashboardView({ user }: AdminDashboardViewProps) {
                 </h4>
                 <p className="text-xs text-muted mt-1">
                   Thêm mới & chuyển đổi hiển thị môn học với chính sách toàn vẹn khóa ngoại.
-                </p>
-              </Link>
-
-              <Link
-                href="/admin/audit-logs"
-                className="p-4 rounded-2xl bg-paper border border-line/60 hover:border-brand-line transition-all group block"
-              >
-                <div className="size-8 rounded-xl bg-brand-soft flex items-center justify-center text-brand-strong mb-3 transition-transform">
-                  <ScrollText className="size-4" />
-                </div>
-                <h4 className="text-xs font-medium text-ink group-hover:text-brand-strong">
-                  Nhật ký kiểm toán
-                </h4>
-                <p className="text-xs text-muted mt-1">
-                  Truy vết 100% thay đổi trạng thái, thu hồi bằng cấp và sự kiện quan trọng.
                 </p>
               </Link>
 

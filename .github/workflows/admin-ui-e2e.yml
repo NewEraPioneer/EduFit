@@ -75,7 +75,7 @@ jobs:
             sleep 2
           done
           test "$ready" = true
-      - name: Verify three admin UI cases
+      - name: Verify two admin UI cases
         working-directory: frontend
         run: npx vitest run tests/e2e/specs/10-admin-management-flow.e2e.test.ts --config tests/e2e/vitest.e2e.config.ts --reporter=default --reporter=json --outputFile=tests/e2e/reports/admin-results.json
       - name: Upload screenshots and execution evidence

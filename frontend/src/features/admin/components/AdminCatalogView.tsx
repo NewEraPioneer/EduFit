@@ -10,7 +10,6 @@ import {
   ShieldAlert,
   Loader2,
   RefreshCw,
-  Info,
 } from "lucide-react";
 import { adminApi } from "../api/adminApi";
 import { CreateSubjectModal } from "./CreateSubjectModal";
@@ -125,16 +124,6 @@ export function AdminCatalogView() {
             <Plus className="size-4" />
             <span>Thêm môn học mới</span>
           </button>
-        </div>
-      </div>
-
-      {/* 2. Foreign Key Protection Notice */}
-      <div className="p-4 rounded-2xl bg-action-soft/70 border border-action-line/80 text-action-strong text-xs flex items-start gap-3">
-        <Info className="size-4 shrink-0 text-action-strong mt-0.5" />
-        <div className="leading-relaxed">
-          <span className="font-medium">Chính sách bảo toàn toàn vẹn dữ liệu EduFit:</span>{" "}
-          Hệ thống nghiêm cấm xóa cứng (Hard Delete) môn học để bảo vệ toàn vẹn khóa ngoại (Foreign Key)
-          với hồ sơ gia sư, yêu cầu học tập và lịch học đã diễn ra. Để ẩn môn học, hãy tắt trạng thái hoạt động của môn đó khỏi kết quả tìm kiếm mới.
         </div>
       </div>
 

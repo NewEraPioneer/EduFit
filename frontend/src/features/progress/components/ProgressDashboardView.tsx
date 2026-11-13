@@ -286,7 +286,7 @@ export function ProgressDashboardView({
         </>
       ) : (
         <div className="rounded-3xl border border-dashed border-line bg-paper/50 p-8 text-center text-xs text-muted">
-          Chưa có lớp học nào để theo dõi tiến độ.
+          Chưa có lớp học.
         </div>
       )}
 
@@ -297,7 +297,6 @@ export function ProgressDashboardView({
               <h3 id="milestones-heading" className="font-heading font-bold text-base text-ink">
                 Lộ trình cột mốc
               </h3>
-              <p className="text-xs text-muted mt-0.5">Mức tự lập từ lần đánh giá đầu đến hiện tại</p>
             </div>
             {onOpenCreatePlan && studentData?.selectedClassId && (
               <button
@@ -312,9 +311,8 @@ export function ProgressDashboardView({
           </div>
 
           {milestones.length === 0 ? (
-            <div className="py-12 text-center rounded-2xl border border-dashed border-line bg-paper/50 p-6 space-y-1">
-              <p className="text-xs font-medium text-ink-2">Gia sư chưa lập lộ trình</p>
-              <p className="text-xs text-muted">Lộ trình gồm các cột mốc kèm tiêu chí đạt rõ ràng cho lớp học này.</p>
+            <div className="py-12 text-center rounded-2xl border border-dashed border-line bg-paper/50 p-6">
+              <p className="text-xs font-medium text-ink-2">Chưa có lộ trình</p>
             </div>
           ) : (
             <ol className="space-y-3">
@@ -339,7 +337,7 @@ export function ProgressDashboardView({
           </div>
           {!studentData?.recentNotes || studentData.recentNotes.length === 0 ? (
             <p className="py-10 text-center text-xs text-muted">
-              Sau mỗi buổi học, gia sư sẽ ghi phản hồi ngắn tại đây.
+              Chưa có phản hồi.
             </p>
           ) : (
             <ul className="space-y-3 max-h-[560px] overflow-y-auto pr-1">
@@ -375,17 +373,13 @@ function OverviewCards({ overview }: { overview: ProgressOverview }) {
         <p className="text-xl font-bold text-ink">
           {attendance.nextSessionStart ? formatDateTime(attendance.nextSessionStart) : "Chưa có lịch"}
         </p>
-        {attendance.nextSessionStart && attendance.focusMilestoneTitle ? (
-          <p className="text-xs text-ink-2 leading-relaxed">
-            {attendance.nextSessionPlanned ? "Dự kiến học" : "Đang học"}: {attendance.focusMilestoneTitle}
-          </p>
-        ) : !attendance.nextSessionStart ? (
-          <p className="text-xs text-muted">Lớp chưa xếp buổi học tiếp theo</p>
-        ) : null}
-        {attendance.homeworkAssigned && <p className="text-xs font-medium text-ink-2">Có bài về nhà cần làm trước buổi này</p>}
+        {attendance.nextSessionStart && attendance.focusMilestoneTitle && (
+          <p className="text-xs text-ink-2">{attendance.focusMilestoneTitle}</p>
+        )}
+        {attendance.homeworkAssigned && <p className="text-xs font-medium text-ink-2">Có bài về nhà</p>}
         {needsAttention && (
-          <p className={`rounded-xl border px-2.5 py-1.5 text-xs leading-relaxed ${ON_TRACK_TONE[onTrack.status]}`}>
-            <span className="font-medium">{ON_TRACK_LABELS[onTrack.status]}:</span> {onTrack.explanation}
+          <p className={`rounded-xl border px-2.5 py-1 text-xs font-medium ${ON_TRACK_TONE[onTrack.status]}`}>
+            {onTrack.explanation}
           </p>
         )}
       </article>
@@ -400,7 +394,7 @@ function OverviewCards({ overview }: { overview: ProgressOverview }) {
         </p>
         <div className="flex items-baseline gap-2">
           <span className="text-3xl font-bold text-ink">{percent !== null ? `${percent}%` : "—"}</span>
-          {percent !== null && <span className="text-xs text-muted">lộ trình đã hoàn thành</span>}
+          {percent !== null && <span className="text-xs text-muted">hoàn thành</span>}
         </div>
         {percent !== null && (
           <div className="h-1.5 overflow-hidden rounded-full bg-sunken" role="progressbar" aria-label="Lộ trình đã hoàn thành" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
@@ -408,16 +402,6 @@ function OverviewCards({ overview }: { overview: ProgressOverview }) {
           </div>
         )}
         {change && <p className="text-xs font-medium text-ink-2">{change}</p>}
-        {goalProgress.highlight && <p className="text-xs text-ink-2">{goalProgress.highlight}</p>}
-        {goalProgress.highlightKind === "NO_CHANGE" && goalProgress.latestComment && (
-          <p className="text-xs italic text-muted">“{goalProgress.latestComment}”</p>
-        )}
-        {goalProgress.reinforcement && (
-          <p className="text-xs text-ink-2 bg-paper rounded-lg px-2 py-1">{goalProgress.reinforcement}</p>
-        )}
-        {goalProgress.planAdjusted && (
-          <p className="text-xs text-muted">Lộ trình đã được điều chỉnh trong 30 ngày qua</p>
-        )}
       </article>
 
       <article className="card-lift p-5 rounded-3xl bg-surface border border-line space-y-2" data-testid="card-attendance">
@@ -430,12 +414,12 @@ function OverviewCards({ overview }: { overview: ProgressOverview }) {
         </p>
         <p className="text-xs text-muted">
           {attendance.totalCount > 0
-            ? `Đã học: ${attendance.attendedCount} buổi · Vắng: ${attendance.countedCount - attendance.attendedCount} buổi`
-            : "Lớp chưa có buổi học nào"}
+            ? `Có mặt ${attendance.attendedCount} · Vắng ${attendance.countedCount - attendance.attendedCount}`
+            : "Chưa có buổi học"}
         </p>
         {attendance.missedSessions.length > 0 && (
           <details className="text-xs text-ink-2">
-            <summary className="cursor-pointer text-xs font-medium text-ink-2">Chi tiết vắng, hủy</summary>
+            <summary className="cursor-pointer text-xs font-medium text-ink-2">Buổi vắng, hủy</summary>
             <ul className="mt-2 space-y-1">
               {attendance.missedSessions.map((s) => (
                 <li key={s.sessionId} className="flex justify-between gap-2">
@@ -518,7 +502,7 @@ function MilestoneRow({
           </p>
         </div>
       ) : (
-        <p className="text-xs text-muted">Chưa có lần đánh giá</p>
+        <p className="text-xs text-muted">Chưa đánh giá</p>
       )}
 
       {m.criteria && m.criteria.length > 0 && (
@@ -548,10 +532,10 @@ function SelfRatingTrend({ points }: { points: NonNullable<ProgressOverview["sel
       data-testid="self-rating-trend"
     >
       <h3 id="self-rating-trend-heading" className="text-xs font-medium text-muted">
-        Con tự cảm nhận sau buổi học (30 ngày)
+        Cảm nhận của con (30 ngày)
       </h3>
       {points.length === 0 ? (
-        <p className="text-xs text-muted">Con chưa chọn cảm nhận cho buổi nào.</p>
+        <p className="text-xs text-muted">Chưa có.</p>
       ) : (
         <ol className="flex flex-wrap items-center gap-1.5">
           {points.map((p) => {
@@ -683,12 +667,12 @@ function NoteItem({
         </div>
       )}
       {!feedback && !note.noteText && note.status === "COMPLETED" && (
-        <p className="text-muted">Gia sư chưa ghi phản hồi cho buổi học này.</p>
+        <p className="text-muted">Chưa có phản hồi.</p>
       )}
       {note.noteText && <p className="text-ink-2 leading-relaxed">{note.noteText}</p>}
       {feedback?.parentMessage && (
         <p className="rounded-xl bg-action-soft border border-action-line px-2 py-1.5 text-ink">
-          <span className="font-medium">Lời nhắn riêng cho phụ huynh:</span> {feedback.parentMessage}
+          <span className="font-medium">Nhắn phụ huynh:</span> {feedback.parentMessage}
         </p>
       )}
       {canSelfRate && note.status === "COMPLETED" && (

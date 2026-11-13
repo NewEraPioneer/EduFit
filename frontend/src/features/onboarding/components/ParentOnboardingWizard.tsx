@@ -296,7 +296,7 @@ export function ParentOnboardingWizard() {
                           </span>
                         </div>
                         <p className="text-xs text-muted mt-0.5">
-                          Mã lời mời: {item.invitationId.slice(0, 8)} · Hết hạn:{" "}
+                          Hết hạn:{" "}
                           {new Date(item.expiresAt).toLocaleDateString("vi-VN")}
                         </p>
                       </div>

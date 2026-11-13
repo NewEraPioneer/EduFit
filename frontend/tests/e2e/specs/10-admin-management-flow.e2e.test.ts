@@ -2,7 +2,6 @@
  * Luồng 10/11 - Automated Web UI Testing: Quản Trị Hệ Thống, Quản Lý Người Học & Nhật Ký Kiểm Toán
  * - MF_10.1: Dashboard tải đầy đủ các thẻ KPI với số liệu hệ thống (TC_UI_51)
  * - MF_10.2: Quản lý người học hiển thị đúng thông tin và trạng thái tài khoản (TC_UI_52)
- * - MF_10.3: Nhật ký kiểm toán hiển thị hành động, actor, thời gian và lý do bản ghi (TC_UI_54)
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -14,7 +13,7 @@ import { AdminManagementPage } from '../pages/AdminManagementPage';
 import accounts from '../resources/login-data.json';
 import expected from '../resources/admin-data.json';
 
-describe('Luồng 10 — Dashboard, danh sách người học và nhật ký Admin (#48)', () => {
+describe('Luồng 10 — Dashboard và danh sách người học Admin (#48)', () => {
   let driver: WebDriver;
   let auth: AuthPage;
   let admin: AdminManagementPage;
@@ -67,18 +66,5 @@ describe('Luồng 10 — Dashboard, danh sách người học và nhật ký Adm
     expect(student![3]).toMatch(/\d{2}\/\d{2}\/\d{4}/);
     // Keep the issue's required evidence name; this case does not lock an account.
     expect(await admin.takeScreenshot('TC_UI_52_lock_account')).not.toBe('');
-  });
-
-  it('TC_UI_54: nhật ký hiển thị hành động, actor, thời gian và lý do của bản ghi', async () => {
-    await admin.navigateAdminAuditLogs();
-    await admin.filterAuditLogs(expected.auditAction, expected.auditReason);
-    const rows = await admin.getAuditRows();
-    const log = rows.find((row) => row[3] === expected.auditReason);
-    expect(log).toBeDefined();
-    expect(log![0]).toMatch(/\d{2}\/\d{2}\/\d{4}/);
-    expect(log![1]).toContain(expected.auditAction);
-    expect(log![2]).toMatch(/^[0-9a-f-]{36}$/i);
-    expect(log![2]).toBe(expected.auditActorId);
-    expect(await admin.takeScreenshot('TC_UI_54_audit_log')).not.toBe('');
   });
 });

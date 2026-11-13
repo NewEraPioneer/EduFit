@@ -347,7 +347,7 @@ describe("QA R4: Đánh giá Gia sư & Thư mục Công khai (Reviews & Public D
       ).toBeInTheDocument();
       expect(screen.getByText(/Bằng cấp và chứng chỉ sư phạm đã xác minh/i)).toBeInTheDocument();
       expect(screen.getByText("Thứ Ba")).toBeInTheDocument();
-      expect(screen.getAllByText("18:00 - 20:00").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/18:00–20:00/).length).toBeGreaterThanOrEqual(1);
 
       // Khách bấm 'Gửi yêu cầu học'
       const requestStudyBtn = screen.getByRole("button", { name: /Gửi yêu cầu học/i });

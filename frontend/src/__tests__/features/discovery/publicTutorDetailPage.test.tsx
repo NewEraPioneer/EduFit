@@ -156,9 +156,9 @@ describe("Public Tutor Detail Page (/tutors/[id])", () => {
 
     // Check weekly availability
     expect(screen.getByText("Thứ Hai")).toBeInTheDocument();
-    expect(screen.getByText("18:00 - 19:30")).toBeInTheDocument();
+    expect(screen.getByText(/18:00–19:30/)).toBeInTheDocument();
     expect(screen.getByText("Thứ Tư")).toBeInTheDocument();
-    expect(screen.getByText("19:30 - 21:00")).toBeInTheDocument();
+    expect(screen.getByText(/19:30–21:00/)).toBeInTheDocument();
 
     // Check reviews list
     expect(screen.getByText("Bảo Nam")).toBeInTheDocument();
