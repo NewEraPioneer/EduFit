@@ -110,7 +110,7 @@ class DiscoveryReadPostgresTest {
     jdbc.update("insert into learning_need_slot(need_id,day_of_week,start_time,end_time) values(?,2,'19:00','21:00')", NEED);
     @SuppressWarnings("unchecked") ObjectProvider<CurrentUser> provider = mock(ObjectProvider.class);
     lenient().when(provider.getIfAvailable()).thenReturn(actor);
-    mvc = MockMvcBuilders.standaloneSetup(new DiscoveryController(queries, matching, provider))
+    mvc = MockMvcBuilders.standaloneSetup(new DiscoveryController(queries, matching, provider, org.mockito.Mockito.mock(vn.edufit.scheduling.api.SessionFacade.class)))
         .setControllerAdvice(new GlobalExceptionHandler()).build();
     reset(ai);
     when(ai.complete(any())).thenReturn(new vn.edufit.ai.api.AiResponse("Offline fixture", 0, null, false));
