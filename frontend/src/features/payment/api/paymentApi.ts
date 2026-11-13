@@ -262,6 +262,12 @@ export const paymentApi = {
     fetchApi<PaymentSession[]>(
       `/api/v1/admin/payment/disputes?offset=${offset}`,
     ),
+  charges: (status = "", offset = 0) =>
+    fetchApi<PaymentSession[]>(
+      `/api/v1/admin/payment/charges?offset=${offset}${
+        status ? `&status=${encodeURIComponent(status)}` : ""
+      }`,
+    ),
   review: (
     kind: "topups" | "withdrawals" | "disputes",
     id: string,

@@ -156,7 +156,7 @@ class MatchingWorkflowPostgresTest {
     CurrentUser parent = actor(parentUserId, "PARENT");
     @SuppressWarnings("unchecked") ObjectProvider<CurrentUser> provider = mock(ObjectProvider.class);
     when(provider.getIfAvailable()).thenReturn(parent);
-    var controller = new DiscoveryController(queries, matching, provider);
+    var controller = new DiscoveryController(queries, matching, provider, org.mockito.Mockito.mock(vn.edufit.scheduling.api.SessionFacade.class));
     if (state.equals("CONFIRMED")) {
       assertEquals(List.of(), facade.findTopMatchesForNeed(parent, goalId, 5));
       assertEquals(200, controller.matchTutors(new TutorMatchRequest(goalId, null)).getStatusCode().value());

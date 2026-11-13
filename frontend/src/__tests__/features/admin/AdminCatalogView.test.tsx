@@ -42,11 +42,8 @@ describe("AdminCatalogView Component Tests", () => {
       expect(screen.getByText("Ngữ Văn 9")).toBeInTheDocument();
     });
 
-    // Kiểm tra thông điệp bảo toàn khóa ngoại
-    expect(
-      screen.getByText(/Chính sách bảo toàn toàn vẹn dữ liệu EduFit/i)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/nghiêm cấm xóa cứng/i)).toBeInTheDocument();
+    // Không còn khung cảnh báo chính sách xóa cứng
+    expect(screen.queryByText(/nghiêm cấm xóa cứng/i)).not.toBeInTheDocument();
 
     // Kiểm tra badges trạng thái
     expect(screen.getByText("Hoạt động")).toBeInTheDocument();

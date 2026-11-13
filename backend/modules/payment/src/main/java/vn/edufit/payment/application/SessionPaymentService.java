@@ -402,6 +402,13 @@ public class SessionPaymentService {
         .toList();
   }
 
+  public List<Session> adminHistory(CurrentUser actor, String status, int offset) {
+    access.admin(actor);
+    return store.allCharges(status, offset).stream()
+        .map(c -> view(c, source(c.sessionId()), actor))
+        .toList();
+  }
+
   public void processDeadlines() {
     for (var candidate : store.pending()) {
       try {

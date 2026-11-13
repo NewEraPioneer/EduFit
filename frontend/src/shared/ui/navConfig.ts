@@ -10,7 +10,6 @@ import {
   HeartHandshake,
   LayoutDashboard,
   type LucideIcon,
-  ScrollText,
   Search,
   Settings,
   ShieldCheck,
@@ -60,7 +59,7 @@ const tutorEarnings = item("Thu nhập & Rút tiền", "/tutor/earnings", Dollar
 const parentHome = item("Trang chủ", "/parent/dashboard", LayoutDashboard);
 const parentProgress = item("Tiến độ học tập", "/parent/progress", BarChart3);
 const parentSchedule = item("Lịch học gia đình", "/parent/schedule", Calendar);
-const parentTutors = item("Gia sư của con", "/parent/tutors", GraduationCap);
+const parentTutors = item("Tìm gia sư", "/parent/tutors", Search);
 const parentBilling = item("Ví & Học phí", "/parent/billing", CreditCard);
 
 const adminHome = item("Tổng quan", "/admin/dashboard", LayoutDashboard);
@@ -99,7 +98,7 @@ export const ROLE_NAV: Record<UserRole, RoleNav> = {
   ADMIN: {
     roleTitle: "Quản trị",
     sections: [
-      { title: "Hệ thống", items: [adminHome, adminKyc, adminPayments, item("Nhật ký kiểm toán", "/admin/audit-logs", ScrollText)] },
+      { title: "Hệ thống", items: [adminHome, adminKyc, adminPayments] },
       {
         title: "Dữ liệu",
         items: [

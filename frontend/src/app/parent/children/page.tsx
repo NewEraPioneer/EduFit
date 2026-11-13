@@ -115,7 +115,7 @@ function ParentChildrenContent() {
             : !error && links.length === 0 ? <p className="rounded-2xl border border-dashed border-line-strong bg-surface p-8 text-sm text-ink-2">Chưa có học sinh nào được liên kết.</p>
               : links.map((link) => <article key={link.linkId} className="rounded-2xl border border-line bg-surface p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-sm font-medium text-ink">{names[link.studentId] || `Học sinh ${link.studentId.slice(0, 8)}`}</h3>
+                  <h3 className="text-sm font-medium text-ink">{names[link.studentId] || "Học sinh"}</h3>
                   <p className="text-xs text-muted mt-1">Mã học sinh: {link.studentId}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -141,7 +141,7 @@ function ParentChildrenContent() {
               >
                 <div>
                   <p className="text-sm font-medium text-ink">Đang chờ học sinh xác nhận</p>
-                  <p className="text-xs text-muted">Mã lời mời: {item.invitationId.slice(0, 8)} · Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")}</p>
+                  <p className="text-xs text-muted">Hết hạn: {new Date(item.expiresAt).toLocaleDateString("vi-VN")}</p>
                 </div>
                 <button type="button" disabled={busyId !== null} onClick={() => void withdraw(item.invitationId)} className="text-xs font-medium text-danger-strong disabled:opacity-50 cursor-pointer">Rút lời mời</button>
               </div>

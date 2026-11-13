@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ShieldCheck,
-  ScrollText,
   BookOpen,
   Route,
   Tags,
@@ -32,7 +31,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     items: [
       { label: "Tổng quan", href: "/admin/dashboard", icon: LayoutDashboard },
       { label: "Duyệt bằng cấp KYC", href: "/admin/verification-queue", icon: ShieldCheck },
-      { label: "Nhật ký kiểm toán", href: "/admin/audit-logs", icon: ScrollText },
     ],
   },
   {

@@ -20,7 +20,7 @@ export function NeedSelector({ matching, parent = false }: {
             onChange={(event) => matching.setStudentId(event.target.value)} disabled={!matching.links.length}>
             {!matching.links.length && <option value="">Chưa có liên kết xác nhận</option>}
             {matching.links.map((link, index) => (
-              <option key={link.linkId} value={link.studentId}>Học sinh {index + 1} · {link.studentId.slice(-8)}</option>
+              <option key={link.linkId} value={link.studentId}>Học sinh {index + 1}</option>
             ))}
           </select>
         </label>

@@ -16,4 +16,8 @@ SELECT user_id, gen_random_uuid(), '970422', 'MB', '0000000000', 'EDUFIT E2E TES
 FROM account WHERE email = 'tutor.demo@edufit.vn'
 ON CONFLICT (user_id) DO UPDATE SET bank_bin = EXCLUDED.bank_bin, bank_name = EXCLUDED.bank_name,
   bank_account = EXCLUDED.bank_account, bank_holder = EXCLUDED.bank_holder;
+-- Dữ liệu demo của profile dev có sẵn yêu cầu rút đang chờ; yêu cầu này khóa nút "Rút tiền".
+UPDATE payment_withdrawal SET status = 'REJECTED', admin_note = 'E2E: đóng yêu cầu demo để kiểm thử biểu mẫu rút'
+WHERE status IN ('PENDING', 'PROCESSING')
+  AND user_id = (SELECT user_id FROM account WHERE email = 'tutor.demo@edufit.vn');
 COMMIT;

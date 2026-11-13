@@ -233,9 +233,6 @@ export function AdminKycQueueView() {
                         <div className="font-mono font-medium text-ink text-xs">
                           {reqId}
                         </div>
-                        <div className="text-xs text-muted font-mono">
-                          ID: {it.tutorId}
-                        </div>
                       </td>
 
                       {/* Tutor Details */}

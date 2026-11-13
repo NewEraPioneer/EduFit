@@ -55,7 +55,8 @@ class HttpInputErrorTest {
                 new DiscoveryController(
                     mock(DiscoveryQueryService.class),
                     mock(TutorMatchingService.class),
-                    mock(ObjectProvider.class)),
+                    mock(ObjectProvider.class),
+                    mock(vn.edufit.scheduling.api.SessionFacade.class)),
                 new InputController())
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();

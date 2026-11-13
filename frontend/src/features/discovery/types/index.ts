@@ -47,6 +47,11 @@ export interface TutorAvailabilitySlot {
   endTime: string;
 }
 
+export interface TutorBusySlot {
+  startAt: string;
+  endAt: string;
+}
+
 export interface TutorDetail {
   tutorId: string;
   displayName: string;
@@ -64,6 +69,8 @@ export interface TutorDetail {
   verified: boolean;
   offerings: TutorOffering[];
   availabilitySlots: TutorAvailabilitySlot[];
+  /** Khung giờ đã có lịch dạy trong 4 tuần tới. */
+  busySlots?: TutorBusySlot[];
 }
 
 export type DiscoverySortBy = "relevance" | "rating" | "price" | "experience";

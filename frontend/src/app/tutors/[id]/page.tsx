@@ -7,19 +7,15 @@ import {
   Star,
   ShieldCheck,
   MapPin,
-  Clock,
   Briefcase,
   ChevronRight,
   ArrowLeft,
   MessageSquare,
   PenLine,
-  CheckCircle2,
-  Calendar,
   AlertCircle,
   RefreshCw,
   Award,
   FileCheck,
-  Users,
 } from "lucide-react";
 import {
   discoveryApi,
@@ -27,6 +23,7 @@ import {
   type TutorDetail,
 } from "@/features/discovery";
 import { OfferingList } from "@/features/discovery/components/OfferingList";
+import { TutorWeekSchedule } from "@/features/discovery/components/TutorWeekSchedule";
 import {
   TEACHING_MODE_TEXT,
   formatRating,
@@ -48,16 +45,6 @@ import { progressApi } from "@/features/progress";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/shared/ui/Toast";
 import { PublicNavbar } from "@/shared/ui/PublicNavbar";
-
-const DAY_LABELS: Record<number, string> = {
-  1: "Thứ Hai",
-  2: "Thứ Ba",
-  3: "Thứ Tư",
-  4: "Thứ Năm",
-  5: "Thứ Sáu",
-  6: "Thứ Bảy",
-  7: "Chủ Nhật",
-};
 
 function TutorDetailContent() {
   const router = useRouter();
@@ -145,7 +132,7 @@ function TutorDetailContent() {
         );
         const children = links.map((link, idx) => ({
           studentId: link.studentId,
-          name: studentNames[link.studentId] || `Học sinh ${idx + 1} (${link.studentId.slice(-8)})`,
+          name: studentNames[link.studentId] || `Học sinh ${idx + 1}`,
         }));
         setLinkedChildren(children);
         if (children.length > 0) {
@@ -416,35 +403,14 @@ function TutorDetailContent() {
             <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200/80 dark:border-stone-800 p-6 space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <h3 className="font-heading font-bold text-sm text-neutral-900 dark:text-stone-100 uppercase tracking-wider">
-                  Lịch rảnh trong tuần
+                  Lịch của gia sư
                 </h3>
-                <span className="text-[11px] text-neutral-400 dark:text-stone-500">Giờ địa phương</span>
               </div>
 
-              {tutor.availabilitySlots && tutor.availabilitySlots.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                  {tutor.availabilitySlots.map((slot, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-xs flex items-center gap-2.5"
-                    >
-                      <Clock className="size-4 text-amber-600 shrink-0" />
-                      <div>
-                        <span className="font-bold text-neutral-900 dark:text-stone-100 block">
-                          {DAY_LABELS[slot.dayOfWeek] || `Thứ ${slot.dayOfWeek}`}
-                        </span>
-                        <span className="text-[11px] text-neutral-600 dark:text-stone-400 font-medium">
-                          {slot.startTime} - {slot.endTime}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/40 text-xs text-neutral-400 dark:text-stone-500 italic">
-                  Gia sư chưa cập nhật khung giờ rảnh cố định. Bạn có thể gửi yêu cầu để thỏa thuận lịch học linh hoạt.
-                </div>
-              )}
+              <TutorWeekSchedule
+                availabilitySlots={tutor.availabilitySlots ?? []}
+                busySlots={tutor.busySlots}
+              />
             </div>
 
             {/* Reviews & Ratings Section */}

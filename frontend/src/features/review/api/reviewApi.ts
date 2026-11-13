@@ -30,9 +30,10 @@ export const reviewApi = {
    * Lấy đánh giá của chính người dùng hiện tại đối với gia sư (nếu có)
    * GET /api/v1/reviews/tutors/{tutorId}/my-review
    */
-  async getMyReview(tutorId: string): Promise<ApiResponse<ReviewItem | null>> {
+  async getMyReview(tutorId: string, studentId?: string): Promise<ApiResponse<ReviewItem | null>> {
+    const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
     return fetchApi<ReviewItem | null>(
-      `/api/v1/reviews/tutors/${encodeURIComponent(tutorId)}/my-review`,
+      `/api/v1/reviews/tutors/${encodeURIComponent(tutorId)}/my-review${query}`,
       { method: "GET" }
     );
   },

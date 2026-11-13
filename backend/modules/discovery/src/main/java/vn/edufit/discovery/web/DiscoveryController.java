@@ -1,6 +1,8 @@
 package vn.edufit.discovery.web;
 
 import jakarta.validation.Valid;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -21,6 +23,7 @@ import vn.edufit.discovery.web.request.TutorSearchRequest;
 import vn.edufit.discovery.web.response.TutorDetailResponse;
 import vn.edufit.discovery.web.response.TutorDiscoveryCardResponse;
 import vn.edufit.discovery.web.response.TutorMatchResponse;
+import vn.edufit.scheduling.api.SessionFacade;
 import vn.edufit.shared.auth.CurrentUser;
 import vn.edufit.shared.exception.ForbiddenOperationException;
 import vn.edufit.shared.exception.InvalidOperationException;
@@ -33,19 +36,23 @@ public class DiscoveryController {
   private static final int DEFAULT_PAGE = 0;
   private static final int DEFAULT_SIZE = 10;
   private static final int MAX_SIZE = 100;
+  private static final long BUSY_WINDOW_DAYS = 28;
 
   private final DiscoveryQueryService discoveryQueryService;
   private final TutorMatchingService tutorMatchingService;
   private final ObjectProvider<CurrentUser> currentUserProvider;
+  private final SessionFacade sessionFacade;
 
   public DiscoveryController(
       DiscoveryQueryService discoveryQueryService,
       TutorMatchingService tutorMatchingService,
-      ObjectProvider<CurrentUser> currentUserProvider
+      ObjectProvider<CurrentUser> currentUserProvider,
+      SessionFacade sessionFacade
   ) {
     this.discoveryQueryService = discoveryQueryService;
     this.tutorMatchingService = tutorMatchingService;
     this.currentUserProvider = currentUserProvider;
+    this.sessionFacade = sessionFacade;
   }
 
   @GetMapping("/tutors")
@@ -71,7 +78,10 @@ public class DiscoveryController {
 
   @GetMapping("/tutors/{tutorId}")
   public ResponseEntity<ApiResponse<TutorDetailResponse>> getTutorDetail(@PathVariable UUID tutorId) {
-    TutorDetailResponse response = TutorDetailResponse.from(discoveryQueryService.getTutorDetail(tutorId));
+    var profile = discoveryQueryService.getTutorDetail(tutorId);
+    Instant from = Instant.now();
+    var busySlots = sessionFacade.findBusySlotsByTutorId(tutorId, from, from.plus(BUSY_WINDOW_DAYS, ChronoUnit.DAYS));
+    TutorDetailResponse response = TutorDetailResponse.from(profile, busySlots);
     return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin gia sư thành công"));
   }
 
